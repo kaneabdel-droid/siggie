@@ -14,7 +14,8 @@ export default async function BilansPage() {
       .eq('id', user.id)
       .single()
 
-    const tier = userData?.gies?.subscription_tier || 'standard'
+    const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+    const tier = gie?.subscription_tier || 'standard'
     if (tier !== 'premium') {
       redirect('/dashboard?error=upgrade_required')
     }

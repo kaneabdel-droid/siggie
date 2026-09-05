@@ -17,7 +17,8 @@ export default async function AbonnementPage() {
     .eq('id', user.id)
     .single()
 
-  const currentTier = userData?.gies?.subscription_tier || 'standard'
+  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+  const currentTier = gie?.subscription_tier || 'standard'
 
   const plans = [
     {
@@ -53,7 +54,7 @@ export default async function AbonnementPage() {
     <div className="py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold font-heading">Mon Abonnement</h1>
-        <p className="text-foreground-muted mt-2">Gérez le forfait de votre GIE : {userData?.gies?.nom}</p>
+        <p className="text-foreground-muted mt-2">Gérez le forfait de votre GIE : {gie?.nom}</p>
       </div>
 
       <div className="bg-surface rounded-2xl p-6 border border-surface-border shadow-sm mb-12">

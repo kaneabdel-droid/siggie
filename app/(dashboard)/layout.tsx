@@ -22,8 +22,9 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  const subscriptionTier = userData?.gies?.subscription_tier || 'standard'
-  const gieName = userData?.gies?.nom || 'Mon GIE'
+  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+  const subscriptionTier = gie?.subscription_tier || 'standard'
+  const gieName = gie?.nom || 'Mon GIE'
 
   return (
     <ClientLayout subscriptionTier={subscriptionTier} gieName={gieName}>

@@ -25,7 +25,11 @@ export default async function CheckoutPage({
       .select('gies(subscription_tier)')
       .eq('id', user.id)
       .single()
-    currentTier = userData?.gies?.subscription_tier || 'standard'
+
+    const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+    if (gie) {
+      currentTier = gie.subscription_tier || 'standard'
+    }
   }
 
   return <CheckoutClient initialPlan={plan} isLoggedIn={!!user} currentTier={currentTier} isUpgrade={isUpgrade} />
