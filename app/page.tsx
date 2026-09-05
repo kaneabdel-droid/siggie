@@ -4,11 +4,17 @@ import Link from 'next/link'
 import { ArrowRight, CheckCircle2, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Menu } from 'lucide-react'
 import { useState } from 'react'
 
-export default function LandingPage() {
+export default function LandingPage({ searchParams }: { searchParams?: { message?: string } }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const message = searchParams?.message
 
   return (
     <div className="bg-background min-h-screen font-sans text-foreground">
+      {message && (
+        <div className="bg-danger text-white text-center py-2 px-4 font-medium text-sm">
+          {message}
+        </div>
+      )}
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-surface-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
