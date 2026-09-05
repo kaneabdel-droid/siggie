@@ -1,7 +1,27 @@
 import { getGlobalStats } from './actions'
 import BilansClient from './BilansClient'
+import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 
 export default async function BilansPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    const { data: userData } = await supabase
+      .from('utilisateurs')
+      .select('gies(subscription_tier)')
+      .eq('id', user.id)
+      .single()
+
+    const tier = userData?.gies?.subscription_tier || 'standard'
+    if (tier !== 'premium') {
+      redirect('/dashboard?error=upgrade_required')
+    }
+  } else {
+    redirect('/login')
+  }
+
   const stats = await getGlobalStats()
 
   return (

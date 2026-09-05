@@ -1,6 +1,6 @@
 import { signup } from './actions'
 
-export default function SignupPage({ searchParams }: { searchParams: { message: string } }) {
+export default function SignupPage({ searchParams }: { searchParams: { message: string, plan?: string } }) {
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-background">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
@@ -14,6 +14,8 @@ export default function SignupPage({ searchParams }: { searchParams: { message: 
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form className="space-y-6" action={signup}>
+          <input type="hidden" name="plan" value={searchParams?.plan || 'standard'} />
+          
           {searchParams?.message && (
             <p className="text-sm text-center bg-danger/10 text-danger p-3 rounded-md">
               {searchParams.message}

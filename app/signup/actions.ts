@@ -12,6 +12,7 @@ export async function signup(formData: FormData) {
     options: {
       data: {
         gie_nom: formData.get('gie_nom') as string,
+        plan: formData.get('plan') as string || 'standard'
       },
     }
   }
@@ -22,6 +23,6 @@ export async function signup(formData: FormData) {
     return redirect('/signup?message=' + encodeURIComponent(error.message))
   }
 
-  // Si l'inscription réussit, on redirige vers le login avec un message de succès
-  return redirect('/login?message=' + encodeURIComponent("Compte créé avec succès. Vérifiez votre boîte mail si nécessaire."))
+  // Si l'inscription réussit, on redirige vers le login avec un message demandant la confirmation
+  return redirect('/login?message=' + encodeURIComponent("Compte créé avec succès ! Un lien de confirmation a été envoyé à votre adresse e-mail. Vous devez cliquer sur ce lien avant de pouvoir vous connecter."))
 }

@@ -1,0 +1,32 @@
+import { createClient } from '@/utils/supabase/server'
+import CheckoutClient from './CheckoutClient'
+import { redirect } from 'next/navigation'
+
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string, upgrade?: string }>
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const params = await searchParams
+  
+  const plan = params.plan || 'standard'
+  const isUpgrade = params.upgrade === 'true'
+
+  if (isUpgrade && !user) {
+    redirect('/login')
+  }
+
+  let currentTier = 'standard'
+  if (user) {
+    const { data: userData } = await supabase
+      .from('utilisateurs')
+      .select('gies(subscription_tier)')
+      .eq('id', user.id)
+      .single()
+    currentTier = userData?.gies?.subscription_tier || 'standard'
+  }
+
+  return <CheckoutClient initialPlan={plan} isLoggedIn={!!user} currentTier={currentTier} isUpgrade={isUpgrade} />
+}
