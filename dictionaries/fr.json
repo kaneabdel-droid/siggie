@@ -1,0 +1,61 @@
+{
+  "landing": {
+    "nav": {
+      "products": "Produits",
+      "pricing": "Tarifs",
+      "tips": "Astuces",
+      "login": "Connexion",
+      "subscribe": "S'abonner"
+    },
+    "hero": {
+      "title_1": "Simplifiez la gestion de votre",
+      "title_2": "Entreprise",
+      "desc": "Demba Solution offre des solutions informatiques modernes et intuitives pour automatiser vos processus, suivre vos finances et booster votre productivité.",
+      "btn_offers": "Voir nos offres",
+      "btn_client": "Espace Client"
+    },
+    "features": {
+      "title": "L'excellence au service de votre activité",
+      "desc": "Des outils pensés pour les réalités locales et les standards internationaux.",
+      "f1_title": "Rapide & Efficace",
+      "f1_desc": "Des interfaces fluides qui vous font gagner un temps précieux chaque jour.",
+      "f2_title": "Sécurité Maximale",
+      "f2_desc": "Vos données sont cryptées, sauvegardées et accessibles uniquement par vous.",
+      "f3_title": "100% Responsive",
+      "f3_desc": "Gérez votre activité depuis votre bureau ou sur le terrain avec votre smartphone."
+    },
+    "products": {
+      "title": "Nos Solutions Web",
+      "desc": "Découvrez notre écosystème d'applications conçues pour simplifier votre quotidien."
+    },
+    "pricing": {
+      "title": "Des tarifs adaptés à votre croissance",
+      "desc": "Choisissez le plan qui correspond aux besoins de votre entreprise. Paiement annuel sécurisé via Wave, Orange Money, Visa ou Virement."
+    },
+    "footer": {
+      "desc": "Propulsez la gestion de votre organisation vers l'avenir avec nos solutions logicielles intuitives et performantes."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Connexion à SIGGIE",
+      "desc": "Système Intégré de Gestion des GIE Agricoles",
+      "email": "Adresse e-mail",
+      "password": "Mot de passe",
+      "forgot": "Mot de passe oublié ?",
+      "btn": "Se connecter",
+      "no_account": "Votre GIE n'a pas encore de compte ?",
+      "signup": "Inscrivez votre GIE"
+    },
+    "signup": {
+      "title": "Créer un compte SIGGIE",
+      "desc": "Inscrivez votre GIE pour commencer à gérer vos campagnes.",
+      "gie_name": "Nom du GIE",
+      "email": "Adresse e-mail",
+      "password": "Mot de passe",
+      "btn": "S'inscrire",
+      "has_account": "Vous avez déjà un compte ?",
+      "login": "Connectez-vous"
+    }
+  }
+}

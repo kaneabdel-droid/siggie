@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 
 export async function login(formData: FormData) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   
   // Check lockout status
   const lockoutUntil = cookieStore.get('lockout_until')?.value

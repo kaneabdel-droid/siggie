@@ -1,21 +1,23 @@
-'use client'
+import LanguageSelector from '@/components/LanguageSelector'
+import ClientLoginForm from './ClientLoginForm'
+import { getDictionary, getLocale } from '@/dictionaries'
 
-import { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
-import { login } from './actions'
-
-export default function LoginPage({ searchParams }: { searchParams: { message?: string } }) {
+export default async function LoginPage({ searchParams }: { searchParams: { message?: string } }) {
   const message = searchParams?.message
-  const [showPassword, setShowPassword] = useState(false)
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   return (
-    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-background">
+    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-background relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector currentLang={locale} />
+      </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-primary">
-          Connexion à SIGGIE
+          {dict.auth.login.title}
         </h2>
         <p className="mt-2 text-center text-sm text-foreground-muted">
-          Système Intégré de Gestion des GIE Agricoles
+          {dict.auth.login.desc}
         </p>
       </div>
 
@@ -30,77 +32,12 @@ export default function LoginPage({ searchParams }: { searchParams: { message?: 
           </div>
         )}
 
-        <form className="space-y-6" action={login}>
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium leading-6 text-foreground"
-            >
-              Adresse e-mail
-            </label>
-            <div className="mt-2">
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="block w-full rounded-md border-0 py-1.5 px-3 bg-surface text-foreground shadow-sm ring-1 ring-inset ring-foreground-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium leading-6 text-foreground"
-              >
-                Mot de passe
-              </label>
-              <div className="text-sm">
-                <a href="/forgot-password" className="font-semibold text-primary hover:text-primary-hover">
-                  Mot de passe oublié ?
-                </a>
-              </div>
-            </div>
-            <div className="mt-2 relative">
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                className="block w-full rounded-md border-0 py-1.5 px-3 pr-10 bg-surface text-foreground shadow-sm ring-1 ring-inset ring-foreground-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground-muted hover:text-foreground"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-4 w-4" aria-hidden="true" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Se connecter
-            </button>
-          </div>
-        </form>
+        <ClientLoginForm dict={dict} />
 
         <p className="mt-10 text-center text-sm text-foreground-muted">
-          Votre GIE n'a pas encore de compte ?{' '}
+          {dict.auth.login.no_account}{' '}
           <a href="/signup" className="font-semibold leading-6 text-primary hover:text-primary-hover">
-            Inscrivez votre GIE
+            {dict.auth.login.signup}
           </a>
         </p>
       </div>

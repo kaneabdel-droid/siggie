@@ -1,0 +1,61 @@
+{
+  "landing": {
+    "nav": {
+      "products": "Produtos",
+      "pricing": "Preços",
+      "tips": "Dicas",
+      "login": "Entrar",
+      "subscribe": "Assinar"
+    },
+    "hero": {
+      "title_1": "Simplifique a gestão do seu",
+      "title_2": "Negócio",
+      "desc": "A Demba Solution oferece soluções de TI modernas e intuitivas para automatizar seus processos, rastrear suas finanças e aumentar sua produtividade.",
+      "btn_offers": "Ver nossas ofertas",
+      "btn_client": "Área do Cliente"
+    },
+    "features": {
+      "title": "Excelência a serviço da sua atividade",
+      "desc": "Ferramentas projetadas para realidades locais e padrões internacionais.",
+      "f1_title": "Rápido e Eficiente",
+      "f1_desc": "Interfaces fluidas que economizam um tempo valioso todos os dias.",
+      "f2_title": "Segurança Máxima",
+      "f2_desc": "Seus dados são criptografados, copiados e acessíveis apenas por você.",
+      "f3_title": "100% Responsivo",
+      "f3_desc": "Gerencie sua atividade do seu escritório ou em campo com seu smartphone."
+    },
+    "products": {
+      "title": "Nossas Soluções Web",
+      "desc": "Descubra nosso ecossistema de aplicativos projetados para simplificar o seu dia a dia."
+    },
+    "pricing": {
+      "title": "Preços adaptados ao seu crescimento",
+      "desc": "Escolha o plano que atende às necessidades da sua empresa. Pagamento anual seguro via Wave, Orange Money, Visa ou Transferência Bancária."
+    },
+    "footer": {
+      "desc": "Impulsione a gestão da sua organização para o futuro com nossas soluções de software intuitivas e de alto desempenho."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Entrar no SIGGIE",
+      "desc": "Sistema Integrado de Gestão para Grupos Agrícolas",
+      "email": "Endereço de E-mail",
+      "password": "Senha",
+      "forgot": "Esqueceu a senha?",
+      "btn": "Entrar",
+      "no_account": "Seu grupo ainda não tem uma conta?",
+      "signup": "Registre seu grupo"
+    },
+    "signup": {
+      "title": "Criar uma conta SIGGIE",
+      "desc": "Registre seu grupo para começar a gerenciar suas campanhas.",
+      "gie_name": "Nome do Grupo",
+      "email": "Endereço de E-mail",
+      "password": "Senha",
+      "btn": "Registrar",
+      "has_account": "Já tem uma conta?",
+      "login": "Entrar"
+    }
+  }
+}

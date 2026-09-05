@@ -1,0 +1,61 @@
+{
+  "landing": {
+    "nav": {
+      "products": "Products",
+      "pricing": "Pricing",
+      "tips": "Tips",
+      "login": "Login",
+      "subscribe": "Subscribe"
+    },
+    "hero": {
+      "title_1": "Simplify the management of your",
+      "title_2": "Business",
+      "desc": "Demba Solution offers modern and intuitive IT solutions to automate your processes, track your finances, and boost your productivity.",
+      "btn_offers": "View our offers",
+      "btn_client": "Client Portal"
+    },
+    "features": {
+      "title": "Excellence at the service of your business",
+      "desc": "Tools designed for local realities and international standards.",
+      "f1_title": "Fast & Efficient",
+      "f1_desc": "Fluid interfaces that save you valuable time every day.",
+      "f2_title": "Maximum Security",
+      "f2_desc": "Your data is encrypted, backed up, and accessible only by you.",
+      "f3_title": "100% Responsive",
+      "f3_desc": "Manage your business from your office or in the field with your smartphone."
+    },
+    "products": {
+      "title": "Our Web Solutions",
+      "desc": "Discover our ecosystem of applications designed to simplify your daily life."
+    },
+    "pricing": {
+      "title": "Pricing adapted to your growth",
+      "desc": "Choose the plan that fits your business needs. Secure annual payment via Wave, Orange Money, Visa, or Bank Transfer."
+    },
+    "footer": {
+      "desc": "Propel the management of your organization into the future with our intuitive and high-performance software solutions."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login to SIGGIE",
+      "desc": "Integrated Management System for Agricultural Groups",
+      "email": "Email Address",
+      "password": "Password",
+      "forgot": "Forgot password?",
+      "btn": "Log in",
+      "no_account": "Your group doesn't have an account yet?",
+      "signup": "Register your group"
+    },
+    "signup": {
+      "title": "Create a SIGGIE account",
+      "desc": "Register your group to start managing your campaigns.",
+      "gie_name": "Group Name",
+      "email": "Email Address",
+      "password": "Password",
+      "btn": "Register",
+      "has_account": "Already have an account?",
+      "login": "Log in"
+    }
+  }
+}
