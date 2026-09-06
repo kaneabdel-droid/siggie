@@ -3,12 +3,10 @@ import { cookies } from 'next/headers'
 const dictionaries = {
   fr: () => import('./fr.json').then((module) => module.default),
   en: () => import('./en.json').then((module) => module.default),
-  ar: () => import('./ar.json').then((module) => module.default),
-  pt: () => import('./pt.json').then((module) => module.default),
 }
 
 export type Locale = keyof typeof dictionaries
-export const locales: Locale[] = ['fr', 'en', 'ar', 'pt']
+export const locales: Locale[] = ['fr', 'en']
 export const defaultLocale: Locale = 'fr'
 
 export const getDictionary = async (locale?: Locale) => {

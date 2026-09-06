@@ -1,6 +1,9 @@
 ﻿-- Table des tarifs d'abonnements
+-- gen_random_uuid() est natif à Postgres 13+ (pas besoin de l'extension uuid-ossp,
+-- jamais activée sur ce projet — les tables précédentes ont été créées via l'éditeur
+-- Supabase, qui utilise gen_random_uuid() par défaut).
 create table public.tarif_abonnement (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     niveau varchar(50) not null unique,
     prix_annuel numeric not null,
     description text,

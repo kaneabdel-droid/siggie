@@ -31,23 +31,59 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
+  const { pathname } = request.nextUrl
+
+  // Les webhooks des prestataires de paiement (Bictorys, Moneroo) appellent cette
+  // route serveur-à-serveur sans session utilisateur : ils ne doivent jamais être
+  // redirigés vers /login, sous peine de casser la confirmation des paiements.
+  if (pathname.startsWith('/api/webhooks')) {
+    return supabaseResponse
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (
     !user &&
-    request.nextUrl.pathname !== '/' &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/signup') &&
-    !request.nextUrl.pathname.startsWith('/forgot-password') &&
-    !request.nextUrl.pathname.startsWith('/update-password') &&
-    !request.nextUrl.pathname.startsWith('/auth')
+    pathname !== '/' &&
+    !pathname.startsWith('/login') &&
+    !pathname.startsWith('/signup') &&
+    !pathname.startsWith('/forgot-password') &&
+    !pathname.startsWith('/update-password') &&
+    !pathname.startsWith('/auth')
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
+  }
+
+  // Verrouillage après la période d'essai : un GIE dont l'essai a expiré sans
+  // paiement confirmé (essai_expire_le non nul et dépassé) est redirigé vers son
+  // espace abonnement pour régulariser, sauf sur les pages nécessaires pour payer.
+  const exemptFromTrialLock =
+    pathname.startsWith('/abonnement') ||
+    pathname.startsWith('/checkout') ||
+    pathname.startsWith('/logout') ||
+    pathname.startsWith('/api/webhooks')
+
+  if (user && !exemptFromTrialLock) {
+    const { data: userData } = await supabase
+      .from('utilisateurs')
+      .select('gies(essai_expire_le)')
+      .eq('id', user.id)
+      .single()
+
+    const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+    const essaiExpireLe = gie?.essai_expire_le as string | null | undefined
+
+    if (essaiExpireLe && new Date(essaiExpireLe) < new Date()) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/abonnement'
+      url.searchParams.set('essai_expire', '1')
+      return NextResponse.redirect(url)
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

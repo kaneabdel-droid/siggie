@@ -24,11 +24,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
-  const isRtl = locale === 'ar';
 
   return (
-    <html lang={locale} dir={isRtl ? 'rtl' : 'ltr'} className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
-      <body className={`min-h-full flex flex-col ${isRtl ? 'font-sans-arabic' : ''}`}>{children}</body>
+    <html lang={locale} dir="ltr" className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
+      <body className={`min-h-full flex flex-col`}>{children}</body>
     </html>
   );
 }

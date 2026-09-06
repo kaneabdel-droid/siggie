@@ -1,9 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Shield, CheckCircle2, ArrowRight, Clock, AlertTriangle } from 'lucide-react'
 
-export default async function AbonnementPage() {
+export default async function AbonnementPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ essai_expire?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -11,14 +15,23 @@ export default async function AbonnementPage() {
     redirect('/login')
   }
 
+  const params = await searchParams
+  const essaiVerrouille = params?.essai_expire === '1'
+
   const { data: userData } = await supabase
     .from('utilisateurs')
-    .select('gies(nom, subscription_tier)')
+    .select('gies(nom, subscription_tier, essai_expire_le)')
     .eq('id', user.id)
     .single()
 
   const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
   const currentTier = gie?.subscription_tier || 'standard'
+  const maintenant = new Date()
+  const essaiExpireLe = gie?.essai_expire_le ? new Date(gie.essai_expire_le) : null
+  const essaiExpire = essaiExpireLe ? essaiExpireLe < maintenant : false
+  const joursRestants = essaiExpireLe && !essaiExpire
+    ? Math.max(0, Math.ceil((essaiExpireLe.getTime() - maintenant.getTime()) / (1000 * 60 * 60 * 24)))
+    : null
 
   const plans = [
     {
@@ -56,6 +69,24 @@ export default async function AbonnementPage() {
         <h1 className="text-3xl font-bold font-heading">Mon Abonnement</h1>
         <p className="text-foreground-muted mt-2">Gérez le forfait de votre GIE : {gie?.nom}</p>
       </div>
+
+      {(essaiExpire || essaiVerrouille) && (
+        <div className="mb-8 flex items-start gap-3 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+          <p className="text-sm font-medium">
+            Votre période d&apos;essai est terminée et l&apos;accès à votre espace a été verrouillé. Choisissez un moyen de paiement ci-dessous pour continuer à utiliser SIGGIE.
+          </p>
+        </div>
+      )}
+
+      {!essaiExpire && joursRestants !== null && (
+        <div className="mb-8 flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+          <Clock className="w-5 h-5 shrink-0 mt-0.5" />
+          <p className="text-sm font-medium">
+            Il vous reste {joursRestants} jour{joursRestants > 1 ? 's' : ''} d&apos;essai gratuit. Payez avant la fin de l&apos;essai pour éviter le verrouillage de votre espace.
+          </p>
+        </div>
+      )}
 
       <div className="bg-surface rounded-2xl p-6 border border-surface-border shadow-sm mb-12">
         <div className="flex items-center gap-4 mb-4">
