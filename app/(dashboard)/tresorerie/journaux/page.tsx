@@ -1,8 +1,12 @@
 import { getComptes } from '../actions'
 import JournalClient from './JournalClient'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function JournauxPage() {
   const { comptes, error } = await getComptes()
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+  const t = dict.tresorerie_pages.journaux
 
   if (error) {
     return <div className="p-4 bg-danger/10 text-danger rounded-md">Erreur: {error}</div>
@@ -11,7 +15,7 @@ export default async function JournauxPage() {
   if (!comptes || comptes.length === 0) {
     return (
       <div className="text-center py-12 text-foreground-muted bg-surface rounded-lg border border-surface-border">
-        Aucun compte trouvé. Veuillez d'abord créer un compte.
+        {t.no_account}
       </div>
     )
   }
@@ -19,13 +23,13 @@ export default async function JournauxPage() {
   return (
     <div>
       <div className="mb-8">
-        <h3 className="text-base font-semibold leading-6 text-foreground">Journaux de Caisse et de Banque</h3>
+        <h3 className="text-base font-semibold leading-6 text-foreground">{t.title}</h3>
         <p className="mt-2 text-sm text-foreground-muted">
-          Sélectionnez un compte pour voir toutes ses opérations avec le solde progressif.
+          {t.desc}
         </p>
       </div>
 
-      <JournalClient comptes={comptes} />
+      <JournalClient comptes={comptes} dict={dict} locale={locale} />
     </div>
   )
 }

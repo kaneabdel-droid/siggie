@@ -265,6 +265,315 @@
       "empty": "Aucune facture trouvée."
     }
   },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "add": "Ajouter",
+    "adding": "Ajout...",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "actions": "Actions",
+    "date": "Date"
+  },
+  "bilans": {
+    "title": "Bilans & Relevés",
+    "desc": "Tableau de bord récapitulatif de la santé financière et opérationnelle du GIE.",
+    "tresorerie_title": "Trésorerie Globale",
+    "tresorerie": {
+      "balance": "Solde Actuel",
+      "inflows": "Total Entrées",
+      "outflows": "Total Sorties"
+    },
+    "creances_title": "Engagements et Créances",
+    "creances": {
+      "unpaid": "Factures Impayées",
+      "credits": "Crédits Non Remboursés"
+    },
+    "materiel_title": "Synthèse Parc Matériel",
+    "materiel": {
+      "net_profit": "Rentabilité Nette du Parc",
+      "net_profit_desc": "Recettes - Dépenses - Amortissements",
+      "revenue": "Total Recettes",
+      "expenses": "Total Dépenses",
+      "depreciation": "Dépréciation (Amort.)"
+    }
+  },
+  "support": {
+    "title": "Aide & Support",
+    "desc": "Besoin d'aide pour utiliser SIGGIE ? Notre équipe est à votre disposition pour vous accompagner.",
+    "contact_title": "Nos coordonnées",
+    "phone": "Téléphone",
+    "phone_hours": "Lun-Ven de 8h à 18h",
+    "email": "Email",
+    "email_desc": "Assistance technique",
+    "office": "Bureau",
+    "office_desc": "Dakar, Sénégal",
+    "resources_title": "Ressources utiles",
+    "resources_desc": "Consultez notre guide d'utilisation ou notre FAQ pour trouver rapidement des réponses à vos questions.",
+    "doc_link": "Voir la documentation",
+    "form_title": "Envoyez-nous un message",
+    "form_desc": "Vous rencontrez un bug ou avez une question spécifique ? Remplissez ce formulaire et nous vous répondrons directement par email.",
+    "form": {
+      "subject": "Sujet de votre demande",
+      "subject_placeholder": "Ex: Problème avec une campagne, Question sur la facturation...",
+      "message": "Message détaillé",
+      "message_placeholder": "Décrivez votre problème ou votre question en détail...",
+      "send": "Envoyer le message",
+      "sending": "Envoi en cours...",
+      "sent_title": "Message envoyé avec succès !",
+      "sent_desc": "Notre équipe de support a bien reçu votre message et vous répondra dans les plus brefs délais.",
+      "send_another": "Envoyer un autre message"
+    }
+  },
+  "materiel_pages": {
+    "amortissements": {
+      "title": "Tableaux d'Amortissement",
+      "desc": "Consultez le plan d'amortissement comptable de chaque équipement de votre parc.",
+      "select_label": "Sélectionner un équipement pour voir son tableau d'amortissement :",
+      "not_valued": "Non valorisé",
+      "table_title": "Tableau d'amortissement (Linéaire)",
+      "acq_date": "Date d'acquisition",
+      "duration": "Durée",
+      "years": "ans",
+      "rate": "Taux",
+      "headers": {
+        "year": "Année",
+        "base": "Base à amortir",
+        "annuity": "Annuité",
+        "cumulative": "Amort. Cumulé",
+        "vnc": "VNC (Valeur Nette)"
+      },
+      "error": "Impossible de calculer l'amortissement pour cet équipement. Vérifiez que la valeur d'acquisition, la date et la durée de vie sont bien renseignées."
+    },
+    "consommations": {
+      "title": "Dépenses et Consommations",
+      "desc": "Suivez les frais d'entretien, de carburant et de pièces pour chaque équipement.",
+      "add_btn": "Saisir une dépense",
+      "total": "Total des Dépenses (Entretien & Carburant)",
+      "headers": {
+        "equipment": "Équipement",
+        "type": "Type (Fournisseur)",
+        "quantity": "Quantité",
+        "amount": "Montant (FCFA)"
+      },
+      "at_supplier": "chez",
+      "empty": "Aucune dépense enregistrée.",
+      "delete_confirm": "Êtes-vous sûr de vouloir supprimer cette dépense ?",
+      "delete_title": "Supprimer la dépense",
+      "edit_title_btn": "Modifier la dépense",
+      "form": {
+        "add_title": "Nouvelle Dépense (Consommation / Entretien)",
+        "edit_title": "Modifier la Dépense",
+        "equipment_label": "Équipement concerné",
+        "select_machine": "Sélectionner une machine",
+        "type_label": "Type de dépense",
+        "type_fuel": "Carburant",
+        "type_oil": "Huile / Lubrifiant",
+        "type_part": "Pièce de rechange",
+        "type_repair": "Réparation / Main d'œuvre",
+        "type_other": "Autre",
+        "supplier_label": "Fournisseur / Station service",
+        "quantity_label": "Quantité (L, Unité...)",
+        "amount_label": "Montant total (FCFA)",
+        "date_label": "Date"
+      }
+    },
+    "prestations": {
+      "title": "Historique des Prestations",
+      "desc": "Travaux réalisés par vos équipements générant des recettes.",
+      "add_btn": "Ajouter une prestation",
+      "total": "Total des Recettes (Prestations)",
+      "headers": {
+        "equipment": "Équipement",
+        "type": "Type (Client)",
+        "area": "Superficie",
+        "amount": "Montant (FCFA)"
+      },
+      "for_client": "pour",
+      "empty": "Aucune prestation enregistrée.",
+      "delete_confirm": "Êtes-vous sûr de vouloir supprimer cette prestation ?",
+      "delete_title": "Supprimer la prestation",
+      "edit_title_btn": "Modifier la prestation",
+      "form": {
+        "add_title": "Nouvelle Prestation (Recette)",
+        "edit_title": "Modifier la Prestation",
+        "equipment_label": "Équipement utilisé",
+        "select_machine": "Sélectionner une machine",
+        "type_label": "Type de prestation",
+        "type_placeholder": "Ex: Offset, Labour, Moisson...",
+        "client_label": "Client / Membre",
+        "area_label": "Superficie (ha)",
+        "amount_label": "Montant total (FCFA)",
+        "date_label": "Date de réalisation"
+      }
+    },
+    "rentabilite": {
+      "title": "Rentabilité du Parc Matériel",
+      "desc": "Analyse financière (Recettes - Dépenses - Amortissement) par équipement.",
+      "revenue": "Total Recettes",
+      "expenses": "Total Dépenses",
+      "gross_balance": "Solde Brut (Tréso.)",
+      "net_profit": "Rentabilité Nette",
+      "net_profit_badge": "Inclut amort.",
+      "headers": {
+        "equipment": "Équipement",
+        "revenue": "Recettes (Prest.)",
+        "expenses": "Dépenses (Consom.)",
+        "gross_balance": "Solde Brut",
+        "depreciation": "Amortissement Cumulé",
+        "net_result": "Résultat Net"
+      },
+      "acq_value": "Valeur acq",
+      "empty": "Aucun équipement enregistré."
+    }
+  },
+  "tresorerie_pages": {
+    "journaux": {
+      "no_account": "Aucun compte trouvé. Veuillez d'abord créer un compte.",
+      "title": "Journaux de Caisse et de Banque",
+      "desc": "Sélectionnez un compte pour voir toutes ses opérations avec le solde progressif.",
+      "select_account": "Choisir un compte",
+      "add_operation": "Saisir une opération",
+      "loading": "Chargement du journal...",
+      "headers": {
+        "reason": "Motif",
+        "in": "Entrée",
+        "out": "Sortie",
+        "balance": "Solde en cours"
+      },
+      "initial_balance": "Solde Initial",
+      "form": {
+        "title": "Saisir une nouvelle opération",
+        "type_label": "Type d'opération",
+        "type_in": "Entrée d'argent (+)",
+        "type_out": "Sortie d'argent (-)",
+        "piece_label": "Type de pièce (Optionnel)",
+        "piece_none": "-- Aucun --",
+        "piece_supplier": "Paiement Facture Fournisseur",
+        "piece_withdrawal": "Retrait en espèces",
+        "piece_deposit": "Versement",
+        "amount_label": "Montant (FCFA)",
+        "reason_label": "Motif (Description)",
+        "reason_placeholder": "Ex: Achat Urée Fournisseur X"
+      }
+    },
+    "rapprochement": {
+      "no_campaigns": "Aucune campagne trouvée.",
+      "title": "Rapprochement Bancaire",
+      "desc": "Bilan de l'utilisation du crédit de la banque pour une campagne donnée.",
+      "select_campaign": "Choisir une campagne",
+      "loading": "Chargement du bilan...",
+      "credit_granted": "Crédit Accordé",
+      "supplier_payments": "Paiements Frs",
+      "cash_withdrawals": "Retraits Espèces",
+      "credit_balance": "Solde du Crédit",
+      "supplier_payments_title": "Paiements Fournisseurs",
+      "cash_withdrawals_title": "Retraits en Espèces",
+      "account_label": "Compte",
+      "unknown_account": "Inconnu",
+      "no_payment": "Aucun paiement.",
+      "no_withdrawal": "Aucun retrait."
+    }
+  },
+  "campagnes_detail": {
+    "back": "Retour aux campagnes",
+    "config": {
+      "title": "Configuration :",
+      "desc": "Sélectionnez les membres qui participent à cette campagne. Seuls les membres inscrits ici pourront recevoir des intrants lors de la distribution.",
+      "enrollment_rate": "Taux d'inscription",
+      "members_unit": "membres",
+      "intrants_title": "Intrants de la campagne",
+      "intrants_desc": "Ajoutez les intrants qui seront distribués lors de cette campagne et définissez leur prix de facturation aux membres.",
+      "select_intrant": "Sélectionner un intrant",
+      "purchase_price": "Achat",
+      "billing_price_placeholder": "Prix de facturation (FCFA)",
+      "remove_confirm": "Voulez-vous vraiment retirer cet intrant de la campagne ?",
+      "edit_price_title": "Modifier le prix",
+      "remove_title": "Retirer l'intrant",
+      "intrants_empty": "Aucun intrant n'a été ajouté à cette campagne.",
+      "enrolled_title": "Membres inscrits",
+      "headers": {
+        "member": "Membre",
+        "code": "Code",
+        "village": "Village",
+        "enrolled": "Inscrit à la campagne ?"
+      },
+      "empty": "Aucun membre trouvé dans le GIE."
+    },
+    "bilan": {
+      "title": "Bilan :",
+      "desc": "Statistiques des distributions, valorisation financière, état des marges et dettes théoriques.",
+      "not_found": "Campagne introuvable.",
+      "print": "Imprimer",
+      "kpis": {
+        "enrolled": "Membres Inscrits",
+        "served": "Servis",
+        "served_unit": "membres",
+        "total_billed": "Total Facturé",
+        "net_margin": "Marge Nette",
+        "operations": "Opérations",
+        "operations_unit": "saisies"
+      },
+      "margin_section": {
+        "title": "État de Marge par Intrant",
+        "desc": "Comparaison entre les prix d'achat et les prix de facturation.",
+        "headers": {
+          "product": "Produit",
+          "buy_price": "Prix Achat",
+          "billed_price": "Prix Facturé",
+          "unit_margin": "Marge/U",
+          "total_qty": "Total Qté",
+          "global_margin": "Marge Globale"
+        },
+        "empty": "Aucune distribution enregistrée pour cette campagne."
+      },
+      "debts_section": {
+        "title": "Dettes et Remboursements par Membre",
+        "desc": "Suivi des dettes facturées et des remboursements effectués.",
+        "headers": {
+          "beneficiary": "Bénéficiaire",
+          "debt": "Dette (FCFA)",
+          "repayment": "Remboursement",
+          "balance": "Solde"
+        },
+        "settled": "Soldé",
+        "empty": "Aucun membre n'a encore reçu d'intrants."
+      },
+      "deliveries_section": {
+        "title": "État des Livraisons par Membre",
+        "desc": "Récapitulatif détaillé des quantités et montants livrés à chaque membre pour chaque intrant.",
+        "beneficiary": "Bénéficiaire",
+        "quantity": "Qté",
+        "amount": "Montant",
+        "total_global": "Total Global (FCFA)",
+        "grand_total": "TOTAL GÉNÉRAL",
+        "empty": "Aucune livraison enregistrée pour cette campagne."
+      }
+    }
+  },
+  "abonnement": {
+    "title": "Mon Abonnement",
+    "manage_desc": "Gérez le forfait de votre GIE :",
+    "trial_locked": "Votre période d'essai est terminée et l'accès à votre espace a été verrouillé. Choisissez un moyen de paiement ci-dessous pour continuer à utiliser SIGGIE.",
+    "trial_remaining_prefix": "Il vous reste",
+    "trial_remaining_day": "jour",
+    "trial_remaining_days": "jours",
+    "trial_remaining_suffix": "d'essai gratuit. Payez avant la fin de l'essai pour éviter le verrouillage de votre espace.",
+    "current_plan": "Forfait actuel :",
+    "renewal": "Renouvellement annuel -",
+    "upgrade_title": "Mettre à niveau (Upgrade)",
+    "upgrade_desc": "Passez au niveau supérieur en ne payant que la différence entre votre forfait actuel et le nouveau forfait.",
+    "current_badge": "Actuel",
+    "current_plan_btn": "Forfait Actuel",
+    "lower_tier": "Niveau inférieur",
+    "pay_prefix": "Payer",
+    "plans": {
+      "standard": { "name": "Standard", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts"] },
+      "medium": { "name": "Medium", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts", "Gestion du matériel & stocks"] },
+      "premium": { "name": "Premium", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts", "Gestion du matériel & stocks", "États financiers avancés"] }
+    }
+  },
   "remboursements": {
     "title": "Suivi des Remboursements",
     "desc": "Enregistrez les paiements en numéraire et les pesées pour les remboursements en nature.",

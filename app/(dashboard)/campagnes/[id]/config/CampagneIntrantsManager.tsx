@@ -24,12 +24,15 @@ type CampagneIntrant = {
 export default function CampagneIntrantsManager({
   campagneId,
   intrants,
-  campagneIntrants
+  campagneIntrants,
+  dict
 }: {
   campagneId: string
   intrants: Intrant[]
   campagneIntrants: CampagneIntrant[]
+  dict: any
 }) {
+  const t = dict.campagnes_detail.config
   const [isPending, startTransition] = useTransition()
   const [selectedIntrant, setSelectedIntrant] = useState('')
   const [prixFacturation, setPrixFacturation] = useState('')
@@ -57,7 +60,7 @@ export default function CampagneIntrantsManager({
   }
 
   const handleRemove = (id: string) => {
-    if (!confirm('Voulez-vous vraiment retirer cet intrant de la campagne ?')) return
+    if (!confirm(t.remove_confirm)) return
 
     startTransition(async () => {
       const res = await removeCampagneIntrant(id, campagneId)
@@ -94,9 +97,9 @@ export default function CampagneIntrantsManager({
   return (
     <div className="bg-surface border border-surface-border rounded-lg shadow-sm overflow-hidden mb-8">
       <div className="px-4 py-5 sm:p-6">
-        <h3 className="text-base font-semibold leading-6 text-foreground">Intrants de la campagne</h3>
+        <h3 className="text-base font-semibold leading-6 text-foreground">{t.intrants_title}</h3>
         <div className="mt-2 max-w-xl text-sm text-foreground-muted">
-          <p>Ajoutez les intrants qui seront distribués lors de cette campagne et définissez leur prix de facturation aux membres.</p>
+          <p>{t.intrants_desc}</p>
         </div>
 
         <div className="mt-5 sm:flex sm:items-center gap-3">
@@ -107,16 +110,16 @@ export default function CampagneIntrantsManager({
               disabled={isPending}
               className="block w-full rounded-md border-0 py-1.5 text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             >
-              <option value="">Sélectionner un intrant</option>
+              <option value="">{t.select_intrant}</option>
               {availableIntrants.map(i => (
-                <option key={i.id} value={i.id}>{i.nom} ({i.type_intrant}) - Achat: {i.prix_unitaire} FCFA</option>
+                <option key={i.id} value={i.id}>{i.nom} ({i.type_intrant}) - {t.purchase_price}: {i.prix_unitaire} FCFA</option>
               ))}
             </select>
           </div>
           <div className="mt-3 sm:mt-0 w-full sm:max-w-xs">
             <input
               type="number"
-              placeholder="Prix de facturation (FCFA)"
+              placeholder={t.billing_price_placeholder}
               value={prixFacturation}
               onChange={(e) => setPrixFacturation(e.target.value)}
               disabled={isPending}
@@ -130,7 +133,7 @@ export default function CampagneIntrantsManager({
             className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:mt-0 sm:w-auto disabled:opacity-50 transition-colors"
           >
             <Plus className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-            Ajouter
+            {dict.common.add}
           </button>
         </div>
       </div>
@@ -172,7 +175,7 @@ export default function CampagneIntrantsManager({
                           onClick={() => handleEditStart(ci)}
                           disabled={isPending}
                           className="text-foreground-muted hover:text-primary transition-colors disabled:opacity-50"
-                          title="Modifier le prix"
+                          title={t.edit_price_title}
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
@@ -180,7 +183,7 @@ export default function CampagneIntrantsManager({
                           onClick={() => handleRemove(ci.id)}
                           disabled={isPending}
                           className="text-foreground-muted hover:text-danger transition-colors disabled:opacity-50"
-                          title="Retirer l'intrant"
+                          title={t.remove_title}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -193,7 +196,7 @@ export default function CampagneIntrantsManager({
           </ul>
         ) : (
           <div className="px-4 py-6 text-center text-sm text-foreground-muted bg-background/50">
-            Aucun intrant n'a été ajouté à cette campagne.
+            {t.intrants_empty}
           </div>
         )}
       </div>

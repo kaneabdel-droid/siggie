@@ -2,6 +2,7 @@ import { getGlobalStats } from './actions'
 import BilansClient from './BilansClient'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function BilansPage() {
   const supabase = await createClient()
@@ -24,19 +25,21 @@ export default async function BilansPage() {
   }
 
   const stats = await getGlobalStats()
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   return (
     <div>
       <div className="mb-8">
         <h2 className="text-2xl font-bold leading-7 text-foreground sm:truncate sm:text-3xl sm:tracking-tight font-heading">
-          Bilans & Relevés
+          {dict.bilans.title}
         </h2>
         <p className="mt-2 text-sm text-foreground-muted">
-          Tableau de bord récapitulatif de la santé financière et opérationnelle du GIE.
+          {dict.bilans.desc}
         </p>
       </div>
 
-      <BilansClient stats={stats} />
+      <BilansClient stats={stats} dict={dict} />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, CheckCircle2, ArrowRight, Clock, AlertTriangle } from 'lucide-react'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function AbonnementPage({
   searchParams,
@@ -14,6 +15,10 @@ export default async function AbonnementPage({
   if (!user) {
     redirect('/login')
   }
+
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+  const t = dict.abonnement
 
   const params = await searchParams
   const essaiVerrouille = params?.essai_expire === '1'
@@ -36,26 +41,26 @@ export default async function AbonnementPage({
   const plans = [
     {
       id: 'standard',
-      name: 'Standard',
+      name: t.plans.standard.name,
       price: '50.000 FCFA / an',
       value: 50000,
-      features: ['Tableau de bord', 'Gestion des membres', 'Cotisations', 'Emprunts'],
+      features: t.plans.standard.features,
       color: 'border-surface-border'
     },
     {
       id: 'medium',
-      name: 'Medium',
+      name: t.plans.medium.name,
       price: '75.000 FCFA / an',
       value: 75000,
-      features: ['Tableau de bord', 'Gestion des membres', 'Cotisations', 'Emprunts', 'Gestion du matériel & stocks'],
+      features: t.plans.medium.features,
       color: 'border-primary'
     },
     {
       id: 'premium',
-      name: 'Premium',
+      name: t.plans.premium.name,
       price: '100.000 FCFA / an',
       value: 100000,
-      features: ['Tableau de bord', 'Gestion des membres', 'Cotisations', 'Emprunts', 'Gestion du matériel & stocks', 'États financiers avancés'],
+      features: t.plans.premium.features,
       color: 'border-success'
     }
   ]
@@ -66,15 +71,15 @@ export default async function AbonnementPage({
   return (
     <div className="py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold font-heading">Mon Abonnement</h1>
-        <p className="text-foreground-muted mt-2">Gérez le forfait de votre GIE : {gie?.nom}</p>
+        <h1 className="text-3xl font-bold font-heading">{t.title}</h1>
+        <p className="text-foreground-muted mt-2">{t.manage_desc} {gie?.nom}</p>
       </div>
 
       {(essaiExpire || essaiVerrouille) && (
         <div className="mb-8 flex items-start gap-3 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
           <p className="text-sm font-medium">
-            Votre période d&apos;essai est terminée et l&apos;accès à votre espace a été verrouillé. Choisissez un moyen de paiement ci-dessous pour continuer à utiliser SIGGIE.
+            {t.trial_locked}
           </p>
         </div>
       )}
@@ -83,7 +88,7 @@ export default async function AbonnementPage({
         <div className="mb-8 flex items-start gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary">
           <Clock className="w-5 h-5 shrink-0 mt-0.5" />
           <p className="text-sm font-medium">
-            Il vous reste {joursRestants} jour{joursRestants > 1 ? 's' : ''} d&apos;essai gratuit. Payez avant la fin de l&apos;essai pour éviter le verrouillage de votre espace.
+            {t.trial_remaining_prefix} {joursRestants} {joursRestants > 1 ? t.trial_remaining_days : t.trial_remaining_day} {t.trial_remaining_suffix}
           </p>
         </div>
       )}
@@ -94,15 +99,15 @@ export default async function AbonnementPage({
             <Shield className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-xl font-bold">Forfait actuel : {currentPlan.name}</h2>
-            <p className="text-foreground-muted">Renouvellement annuel - {currentPlan.price}</p>
+            <h2 className="text-xl font-bold">{t.current_plan} {currentPlan.name}</h2>
+            <p className="text-foreground-muted">{t.renewal} {currentPlan.price}</p>
           </div>
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold font-heading mb-6">Mettre à niveau (Upgrade)</h2>
+      <h2 className="text-2xl font-bold font-heading mb-6">{t.upgrade_title}</h2>
       <p className="text-foreground-muted mb-8">
-        Passez au niveau supérieur en ne payant que la différence entre votre forfait actuel et le nouveau forfait.
+        {t.upgrade_desc}
       </p>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -120,7 +125,7 @@ export default async function AbonnementPage({
               {isCurrent && (
                 <div className="absolute top-0 right-8 transform -translate-y-1/2">
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                    Actuel
+                    {t.current_badge}
                   </span>
                 </div>
               )}
@@ -142,18 +147,18 @@ export default async function AbonnementPage({
               
               {isCurrent ? (
                 <button disabled className="w-full rounded-xl bg-surface border-2 border-surface-border text-foreground-muted px-4 py-3 font-bold text-center opacity-70 cursor-not-allowed">
-                  Forfait Actuel
+                  {t.current_plan_btn}
                 </button>
               ) : isDowngrade ? (
                 <button disabled className="w-full rounded-xl bg-surface border-2 border-surface-border text-foreground-muted px-4 py-3 font-bold text-center opacity-50 cursor-not-allowed">
-                  Niveau inférieur
+                  {t.lower_tier}
                 </button>
               ) : (
-                <Link 
+                <Link
                   href={`/checkout?plan=${plan.id}&upgrade=true`}
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-white px-4 py-3 font-bold text-center hover:bg-primary-hover transition-colors"
                 >
-                  Payer {upgradeCost.toLocaleString('fr-FR')} FCFA <ArrowRight className="w-4 h-4" />
+                  {t.pay_prefix} {upgradeCost.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} FCFA <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
             </div>

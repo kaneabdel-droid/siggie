@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { sendMessage } from './actions'
 import { Send, CheckCircle2 } from 'lucide-react'
 
-export default function ContactForm() {
+export default function ContactForm({ dict }: { dict: any }) {
   const [isPending, startTransition] = useTransition()
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -13,9 +13,9 @@ export default function ContactForm() {
     e.preventDefault()
     setError(null)
     setSuccess(false)
-    
+
     const formData = new FormData(e.currentTarget)
-    
+
     startTransition(async () => {
       const result = await sendMessage(formData)
       if (result.error) {
@@ -33,15 +33,15 @@ export default function ContactForm() {
     return (
       <div className="rounded-md bg-success/10 p-6 text-center border border-success/20">
         <CheckCircle2 className="mx-auto h-12 w-12 text-success mb-3" />
-        <h3 className="text-lg font-medium text-success">Message envoyé avec succès !</h3>
+        <h3 className="text-lg font-medium text-success">{dict.support.form.sent_title}</h3>
         <p className="mt-2 text-sm text-success/80">
-          Notre équipe de support a bien reçu votre message et vous répondra dans les plus brefs délais.
+          {dict.support.form.sent_desc}
         </p>
-        <button 
+        <button
           onClick={() => setSuccess(false)}
           className="mt-6 text-sm font-medium text-success hover:text-success/80 underline"
         >
-          Envoyer un autre message
+          {dict.support.form.send_another}
         </button>
       </div>
     )
@@ -54,10 +54,10 @@ export default function ContactForm() {
           <p className="text-sm text-danger">{error}</p>
         </div>
       )}
-      
+
       <div>
         <label htmlFor="sujet" className="block text-sm font-medium leading-6 text-foreground">
-          Sujet de votre demande
+          {dict.support.form.subject}
         </label>
         <div className="mt-2">
           <input
@@ -67,14 +67,14 @@ export default function ContactForm() {
             required
             disabled={isPending}
             className="block w-full rounded-md border-0 py-1.5 text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-            placeholder="Ex: Problème avec une campagne, Question sur la facturation..."
+            placeholder={dict.support.form.subject_placeholder}
           />
         </div>
       </div>
 
       <div>
         <label htmlFor="message" className="block text-sm font-medium leading-6 text-foreground">
-          Message détaillé
+          {dict.support.form.message}
         </label>
         <div className="mt-2">
           <textarea
@@ -84,7 +84,7 @@ export default function ContactForm() {
             required
             disabled={isPending}
             className="block w-full rounded-md border-0 py-1.5 text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-            placeholder="Décrivez votre problème ou votre question en détail..."
+            placeholder={dict.support.form.message_placeholder}
           />
         </div>
       </div>
@@ -95,10 +95,10 @@ export default function ContactForm() {
           disabled={isPending}
           className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 transition-colors"
         >
-          {isPending ? 'Envoi en cours...' : (
+          {isPending ? dict.support.form.sending : (
             <>
               <Send className="-ml-0.5 mr-2 h-4 w-4" />
-              Envoyer le message
+              {dict.support.form.send}
             </>
           )}
         </button>

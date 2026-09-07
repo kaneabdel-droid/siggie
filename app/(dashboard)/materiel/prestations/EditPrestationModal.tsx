@@ -4,15 +4,16 @@ import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { updatePrestation } from '../actions'
 
-export default function EditPrestationModal({ prestation, materiels }: { prestation: any, materiels: any[] }) {
+export default function EditPrestationModal({ prestation, materiels, dict }: { prestation: any, materiels: any[], dict: any }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const t = dict.materiel_pages.prestations.form
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     const formData = new FormData(e.currentTarget)
-    
+
     const materiel_id = formData.get('materiel_id') as string
     const type_prestation = formData.get('type_prestation') as string
     const client_nom = formData.get('client_nom') as string
@@ -22,14 +23,14 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
 
     const res = await updatePrestation(
       prestation.id,
-      materiel_id, 
-      type_prestation, 
-      client_nom, 
-      superficie, 
-      montant_facture, 
+      materiel_id,
+      type_prestation,
+      client_nom,
+      superficie,
+      montant_facture,
       date_prestation
     )
-    
+
     setLoading(false)
     if (res?.error) {
       alert(res.error)
@@ -42,7 +43,7 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
     <>
       <button
         onClick={() => setIsOpen(true)}
-        title="Modifier la prestation"
+        title={dict.materiel_pages.prestations.edit_title_btn}
         className="text-secondary hover:text-secondary/80 p-1 rounded-md"
       >
         <Pencil className="h-4 w-4" aria-hidden="true" />
@@ -52,15 +53,15 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={() => setIsOpen(false)} />
-            
+
             <div className="relative transform overflow-hidden rounded-lg bg-surface text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-surface-border">
               <div className="bg-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                 <h3 className="text-lg font-semibold leading-6 text-foreground mb-4">
-                  Modifier la Prestation
+                  {t.edit_title}
                 </h3>
                 <form id={`edit-prestation-form-${prestation.id}`} onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="materiel_id" className="block text-sm font-medium text-foreground">Équipement utilisé</label>
+                    <label htmlFor="materiel_id" className="block text-sm font-medium text-foreground">{t.equipment_label}</label>
                     <select
                       name="materiel_id"
                       id="materiel_id"
@@ -68,14 +69,14 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
                       required
                       className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                     >
-                      <option value="">Sélectionner une machine</option>
+                      <option value="">{t.select_machine}</option>
                       {materiels.map(mat => (
                         <option key={mat.id} value={mat.id}>{mat.nom}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="type_prestation" className="block text-sm font-medium text-foreground">Type de prestation</label>
+                    <label htmlFor="type_prestation" className="block text-sm font-medium text-foreground">{t.type_label}</label>
                     <input
                       type="text"
                       name="type_prestation"
@@ -86,7 +87,7 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
                     />
                   </div>
                   <div>
-                    <label htmlFor="client_nom" className="block text-sm font-medium text-foreground">Client / Membre</label>
+                    <label htmlFor="client_nom" className="block text-sm font-medium text-foreground">{t.client_label}</label>
                     <input
                       type="text"
                       name="client_nom"
@@ -97,7 +98,7 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="superficie" className="block text-sm font-medium text-foreground">Superficie (ha)</label>
+                      <label htmlFor="superficie" className="block text-sm font-medium text-foreground">{t.area_label}</label>
                       <input
                         type="number"
                         name="superficie"
@@ -109,7 +110,7 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
                       />
                     </div>
                     <div>
-                      <label htmlFor="montant_facture" className="block text-sm font-medium text-foreground">Montant total (FCFA)</label>
+                      <label htmlFor="montant_facture" className="block text-sm font-medium text-foreground">{t.amount_label}</label>
                       <input
                         type="number"
                         name="montant_facture"
@@ -122,7 +123,7 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="date_prestation" className="block text-sm font-medium text-foreground">Date de réalisation</label>
+                    <label htmlFor="date_prestation" className="block text-sm font-medium text-foreground">{t.date_label}</label>
                     <input
                       type="date"
                       name="date_prestation"
@@ -141,14 +142,14 @@ export default function EditPrestationModal({ prestation, materiels }: { prestat
                   disabled={loading}
                   className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto disabled:opacity-50"
                 >
-                  {loading ? 'Enregistrement...' : 'Enregistrer'}
+                  {loading ? dict.common.saving : dict.common.save}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
                   className="mt-3 inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background sm:mt-0 sm:w-auto"
                 >
-                  Annuler
+                  {dict.common.cancel}
                 </button>
               </div>
             </div>

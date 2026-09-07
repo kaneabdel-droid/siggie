@@ -1,8 +1,11 @@
 import { getMateriels } from '../actions'
 import AmortissementsClient from './AmortissementsClient'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function AmortissementsPage() {
   const { materiels, error } = await getMateriels()
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   if (error) {
     return <div className="p-4 bg-danger/10 text-danger rounded-md">Erreur: {error}</div>
@@ -12,14 +15,14 @@ export default async function AmortissementsPage() {
     <div>
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
         <div>
-          <h3 className="text-xl font-bold leading-7 text-foreground">Tableaux d'Amortissement</h3>
+          <h3 className="text-xl font-bold leading-7 text-foreground">{dict.materiel_pages.amortissements.title}</h3>
           <p className="mt-1 text-sm text-foreground-muted">
-            Consultez le plan d'amortissement comptable de chaque équipement de votre parc.
+            {dict.materiel_pages.amortissements.desc}
           </p>
         </div>
       </div>
 
-      <AmortissementsClient materiels={materiels || []} />
+      <AmortissementsClient materiels={materiels || []} dict={dict} locale={locale} />
     </div>
   )
 }

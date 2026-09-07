@@ -4,10 +4,14 @@ import Link from 'next/link'
 import { ArrowLeft, Users } from 'lucide-react'
 import MembreToggle from './MembreToggle'
 import CampagneIntrantsManager from './CampagneIntrantsManager'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function CampagneConfigPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
   const { id } = await params
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+  const t = dict.campagnes_detail.config
 
   const { data: campagne } = await supabase
     .from('campagnes')
@@ -53,17 +57,17 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
       <div className="mb-6">
         <Link href="/campagnes" className="text-sm font-medium text-primary hover:text-primary-hover flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Retour aux campagnes
+          {dict.campagnes_detail.back}
         </Link>
       </div>
 
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h2 className="text-2xl font-bold font-heading text-foreground">
-            Configuration : {campagne.nom}
+            {t.title} {campagne.nom}
           </h2>
           <p className="mt-2 text-sm text-foreground-muted">
-            Sélectionnez les membres qui participent à cette campagne. Seuls les membres inscrits ici pourront recevoir des intrants lors de la distribution.
+            {t.desc}
           </p>
         </div>
       </div>
@@ -73,25 +77,26 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
           <Users className="h-6 w-6 text-secondary" aria-hidden="true" />
         </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Taux d'inscription</dt>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{t.enrollment_rate}</dt>
           <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">
-            {totalInscrits} / {totalMembres} membres
+            {totalInscrits} / {totalMembres} {t.members_unit}
           </dd>
         </div>
       </div>
 
       <div className="mt-8">
-        <CampagneIntrantsManager 
-          campagneId={id} 
-          intrants={intrants || []} 
-          campagneIntrants={(campagneIntrants as any) || []} 
+        <CampagneIntrantsManager
+          campagneId={id}
+          intrants={intrants || []}
+          campagneIntrants={(campagneIntrants as any) || []}
+          dict={dict}
         />
       </div>
 
       <div className="mt-8 flow-root">
         <div className="sm:flex sm:items-center mb-4">
           <div className="sm:flex-auto">
-            <h3 className="text-base font-semibold leading-6 text-foreground">Membres inscrits</h3>
+            <h3 className="text-base font-semibold leading-6 text-foreground">{t.enrolled_title}</h3>
           </div>
         </div>
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -100,10 +105,10 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">Membre</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Code</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Village</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Inscrit à la campagne ?</th>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{t.headers.member}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{t.headers.code}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{t.headers.village}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{t.headers.enrolled}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border bg-surface">
@@ -122,10 +127,10 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
                             {membre.village}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
-                            <MembreToggle 
-                              campagneId={id} 
-                              membreId={membre.id} 
-                              isEnrolledInitial={isEnrolled} 
+                            <MembreToggle
+                              campagneId={id}
+                              membreId={membre.id}
+                              isEnrolledInitial={isEnrolled}
                             />
                           </td>
                         </tr>
@@ -134,7 +139,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
                   ) : (
                     <tr>
                       <td colSpan={4} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
-                        Aucun membre trouvé dans le GIE.
+                        {t.empty}
                       </td>
                     </tr>
                   )}

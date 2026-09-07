@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 
-export default function AmortissementsClient({ materiels }: { materiels: any[] }) {
+export default function AmortissementsClient({ materiels, dict, locale }: { materiels: any[], dict: any, locale: string }) {
   const [selectedMatId, setSelectedMatId] = useState<string | null>(materiels.length > 0 ? materiels[0].id : null)
+  const t = dict.materiel_pages.amortissements
 
   const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(amount)
+    return new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(amount)
   }
 
   // Générer le tableau d'amortissement pour le matériel sélectionné
@@ -81,7 +82,7 @@ export default function AmortissementsClient({ materiels }: { materiels: any[] }
     <div className="space-y-6">
       <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm">
         <label htmlFor="materiel-select" className="block text-sm font-medium text-foreground mb-2">
-          Sélectionner un équipement pour voir son tableau d'amortissement :
+          {t.select_label}
         </label>
         <select
           id="materiel-select"
@@ -91,7 +92,7 @@ export default function AmortissementsClient({ materiels }: { materiels: any[] }
         >
           {materiels.map(mat => (
             <option key={mat.id} value={mat.id}>
-              {mat.nom} ({mat.valeur_acquisition ? formatMoney(mat.valeur_acquisition) : 'Non valorisé'})
+              {mat.nom} ({mat.valeur_acquisition ? formatMoney(mat.valeur_acquisition) : t.not_valued})
             </option>
           ))}
         </select>
@@ -100,21 +101,21 @@ export default function AmortissementsClient({ materiels }: { materiels: any[] }
       {selectedMat && tableau ? (
         <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
           <div className="px-6 py-4 border-b border-surface-border bg-background">
-            <h4 className="text-lg font-medium text-foreground">Tableau d'amortissement (Linéaire) - {selectedMat.nom}</h4>
+            <h4 className="text-lg font-medium text-foreground">{t.table_title} - {selectedMat.nom}</h4>
             <p className="text-sm text-foreground-muted mt-1">
-              Date d'acquisition : {new Date(selectedMat.date_acquisition).toLocaleDateString('fr-FR')} | 
-              Durée : {selectedMat.duree_vie_economique} ans | 
-              Taux : {Math.round((1 / selectedMat.duree_vie_economique) * 100)}%
+              {t.acq_date} : {new Date(selectedMat.date_acquisition).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} |
+              {t.duration} : {selectedMat.duree_vie_economique} {t.years} |
+              {t.rate} : {Math.round((1 / selectedMat.duree_vie_economique) * 100)}%
             </p>
           </div>
           <table className="min-w-full divide-y divide-surface-border">
             <thead className="bg-surface">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">Année</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">Base à amortir</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">Annuité</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">Amort. Cumulé</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">VNC (Valeur Nette)</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.year}</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.base}</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.annuity}</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.cumulative}</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">{t.headers.vnc}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border bg-surface">
@@ -142,7 +143,7 @@ export default function AmortissementsClient({ materiels }: { materiels: any[] }
         </div>
       ) : selectedMat ? (
         <div className="p-4 bg-warning/10 text-warning rounded-md">
-          Impossible de calculer l'amortissement pour cet équipement. Vérifiez que la valeur d'acquisition, la date et la durée de vie sont bien renseignées.
+          {t.error}
         </div>
       ) : null}
     </div>

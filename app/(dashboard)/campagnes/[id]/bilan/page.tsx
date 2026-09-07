@@ -3,13 +3,18 @@ import Link from 'next/link'
 import { ArrowLeft, Users, PackageOpen, Banknote, BarChart3, TrendingUp } from 'lucide-react'
 import { Fragment } from 'react'
 import PrintSectionButton from './PrintSectionButton'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export const dynamic = 'force-dynamic'
 
 export default async function BilanCampagnePage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
   const { id } = await params
-  
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+  const t = dict.campagnes_detail.bilan
+  const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
+
   // 1. Fetch Campaign
   const { data: campagne } = await supabase
     .from('campagnes')
@@ -18,7 +23,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     .single()
 
   if (!campagne) {
-    return <div>Campagne introuvable.</div>
+    return <div>{t.not_found}</div>
   }
 
   // 2. Counts (Members)
@@ -179,15 +184,15 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     <div className="space-y-8">
       <div>
         <Link href="/campagnes" className="text-sm font-medium text-primary hover:text-primary-hover flex items-center gap-1 mb-6">
-          <ArrowLeft className="h-4 w-4" /> Retour aux campagnes
+          <ArrowLeft className="h-4 w-4" /> {dict.campagnes_detail.back}
         </Link>
         <div className="sm:flex sm:items-center justify-between border-b border-surface-border pb-6">
           <div className="sm:flex-auto">
             <h2 className="text-2xl font-bold font-heading text-foreground">
-              Bilan : {campagne.nom}
+              {t.title} {campagne.nom}
             </h2>
             <p className="mt-2 text-sm text-foreground-muted">
-              Statistiques des distributions, valorisation financière, état des marges et dettes théoriques.
+              {t.desc}
             </p>
           </div>
           <div className="mt-4 sm:ml-16 sm:mt-0">
@@ -207,7 +212,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             <Users className="h-5 w-5 text-secondary" aria-hidden="true" />
           </div>
           <div className="w-full mt-1">
-            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">Membres Inscrits</dt>
+            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">{t.kpis.enrolled}</dt>
             <dd className="mt-1 text-lg font-bold tracking-tight text-foreground">
               {totalInscrits} <span className="text-xs font-normal text-foreground-muted">/ {totalMembresGie}</span>
             </dd>
@@ -219,9 +224,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             <PackageOpen className="h-5 w-5 text-primary" aria-hidden="true" />
           </div>
           <div className="w-full mt-1">
-            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">Servis</dt>
+            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">{t.kpis.served}</dt>
             <dd className="mt-1 text-lg font-bold tracking-tight text-foreground">
-              {totalMembresServis} <span className="text-xs font-normal text-foreground-muted">membres</span>
+              {totalMembresServis} <span className="text-xs font-normal text-foreground-muted">{t.kpis.served_unit}</span>
             </dd>
           </div>
         </div>
@@ -231,9 +236,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             <Banknote className="h-5 w-5 text-success" aria-hidden="true" />
           </div>
           <div className="w-full mt-1">
-            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">Total Facturé</dt>
+            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">{t.kpis.total_billed}</dt>
             <dd className="mt-1 text-lg font-bold tracking-tight text-foreground">
-              {totalValeurDistribuee.toLocaleString('fr-FR')} <span className="text-xs font-normal text-foreground-muted">FCFA</span>
+              {totalValeurDistribuee.toLocaleString(dateLocale)} <span className="text-xs font-normal text-foreground-muted">FCFA</span>
             </dd>
           </div>
         </div>
@@ -243,9 +248,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             <TrendingUp className="h-5 w-5 text-warning" aria-hidden="true" />
           </div>
           <div className="w-full mt-1">
-            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">Marge Nette</dt>
+            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">{t.kpis.net_margin}</dt>
             <dd className={`mt-1 text-lg font-bold tracking-tight ${margeNette >= 0 ? 'text-success' : 'text-danger'}`}>
-              {margeNette > 0 ? '+' : ''}{margeNette.toLocaleString('fr-FR')} <span className="text-xs font-normal text-foreground-muted">FCFA</span>
+              {margeNette > 0 ? '+' : ''}{margeNette.toLocaleString(dateLocale)} <span className="text-xs font-normal text-foreground-muted">FCFA</span>
             </dd>
           </div>
         </div>
@@ -255,9 +260,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             <BarChart3 className="h-5 w-5 text-info" aria-hidden="true" />
           </div>
           <div className="w-full mt-1">
-            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">Opérations</dt>
+            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">{t.kpis.operations}</dt>
             <dd className="mt-1 text-lg font-bold tracking-tight text-foreground">
-              {distributions.length} <span className="text-xs font-normal text-foreground-muted">saisies</span>
+              {distributions.length} <span className="text-xs font-normal text-foreground-muted">{t.kpis.operations_unit}</span>
             </dd>
           </div>
         </div>
@@ -268,22 +273,22 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
         <div className="flow-root" id="section-produits">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold leading-6 text-foreground">État de Marge par Intrant</h3>
-              <p className="mt-1 text-sm text-foreground-muted">Comparaison entre les prix d'achat et les prix de facturation.</p>
+              <h3 className="text-lg font-semibold leading-6 text-foreground">{t.margin_section.title}</h3>
+              <p className="mt-1 text-sm text-foreground-muted">{t.margin_section.desc}</p>
             </div>
-            <PrintSectionButton sectionId="section-produits" />
+            <PrintSectionButton sectionId="section-produits" label={t.print} />
           </div>
           <div className="overflow-hidden overflow-x-auto shadow ring-1 ring-surface-border sm:rounded-lg bg-surface">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3 pl-4 pr-3 text-left text-sm font-semibold text-foreground">Produit</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Prix Achat</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Prix Facturé</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Marge/U</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Total Qté</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Marge Globale</th>
+                    <th scope="col" className="py-3 pl-4 pr-3 text-left text-sm font-semibold text-foreground">{t.margin_section.headers.product}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.margin_section.headers.buy_price}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.margin_section.headers.billed_price}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.margin_section.headers.unit_margin}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.margin_section.headers.total_qty}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.margin_section.headers.global_margin}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border bg-surface">
@@ -295,26 +300,26 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                           <div className="text-xs text-foreground-muted capitalize">{p.info?.type_intrant}</div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right">
-                          {p.prix_achat.toLocaleString('fr-FR')}
+                          {p.prix_achat.toLocaleString(dateLocale)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-primary font-medium text-right">
-                          {p.prix_facturation.toLocaleString('fr-FR')}
+                          {p.prix_facturation.toLocaleString(dateLocale)}
                         </td>
                         <td className={`whitespace-nowrap px-3 py-4 text-sm font-medium text-right ${p.marge_unitaire >= 0 ? 'text-success' : 'text-danger'}`}>
-                          {p.marge_unitaire > 0 ? '+' : ''}{p.marge_unitaire.toLocaleString('fr-FR')}
+                          {p.marge_unitaire > 0 ? '+' : ''}{p.marge_unitaire.toLocaleString(dateLocale)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm font-semibold text-foreground text-right">
                           {p.quantite}
                         </td>
                         <td className={`whitespace-nowrap px-3 py-4 text-sm font-semibold text-right ${p.marge_totale >= 0 ? 'text-success' : 'text-danger'}`}>
-                          {p.marge_totale > 0 ? '+' : ''}{p.marge_totale.toLocaleString('fr-FR')}
+                          {p.marge_totale > 0 ? '+' : ''}{p.marge_totale.toLocaleString(dateLocale)}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td colSpan={6} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
-                        Aucune distribution enregistrée pour cette campagne.
+                        {t.margin_section.empty}
                       </td>
                     </tr>
                   )}
@@ -328,20 +333,20 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
         <div className="flow-root" id="section-dettes">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold leading-6 text-foreground">Dettes et Remboursements par Membre</h3>
-              <p className="mt-1 text-sm text-foreground-muted">Suivi des dettes facturées et des remboursements effectués.</p>
+              <h3 className="text-lg font-semibold leading-6 text-foreground">{t.debts_section.title}</h3>
+              <p className="mt-1 text-sm text-foreground-muted">{t.debts_section.desc}</p>
             </div>
-            <PrintSectionButton sectionId="section-dettes" />
+            <PrintSectionButton sectionId="section-dettes" label={t.print} />
           </div>
           <div className="overflow-hidden overflow-x-auto shadow ring-1 ring-surface-border sm:rounded-lg bg-surface">
             <div className="max-h-[500px] overflow-y-auto">
               <table className="min-w-full divide-y divide-surface-border relative">
                 <thead className="bg-background/50 sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th scope="col" className="py-3 pl-4 pr-3 text-left text-sm font-semibold text-foreground">Bénéficiaire</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Dette (FCFA)</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Remboursement</th>
-                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">Solde</th>
+                    <th scope="col" className="py-3 pl-4 pr-3 text-left text-sm font-semibold text-foreground">{t.debts_section.headers.beneficiary}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.debts_section.headers.debt}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.debts_section.headers.repayment}</th>
+                    <th scope="col" className="px-3 py-3 text-right text-sm font-semibold text-foreground">{t.debts_section.headers.balance}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border bg-surface">
@@ -353,20 +358,20 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                           <div className="text-xs text-foreground-muted">{m.info?.code_membre}</div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm font-semibold text-foreground text-right">
-                          {m.totalDette.toLocaleString('fr-FR')}
+                          {m.totalDette.toLocaleString(dateLocale)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm font-semibold text-success text-right">
-                          {m.remboursement.toLocaleString('fr-FR')}
+                          {m.remboursement.toLocaleString(dateLocale)}
                         </td>
                         <td className={`whitespace-nowrap px-3 py-4 text-sm font-bold text-right ${m.solde > 0 ? 'text-danger' : m.solde < 0 ? 'text-info' : 'text-success'}`}>
-                          {m.solde === 0 ? 'Soldé' : m.solde.toLocaleString('fr-FR')}
+                          {m.solde === 0 ? t.debts_section.settled : m.solde.toLocaleString(dateLocale)}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td colSpan={4} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
-                        Aucun membre n'a encore reçu d'intrants.
+                        {t.debts_section.empty}
                       </td>
                     </tr>
                   )}
@@ -381,10 +386,10 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
       <div className="flow-root mt-12" id="section-livraisons">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold leading-6 text-foreground">État des Livraisons par Membre</h3>
-            <p className="mt-1 text-sm text-foreground-muted">Récapitulatif détaillé des quantités et montants livrés à chaque membre pour chaque intrant.</p>
+            <h3 className="text-lg font-semibold leading-6 text-foreground">{t.deliveries_section.title}</h3>
+            <p className="mt-1 text-sm text-foreground-muted">{t.deliveries_section.desc}</p>
           </div>
-          <PrintSectionButton sectionId="section-livraisons" />
+          <PrintSectionButton sectionId="section-livraisons" label={t.print} />
         </div>
         <div className="overflow-hidden shadow-sm ring-1 ring-surface-border sm:rounded-lg bg-surface">
           <div className="overflow-x-auto">
@@ -392,23 +397,23 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
               <thead className="bg-background/50">
                 <tr>
                   <th scope="col" rowSpan={2} className="py-3 pl-4 pr-3 text-left font-semibold text-foreground border-r border-surface-border align-bottom">
-                    Bénéficiaire
+                    {t.deliveries_section.beneficiary}
                   </th>
                   {intrantsList.map(i => (
                     <th key={i.id} scope="col" colSpan={2} className="px-3 py-2 text-center font-semibold text-foreground border-r border-surface-border bg-primary/5">
-                      {i.nom} <br/> 
-                      <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString('fr-FR')} FCFA/u</span>
+                      {i.nom} <br/>
+                      <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString(dateLocale)} FCFA/u</span>
                     </th>
                   ))}
                   <th scope="col" rowSpan={2} className="px-3 py-3 text-right font-bold text-foreground align-bottom bg-background/80">
-                    Total Global (FCFA)
+                    {t.deliveries_section.total_global}
                   </th>
                 </tr>
                 <tr>
                   {intrantsList.map(i => (
                     <Fragment key={i.id}>
-                      <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-surface-border">Qté</th>
-                      <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-r border-surface-border">Montant</th>
+                      <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-surface-border">{t.deliveries_section.quantity}</th>
+                      <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-r border-surface-border">{t.deliveries_section.amount}</th>
                     </Fragment>
                   ))}
                 </tr>
@@ -426,23 +431,23 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                         return (
                           <Fragment key={i.id}>
                             <td className="whitespace-nowrap px-2 py-3 text-right text-foreground">
-                              {cell?.quantite ? cell.quantite.toLocaleString('fr-FR') : '-'}
+                              {cell?.quantite ? cell.quantite.toLocaleString(dateLocale) : '-'}
                             </td>
                             <td className="whitespace-nowrap px-2 py-3 text-right text-foreground border-r border-surface-border">
-                              {cell?.montant ? cell.montant.toLocaleString('fr-FR') : '-'}
+                              {cell?.montant ? cell.montant.toLocaleString(dateLocale) : '-'}
                             </td>
                           </Fragment>
                         )
                       })}
                       <td className="whitespace-nowrap px-3 py-3 text-right font-bold text-danger bg-background/30">
-                        {row.totalDette.toLocaleString('fr-FR')}
+                        {row.totalDette.toLocaleString(dateLocale)}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={intrantsList.length * 2 + 2} className="whitespace-nowrap py-8 text-center text-foreground-muted">
-                      Aucune livraison enregistrée pour cette campagne.
+                      {t.deliveries_section.empty}
                     </td>
                   </tr>
                 )}
@@ -451,7 +456,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                 {memberList.length > 0 && (
                   <tr className="bg-background/80 font-bold border-t-2 border-surface-border">
                     <td className="whitespace-nowrap py-3 pl-4 pr-3 text-right text-foreground border-r border-surface-border">
-                      TOTAL GÉNÉRAL
+                      {t.deliveries_section.grand_total}
                     </td>
                     {intrantsList.map(i => {
                       const totalQte = memberList.reduce((sum, row) => sum + (row.intrants[i.id]?.quantite || 0), 0)
@@ -459,16 +464,16 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                       return (
                         <Fragment key={i.id}>
                           <td className="whitespace-nowrap px-2 py-3 text-right text-foreground">
-                            {totalQte.toLocaleString('fr-FR')}
+                            {totalQte.toLocaleString(dateLocale)}
                           </td>
                           <td className="whitespace-nowrap px-2 py-3 text-right text-foreground border-r border-surface-border text-success">
-                            {totalMnt.toLocaleString('fr-FR')}
+                            {totalMnt.toLocaleString(dateLocale)}
                           </td>
                         </Fragment>
                       )
                     })}
                     <td className="whitespace-nowrap px-3 py-3 text-right text-primary font-bold">
-                      {memberList.reduce((sum, row) => sum + row.totalDette, 0).toLocaleString('fr-FR')}
+                      {memberList.reduce((sum, row) => sum + row.totalDette, 0).toLocaleString(dateLocale)}
                     </td>
                   </tr>
                 )}
