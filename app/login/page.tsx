@@ -2,8 +2,9 @@ import LanguageSelector from '@/components/LanguageSelector'
 import ClientLoginForm from './ClientLoginForm'
 import { getDictionary, getLocale } from '@/dictionaries'
 
-export default async function LoginPage({ searchParams }: { searchParams: { message?: string } }) {
-  const message = searchParams?.message
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
+  const params = await searchParams
+  const message = params?.message
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 

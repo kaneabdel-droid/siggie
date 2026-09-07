@@ -4,8 +4,9 @@ import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
 import { getDictionary, getLocale } from '@/dictionaries'
 
-export default async function LandingPage({ searchParams }: { searchParams?: { message?: string } }) {
-  const message = searchParams?.message
+export default async function LandingPage({ searchParams }: { searchParams?: Promise<{ message?: string }> }) {
+  const params = await searchParams
+  const message = params?.message
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 

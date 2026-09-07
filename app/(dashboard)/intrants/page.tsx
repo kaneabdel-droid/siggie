@@ -4,6 +4,7 @@ import CreateIntrantButton from './CreateIntrantButton'
 import AchatIntrantButton from './AchatIntrantButton'
 import IntrantRowActions from './IntrantRowActions'
 import SearchIntrants from './SearchIntrants'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function IntrantsPage({
   searchParams,
@@ -13,6 +14,8 @@ export default async function IntrantsPage({
   const supabase = await createClient()
   const params = await searchParams
   const query = params?.query || ''
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   // Fetch intrants for the current GIE
   let queryBuilder = supabase
@@ -52,9 +55,9 @@ export default async function IntrantsPage({
     <div>
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">Intrants & Stock</h2>
+          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.intrants.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
-            Gérez votre catalogue d'intrants, suivez les achats, les distributions et l'état des stocks en temps réel.
+            {dict.intrants.desc}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 flex gap-3 sm:flex-none">
@@ -69,8 +72,8 @@ export default async function IntrantsPage({
             <Package className="h-6 w-6 text-primary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Valeur Totale du Stock</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</dd>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.value}</dt>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalValue.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
@@ -78,8 +81,8 @@ export default async function IntrantsPage({
             <TrendingDown className="h-6 w-6 text-danger" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Distributions (Campagne en cours)</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalDistributions.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Unités</dd>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.distributions}</dt>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {dict.intrants.kpis.units}</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
@@ -87,7 +90,7 @@ export default async function IntrantsPage({
             <TrendingUp className="h-6 w-6 text-secondary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Remboursements en Nature</dt>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.repayments}</dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">- kg</dd>
           </div>
         </div>
@@ -105,14 +108,14 @@ export default async function IntrantsPage({
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">Intrant</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Type</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Détails</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Fournisseur</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Prix Unitaire</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">En Stock</th>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{dict.intrants.table.item}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.intrants.table.type}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.intrants.table.details}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.intrants.table.supplier}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.intrants.table.price}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.intrants.table.stock}</th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{dict.intrants.table.actions}</span>
                     </th>
                   </tr>
                 </thead>
@@ -128,7 +131,7 @@ export default async function IntrantsPage({
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">{intrant.description || '-'}</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">{intrant.fournisseur || '-'}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right font-medium">{intrant.prix_unitaire.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right font-medium">{intrant.prix_unitaire.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
                           <span className={`font-semibold ${intrant.quantite_stock < 100 ? 'text-danger' : 'text-primary'}`}>
                             {intrant.quantite_stock}
@@ -141,8 +144,8 @@ export default async function IntrantsPage({
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
-                        Aucun intrant trouvé. Cliquez sur "Nouvel Intrant" pour alimenter votre catalogue.
+                      <td colSpan={7} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
+                        {dict.intrants.empty}
                       </td>
                     </tr>
                   )}

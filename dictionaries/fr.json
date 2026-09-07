@@ -57,5 +57,232 @@
       "has_account": "Vous avez déjà un compte ?",
       "login": "Connectez-vous"
     }
+  },
+  "sidebar": {
+    "dashboard": "Tableau de bord",
+    "membres": "Membres",
+    "campagnes": "Campagnes",
+    "intrants": "Intrants & Stock",
+    "distribution": "Distribution",
+    "credits": "Crédits Bancaires",
+    "facturation": "Facturation",
+    "remboursements": "Remboursements",
+    "tresorerie": "Trésorerie",
+    "materiel": "Matériel",
+    "bilans": "Bilans & Relevés",
+    "abonnement": "Abonnement",
+    "support": "Aide & Support",
+    "logout": "Déconnexion"
+  },
+  "header": {
+    "admin": "Admin",
+    "open_sidebar": "Ouvrir la barre latérale",
+    "close_sidebar": "Fermer la barre latérale"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bienvenue sur SIGGIE. Voici un résumé de l'activité de votre GIE.",
+    "stats": {
+      "members": "Membres Inscrits",
+      "members_desc": "Dans la coopérative",
+      "season": "Campagne Actuelle",
+      "season_none": "Aucune",
+      "season_active": "En cours",
+      "season_done": "Terminée",
+      "repayment": "Taux de Remboursement",
+      "repayment_desc": "Sur la campagne",
+      "equipment": "Parc Matériel",
+      "equipment_link": "Voir les équipements"
+    },
+    "finance": {
+      "title": "Aperçu Financier",
+      "view_journal": "Voir le journal",
+      "balance": "Solde de la Trésorerie",
+      "inflows": "Total Entrées",
+      "outflows": "Total Sorties"
+    },
+    "recent_members": {
+      "title": "Membres Récents",
+      "registered": "Inscription de",
+      "empty": "Aucun membre récent.",
+      "view_all": "Voir tous les membres"
+    }
+  },
+  "membres": {
+    "title": "Membres",
+    "desc": "Liste de tous les membres du GIE, incluant leur nom, village, et numéro de téléphone.",
+    "table": {
+      "name": "Nom complet",
+      "village": "Village",
+      "phone": "Téléphone",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "empty": "Aucun membre trouvé. Cliquez sur \"Nouveau Membre\" pour commencer."
+  },
+  "campagnes": {
+    "title": "Campagnes Agricoles",
+    "desc": "Gérez vos campagnes, configurez les modes de remboursement et clôturez les exercices.",
+    "status": {
+      "active": "En cours",
+      "completed": "Terminée",
+      "cancelled": "Annulée"
+    },
+    "card": {
+      "from": "Du",
+      "to": "au",
+      "repayment": "Remboursement:",
+      "configure": "Configurer",
+      "report": "Bilan"
+    },
+    "empty": "Aucune campagne trouvée. Cliquez sur \"Nouvelle Campagne\" pour commencer."
+  },
+  "intrants": {
+    "title": "Intrants & Stock",
+    "desc": "Gérez votre catalogue d'intrants, suivez les achats, les distributions et l'état des stocks en temps réel.",
+    "kpis": {
+      "value": "Valeur Totale du Stock",
+      "distributions": "Distributions (Campagne en cours)",
+      "repayments": "Remboursements en Nature",
+      "units": "Unités"
+    },
+    "table": {
+      "item": "Intrant",
+      "type": "Type",
+      "details": "Détails",
+      "supplier": "Fournisseur",
+      "price": "Prix Unitaire",
+      "stock": "En Stock",
+      "actions": "Actions"
+    },
+    "empty": "Aucun intrant trouvé. Cliquez sur \"Nouvel Intrant\" pour alimenter votre catalogue."
+  },
+  "materiel": {
+    "title": "Parc Matériel & Suivi",
+    "desc": "Gérez votre équipement, vos prestations et vos dépenses d'entretien.",
+    "tabs": {
+      "inventaire": "Inventaire",
+      "prestations": "Prestations (Recettes)",
+      "consommations": "Consommations (Dépenses)",
+      "rentabilite": "Rentabilité",
+      "amortissements": "Amortissements"
+    },
+    "inventaire_table": {
+      "name": "Nom / Équipement",
+      "supplier": "Fournisseur",
+      "value": "Valeur",
+      "lifespan": "Durée de vie",
+      "acq_date": "Date Acq.",
+      "status": "État Actuel",
+      "actions": "Actions",
+      "years": "ans",
+      "status_good": "Bon état",
+      "status_repair": "En réparation",
+      "status_broken": "En panne",
+      "action_delete": "Supprimer",
+      "empty": "Aucun équipement enregistré.",
+      "confirm_delete": "Êtes-vous sûr de vouloir supprimer cet équipement ?"
+    }
+  },
+  "distribution": {
+    "title": "Distribution aux Membres",
+    "desc": "Remettez des intrants aux membres inscrits dans les campagnes.",
+    "kpis": {
+      "total": "Total Distribué",
+      "members": "Membres Bénéficiaires",
+      "operations": "Opérations",
+      "units": "unités"
+    },
+    "table": {
+      "date": "Date",
+      "beneficiary": "Bénéficiaire",
+      "product": "Produit Remis",
+      "quantity": "Quantité",
+      "season": "Campagne",
+      "actions": "Actions",
+      "unknown_member": "Membre inconnu",
+      "deleted_product": "Produit supprimé",
+      "empty": "Aucune distribution n'a encore été enregistrée."
+    }
+  },
+  "tresorerie": {
+    "title": "Trésorerie & Banque",
+    "desc": "Gérez vos comptes en banque, votre caisse, et rapprochez vos crédits de campagne.",
+    "tabs": {
+      "comptes": "Comptes (Soldes)",
+      "journaux": "Journaux",
+      "rapprochement": "Rapprochement"
+    },
+    "balances": {
+      "title": "Aperçu des Soldes",
+      "desc": "Solde actuel de la caisse et de vos comptes bancaires.",
+      "total": "Trésorerie Globale",
+      "empty": "Aucun compte créé pour le moment."
+    }
+  },
+  "credits": {
+    "title": "Crédits Bancaires (GIE)",
+    "desc": "Gérez les demandes de financement du GIE auprès des banques partenaires, le suivi des déblocages et le rapprochement.",
+    "kpis": {
+      "demanded": "Total Demandé",
+      "granted": "Total Accordé",
+      "pending": "En Attente",
+      "dossiers": "Dossier(s)"
+    },
+    "table": {
+      "season": "Campagne",
+      "bank": "Banque",
+      "demanded": "Demandé",
+      "granted": "Accordé",
+      "status": "Statut",
+      "actions": "Actions",
+      "unspecified": "Non spécifiée",
+      "status_pending": "En attente",
+      "status_valid": "Validé",
+      "status_rejected": "Rejeté",
+      "empty": "Aucune demande de crédit trouvée."
+    }
+  },
+  "facturation": {
+    "title": "Facturation",
+    "desc": "Générez, consultez et imprimez les factures de la campagne pour chaque membre.",
+    "search": "Rechercher une facture (Nom du membre, N°)...",
+    "table": {
+      "member": "N° / Membre",
+      "season": "Campagne",
+      "total_due": "Total Dû",
+      "paid": "Montant Payé",
+      "remaining": "Reste à Payer",
+      "status": "Statut",
+      "actions": "Actions",
+      "status_unpaid": "Impayée",
+      "status_paid": "Payée",
+      "status_partial": "Partiel",
+      "empty": "Aucune facture trouvée."
+    }
+  },
+  "remboursements": {
+    "title": "Suivi des Remboursements",
+    "desc": "Enregistrez les paiements en numéraire et les pesées pour les remboursements en nature.",
+    "search": "Rechercher un membre...",
+    "list": {
+      "surplus": "Surplus de remboursement : ",
+      "reste": "Reste : ",
+      "empty": "Aucune facture trouvée."
+    },
+    "details": {
+      "title": "Facture de",
+      "total_due": "Total Dû",
+      "surplus": "Surplus de Remboursement",
+      "remaining": "Reste à Payer",
+      "record_payment": "Enregistrer un paiement",
+      "cash": "En Numéraire (Espèces)",
+      "nature": "En Nature (Pesée)",
+      "empty": "Sélectionnez un membre pour voir ses remboursements"
+    }
   }
 }

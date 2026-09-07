@@ -4,6 +4,7 @@ import Link from 'next/link'
 import CreateCampagneButton from './CreateCampagneButton'
 import CampagneRowActions from './CampagneRowActions'
 import SearchCampagnes from './SearchCampagnes'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function CampagnesPage({
   searchParams,
@@ -13,6 +14,8 @@ export default async function CampagnesPage({
   const supabase = await createClient()
   const params = await searchParams
   const query = params?.query || ''
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   // Fetch campagnes for the current GIE
   let queryBuilder = supabase
@@ -30,9 +33,9 @@ export default async function CampagnesPage({
     <div>
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">Campagnes Agricoles</h2>
+          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.campagnes.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
-            Gérez vos campagnes, configurez les modes de remboursement et clôturez les exercices.
+            {dict.campagnes.desc}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -59,16 +62,16 @@ export default async function CampagnesPage({
                         campagne.statut === 'terminee' ? 'bg-success/10 text-success ring-success/20' : 
                         'bg-danger/10 text-danger ring-danger/20'
                       }`}>
-                        {campagne.statut === 'en_cours' ? 'En cours' : campagne.statut === 'terminee' ? 'Terminée' : 'Annulée'}
+                        {campagne.statut === 'en_cours' ? dict.campagnes.status.active : campagne.statut === 'terminee' ? dict.campagnes.status.completed : dict.campagnes.status.cancelled}
                       </span>
                     </div>
                     <CampagneRowActions campagne={campagne} />
                   </div>
                   <p className="mt-1 truncate text-sm text-foreground-muted">
-                    Du {campagne.date_debut ? new Date(campagne.date_debut).toLocaleDateString('fr-FR') : '-'} au {campagne.date_fin ? new Date(campagne.date_fin).toLocaleDateString('fr-FR') : '-'}
+                    {dict.campagnes.card.from} {campagne.date_debut ? new Date(campagne.date_debut).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'} {dict.campagnes.card.to} {campagne.date_fin ? new Date(campagne.date_fin).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'}
                   </p>
                   <div className="mt-4 flex items-center text-sm text-foreground-muted gap-2">
-                    <span className="font-semibold text-foreground">Remboursement:</span> 
+                    <span className="font-semibold text-foreground">{dict.campagnes.card.repayment}</span> 
                     <span className="capitalize">{campagne.mode_remboursement}</span>
                     {campagne.produit_collecte && ` (${campagne.produit_collecte})`}
                   </div>
@@ -82,7 +85,7 @@ export default async function CampagnesPage({
                       className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 text-sm font-semibold text-foreground hover:text-primary transition-colors"
                     >
                       <Settings className="h-5 w-5 text-foreground-muted" aria-hidden="true" />
-                      Configurer
+                      {dict.campagnes.card.configure}
                     </Link>
                   </div>
                   <div className="-ml-px flex w-0 flex-1">
@@ -91,7 +94,7 @@ export default async function CampagnesPage({
                       className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 text-sm font-semibold text-foreground hover:text-primary transition-colors"
                     >
                       <FileText className="h-5 w-5 text-foreground-muted" aria-hidden="true" />
-                      Bilan
+                      {dict.campagnes.card.report}
                     </Link>
                   </div>
                 </div>
@@ -100,7 +103,7 @@ export default async function CampagnesPage({
           ))
         ) : (
           <div className="col-span-full py-8 text-center text-sm text-foreground-muted border-2 border-dashed border-surface-border rounded-lg">
-            Aucune campagne trouvée. Cliquez sur "Nouvelle Campagne" pour commencer.
+            {dict.campagnes.empty}
           </div>
         )}
       </div>

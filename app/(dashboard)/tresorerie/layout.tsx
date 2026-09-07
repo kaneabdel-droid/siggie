@@ -1,19 +1,23 @@
 import Link from 'next/link'
 import { Landmark, BookText, ArrowLeftRight } from 'lucide-react'
+import { getDictionary, getLocale } from '@/dictionaries'
 
-export default function TresorerieLayout({
+export default async function TresorerieLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+
   return (
     <div className="space-y-6">
       <div className="border-b border-surface-border pb-5">
         <h2 className="text-2xl font-bold leading-7 text-foreground sm:truncate sm:text-3xl sm:tracking-tight font-heading">
-          Trésorerie & Banque
+          {dict.tresorerie.title}
         </h2>
         <p className="mt-2 text-sm text-foreground-muted">
-          Gérez vos comptes en banque, votre caisse, et rapprochez vos crédits de campagne.
+          {dict.tresorerie.desc}
         </p>
       </div>
 
@@ -23,21 +27,21 @@ export default function TresorerieLayout({
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
         >
           <Landmark className="w-4 h-4" />
-          Comptes (Soldes)
+          {dict.tresorerie.tabs.comptes}
         </Link>
         <Link
           href="/tresorerie/journaux"
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
         >
           <BookText className="w-4 h-4" />
-          Journaux
+          {dict.tresorerie.tabs.journaux}
         </Link>
         <Link
           href="/tresorerie/rapprochement"
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
         >
           <ArrowLeftRight className="w-4 h-4" />
-          Rapprochement
+          {dict.tresorerie.tabs.rapprochement}
         </Link>
       </nav>
 

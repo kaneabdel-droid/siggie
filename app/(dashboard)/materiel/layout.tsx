@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import ClientMaterielLayout from './ClientMaterielLayout'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function MaterielLayout({
   children,
@@ -26,8 +27,11 @@ export default async function MaterielLayout({
     redirect('/login')
   }
 
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+
   return (
-    <ClientMaterielLayout>
+    <ClientMaterielLayout dict={dict.materiel}>
       {children}
     </ClientMaterielLayout>
   )

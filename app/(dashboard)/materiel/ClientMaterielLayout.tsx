@@ -3,33 +3,35 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const tabs = [
-  { name: 'Inventaire', href: '/materiel/inventaire' },
-  { name: 'Prestations (Recettes)', href: '/materiel/prestations' },
-  { name: 'Consommations (Dépenses)', href: '/materiel/consommations' },
-  { name: 'Rentabilité', href: '/materiel/rentabilite' },
-  { name: 'Amortissements', href: '/materiel/amortissements' },
-]
-
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
 }
 
 export default function ClientMaterielLayout({
   children,
+  dict
 }: {
   children: React.ReactNode
+  dict: any
 }) {
   const pathname = usePathname()
+
+  const tabs = [
+    { name: dict.tabs.inventaire, href: '/materiel/inventaire' },
+    { name: dict.tabs.prestations, href: '/materiel/prestations' },
+    { name: dict.tabs.consommations, href: '/materiel/consommations' },
+    { name: dict.tabs.rentabilite, href: '/materiel/rentabilite' },
+    { name: dict.tabs.amortissements, href: '/materiel/amortissements' },
+  ]
 
   return (
     <div>
       <div className="mb-8">
         <h2 className="text-2xl font-bold leading-7 text-foreground sm:truncate sm:text-3xl sm:tracking-tight font-heading">
-          Parc Matériel & Suivi
+          {dict.title}
         </h2>
         <p className="mt-2 text-sm text-foreground-muted">
-          Gérez votre équipement, vos prestations et vos dépenses d'entretien.
+          {dict.desc}
         </p>
       </div>
 

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { Plus, Search, ReceiptText, Printer } from 'lucide-react'
@@ -6,7 +6,7 @@ import DownloadPdfButton from './DownloadPdfButton'
 
 import GenererFacturesModal from './GenererFacturesModal'
 
-export default function FacturationClient({ factures }: { factures: any[] }) {
+export default function FacturationClient({ factures, dict, locale }: { factures: any[], dict: any, locale: string }) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const filteredFactures = factures.filter(f => 
@@ -19,9 +19,9 @@ export default function FacturationClient({ factures }: { factures: any[] }) {
     <div>
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">Facturation</h2>
+          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.facturation.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
-            Générez, consultez et imprimez les factures de la campagne pour chaque membre.
+            {dict.facturation.desc}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 flex gap-3 sm:flex-none">
@@ -37,7 +37,7 @@ export default function FacturationClient({ factures }: { factures: any[] }) {
           <input
             type="text"
             className="block w-full rounded-md border-0 py-2 pl-10 pr-3 bg-surface text-foreground ring-1 ring-inset ring-surface-border placeholder:text-foreground-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 shadow-sm"
-            placeholder="Rechercher une facture (Nom du membre, NÂ°)..."
+            placeholder={dict.facturation.search}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -51,14 +51,14 @@ export default function FacturationClient({ factures }: { factures: any[] }) {
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">NÂ° / Membre</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Campagne</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Total Dû</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Montant Payé</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Reste à  Payer</th>
-                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-foreground">Statut</th>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{dict.facturation.table.member}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.season}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.total_due}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.paid}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.remaining}</th>
+                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-foreground">{dict.facturation.table.status}</th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{dict.facturation.table.actions}</span>
                     </th>
                   </tr>
                 </thead>
@@ -83,13 +83,13 @@ export default function FacturationClient({ factures }: { factures: any[] }) {
                           {facture.campagne?.nom}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold text-foreground">
-                          {facture.montant_total?.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                          {facture.montant_total?.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-success">
-                          {facture.montant_paye?.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                          {facture.montant_paye?.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold text-danger">
-                          {resteAPayer > 0 ? resteAPayer.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' FCFA' : '-'}
+                          {resteAPayer > 0 ? resteAPayer.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 }) + ' FCFA' : '-'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-center text-sm">
                           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
@@ -97,8 +97,8 @@ export default function FacturationClient({ factures }: { factures: any[] }) {
                             facture.statut === 'payee' ? 'bg-success/10 text-success ring-success/20' :
                             'bg-secondary/10 text-secondary ring-secondary/20'
                           }`}>
-                            {facture.statut === 'impayee' ? 'Impayée' : 
-                             facture.statut === 'payee' ? 'Payée' : 'Partiel'}
+                            {facture.statut === 'impayee' ? dict.facturation.table.status_unpaid : 
+                             facture.statut === 'payee' ? dict.facturation.table.status_paid : dict.facturation.table.status_partial}
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
@@ -113,7 +113,7 @@ export default function FacturationClient({ factures }: { factures: any[] }) {
                   {filteredFactures.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
-                        Aucune facture trouvée.
+                        {dict.facturation.table.empty}
                       </td>
                     </tr>
                   )}

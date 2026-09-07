@@ -57,5 +57,232 @@
       "has_account": "Already have an account?",
       "login": "Log in"
     }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "membres": "Members",
+    "campagnes": "Seasons",
+    "intrants": "Inputs & Stock",
+    "distribution": "Distribution",
+    "credits": "Bank Loans",
+    "facturation": "Billing",
+    "remboursements": "Repayments",
+    "tresorerie": "Cash Flow",
+    "materiel": "Equipment",
+    "bilans": "Reports & Statements",
+    "abonnement": "Subscription",
+    "support": "Help & Support",
+    "logout": "Log out"
+  },
+  "header": {
+    "admin": "Admin",
+    "open_sidebar": "Open sidebar",
+    "close_sidebar": "Close sidebar"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to SIGGIE. Here is a summary of your group's activity.",
+    "stats": {
+      "members": "Registered Members",
+      "members_desc": "In the cooperative",
+      "season": "Current Season",
+      "season_none": "None",
+      "season_active": "In progress",
+      "season_done": "Completed",
+      "repayment": "Repayment Rate",
+      "repayment_desc": "For the season",
+      "equipment": "Equipment Fleet",
+      "equipment_link": "View equipment"
+    },
+    "finance": {
+      "title": "Financial Overview",
+      "view_journal": "View journal",
+      "balance": "Cash Balance",
+      "inflows": "Total Inflows",
+      "outflows": "Total Outflows"
+    },
+    "recent_members": {
+      "title": "Recent Members",
+      "registered": "Registration of",
+      "empty": "No recent members.",
+      "view_all": "View all members"
+    }
+  },
+  "membres": {
+    "title": "Members",
+    "desc": "List of all group members, including their name, village, and phone number.",
+    "table": {
+      "name": "Full Name",
+      "village": "Village",
+      "phone": "Phone",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "empty": "No members found. Click \"New Member\" to get started."
+  },
+  "campagnes": {
+    "title": "Agricultural Seasons",
+    "desc": "Manage your seasons, configure repayment methods, and close the financial years.",
+    "status": {
+      "active": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "card": {
+      "from": "From",
+      "to": "to",
+      "repayment": "Repayment:",
+      "configure": "Configure",
+      "report": "Report"
+    },
+    "empty": "No seasons found. Click \"New Season\" to get started."
+  },
+  "intrants": {
+    "title": "Inputs & Stock",
+    "desc": "Manage your input catalog, track purchases, distributions, and stock levels in real time.",
+    "kpis": {
+      "value": "Total Stock Value",
+      "distributions": "Distributions (Current season)",
+      "repayments": "In-kind Repayments",
+      "units": "Units"
+    },
+    "table": {
+      "item": "Input",
+      "type": "Type",
+      "details": "Details",
+      "supplier": "Supplier",
+      "price": "Unit Price",
+      "stock": "In Stock",
+      "actions": "Actions"
+    },
+    "empty": "No inputs found. Click \"New Input\" to populate your catalog."
+  },
+  "materiel": {
+    "title": "Equipment & Tracking",
+    "desc": "Manage your equipment, services, and maintenance expenses.",
+    "tabs": {
+      "inventaire": "Inventory",
+      "prestations": "Services (Income)",
+      "consommations": "Consumptions (Expenses)",
+      "rentabilite": "Profitability",
+      "amortissements": "Depreciations"
+    },
+    "inventaire_table": {
+      "name": "Name / Equipment",
+      "supplier": "Supplier",
+      "value": "Value",
+      "lifespan": "Lifespan",
+      "acq_date": "Acq. Date",
+      "status": "Current Status",
+      "actions": "Actions",
+      "years": "years",
+      "status_good": "Good condition",
+      "status_repair": "Under repair",
+      "status_broken": "Broken",
+      "action_delete": "Delete",
+      "empty": "No equipment registered.",
+      "confirm_delete": "Are you sure you want to delete this equipment?"
+    }
+  },
+  "distribution": {
+    "title": "Distribution to Members",
+    "desc": "Distribute inputs to members enrolled in the seasons.",
+    "kpis": {
+      "total": "Total Distributed",
+      "members": "Beneficiary Members",
+      "operations": "Operations",
+      "units": "units"
+    },
+    "table": {
+      "date": "Date",
+      "beneficiary": "Beneficiary",
+      "product": "Product Distributed",
+      "quantity": "Quantity",
+      "season": "Season",
+      "actions": "Actions",
+      "unknown_member": "Unknown member",
+      "deleted_product": "Deleted product",
+      "empty": "No distribution has been registered yet."
+    }
+  },
+  "tresorerie": {
+    "title": "Treasury & Bank",
+    "desc": "Manage your bank accounts, cash desk, and reconcile your season credits.",
+    "tabs": {
+      "comptes": "Accounts (Balances)",
+      "journaux": "Ledgers",
+      "rapprochement": "Reconciliation"
+    },
+    "balances": {
+      "title": "Balances Overview",
+      "desc": "Current balance of the cash desk and your bank accounts.",
+      "total": "Total Treasury",
+      "empty": "No account created yet."
+    }
+  },
+  "credits": {
+    "title": "Bank Credits (GIE)",
+    "desc": "Manage financing requests of the GIE to partner banks, track disbursements, and reconciliation.",
+    "kpis": {
+      "demanded": "Total Demanded",
+      "granted": "Total Granted",
+      "pending": "Pending",
+      "dossiers": "Dossier(s)"
+    },
+    "table": {
+      "season": "Season",
+      "bank": "Bank",
+      "demanded": "Demanded",
+      "granted": "Granted",
+      "status": "Status",
+      "actions": "Actions",
+      "unspecified": "Unspecified",
+      "status_pending": "Pending",
+      "status_valid": "Validated",
+      "status_rejected": "Rejected",
+      "empty": "No credit request found."
+    }
+  },
+  "facturation": {
+    "title": "Billing",
+    "desc": "Generate, view, and print season invoices for each member.",
+    "search": "Search for an invoice (Member name, No)...",
+    "table": {
+      "member": "No / Member",
+      "season": "Season",
+      "total_due": "Total Due",
+      "paid": "Amount Paid",
+      "remaining": "Remaining to Pay",
+      "status": "Status",
+      "actions": "Actions",
+      "status_unpaid": "Unpaid",
+      "status_paid": "Paid",
+      "status_partial": "Partial",
+      "empty": "No invoice found."
+    }
+  },
+  "remboursements": {
+    "title": "Repayments Tracking",
+    "desc": "Record cash payments and weighings for repayments in kind.",
+    "search": "Search for a member...",
+    "list": {
+      "surplus": "Repayment surplus: ",
+      "reste": "Remaining: ",
+      "empty": "No invoice found."
+    },
+    "details": {
+      "title": "Invoice of",
+      "total_due": "Total Due",
+      "surplus": "Repayment Surplus",
+      "remaining": "Remaining to Pay",
+      "record_payment": "Record a payment",
+      "cash": "In Cash",
+      "nature": "In Kind (Weighing)",
+      "empty": "Select a member to view their repayments"
+    }
   }
 }

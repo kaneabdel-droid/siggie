@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 import SearchMembres from './SearchMembres'
 import CreateMembreButton from './CreateMembreButton'
 import MembreRowActions from './MembreRowActions'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function MembresPage({
   searchParams,
@@ -12,6 +13,8 @@ export default async function MembresPage({
   const supabase = await createClient()
   const params = await searchParams
   const query = params?.query || ''
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   // Fetch members for the current GIE
   let queryBuilder = supabase
@@ -29,9 +32,9 @@ export default async function MembresPage({
     <div>
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">Membres</h2>
+          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.membres.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
-            Liste de tous les membres du GIE, incluant leur nom, village, et numéro de téléphone.
+            {dict.membres.desc}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -53,19 +56,19 @@ export default async function MembresPage({
                 <thead className="bg-background/50">
                   <tr>
                     <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">
-                      Nom complet
+                      {dict.membres.table.name}
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
-                      Village
+                      {dict.membres.table.village}
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
-                      Téléphone
+                      {dict.membres.table.phone}
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
-                      Statut
+                      {dict.membres.table.status}
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{dict.membres.table.actions}</span>
                     </th>
                   </tr>
                 </thead>
@@ -86,7 +89,7 @@ export default async function MembresPage({
                           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
                             membre.statut === 'actif' ? 'bg-primary/10 text-primary ring-primary/20' : 'bg-foreground-muted/10 text-foreground-muted ring-foreground-muted/20'
                           }`}>
-                            {membre.statut === 'actif' ? 'Actif' : 'Inactif'}
+                            {membre.statut === 'actif' ? dict.membres.status.active : dict.membres.status.inactive}
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
@@ -97,7 +100,7 @@ export default async function MembresPage({
                   ) : (
                     <tr>
                       <td colSpan={5} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
-                        Aucun membre trouvé. Cliquez sur "Nouveau Membre" pour commencer.
+                        {dict.membres.empty}
                       </td>
                     </tr>
                   )}

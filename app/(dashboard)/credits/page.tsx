@@ -2,9 +2,12 @@ import { createClient } from '@/utils/supabase/server'
 import { Building, DollarSign, Clock, CheckCircle2 } from 'lucide-react'
 import CreateCreditButton from './CreateCreditButton'
 import CreditRowActions from './CreditRowActions'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function CreditsPage() {
   const supabase = await createClient()
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   // 1. Fetch campaigns for the Create Modal
   const { data: campagnes } = await supabase
@@ -32,9 +35,9 @@ export default async function CreditsPage() {
     <div>
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">Crédits Bancaires (GIE)</h2>
+          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.credits.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
-            Gérez les demandes de financement du GIE auprès des banques partenaires, le suivi des déblocages et le rapprochement.
+            {dict.credits.desc}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -48,8 +51,8 @@ export default async function CreditsPage() {
             <DollarSign className="h-8 w-8 text-secondary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Total Demandé</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{totalDemande.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</dd>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.credits.kpis.demanded}</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{totalDemande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-4">
@@ -57,8 +60,8 @@ export default async function CreditsPage() {
             <CheckCircle2 className="h-8 w-8 text-success" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Total Accordé</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{totalAccorde.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</dd>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.credits.kpis.granted}</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{totalAccorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-4">
@@ -66,8 +69,8 @@ export default async function CreditsPage() {
             <Clock className="h-8 w-8 text-warning" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">En Attente</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{enAttenteCount} Dossier(s)</dd>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.credits.kpis.pending}</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{enAttenteCount} {dict.credits.kpis.dossiers}</dd>
           </div>
         </div>
       </div>
@@ -79,13 +82,13 @@ export default async function CreditsPage() {
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">Campagne</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Banque</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Demandé</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Accordé</th>
-                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-foreground">Statut</th>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{dict.credits.table.season}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.credits.table.bank}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.credits.table.demanded}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.credits.table.granted}</th>
+                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-foreground">{dict.credits.table.status}</th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{dict.credits.table.actions}</span>
                     </th>
                   </tr>
                 </thead>
@@ -98,14 +101,14 @@ export default async function CreditsPage() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground flex items-center gap-2">
                           <Building className="h-4 w-4 text-foreground-muted" />
-                          {credit.banque_nom || <span className="text-foreground-muted italic">Non spécifiée</span>}
+                          {credit.banque_nom || <span className="text-foreground-muted italic">{dict.credits.table.unspecified}</span>}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right">
-                          {credit.montant_demande.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                          {credit.montant_demande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-right font-medium text-foreground">
                           {credit.statut === 'valide' ? (
-                            <span className="text-success">{credit.montant_accorde.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</span>
+                            <span className="text-success">{credit.montant_accorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</span>
                           ) : '-'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-center">
@@ -114,7 +117,7 @@ export default async function CreditsPage() {
                             credit.statut === 'valide' ? 'bg-success/10 text-success ring-success/20' : 
                             'bg-danger/10 text-danger ring-danger/20'
                           }`}>
-                            {credit.statut === 'en_attente' ? 'En attente' : credit.statut === 'valide' ? 'Validé' : 'Rejeté'}
+                            {credit.statut === 'en_attente' ? dict.credits.table.status_pending : credit.statut === 'valide' ? dict.credits.table.status_valid : dict.credits.table.status_rejected}
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
@@ -125,7 +128,7 @@ export default async function CreditsPage() {
                   ) : (
                     <tr>
                       <td colSpan={6} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
-                        Aucune demande de crédit trouvée.
+                        {dict.credits.table.empty}
                       </td>
                     </tr>
                   )}

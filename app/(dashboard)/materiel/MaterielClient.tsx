@@ -5,7 +5,7 @@ import { Trash2, ChevronDown } from 'lucide-react'
 import { updateMaterielEtat, deleteMateriel } from './actions'
 import EditMaterielModal from './EditMaterielModal'
 
-export default function MaterielClient({ materiels }: { materiels: any[] }) {
+export default function MaterielClient({ materiels, dict }: { materiels: any[], dict: any }) {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -19,7 +19,7 @@ export default function MaterielClient({ materiels }: { materiels: any[] }) {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('ÃŠtes-vous sûr de vouloir supprimer cet équipement ?')) return
+    if (!confirm(dict.confirm_delete)) return
     setUpdatingId(id)
     const res = await deleteMateriel(id)
     if (res?.error) {
@@ -31,11 +31,11 @@ export default function MaterielClient({ materiels }: { materiels: any[] }) {
   const getEtatBadge = (etat: string) => {
     switch (etat) {
       case 'bon':
-        return <span className="inline-flex items-center rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success ring-1 ring-inset ring-success/20">Bon état</span>
+        return <span className="inline-flex items-center rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success ring-1 ring-inset ring-success/20">{dict.status_good}</span>
       case 'reparation':
-        return <span className="inline-flex items-center rounded-md bg-warning/10 px-2 py-1 text-xs font-medium text-warning ring-1 ring-inset ring-warning/20">En réparation</span>
+        return <span className="inline-flex items-center rounded-md bg-warning/10 px-2 py-1 text-xs font-medium text-warning ring-1 ring-inset ring-warning/20">{dict.status_repair}</span>
       case 'en_panne':
-        return <span className="inline-flex items-center rounded-md bg-danger/10 px-2 py-1 text-xs font-medium text-danger ring-1 ring-inset ring-danger/20">En panne</span>
+        return <span className="inline-flex items-center rounded-md bg-danger/10 px-2 py-1 text-xs font-medium text-danger ring-1 ring-inset ring-danger/20">{dict.status_broken}</span>
       default:
         return <span className="inline-flex items-center rounded-md bg-surface-border px-2 py-1 text-xs font-medium text-foreground-muted">{etat}</span>
     }
@@ -46,13 +46,13 @@ export default function MaterielClient({ materiels }: { materiels: any[] }) {
       <table className="min-w-full divide-y divide-surface-border">
         <thead className="bg-background">
           <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">Nom / Ã‰quipement</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">Fournisseur</th>
-            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">Valeur (FCFA)</th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-foreground-muted uppercase tracking-wider">Durée de vie</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">Date Acq.</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">Ã‰tat Actuel</th>
-            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider sticky right-0 bg-background shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10">Actions</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.name}</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.supplier}</th>
+            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.value}</th>
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.lifespan}</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.acq_date}</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.status}</th>
+            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider sticky right-0 bg-background shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10">{dict.actions}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-surface-border bg-surface">
@@ -68,7 +68,7 @@ export default function MaterielClient({ materiels }: { materiels: any[] }) {
                 {mat.valeur_acquisition ? mat.valeur_acquisition.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) : '-'}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-center text-foreground-muted">
-                {mat.duree_vie_economique ? `${mat.duree_vie_economique} ans` : '-'}
+                {mat.duree_vie_economique ? `${mat.duree_vie_economique} ${dict.years}` : '-'}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
                 {mat.date_acquisition ? new Date(mat.date_acquisition).toLocaleDateString('fr-FR') : '-'}
@@ -82,7 +82,7 @@ export default function MaterielClient({ materiels }: { materiels: any[] }) {
                     onClick={() => setOpenMenuId(openMenuId === mat.id ? null : mat.id)}
                     className="flex items-center gap-1 bg-surface-hover text-foreground border border-surface-border px-3 py-1.5 rounded-md font-medium text-sm shadow-sm hover:bg-surface-border transition-colors"
                   >
-                    Actions
+                    {dict.actions}
                     <ChevronDown className="h-4 w-4" aria-hidden="true" />
                   </button>
                   
@@ -98,7 +98,7 @@ export default function MaterielClient({ materiels }: { materiels: any[] }) {
                         className="flex w-full items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-surface-hover text-left disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4 text-danger/80" aria-hidden="true" />
-                        <span>Supprimer</span>
+                        <span>{dict.action_delete}</span>
                       </button>
                     </div>
                   )}
@@ -108,8 +108,8 @@ export default function MaterielClient({ materiels }: { materiels: any[] }) {
           ))}
           {materiels.length === 0 && (
             <tr>
-              <td colSpan={4} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
-                Aucun équipement enregistré.
+              <td colSpan={7} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
+                {dict.empty}
               </td>
             </tr>
           )}

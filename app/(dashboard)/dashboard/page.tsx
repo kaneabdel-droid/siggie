@@ -1,9 +1,12 @@
 import { Users, Leaf, Banknote, Tractor, ArrowRight } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function Dashboard() {
   const supabase = await createClient()
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   // Fetch real data
   const { count: membresCount } = await supabase.from('membres').select('*', { count: 'exact', head: true })
@@ -16,7 +19,7 @@ export default async function Dashboard() {
     .limit(1)
     .single()
     
-  const nomCampagne = campagneData?.nom || 'Aucune'
+  const nomCampagne = campagneData?.nom || dict.dashboard.stats.season_none
 
   let tauxRemboursement = 0
   if (campagneData) {
@@ -66,19 +69,19 @@ export default async function Dashboard() {
   const soldeActuel = soldeInitialTotal + totalEntrees - totalSorties
 
   const stats = [
-    { name: 'Membres Inscrits', value: membresCount || '0', icon: Users, desc: 'Dans la coopérative', color: 'text-blue-600', bg: 'bg-blue-100' },
-    { name: 'Campagne Actuelle', value: nomCampagne, icon: Leaf, desc: campagneData ? 'En cours' : 'Terminée', color: 'text-green-600', bg: 'bg-green-100' },
-    { name: 'Taux de Remboursement', value: `${tauxRemboursement}%`, icon: Banknote, desc: 'Sur la campagne', color: 'text-emerald-600', bg: 'bg-emerald-100' },
-    { name: 'Parc Matériel', value: null, icon: Tractor, desc: '', color: 'text-orange-600', bg: 'bg-orange-100', link: '/materiel', linkText: 'Voir les équipements' },
+    { name: dict.dashboard.stats.members, value: membresCount || '0', icon: Users, desc: dict.dashboard.stats.members_desc, color: 'text-blue-600', bg: 'bg-blue-100' },
+    { name: dict.dashboard.stats.season, value: nomCampagne, icon: Leaf, desc: campagneData ? dict.dashboard.stats.season_active : dict.dashboard.stats.season_done, color: 'text-green-600', bg: 'bg-green-100' },
+    { name: dict.dashboard.stats.repayment, value: `${tauxRemboursement}%`, icon: Banknote, desc: dict.dashboard.stats.repayment_desc, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+    { name: dict.dashboard.stats.equipment, value: null, icon: Tractor, desc: '', color: 'text-orange-600', bg: 'bg-orange-100', link: '/materiel', linkText: dict.dashboard.stats.equipment_link },
   ]
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold font-heading text-foreground">Tableau de bord</h2>
+          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.dashboard.title}</h2>
           <p className="mt-1 text-sm text-foreground-muted">
-            Bienvenue sur SIGGIE. Voici un résumé de l'activité de votre GIE.
+            {dict.dashboard.welcome}
           </p>
         </div>
       </div>
@@ -101,7 +104,7 @@ export default async function Dashboard() {
             </div>
             <div className="mt-4">
               <p className="text-sm font-medium text-foreground-muted">{item.name}</p>
-              {item.value ? (
+              {item.value !== null ? (
                 <p className="mt-1 text-2xl font-semibold text-foreground">{item.value}</p>
               ) : item.link && item.linkText ? (
                 <div className="mt-1">
@@ -122,31 +125,31 @@ export default async function Dashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl bg-surface border border-surface-border shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-surface-border bg-background/50 flex justify-between items-center">
-            <h3 className="text-lg font-semibold leading-6 text-foreground">Aperçu Financier</h3>
+            <h3 className="text-lg font-semibold leading-6 text-foreground">{dict.dashboard.finance.title}</h3>
             <Link href="/tresorerie" className="text-sm font-medium text-primary hover:text-primary/80">
-              Voir le journal
+              {dict.dashboard.finance.view_journal}
             </Link>
           </div>
           <div className="p-6 flex-1 flex flex-col justify-center bg-surface space-y-6">
             
             <div className="bg-background rounded-lg border border-surface-border p-5 text-center">
-              <p className="text-sm font-medium text-foreground-muted mb-1">Solde de la Trésorerie</p>
+              <p className="text-sm font-medium text-foreground-muted mb-1">{dict.dashboard.finance.balance}</p>
               <p className={`text-3xl font-bold ${soldeActuel >= 0 ? 'text-foreground' : 'text-danger'}`}>
-                {soldeActuel.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                {soldeActuel.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-success/10 border border-success/20 rounded-lg p-4 text-center">
-                <p className="text-xs font-medium text-success mb-1">Total Entrées</p>
+                <p className="text-xs font-medium text-success mb-1">{dict.dashboard.finance.inflows}</p>
                 <p className="text-lg font-bold text-success">
-                  +{totalEntrees.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
+                  +{totalEntrees.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}
                 </p>
               </div>
               <div className="bg-danger/10 border border-danger/20 rounded-lg p-4 text-center">
-                <p className="text-xs font-medium text-danger mb-1">Total Sorties</p>
+                <p className="text-xs font-medium text-danger mb-1">{dict.dashboard.finance.outflows}</p>
                 <p className="text-lg font-bold text-danger">
-                  -{totalSorties.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
+                  -{totalSorties.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}
                 </p>
               </div>
             </div>
@@ -156,7 +159,7 @@ export default async function Dashboard() {
         
         <div className="rounded-xl bg-surface border border-surface-border shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-surface-border bg-background/50">
-            <h3 className="text-lg font-semibold leading-6 text-foreground">Membres Récents</h3>
+            <h3 className="text-lg font-semibold leading-6 text-foreground">{dict.dashboard.recent_members.title}</h3>
           </div>
           <div className="p-6 flex-1 bg-surface">
             <div className="flow-root">
@@ -176,12 +179,12 @@ export default async function Dashboard() {
                         <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
                           <div>
                             <p className="text-sm text-foreground">
-                              Inscription de <span className="font-medium">{membre.prenom} {membre.nom}</span>
+                              {dict.dashboard.recent_members.registered} <span className="font-medium">{membre.prenom} {membre.nom}</span>
                             </p>
                           </div>
                           <div className="whitespace-nowrap text-right text-sm text-foreground-muted">
                             <time dateTime={membre.created_at}>
-                              {new Date(membre.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                              {new Date(membre.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
                             </time>
                           </div>
                         </div>
@@ -189,13 +192,13 @@ export default async function Dashboard() {
                     </li>
                   ))
                 ) : (
-                  <li className="text-sm text-foreground-muted text-center py-4">Aucun membre récent.</li>
+                  <li className="text-sm text-foreground-muted text-center py-4">{dict.dashboard.recent_members.empty}</li>
                 )}
               </ul>
             </div>
             <div className="mt-6 pt-4 border-t border-surface-border">
               <Link href="/membres" className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1">
-                Voir tous les membres <ArrowRight className="h-4 w-4" />
+                {dict.dashboard.recent_members.view_all} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>

@@ -2,11 +2,14 @@ import { createClient } from '@/utils/supabase/server'
 import { PackageOpen, Users, BarChart3 } from 'lucide-react'
 import CreateDistributionModal from './CreateDistributionModal'
 import DistributionRowActions from './DistributionRowActions'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DistributionPage() {
   const supabase = await createClient()
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
 
   // 1. Fetch campaigns (active ones)
   const { data: campagnes } = await supabase
@@ -62,9 +65,9 @@ export default async function DistributionPage() {
     <div>
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">Distribution aux Membres</h2>
+          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.distribution.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
-            Remettez des intrants aux membres inscrits dans les campagnes.
+            {dict.distribution.desc}
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -83,8 +86,8 @@ export default async function DistributionPage() {
             <PackageOpen className="h-6 w-6 text-primary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Total Distribué</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalQuantite} unités</dd>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.distribution.kpis.total}</dt>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalQuantite} {dict.distribution.kpis.units}</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
@@ -92,7 +95,7 @@ export default async function DistributionPage() {
             <Users className="h-6 w-6 text-secondary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Membres Bénéficiaires</dt>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.distribution.kpis.members}</dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{nombreMembresServis}</dd>
           </div>
         </div>
@@ -101,7 +104,7 @@ export default async function DistributionPage() {
             <BarChart3 className="h-6 w-6 text-success" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">Opérations</dt>
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.distribution.kpis.operations}</dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{distributions?.length || 0}</dd>
           </div>
         </div>
@@ -114,13 +117,13 @@ export default async function DistributionPage() {
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">Date</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Bénéficiaire</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Produit Remis</th>
-                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">Quantité</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">Campagne</th>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{dict.distribution.table.date}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.distribution.table.beneficiary}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.distribution.table.product}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.distribution.table.quantity}</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.distribution.table.season}</th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{dict.distribution.table.actions}</span>
                     </th>
                   </tr>
                 </thead>
@@ -129,14 +132,14 @@ export default async function DistributionPage() {
                     distributions.map((dist) => (
                       <tr key={dist.id} className="hover:bg-background/50 transition-colors">
                         <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-foreground-muted sm:pl-6">
-                          {new Date(dist.date_distribution || dist.created_at).toLocaleDateString('fr-FR')}
+                          {new Date(dist.date_distribution || dist.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-foreground">
-                          {dist.membres ? `${dist.membres.prenom} ${dist.membres.nom}` : 'Membre inconnu'}
+                          {dist.membres ? `${dist.membres.prenom} ${dist.membres.nom}` : dict.distribution.table.unknown_member}
                           <span className="ml-2 text-xs text-foreground-muted font-normal">({dist.membres?.code_membre})</span>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground">
-                          {dist.intrants?.nom || 'Produit supprimé'}
+                          {dist.intrants?.nom || dict.distribution.table.deleted_product}
                           <span className="ml-2 inline-flex items-center capitalize rounded-md px-2 py-1 text-xs font-medium bg-surface-border text-foreground">
                             {dist.intrants?.type_intrant}
                           </span>
@@ -159,7 +162,7 @@ export default async function DistributionPage() {
                   ) : (
                     <tr>
                       <td colSpan={6} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
-                        Aucune distribution n'a encore été enregistrée.
+                        {dict.distribution.table.empty}
                       </td>
                     </tr>
                   )}
