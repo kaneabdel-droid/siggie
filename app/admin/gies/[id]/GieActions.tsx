@@ -20,8 +20,12 @@ export default function GieActions({
   const run = (action: () => Promise<{ success?: boolean; error?: string }>) => {
     setMessage(null)
     startTransition(async () => {
-      const result = await action()
-      setMessage(result.error ? `Erreur : ${result.error}` : 'Effectué.')
+      try {
+        const result = await action()
+        setMessage(result.error ? `Erreur : ${result.error}` : 'Effectué.')
+      } catch (err) {
+        setMessage(`Erreur inattendue : ${err instanceof Error ? err.message : String(err)}`)
+      }
     })
   }
 
