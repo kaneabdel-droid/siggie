@@ -9,6 +9,18 @@ export default async function AdminGiesPage() {
     .select('id, nom, subscription_tier, essai_expire_le, compte_verrouille, created_at')
     .order('created_at', { ascending: false })
 
+  const { data: utilisateurs } = await supabase.from('utilisateurs').select('id, gie_id')
+  const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+  const emailParId = new Map(authUsers?.users.map((u) => [u.id, u.email]) ?? [])
+  const emailsParGie = new Map<string, string[]>()
+  for (const u of utilisateurs ?? []) {
+    const email = emailParId.get(u.id)
+    if (!email) continue
+    const liste = emailsParGie.get(u.gie_id) ?? []
+    liste.push(email)
+    emailsParGie.set(u.gie_id, liste)
+  }
+
   const maintenant = new Date()
 
   return (
@@ -20,6 +32,7 @@ export default async function AdminGiesPage() {
           <thead className="bg-surface text-foreground-muted text-left">
             <tr>
               <th className="px-4 py-3 font-medium">Nom</th>
+              <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Forfait</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium">Créé le</th>
@@ -34,6 +47,9 @@ export default async function AdminGiesPage() {
                     <Link href={`/admin/gies/${gie.id}`} className="font-medium text-primary hover:text-primary-hover">
                       {gie.nom}
                     </Link>
+                  </td>
+                  <td className="px-4 py-3 text-foreground-muted">
+                    {(emailsParGie.get(gie.id) ?? []).join(', ') || '-'}
                   </td>
                   <td className="px-4 py-3 capitalize">{gie.subscription_tier || 'standard'}</td>
                   <td className="px-4 py-3">
