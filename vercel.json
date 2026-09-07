@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/reconcile-chariow",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
