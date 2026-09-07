@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { initiateBictorysPayment } from '@/lib/payments/bictorys'
 import { initiateMonerooPayment } from '@/lib/payments/moneroo'
+import { initiateChariowPayment } from '@/lib/payments/chariow'
 import { siteUrl } from '@/lib/payments/config'
 
-type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement'
+type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow'
 
 type InitiateResult =
   | { ok: true; checkoutUrl: string }
@@ -15,13 +17,20 @@ type InitiateResult =
 export async function initiateSubscriptionPayment(
   planId: string,
   isUpgrade: boolean,
-  moyenPaiement: MoyenPaiement
+  moyenPaiement: MoyenPaiement,
+  phoneLocal?: string
 ): Promise<InitiateResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     return { ok: false, error: 'Non authentifié' }
+  }
+
+  if (moyenPaiement === 'chariow' && isUpgrade) {
+    // Chariow facture le prix d'un produit préconfiguré dans sa boutique, jamais un
+    // montant libre — inutilisable pour un montant de proratisation arbitraire.
+    return { ok: false, error: "Chariow n'est disponible que pour un forfait à prix plein" }
   }
 
   const { data: userData } = await supabase
@@ -56,7 +65,21 @@ export async function initiateSubscriptionPayment(
     if (montant <= 0) montant = selectedTarif.prix_annuel
   }
 
-  const provider = moyenPaiement === 'carte' ? 'moneroo' : moyenPaiement === 'virement' ? 'virement' : 'bictorys'
+  const provider = moyenPaiement === 'carte' ? 'moneroo' : moyenPaiement === 'virement' ? 'virement' : moyenPaiement === 'chariow' ? 'chariow' : 'bictorys'
+
+  let chariowProductId: string | null = null
+  if (provider === 'chariow') {
+    // chariow_produits n'a aucune policy RLS publique (config admin) : lecture via le client admin.
+    const { data: produit } = await createAdminClient()
+      .from('chariow_produits')
+      .select('product_id')
+      .eq('montant', montant)
+      .maybeSingle()
+    if (!produit) {
+      return { ok: false, error: "Chariow n'est pas configuré pour ce montant" }
+    }
+    chariowProductId = produit.product_id
+  }
 
   const { data: payment, error: insertError } = await supabase
     .from('abonnement_paiements')
@@ -95,15 +118,24 @@ export async function initiateSubscriptionPayment(
           cancelUrl: returnUrl,
           customerEmail: user.email || '',
         })
-      : await initiateBictorysPayment({
-          amount: montant,
-          currency: 'XOF',
-          description,
-          reference: payment.id,
-          returnUrl,
-          cancelUrl: returnUrl,
-          customerEmail: user.email || '',
-        })
+      : provider === 'chariow'
+        ? await initiateChariowPayment({
+            productId: chariowProductId!,
+            montantAttendu: montant,
+            reference: payment.id,
+            phoneLocal: phoneLocal || '',
+            customerEmail: user.email || '',
+            returnUrl,
+          })
+        : await initiateBictorysPayment({
+            amount: montant,
+            currency: 'XOF',
+            description,
+            reference: payment.id,
+            returnUrl,
+            cancelUrl: returnUrl,
+            customerEmail: user.email || '',
+          })
 
   if (!result.ok) {
     await supabase.from('abonnement_paiements').update({ statut: 'failed' }).eq('id', payment.id)

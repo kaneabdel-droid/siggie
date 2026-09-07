@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAdminEmail } from '@/lib/admin/auth'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -33,10 +34,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Les webhooks des prestataires de paiement (Bictorys, Moneroo) appellent cette
-  // route serveur-à-serveur sans session utilisateur : ils ne doivent jamais être
-  // redirigés vers /login, sous peine de casser la confirmation des paiements.
-  if (pathname.startsWith('/api/webhooks')) {
+  // Les webhooks des prestataires de paiement (Bictorys, Moneroo, Chariow) et le cron
+  // de réconciliation appellent ces routes serveur-à-serveur sans session utilisateur :
+  // elles ne doivent jamais être redirigées vers /login, sous peine de casser la
+  // confirmation des paiements (elles ont leur propre vérification de secret).
+  if (pathname.startsWith('/api/webhooks') || pathname.startsWith('/api/cron')) {
     return supabaseResponse
   }
 
@@ -59,26 +61,37 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Verrouillage après la période d'essai : un GIE dont l'essai a expiré sans
-  // paiement confirmé (essai_expire_le non nul et dépassé) est redirigé vers son
-  // espace abonnement pour régulariser, sauf sur les pages nécessaires pour payer.
+  // Espace admin plateforme : réservé aux emails listés dans ADMIN_EMAILS, jamais
+  // soumis au verrouillage d'essai d'un GIE (l'admin ne gère pas son propre GIE ici).
+  if (pathname.startsWith('/admin')) {
+    if (!isAdminEmail(user?.email)) {
+      const url = request.nextUrl.clone()
+      url.pathname = user ? '/dashboard' : '/login'
+      return NextResponse.redirect(url)
+    }
+    return supabaseResponse
+  }
+
+  // Verrouillage après la période d'essai (ou verrouillage manuel admin) : un GIE
+  // sans paiement confirmé est redirigé vers son espace abonnement pour régulariser,
+  // sauf sur les pages nécessaires pour payer.
   const exemptFromTrialLock =
     pathname.startsWith('/abonnement') ||
     pathname.startsWith('/checkout') ||
-    pathname.startsWith('/logout') ||
-    pathname.startsWith('/api/webhooks')
+    pathname.startsWith('/logout')
 
   if (user && !exemptFromTrialLock) {
     const { data: userData } = await supabase
       .from('utilisateurs')
-      .select('gies(essai_expire_le)')
+      .select('gies(essai_expire_le, compte_verrouille)')
       .eq('id', user.id)
       .single()
 
     const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
     const essaiExpireLe = gie?.essai_expire_le as string | null | undefined
+    const essaiExpire = essaiExpireLe ? new Date(essaiExpireLe) < new Date() : false
 
-    if (essaiExpireLe && new Date(essaiExpireLe) < new Date()) {
+    if (gie?.compte_verrouille || essaiExpire) {
       const url = request.nextUrl.clone()
       url.pathname = '/abonnement'
       url.searchParams.set('essai_expire', '1')

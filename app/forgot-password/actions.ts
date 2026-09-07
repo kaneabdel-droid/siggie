@@ -7,9 +7,12 @@ export async function resetPasswordForEmail(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
 
-  // Remplacez process.env.NEXT_PUBLIC_SITE_URL par l'URL de votre site en production
+  // Passe par /auth/callback pour échanger le code Supabase contre une session
+  // avant d'atterrir sur /update-password — sans ça, la page reçoit un visiteur
+  // déconnecté et ne peut pas mettre à jour le mot de passe.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/update-password`,
+    redirectTo: `${siteUrl}/auth/callback?next=/update-password`,
   })
 
   if (error) {

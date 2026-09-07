@@ -2,26 +2,21 @@ import crypto from 'node:crypto'
 import { createAdminClient } from '@/utils/supabase/admin'
 import type { NormalizedWebhookEvent } from './types'
 
+export type PaymentProvider = 'bictorys' | 'moneroo' | 'chariow'
+
 /**
- * Traite un événement de webhook déjà vérifié (signature OK) et normalisé :
- * dédoublonne, vérifie le montant, met à jour le paiement de façon idempotente,
- * puis crédite l'abonnement du GIE si le paiement est complet.
+ * Cœur idempotent du crédit d'abonnement : vérifie le montant, fait transitionner le
+ * paiement de 'pending' vers 'completed'/'failed' (une seule fois, `WHERE statut='pending'`
+ * comme garde-fou), puis met à jour le forfait et lève l'horloge d'essai du GIE.
+ *
+ * Réutilisé par les webhooks (avec dédoublonnage en amont) et par la confirmation
+ * manuelle d'un virement depuis l'admin (déclenchement explicite, pas de dédoublonnage).
  */
-export async function fulfillWebhookEvent(
-  provider: 'bictorys' | 'moneroo',
-  rawBody: string,
+export async function applyPaymentResult(
+  provider: PaymentProvider | 'virement',
   event: NormalizedWebhookEvent
 ) {
   const supabase = createAdminClient()
-
-  // Dédoublonnage atomique : la clé primaire (provider, event_hash) rejette les doublons.
-  const eventHash = crypto.createHash('sha256').update(rawBody).digest('hex').slice(0, 32)
-  const { error: dedupError } = await supabase
-    .from('paiement_webhook_events')
-    .insert({ provider, event_hash: eventHash })
-  if (dedupError) {
-    return { deduped: true }
-  }
 
   const { data: payment } = await supabase
     .from('abonnement_paiements')
@@ -31,12 +26,12 @@ export async function fulfillWebhookEvent(
     .maybeSingle()
 
   if (!payment) {
-    console.error('[webhook] paiement introuvable', { provider, reference: event.providerTransactionId })
+    console.error('[paiement] introuvable', { provider, reference: event.providerTransactionId })
     return { orphaned: true }
   }
 
   if (event.status === 'completed' && typeof event.reportedAmount === 'number' && event.reportedAmount !== payment.montant) {
-    console.error('[webhook] montant incohérent — paiement refusé', {
+    console.error('[paiement] montant incohérent — refusé', {
       provider,
       paymentId: payment.id,
       attendu: payment.montant,
@@ -67,4 +62,23 @@ export async function fulfillWebhookEvent(
   }
 
   return { processed: true, statut: target }
+}
+
+/**
+ * Traite un événement de webhook déjà vérifié (signature/secret OK) et normalisé :
+ * dédoublonne puis délègue à applyPaymentResult().
+ */
+export async function fulfillWebhookEvent(provider: PaymentProvider, rawBody: string, event: NormalizedWebhookEvent) {
+  const supabase = createAdminClient()
+
+  // Dédoublonnage atomique : la clé primaire (provider, event_hash) rejette les doublons.
+  const eventHash = crypto.createHash('sha256').update(rawBody).digest('hex').slice(0, 32)
+  const { error: dedupError } = await supabase
+    .from('paiement_webhook_events')
+    .insert({ provider, event_hash: eventHash })
+  if (dedupError) {
+    return { deduped: true }
+  }
+
+  return applyPaymentResult(provider, event)
 }

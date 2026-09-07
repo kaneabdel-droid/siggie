@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 export async function signup(formData: FormData) {
   const supabase = await createClient()
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
@@ -14,6 +15,10 @@ export async function signup(formData: FormData) {
         gie_nom: formData.get('gie_nom') as string,
         plan: formData.get('plan') as string || 'standard'
       },
+      // Passe par /auth/callback pour échanger le code Supabase contre une session
+      // avant d'atterrir sur /login — sans ça, le lien de confirmation renvoie un
+      // visiteur déconnecté vers la page d'accueil.
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/login`,
     }
   }
 

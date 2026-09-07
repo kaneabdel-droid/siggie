@@ -8,7 +8,12 @@ export const bictorysWebhookSecret = process.env.BICTORYS_WEBHOOK_SECRET
 export const monerooSecretKey = process.env.MONEROO_SECRET_KEY
 export const monerooWebhookSecret = process.env.MONEROO_WEBHOOK_SECRET
 
+export const chariowApiKey = process.env.CHARIOW_API_KEY
+export const chariowWebhookSecret = process.env.CHARIOW_WEBHOOK_SECRET
+export const chariowApiUrl = process.env.CHARIOW_API_URL || 'https://api.chariow.com/v1'
+
 export const hasBictorysKeys = Boolean(bictorysApiKey && bictorysWebhookSecret)
 export const hasMonerooKeys = Boolean(monerooSecretKey && monerooWebhookSecret)
+export const hasChariowKeys = Boolean(chariowApiKey && chariowWebhookSecret)
 
 export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'

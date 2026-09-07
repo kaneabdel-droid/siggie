@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { CreditCard, Smartphone, Banknote, ArrowLeft, Clock } from 'lucide-react'
 import { initiateSubscriptionPayment } from './actions'
 
-type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement'
+type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow'
 
 export default function CheckoutClient({
   initialPlan,
@@ -19,16 +19,22 @@ export default function CheckoutClient({
   isLoggedIn: boolean
   currentTier: string
   isUpgrade: boolean
-  hasOnlinePayment: { mobileMoney: boolean; carte: boolean }
+  hasOnlinePayment: { mobileMoney: boolean; carte: boolean; chariow: boolean }
 }) {
+  // Chariow ne facture que le prix plein d'un forfait (produit préconfiguré dans sa
+  // boutique) : jamais disponible pour un montant de proratisation d'upgrade.
+  const chariowDisponible = hasOnlinePayment.chariow && !isUpgrade
+
   const availableMethods: MoyenPaiement[] = [
     ...(hasOnlinePayment.mobileMoney ? (['wave', 'orange'] as const) : []),
     ...(hasOnlinePayment.carte ? (['carte'] as const) : []),
+    ...(chariowDisponible ? (['chariow'] as const) : []),
     'virement',
   ]
 
   const router = useRouter()
   const [paymentMethod, setPaymentMethod] = useState<MoyenPaiement>(availableMethods[0])
+  const [phoneLocal, setPhoneLocal] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [virementPending, setVirementPending] = useState(false)
@@ -64,7 +70,13 @@ export default function CheckoutClient({
     setError(null)
     setIsProcessing(true)
 
-    const result = await initiateSubscriptionPayment(initialPlan, isUpgrade, paymentMethod)
+    if (paymentMethod === 'chariow' && !phoneLocal.trim()) {
+      setError('Veuillez saisir votre numéro de téléphone')
+      setIsProcessing(false)
+      return
+    }
+
+    const result = await initiateSubscriptionPayment(initialPlan, isUpgrade, paymentMethod, phoneLocal)
 
     setIsProcessing(false)
 
@@ -158,6 +170,14 @@ export default function CheckoutClient({
                   </label>
                 )}
 
+                {chariowDisponible && (
+                  <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'chariow' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
+                    <input type="radio" name="paymentMethod" value="chariow" checked={paymentMethod === 'chariow'} onChange={() => setPaymentMethod('chariow')} className="sr-only" />
+                    <Smartphone className={`w-8 h-8 mb-2 ${paymentMethod === 'chariow' ? 'text-primary' : 'text-foreground-muted'}`} />
+                    <span className={`font-semibold ${paymentMethod === 'chariow' ? 'text-primary' : 'text-foreground'}`}>Mobile Money (Chariow)</span>
+                  </label>
+                )}
+
                 <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'virement' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
                   <input type="radio" name="paymentMethod" value="virement" checked={paymentMethod === 'virement'} onChange={() => setPaymentMethod('virement')} className="sr-only" />
                   <Banknote className={`w-8 h-8 mb-2 ${paymentMethod === 'virement' ? 'text-primary' : 'text-foreground-muted'}`} />
@@ -173,7 +193,22 @@ export default function CheckoutClient({
                 </div>
               )}
 
-              {(paymentMethod === 'wave' || paymentMethod === 'orange' || paymentMethod === 'carte') && (
+              {paymentMethod === 'chariow' && (
+                <div className="mb-8">
+                  <label htmlFor="phoneLocal" className="block text-sm font-medium text-foreground mb-2">Numéro de téléphone</label>
+                  <input
+                    type="tel"
+                    id="phoneLocal"
+                    required
+                    value={phoneLocal}
+                    onChange={(e) => setPhoneLocal(e.target.value)}
+                    placeholder="77 123 45 67"
+                    className="w-full rounded-md border border-surface-border bg-surface px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              )}
+
+              {(paymentMethod === 'wave' || paymentMethod === 'orange' || paymentMethod === 'carte' || paymentMethod === 'chariow') && (
                 <p className="mb-8 text-sm text-foreground-muted">
                   Vous allez être redirigé(e) vers la page de paiement sécurisée pour finaliser votre {paymentMethod === 'carte' ? 'paiement par carte' : 'paiement mobile money'}.
                 </p>
