@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { createAdminClient } from '@/utils/supabase/admin'
 import GieActions from './GieActions'
 import UtilisateurRow from './UtilisateurRow'
+import SupprimerGieButton from './SupprimerGieButton'
 
 export default async function AdminGieDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -103,6 +104,8 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
           </tbody>
         </table>
       </div>
+
+      <SupprimerGieButton gieId={gie.id} nomGie={gie.nom} />
     </div>
   )
 }

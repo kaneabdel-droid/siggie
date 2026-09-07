@@ -127,3 +127,35 @@ export async function reactiverCompteUtilisateur(gieId: string, utilisateurId: s
   revalidatePath(`/admin/gies/${gieId}`)
   return { success: true }
 }
+
+/**
+ * Suppression définitive d'un GIE — pour les inscriptions jamais payées après
+ * expiration de l'essai. Supprime aussi les comptes auth de ses utilisateurs
+ * (la cascade sur `gies` efface les lignes `utilisateurs`, `campagnes`,
+ * `abonnement_paiements`, etc., mais pas les comptes auth.users sous-jacents,
+ * qui resteraient orphelins et connectables sans aucun GIE).
+ * Pas de revalidatePath ici : la page appelante navigue elle-même vers
+ * /admin/gies après succès (redirect() dans une action gérée en try/catch
+ * côté client casse la navigation).
+ */
+export async function supprimerGie(gieId: string): Promise<ActionResult> {
+  const authError = await checkAdmin()
+  if (authError) return { error: authError }
+
+  const supabase = createAdminClient()
+
+  const { data: utilisateurs } = await supabase.from('utilisateurs').select('id').eq('gie_id', gieId)
+
+  // Le GIE d'abord (cascade sur utilisateurs/campagnes/paiements...), puis les
+  // comptes auth : utilisateurs.id référence auth.users SANS cascade, donc
+  // supprimer un compte auth avant que sa ligne utilisateurs ait disparu échoue
+  // (erreur 500 générique côté Supabase — contrainte de clé étrangère violée).
+  const { error } = await supabase.from('gies').delete().eq('id', gieId)
+  if (error) return { error: error.message }
+
+  for (const u of utilisateurs ?? []) {
+    await supabase.auth.admin.deleteUser(u.id)
+  }
+
+  return { success: true }
+}
