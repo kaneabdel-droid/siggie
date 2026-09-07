@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { createAdminClient } from '@/utils/supabase/admin'
 import GieActions from './GieActions'
+import UtilisateurRow from './UtilisateurRow'
 
 export default async function AdminGieDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -18,9 +19,9 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
 
   const { data: utilisateurs } = await supabase.from('utilisateurs').select('id, role').eq('gie_id', id)
 
-  // Les emails vivent dans auth.users, pas dans public.utilisateurs — récupérés via l'API admin.
+  // Les emails (et le statut désactivé) vivent dans auth.users, pas dans public.utilisateurs.
   const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-  const emailParId = new Map(authUsers?.users.map((u) => [u.id, u.email]) ?? [])
+  const authParId = new Map(authUsers?.users.map((u) => [u.id, u]) ?? [])
 
   const { data: paiements } = await supabase
     .from('abonnement_paiements')
@@ -49,14 +50,21 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
 
         <div className="bg-background rounded-xl p-5 border border-surface-border">
           <h2 className="font-semibold mb-4">Utilisateurs</h2>
-          <ul className="text-sm space-y-2">
-            {(utilisateurs ?? []).map((u) => (
-              <li key={u.id} className="flex justify-between">
-                <span>{emailParId.get(u.id) || u.id}</span>
-                <span className="text-foreground-muted capitalize">{u.role}</span>
-              </li>
-            ))}
-            {(utilisateurs ?? []).length === 0 && <li className="text-foreground-muted">Aucun utilisateur</li>}
+          <ul className="text-sm divide-y divide-surface-border">
+            {(utilisateurs ?? []).map((u) => {
+              const authUser = authParId.get(u.id)
+              return (
+                <UtilisateurRow
+                  key={u.id}
+                  gieId={gie.id}
+                  utilisateurId={u.id}
+                  email={authUser?.email || u.id}
+                  roleActuel={u.role || ''}
+                  banni={Boolean(authUser?.banned_until && new Date(authUser.banned_until) > new Date())}
+                />
+              )
+            })}
+            {(utilisateurs ?? []).length === 0 && <li className="text-foreground-muted py-2">Aucun utilisateur</li>}
           </ul>
         </div>
       </div>
