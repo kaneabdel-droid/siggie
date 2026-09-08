@@ -26,11 +26,32 @@
     },
     "products": {
       "title": "Our Web Solutions",
-      "desc": "Discover our ecosystem of applications designed to simplify your daily life."
+      "desc": "Discover our ecosystem of applications designed to simplify your daily life.",
+      "online_badge": "Live",
+      "siggie_desc": "The Integrated Management System for Economic Interest Groups and similar organizations. Manage your members, agricultural seasons, inputs and treasury in one click and much more.",
+      "discover_link": "Discover SIGGIE",
+      "subscribe_link": "Subscribe to SIGGIE"
     },
     "pricing": {
       "title": "Pricing adapted to your growth",
-      "desc": "Choose the plan that fits your business needs. Secure annual payment via Wave, Orange Money, Visa, or Bank Transfer."
+      "desc": "Choose the plan that fits your business needs. Secure annual payment via Wave, Orange Money, Visa, or Bank Transfer.",
+      "per_year": "FCFA / year",
+      "popular_badge": "Popular",
+      "feature_membres": "Member management",
+      "feature_campagnes": "Season management",
+      "feature_all_standard": "Everything in Standard",
+      "feature_materiel": "Full equipment management",
+      "feature_all_medium": "Everything in Medium",
+      "feature_etats": "Complete financial statements",
+      "choose_standard": "Choose Standard",
+      "choose_medium": "Choose Medium",
+      "choose_premium": "Choose Premium"
+    },
+    "tips": {
+      "title": "Management Tips",
+      "tip1": "Digitize your receipts",
+      "tip2": "Track profitability by machine",
+      "tip3": "Involve your members"
     },
     "footer": {
       "desc": "Propel the management of your organization into the future with our intuitive and high-performance software solutions."

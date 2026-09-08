@@ -26,11 +26,32 @@
     },
     "products": {
       "title": "Nos Solutions Web",
-      "desc": "Découvrez notre écosystème d'applications conçues pour simplifier votre quotidien."
+      "desc": "Découvrez notre écosystème d'applications conçues pour simplifier votre quotidien.",
+      "online_badge": "En ligne",
+      "siggie_desc": "Le Système Intégré de Gestion de Groupement d'Intérêt Économique et entreprises assimilées. Gérez vos membres, campagnes agricoles, intrants et trésorerie en un clic et bien plus.",
+      "discover_link": "Découvrir SIGGIE",
+      "subscribe_link": "S'abonner à SIGGIE"
     },
     "pricing": {
       "title": "Des tarifs adaptés à votre croissance",
-      "desc": "Choisissez le plan qui correspond aux besoins de votre entreprise. Paiement annuel sécurisé via Wave, Orange Money, Visa ou Virement."
+      "desc": "Choisissez le plan qui correspond aux besoins de votre entreprise. Paiement annuel sécurisé via Wave, Orange Money, Visa ou Virement.",
+      "per_year": "FCFA / an",
+      "popular_badge": "Populaire",
+      "feature_membres": "Gestion des membres",
+      "feature_campagnes": "Gestion des campagnes",
+      "feature_all_standard": "Tout du plan Standard",
+      "feature_materiel": "Gestion complète du matériel",
+      "feature_all_medium": "Tout du plan Medium",
+      "feature_etats": "États financiers complets",
+      "choose_standard": "Choisir Standard",
+      "choose_medium": "Choisir Medium",
+      "choose_premium": "Choisir Premium"
+    },
+    "tips": {
+      "title": "Astuces de Gestion",
+      "tip1": "Digitalisez vos reçus",
+      "tip2": "Suivez la rentabilité par machine",
+      "tip3": "Impliquez vos membres"
     },
     "footer": {
       "desc": "Propulsez la gestion de votre organisation vers l'avenir avec nos solutions logicielles intuitives et performantes."

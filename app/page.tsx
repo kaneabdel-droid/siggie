@@ -80,12 +80,12 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Produit 1 : SIGGIE */}
               <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">En ligne</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
                 <Package className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-2xl font-bold mb-2">SIGGIE</h3>
-                <p className="text-foreground-muted mb-6">Le Système Intégré de Gestion de Groupement d&apos;Intérêt Économique et entreprises assimilées. Gérez vos membres, campagnes agricoles, intrants et trésorerie en un clic et bien plus.</p>
-                <Link href="/decouvrir-siggie" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir SIGGIE <ArrowRight className="w-4 h-4" /></Link>
-                <Link href="#tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">S&apos;abonner à SIGGIE <ArrowRight className="w-4 h-4" /></Link>
+                <p className="text-foreground-muted mb-6">{dict.landing.products.siggie_desc}</p>
+                <Link href="/decouvrir-siggie" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link} <ArrowRight className="w-4 h-4" /></Link>
+                <Link href="#tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link} <ArrowRight className="w-4 h-4" /></Link>
               </div>
             </div>
           </div>
@@ -105,31 +105,31 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <h3 className="text-2xl font-bold mb-2">Standard</h3>
                 <div className="mb-8">
                   <span className="text-4xl font-extrabold">50.000</span>
-                  <span className="text-foreground-muted font-medium"> FCFA / an</span>
+                  <span className="text-foreground-muted font-medium"> {dict.landing.pricing.per_year}</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>Gestion des membres</span></li>
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>Gestion des campagnes</span></li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>{dict.landing.pricing.feature_membres}</span></li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>{dict.landing.pricing.feature_campagnes}</span></li>
                 </ul>
                 <Link href="/checkout?plan=standard" className="w-full rounded-xl bg-background border-2 border-primary text-primary px-4 py-3 font-bold text-center hover:bg-primary hover:text-white transition-colors">
-                  Choisir Standard
+                  {dict.landing.pricing.choose_standard}
                 </Link>
               </div>
 
               {/* Medium */}
               <div className="rounded-3xl border-2 border-primary p-8 bg-primary/5 flex flex-col relative transform md:-translate-y-4 shadow-2xl">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wide">Populaire</div>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wide">{dict.landing.pricing.popular_badge}</div>
                 <h3 className="text-2xl font-bold mb-2 text-primary">Medium</h3>
                 <div className="mb-8">
                   <span className="text-4xl font-extrabold text-primary">75.000</span>
-                  <span className="text-foreground-muted font-medium"> FCFA / an</span>
+                  <span className="text-foreground-muted font-medium"> {dict.landing.pricing.per_year}</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> <span>Tout du plan Standard</span></li>
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> <strong>Gestion complète du matériel</strong></li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> <span>{dict.landing.pricing.feature_all_standard}</span></li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> <strong>{dict.landing.pricing.feature_materiel}</strong></li>
                 </ul>
                 <Link href="/checkout?plan=medium" className="w-full rounded-xl bg-primary text-white px-4 py-3 font-bold text-center hover:bg-primary-hover transition-colors shadow-lg shadow-primary/25">
-                  Choisir Medium
+                  {dict.landing.pricing.choose_medium}
                 </Link>
               </div>
 
@@ -138,14 +138,14 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <h3 className="text-2xl font-bold mb-2">Premium</h3>
                 <div className="mb-8">
                   <span className="text-4xl font-extrabold">100.000</span>
-                  <span className="text-foreground-muted font-medium"> FCFA / an</span>
+                  <span className="text-foreground-muted font-medium"> {dict.landing.pricing.per_year}</span>
                 </div>
                 <ul className="space-y-4 mb-8 flex-1">
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>Tout du plan Medium</span></li>
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <strong>États financiers complets</strong></li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>{dict.landing.pricing.feature_all_medium}</span></li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <strong>{dict.landing.pricing.feature_etats}</strong></li>
                 </ul>
                 <Link href="/checkout?plan=premium" className="w-full rounded-xl bg-background border-2 border-foreground text-foreground px-4 py-3 font-bold text-center hover:bg-foreground hover:text-background transition-colors">
-                  Choisir Premium
+                  {dict.landing.pricing.choose_premium}
                 </Link>
               </div>
             </div>
@@ -156,20 +156,20 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
         <section id="astuces" className="py-24 bg-surface border-t border-surface-border">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">Astuces de Gestion</h2>
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.tips.title}</h2>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
                  <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center mb-4"><Smartphone className="w-6 h-6 text-info" /></div>
-                 <h4 className="font-bold text-xl mb-2">Digitalisez vos reçus</h4>
+                 <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip1}</h4>
                </div>
                <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
                  <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center mb-4"><TrendingUp className="w-6 h-6 text-success" /></div>
-                 <h4 className="font-bold text-xl mb-2">Suivez la rentabilité par machine</h4>
+                 <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip2}</h4>
                </div>
                <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
                  <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mb-4"><Users className="w-6 h-6 text-warning" /></div>
-                 <h4 className="font-bold text-xl mb-2">Impliquez vos membres</h4>
+                 <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip3}</h4>
                </div>
             </div>
           </div>
