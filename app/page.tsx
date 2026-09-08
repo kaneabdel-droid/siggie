@@ -83,7 +83,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">En ligne</div>
                 <Package className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-2xl font-bold mb-2">SIGGIE</h3>
-                <p className="text-foreground-muted mb-6">Le Système Intégré de Gestion de Groupement d&apos;Intérêt Économique. Gérez vos membres, campagnes agricoles, intrants et trésorerie en un clic et bien plus.</p>
+                <p className="text-foreground-muted mb-6">Le Système Intégré de Gestion de Groupement d&apos;Intérêt Économique et entreprises assimilées. Gérez vos membres, campagnes agricoles, intrants et trésorerie en un clic et bien plus.</p>
                 <Link href="/decouvrir-siggie" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir SIGGIE <ArrowRight className="w-4 h-4" /></Link>
                 <Link href="#tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">S&apos;abonner à SIGGIE <ArrowRight className="w-4 h-4" /></Link>
               </div>
