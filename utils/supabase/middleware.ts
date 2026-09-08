@@ -53,7 +53,8 @@ export async function updateSession(request: NextRequest) {
     !pathname.startsWith('/signup') &&
     !pathname.startsWith('/forgot-password') &&
     !pathname.startsWith('/update-password') &&
-    !pathname.startsWith('/auth')
+    !pathname.startsWith('/auth') &&
+    !pathname.startsWith('/decouvrir-siggie')
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
