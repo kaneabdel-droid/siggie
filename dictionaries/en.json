@@ -57,6 +57,47 @@
       "desc": "Propel the management of your organization into the future with our intuitive and high-performance software solutions."
     }
   },
+  "decouvrir": {
+    "meta_title": "Discover SIGGIE - How it works",
+    "back_home": "Back to home",
+    "hero_title_prefix": "How does",
+    "hero_desc": "From creating your account to the daily management of your group: what you get, how it works, and what changes depending on your plan.",
+    "steps_title": "Your journey in 3 steps",
+    "step1_title": "1. Create an account",
+    "step1_desc_before": "Choose a plan, enter your group's name, your email and a password. Your account is created immediately, with",
+    "step1_desc_strong": "7 days free trial",
+    "step1_desc_after": "on the chosen plan — no payment required to get started.",
+    "step1_link": "Create my account",
+    "step2_title": "2. Log in",
+    "step2_desc": "Access your dashboard with your email and password. Forgot your password? A reset link is sent to you by email in one click.",
+    "step2_link": "Log in",
+    "step3_title": "3. Subscribe",
+    "step3_desc": "Before the trial ends, pay your annual subscription via Wave, Orange Money, credit card or bank transfer, directly from your \"My Subscription\" area. You can also change plans at any time by paying only the difference.",
+    "warning_before": "Without confirmed payment before the end of the 7-day trial, access to your workspace is automatically suspended",
+    "warning_after": "until payment — your data remains intact, nothing is lost.",
+    "modules_title": "Modules by plan",
+    "modules_desc": "Each higher plan includes everything from the previous one, plus its own modules.",
+    "choose_prefix": "Choose",
+    "cta_text": "Start my free trial",
+    "modules": {
+      "dashboard": "Dashboard",
+      "membres": "Members",
+      "campagnes": "Agricultural seasons",
+      "intrants": "Inputs & Stock",
+      "distribution": "Distribution",
+      "credits": "Bank loans",
+      "facturation": "Invoicing",
+      "remboursements": "Repayments",
+      "tresorerie": "Treasury",
+      "materiel": "Equipment management (inventory, services, consumption, profitability, depreciation)",
+      "bilans": "Advanced financial statements"
+    },
+    "plans": {
+      "standard_resume": "The essentials to manage a group: members, seasons, stock and treasury.",
+      "medium_resume": "Everything in Standard, plus full tracking of agricultural equipment.",
+      "premium_resume": "Everything in Medium, plus the group's complete financial statements."
+    }
+  },
   "auth": {
     "login": {
       "title": "Login to SIGGIE",
@@ -77,6 +118,13 @@
       "btn": "Register",
       "has_account": "Already have an account?",
       "login": "Log in"
+    },
+    "forgot_password": {
+      "title": "Forgot password",
+      "desc": "Enter your email address and we'll send you a link to reset your password.",
+      "email": "Email address",
+      "submit": "Send the link",
+      "back_to_login": "Back to login"
     }
   },
   "sidebar": {

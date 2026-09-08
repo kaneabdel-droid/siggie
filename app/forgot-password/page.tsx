@@ -1,14 +1,19 @@
 import { resetPasswordForEmail } from './actions'
+import { getDictionary, getLocale } from '@/dictionaries'
 
-export default function ForgotPasswordPage({ searchParams }: { searchParams: { message: string } }) {
+export default async function ForgotPasswordPage({ searchParams }: { searchParams: { message: string } }) {
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+  const d = dict.auth.forgot_password
+
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-background">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-primary">
-          Mot de passe oublié
+          {d.title}
         </h2>
         <p className="mt-2 text-center text-sm text-foreground-muted">
-          Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+          {d.desc}
         </p>
       </div>
 
@@ -22,7 +27,7 @@ export default function ForgotPasswordPage({ searchParams }: { searchParams: { m
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium leading-6 text-foreground">
-              Adresse e-mail
+              {d.email}
             </label>
             <div className="mt-2">
               <input
@@ -41,14 +46,14 @@ export default function ForgotPasswordPage({ searchParams }: { searchParams: { m
               type="submit"
               className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              Envoyer le lien
+              {d.submit}
             </button>
           </div>
         </form>
 
         <p className="mt-10 text-center text-sm text-foreground-muted">
           <a href="/login" className="font-semibold leading-6 text-primary hover:text-primary-hover">
-            Retour à la connexion
+            {d.back_to_login}
           </a>
         </p>
       </div>

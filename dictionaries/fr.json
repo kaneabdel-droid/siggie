@@ -57,6 +57,47 @@
       "desc": "Propulsez la gestion de votre organisation vers l'avenir avec nos solutions logicielles intuitives et performantes."
     }
   },
+  "decouvrir": {
+    "meta_title": "Découvrir SIGGIE - Comment ça marche",
+    "back_home": "Retour à l'accueil",
+    "hero_title_prefix": "Comment fonctionne",
+    "hero_desc": "De la création de votre compte à la gestion quotidienne de votre GIE : ce que vous obtenez, comment ça se passe, et ce qui change selon votre forfait.",
+    "steps_title": "Votre parcours en 3 étapes",
+    "step1_title": "1. Créer un compte",
+    "step1_desc_before": "Choisissez un forfait, renseignez le nom de votre GIE, votre email et un mot de passe. Votre compte est créé immédiatement, avec",
+    "step1_desc_strong": "7 jours d'essai gratuit",
+    "step1_desc_after": "sur le forfait choisi — aucun paiement requis pour démarrer.",
+    "step1_link": "Créer mon compte",
+    "step2_title": "2. Se connecter",
+    "step2_desc": "Retrouvez votre tableau de bord avec votre email et votre mot de passe. Mot de passe oublié ? Un lien de réinitialisation vous est envoyé par email en un clic.",
+    "step2_link": "Se connecter",
+    "step3_title": "3. S'abonner",
+    "step3_desc": "Avant la fin de l'essai, réglez votre abonnement annuel par Wave, Orange Money, carte bancaire ou virement, directement depuis votre espace « Mon Abonnement ». Vous pouvez aussi changer de forfait à tout moment en ne payant que la différence.",
+    "warning_before": "Sans paiement confirmé avant la fin des 7 jours d'essai, l'accès à votre espace est automatiquement suspendu",
+    "warning_after": "jusqu'au règlement — vos données restent intactes, rien n'est perdu.",
+    "modules_title": "Les modules selon votre forfait",
+    "modules_desc": "Chaque forfait supérieur inclut tout ce qui précède, plus ses propres modules.",
+    "choose_prefix": "Choisir",
+    "cta_text": "Démarrer mon essai gratuit",
+    "modules": {
+      "dashboard": "Tableau de bord",
+      "membres": "Membres",
+      "campagnes": "Campagnes agricoles",
+      "intrants": "Intrants & Stock",
+      "distribution": "Distribution",
+      "credits": "Crédits bancaires",
+      "facturation": "Facturation",
+      "remboursements": "Remboursements",
+      "tresorerie": "Trésorerie",
+      "materiel": "Gestion du matériel (inventaire, prestations, consommations, rentabilité, amortissements)",
+      "bilans": "Bilans & états financiers avancés"
+    },
+    "plans": {
+      "standard_resume": "L'essentiel pour gérer un GIE : membres, campagnes, stock et trésorerie.",
+      "medium_resume": "Tout Standard, plus le suivi complet du matériel agricole.",
+      "premium_resume": "Tout Medium, plus les bilans et états financiers complets du GIE."
+    }
+  },
   "auth": {
     "login": {
       "title": "Connexion à SIGGIE",
@@ -77,6 +118,13 @@
       "btn": "S'inscrire",
       "has_account": "Vous avez déjà un compte ?",
       "login": "Connectez-vous"
+    },
+    "forgot_password": {
+      "title": "Mot de passe oublié",
+      "desc": "Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+      "email": "Adresse e-mail",
+      "submit": "Envoyer le lien",
+      "back_to_login": "Retour à la connexion"
     }
   },
   "sidebar": {
