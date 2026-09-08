@@ -7,14 +7,18 @@ type PaiementModalProps = {
   facture: any
   type: 'espece' | 'nature'
   onClose: () => void
+  dict: any
+  locale?: string
 }
 
-export default function PaiementModal({ facture, type, onClose }: PaiementModalProps) {
+export default function PaiementModal({ facture, type, onClose, dict, locale }: PaiementModalProps) {
   const [loading, setLoading] = useState(false)
   const [quantiteNature, setQuantiteNature] = useState<number | ''>('')
   const [produitNature, setProduitNature] = useState<string>('')
   const [montantSaisi, setMontantSaisi] = useState<number | ''>('')
-  
+  const d = dict.remboursements_extra.modal
+  const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
+
   const resteAPayer = facture.montant_total - (facture.montant_paye || 0)
   const prixCollecte = facture.campagne?.prix_collecte || 0
 
@@ -44,14 +48,14 @@ export default function PaiementModal({ facture, type, onClose }: PaiementModalP
       qte = Number(quantiteNature)
       montantFcfa = qte * prixCollecte
       if (!produitNature.trim()) {
-        alert("Veuillez préciser la nature du produit reçu (ex: Riz paddy, Tomate, Arachide...).")
+        alert(d.missing_product_error)
         setLoading(false)
         return
       }
     }
 
     if (montantFcfa <= 0) {
-      alert("Le montant doit être supérieur à 0")
+      alert(d.invalid_amount_error)
       setLoading(false)
       return
     }
@@ -77,21 +81,21 @@ export default function PaiementModal({ facture, type, onClose }: PaiementModalP
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
         <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={onClose} />
-        
+
         <div className="relative transform overflow-hidden rounded-lg bg-surface text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-surface-border">
           <div className="bg-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <h3 className="text-lg font-semibold leading-6 text-foreground mb-4">
-              Enregistrer un paiement {type === 'espece' ? 'en numéraire' : 'en nature'}
+              {type === 'espece' ? d.title_cash : d.title_nature}
             </h3>
-            
+
             <div className={`mb-4 p-3 rounded-md text-sm border ${resteAPayer < 0 ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-danger/10 border-danger/20 text-danger'}`}>
-              <span className="font-semibold">{resteAPayer < 0 ? 'Surplus de remboursement :' : 'Reste à payer :'}</span> {Math.abs(resteAPayer).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+              <span className="font-semibold">{resteAPayer < 0 ? d.surplus_label : d.remaining_label}</span> {Math.abs(resteAPayer).toLocaleString(localeCode, { maximumFractionDigits: 0 })} FCFA
             </div>
 
             <form id="paiement-form" onSubmit={handleSubmit} className="space-y-4">
               {type === 'espece' ? (
                 <div>
-                  <label className="block text-sm font-medium text-foreground">Montant versé (FCFA)</label>
+                  <label className="block text-sm font-medium text-foreground">{d.amount_paid}</label>
                   <input
                     type="number"
                     required
@@ -101,18 +105,18 @@ export default function PaiementModal({ facture, type, onClose }: PaiementModalP
                     onChange={(e) => setMontantSaisi(Number(e.target.value) || '')}
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
-                  <p className="mt-1 text-xs text-foreground-muted">Le montant sera crédité à la Trésorerie.</p>
+                  <p className="mt-1 text-xs text-foreground-muted">{d.amount_paid_note}</p>
                 </div>
               ) : (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-foreground">
-                      Nature du produit reçu
+                      {d.nature_product}
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="Ex: Riz paddy, Tomate, Arachide..."
+                      placeholder={d.nature_product_placeholder}
                       value={produitNature}
                       onChange={(e) => setProduitNature(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
@@ -120,9 +124,9 @@ export default function PaiementModal({ facture, type, onClose }: PaiementModalP
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mt-2">
-                      Poids ou quantité récupérée 
+                      {d.weight_label}
                       <span className="text-foreground-muted font-normal ml-2">
-                        (Base de calcul : {prixCollecte} FCFA/unité)
+                        ({d.calc_base} {prixCollecte} {d.per_unit_suffix})
                       </span>
                     </label>
                     <input
@@ -136,8 +140,8 @@ export default function PaiementModal({ facture, type, onClose }: PaiementModalP
                     />
                   </div>
                   <div className="p-3 bg-primary/10 border border-primary/20 rounded-md mt-4">
-                    <div className="text-sm text-primary font-medium">Équivalent financier déduit de la facture :</div>
-                    <div className="text-xl font-bold text-primary mt-1">{equivalentFcfa.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</div>
+                    <div className="text-sm text-primary font-medium">{d.equivalent_label}</div>
+                    <div className="text-xl font-bold text-primary mt-1">{equivalentFcfa.toLocaleString(localeCode, { maximumFractionDigits: 0 })} FCFA</div>
                   </div>
                 </>
               )}
@@ -150,14 +154,14 @@ export default function PaiementModal({ facture, type, onClose }: PaiementModalP
               disabled={loading || (type === 'espece' && !montantSaisi) || (type === 'nature' && (!quantiteNature || !produitNature.trim()))}
               className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto disabled:opacity-50"
             >
-              {loading ? 'Validation...' : 'Valider le paiement'}
+              {loading ? d.validating : d.validate_submit}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="mt-3 inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background sm:mt-0 sm:w-auto"
             >
-              Annuler
+              {dict.common.cancel}
             </button>
           </div>
         </div>

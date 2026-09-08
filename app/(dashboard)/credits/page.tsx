@@ -41,7 +41,7 @@ export default async function CreditsPage() {
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <CreateCreditButton campagnes={campagnes || []} />
+          <CreateCreditButton campagnes={campagnes || []} dict={dict} />
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export default async function CreditsPage() {
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <CreditRowActions credit={credit} comptes={comptes || []} />
+                          <CreditRowActions credit={credit} comptes={comptes || []} dict={dict} locale={locale} />
                         </td>
                       </tr>
                     ))

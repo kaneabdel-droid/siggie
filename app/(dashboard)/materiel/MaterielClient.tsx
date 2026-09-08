@@ -5,7 +5,8 @@ import { Trash2, ChevronDown } from 'lucide-react'
 import { updateMaterielEtat, deleteMateriel } from './actions'
 import EditMaterielModal from './EditMaterielModal'
 
-export default function MaterielClient({ materiels, dict }: { materiels: any[], dict: any }) {
+export default function MaterielClient({ materiels, dict, fullDict, locale }: { materiels: any[], dict: any, fullDict: any, locale?: string }) {
+  const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -65,13 +66,13 @@ export default function MaterielClient({ materiels, dict }: { materiels: any[], 
                 {mat.fournisseur || '-'}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-right font-medium">
-                {mat.valeur_acquisition ? mat.valeur_acquisition.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) : '-'}
+                {mat.valeur_acquisition ? mat.valeur_acquisition.toLocaleString(localeCode, { maximumFractionDigits: 0 }) : '-'}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-center text-foreground-muted">
                 {mat.duree_vie_economique ? `${mat.duree_vie_economique} ${dict.years}` : '-'}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
-                {mat.date_acquisition ? new Date(mat.date_acquisition).toLocaleDateString('fr-FR') : '-'}
+                {mat.date_acquisition ? new Date(mat.date_acquisition).toLocaleDateString(localeCode) : '-'}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm">
                 {getEtatBadge(mat.etat)}
@@ -88,7 +89,7 @@ export default function MaterielClient({ materiels, dict }: { materiels: any[], 
                   
                   {openMenuId === mat.id && (
                     <div className="absolute right-0 top-full mt-1 w-40 rounded-md shadow-lg bg-surface ring-1 ring-black ring-opacity-5 z-20 py-1">
-                      <EditMaterielModal materiel={mat} asMenuItem />
+                      <EditMaterielModal materiel={mat} asMenuItem dict={fullDict} />
                       <button
                         onClick={() => {
                           setOpenMenuId(null)

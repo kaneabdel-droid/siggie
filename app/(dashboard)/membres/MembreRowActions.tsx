@@ -13,10 +13,11 @@ type Membre = {
   statut: string
 }
 
-export default function MembreRowActions({ membre }: { membre: Membre }) {
+export default function MembreRowActions({ membre, dict }: { membre: Membre; dict: any }) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const d = dict.membres_extra
 
   async function handleEdit(formData: FormData) {
     setLoading(true)
@@ -56,34 +57,34 @@ export default function MembreRowActions({ membre }: { membre: Membre }) {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={() => setIsEditOpen(false)} />
-            
+
             <div className="relative transform overflow-hidden rounded-lg bg-surface text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-surface-border">
               <div className="bg-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                 <h3 className="text-lg font-semibold leading-6 text-foreground mb-4">
-                  Modifier le membre
+                  {d.modal.edit_title}
                 </h3>
                 <form action={handleEdit} id={`edit-form-${membre.id}`} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Nom</label>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.last_name}</label>
                     <input type="text" name="nom" defaultValue={membre.nom} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Prénom</label>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.first_name}</label>
                     <input type="text" name="prenom" defaultValue={membre.prenom} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Village</label>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.village}</label>
                     <input type="text" name="village" defaultValue={membre.village || ''} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Téléphone</label>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.phone}</label>
                     <input type="text" name="telephone" defaultValue={membre.telephone || ''} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Statut</label>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.status}</label>
                     <select name="statut" defaultValue={membre.statut} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
-                      <option value="actif">Actif</option>
-                      <option value="inactif">Inactif</option>
+                      <option value="actif">{d.modal.status_active}</option>
+                      <option value="inactif">{d.modal.status_inactive}</option>
                     </select>
                   </div>
                 </form>
@@ -95,14 +96,14 @@ export default function MembreRowActions({ membre }: { membre: Membre }) {
                   disabled={loading}
                   className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover sm:ml-3 sm:w-auto disabled:opacity-50"
                 >
-                  {loading ? 'Enregistrement...' : 'Enregistrer'}
+                  {loading ? dict.common.saving : dict.common.save}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
                   className="mt-3 inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background sm:mt-0 sm:w-auto"
                 >
-                  Annuler
+                  {dict.common.cancel}
                 </button>
               </div>
             </div>
@@ -115,14 +116,14 @@ export default function MembreRowActions({ membre }: { membre: Membre }) {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={() => setIsDeleteOpen(false)} />
-            
+
             <div className="relative transform overflow-hidden rounded-lg bg-surface text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-surface-border">
               <div className="bg-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                 <h3 className="text-lg font-semibold leading-6 text-foreground mb-4">
-                  Supprimer le membre
+                  {d.modal.delete_title}
                 </h3>
                 <p className="text-sm text-foreground-muted">
-                  Êtes-vous sûr de vouloir supprimer <strong>{membre.prenom} {membre.nom}</strong> ? Cette action est irréversible.
+                  {d.modal.delete_confirm_prefix} <strong>{membre.prenom} {membre.nom}</strong> {d.modal.delete_confirm_suffix}
                 </p>
               </div>
               <div className="bg-background/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
@@ -132,14 +133,14 @@ export default function MembreRowActions({ membre }: { membre: Membre }) {
                   disabled={loading}
                   className="inline-flex w-full justify-center rounded-md bg-danger px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-danger/80 sm:ml-3 sm:w-auto disabled:opacity-50"
                 >
-                  {loading ? 'Suppression...' : 'Supprimer'}
+                  {loading ? dict.common.deleting : dict.common.delete}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsDeleteOpen(false)}
                   className="mt-3 inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background sm:mt-0 sm:w-auto"
                 >
-                  Annuler
+                  {dict.common.cancel}
                 </button>
               </div>
             </div>

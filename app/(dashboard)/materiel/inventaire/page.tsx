@@ -24,11 +24,11 @@ export default async function MaterielPage() {
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <AddMaterielModal />
+          <AddMaterielModal dict={dict} />
         </div>
       </div>
 
-      <MaterielClient materiels={materiels || []} dict={dict.materiel.inventaire_table} />
+      <MaterielClient materiels={materiels || []} dict={dict.materiel.inventaire_table} fullDict={dict} locale={locale} />
     </div>
   )
 }

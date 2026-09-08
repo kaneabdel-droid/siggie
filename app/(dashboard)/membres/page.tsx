@@ -38,13 +38,13 @@ export default async function MembresPage({
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <CreateMembreButton />
+          <CreateMembreButton dict={dict} />
         </div>
       </div>
 
       {/* Barre de recherche */}
       <div className="mt-8 flex items-center space-x-4">
-        <SearchMembres />
+        <SearchMembres dict={dict} />
       </div>
 
       {/* Table des membres */}
@@ -93,7 +93,7 @@ export default async function MembresPage({
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <MembreRowActions membre={membre} />
+                          <MembreRowActions membre={membre} dict={dict} />
                         </td>
                       </tr>
                     ))

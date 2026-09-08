@@ -61,8 +61,8 @@ export default async function IntrantsPage({
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 flex gap-3 sm:flex-none">
-          <AchatIntrantButton intrants={intrants || []} />
-          <CreateIntrantButton />
+          <AchatIntrantButton intrants={intrants || []} dict={dict} />
+          <CreateIntrantButton dict={dict} />
         </div>
       </div>
 
@@ -98,7 +98,7 @@ export default async function IntrantsPage({
 
       {/* Barre de recherche */}
       <div className="mt-8 flex items-center space-x-4">
-        <SearchIntrants />
+        <SearchIntrants dict={dict} />
       </div>
 
       <div className="mt-8 flow-root">
@@ -138,7 +138,7 @@ export default async function IntrantsPage({
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <IntrantRowActions intrant={intrant} />
+                          <IntrantRowActions intrant={intrant} dict={dict} />
                         </td>
                       </tr>
                     ))

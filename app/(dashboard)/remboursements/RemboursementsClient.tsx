@@ -152,7 +152,9 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
           onClose={() => {
             setPaiementType(null)
             setSelectedFacture(null) // Reset selection to force refresh
-          }} 
+          }}
+          dict={dict}
+          locale={locale}
         />
       )}
     </div>

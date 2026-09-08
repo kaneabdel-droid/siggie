@@ -12,7 +12,7 @@ const formatAmount = (amount: number | undefined | null) => {
   return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")
 }
 
-export default function DownloadPdfButton({ facture }: { facture: any }) {
+export default function DownloadPdfButton({ facture, dict }: { facture: any; dict: any }) {
   const [loadingAction, setLoadingAction] = useState<'download' | 'print' | null>(null)
 
   const generatePDF = async (action: 'download' | 'print') => {
@@ -298,7 +298,7 @@ export default function DownloadPdfButton({ facture }: { facture: any }) {
         onClick={() => generatePDF('print')}
         disabled={loadingAction !== null}
         className="text-foreground-muted hover:text-foreground p-1 transition-colors disabled:opacity-50" 
-        title="Imprimer la facture"
+        title={dict.facturation_extra.print_tooltip}
       >
         {loadingAction === 'print' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
       </button>
@@ -306,7 +306,7 @@ export default function DownloadPdfButton({ facture }: { facture: any }) {
         onClick={() => generatePDF('download')}
         disabled={loadingAction !== null}
         className="text-foreground-muted hover:text-primary p-1 transition-colors disabled:opacity-50" 
-        title="Télécharger PDF"
+        title={dict.facturation_extra.download_tooltip}
       >
         {loadingAction === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
       </button>

@@ -1,14 +1,19 @@
 import { updatePassword } from './actions'
+import { getDictionary, getLocale } from '@/dictionaries'
 
-export default function UpdatePasswordPage({ searchParams }: { searchParams: { message: string } }) {
+export default async function UpdatePasswordPage({ searchParams }: { searchParams: { message: string } }) {
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
+  const d = dict.update_password
+
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-background">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-primary">
-          Mettre à jour le mot de passe
+          {d.title}
         </h2>
         <p className="mt-2 text-center text-sm text-foreground-muted">
-          Saisissez votre nouveau mot de passe.
+          {d.desc}
         </p>
       </div>
 
@@ -22,7 +27,7 @@ export default function UpdatePasswordPage({ searchParams }: { searchParams: { m
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium leading-6 text-foreground">
-              Nouveau mot de passe
+              {d.label}
             </label>
             <div className="mt-2">
               <input
@@ -41,7 +46,7 @@ export default function UpdatePasswordPage({ searchParams }: { searchParams: { m
               type="submit"
               className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              Enregistrer
+              {d.submit}
             </button>
           </div>
         </form>

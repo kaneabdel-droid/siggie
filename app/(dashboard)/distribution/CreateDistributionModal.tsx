@@ -14,16 +14,19 @@ export default function CreateDistributionModal({
   campagnes,
   campagneMembres,
   intrants,
-  campagneIntrants
+  campagneIntrants,
+  dict
 }: {
   campagnes: Campagne[]
   campagneMembres: CampagneMembre[]
   intrants: Intrant[]
   campagneIntrants: CampagneIntrant[]
+  dict: any
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<'intrant' | 'membre'>('intrant')
+  const d = dict.distribution_extra.create_modal
 
   const [selectedCampagneId, setSelectedCampagneId] = useState('')
   const [selectedIntrantId, setSelectedIntrantId] = useState('')
@@ -31,7 +34,7 @@ export default function CreateDistributionModal({
 
   // State for Option 1 (By Intrant)
   const [quantitiesByMembre, setQuantitiesByMembre] = useState<Record<string, number>>({})
-  
+
   // State for Option 2 (By Membre)
   const [quantitiesByIntrant, setQuantitiesByIntrant] = useState<Record<string, number>>({})
 
@@ -57,7 +60,7 @@ export default function CreateDistributionModal({
   const campaignIntrantIds = campagneIntrants
     .filter(ci => ci.campagne_id === selectedCampagneId)
     .map(ci => ci.intrant_id)
-    
+
   const campaignAvailableIntrants = intrants.filter(i => campaignIntrantIds.includes(i.id))
 
   // Calculate totals for validation
@@ -72,15 +75,15 @@ export default function CreateDistributionModal({
       .filter(([_, q]) => q > 0)
       .map(([membre_id, quantite]) => ({ membre_id, quantite }))
 
-    if (distributions.length === 0) return alert("Saisissez au moins une quantité.")
+    if (distributions.length === 0) return alert(d.invalid_quantity_alert)
     if (selectedIntrant && totalByIntrant > selectedIntrant.quantite_stock) {
-      return alert("Le total saisi dépasse le stock disponible !")
+      return alert(d.exceeds_stock_alert)
     }
 
     setLoading(true)
     const res = await addDistributionsByIntrant(selectedCampagneId, selectedIntrantId, distributions)
     setLoading(false)
-    
+
     if (res?.error) {
       alert(res.error)
     } else {
@@ -96,12 +99,12 @@ export default function CreateDistributionModal({
       .filter(([_, q]) => q > 0)
       .map(([intrant_id, quantite]) => ({ intrant_id, quantite }))
 
-    if (distributions.length === 0) return alert("Saisissez au moins une quantité.")
+    if (distributions.length === 0) return alert(d.invalid_quantity_alert)
 
     setLoading(true)
     const res = await addDistributionsByMembre(selectedCampagneId, selectedMembreId, distributions)
     setLoading(false)
-    
+
     if (res?.error) {
       alert(res.error)
     } else {
@@ -117,20 +120,20 @@ export default function CreateDistributionModal({
         className="block rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary flex items-center gap-2"
       >
         <Plus className="h-4 w-4" />
-        Nouvelle Distribution
+        {dict.distribution_extra.create_btn}
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={closeAndReset} />
-            
+
             <div className="relative transform overflow-hidden rounded-lg bg-surface text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-surface-border flex flex-col max-h-[90vh]">
               <div className="bg-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-surface-border shrink-0">
                 <h3 className="text-lg font-semibold leading-6 text-foreground mb-4">
-                  Distribution Groupée
+                  {d.title}
                 </h3>
-                
+
                 {/* Tabs */}
                 <div className="border-b border-surface-border mb-4">
                   <nav className="-mb-px flex space-x-8" aria-label="Tabs">
@@ -142,7 +145,7 @@ export default function CreateDistributionModal({
                           : 'border-transparent text-foreground-muted hover:border-surface-border hover:text-foreground'
                       }`}
                     >
-                      Option 1 : Par Produit (Intrant)
+                      {d.tab1}
                     </button>
                     <button
                       onClick={() => { setTab('membre'); resetForm() }}
@@ -152,20 +155,20 @@ export default function CreateDistributionModal({
                           : 'border-transparent text-foreground-muted hover:border-surface-border hover:text-foreground'
                       }`}
                     >
-                      Option 2 : Par Membre
+                      {d.tab2}
                     </button>
                   </nav>
                 </div>
 
                 {/* Common Campaign Selector */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground">Campagne</label>
-                  <select 
+                  <label className="block text-sm font-medium text-foreground">{d.campaign}</label>
+                  <select
                     value={selectedCampagneId}
                     onChange={(e) => setSelectedCampagneId(e.target.value)}
                     className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                   >
-                    <option value="">Sélectionnez une campagne...</option>
+                    <option value="">{d.select_campaign}</option>
                     {campagnes.map(c => (
                       <option key={c.id} value={c.id}>{c.nom}</option>
                     ))}
@@ -179,11 +182,11 @@ export default function CreateDistributionModal({
                   <>
                     {enrolledMembres.length === 0 ? (
                       <div className="text-sm text-warning p-4 bg-warning/10 rounded-md">
-                        ⚠️ Aucun membre n'est encore inscrit à cette campagne.{' '}
+                        {d.no_members_prefix}{' '}
                         <a href={`/campagnes/${selectedCampagneId}/config`} className="underline font-semibold hover:text-warning/80">
-                          Cliquez ici pour aller dans la Configuration de la campagne
-                        </a> 
-                        {' '}pour y inscrire les participants.
+                          {d.no_members_link}
+                        </a>
+                        {' '}{d.no_members_suffix}
                       </div>
                     ) : (
                       <>
@@ -192,25 +195,25 @@ export default function CreateDistributionModal({
                           <>
                             {campaignAvailableIntrants.length === 0 ? (
                               <div className="text-sm text-warning p-4 bg-warning/10 rounded-md">
-                                ⚠️ Aucun produit n'est configuré pour cette campagne.{' '}
+                                {d.no_products_prefix}{' '}
                                 <a href={`/campagnes/${selectedCampagneId}/config`} className="underline font-semibold hover:text-warning/80">
-                                  Allez dans la Configuration
-                                </a> 
-                                {' '}pour y ajouter des intrants.
+                                  {d.no_products_link}
+                                </a>
+                                {' '}{d.no_products_suffix}
                               </div>
                             ) : (
                               <form id="dist-form" onSubmit={handleOption1Submit} className="space-y-4">
                                 <div>
-                                  <label className="block text-sm font-medium text-foreground">Produit à distribuer</label>
-                                  <select 
+                                  <label className="block text-sm font-medium text-foreground">{d.product_to_distribute}</label>
+                                  <select
                                     value={selectedIntrantId}
                                     onChange={(e) => setSelectedIntrantId(e.target.value)}
                                     className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                                   >
-                                    <option value="">Sélectionnez un produit...</option>
+                                    <option value="">{d.select_product}</option>
                                     {campaignAvailableIntrants.map(i => (
                                       <option key={i.id} value={i.id} disabled={i.quantite_stock <= 0}>
-                                        {i.nom} (Stock: {i.quantite_stock})
+                                        {i.nom} ({d.stock_label}: {i.quantite_stock})
                                       </option>
                                     ))}
                                   </select>
@@ -219,9 +222,9 @@ export default function CreateDistributionModal({
                                 {selectedIntrantId && selectedIntrant && (
                                   <div className="mt-4">
                                     <div className="flex justify-between items-center mb-2">
-                                      <label className="block text-sm font-medium text-foreground">Quantités par Membre</label>
+                                      <label className="block text-sm font-medium text-foreground">{d.quantities_by_member}</label>
                                       <span className={`text-sm font-medium ${totalByIntrant > selectedIntrant.quantite_stock ? 'text-danger' : 'text-foreground-muted'}`}>
-                                        Total saisi : {totalByIntrant} / {selectedIntrant.quantite_stock}
+                                        {d.total_entered} {totalByIntrant} / {selectedIntrant.quantite_stock}
                                       </span>
                                     </div>
                                     <div className="space-y-2 border border-surface-border rounded-md p-2 bg-background max-h-64 overflow-y-auto">
@@ -231,7 +234,7 @@ export default function CreateDistributionModal({
                                             <div className="font-medium text-foreground">{m.prenom} {m.nom}</div>
                                             <div className="text-xs text-foreground-muted">{m.code_membre}</div>
                                           </div>
-                                          <input 
+                                          <input
                                             type="number"
                                             step="0.01"
                                             min="0"
@@ -260,13 +263,13 @@ export default function CreateDistributionModal({
                         {tab === 'membre' && (
                           <form id="dist-form" onSubmit={handleOption2Submit} className="space-y-4">
                             <div>
-                              <label className="block text-sm font-medium text-foreground">Bénéficiaire (Membre inscrit)</label>
-                              <select 
+                              <label className="block text-sm font-medium text-foreground">{d.beneficiary}</label>
+                              <select
                                 value={selectedMembreId}
                                 onChange={(e) => setSelectedMembreId(e.target.value)}
                                 className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                               >
-                                <option value="">Sélectionnez un membre...</option>
+                                <option value="">{d.select_member}</option>
                                 {enrolledMembres.map(m => (
                                   <option key={m.id} value={m.id}>{m.prenom} {m.nom} {m.code_membre ? `[${m.code_membre}]` : (m.telephone ? `(${m.telephone})` : '')}</option>
                                 ))}
@@ -275,9 +278,9 @@ export default function CreateDistributionModal({
 
                             {selectedMembreId && (
                               <div className="mt-4">
-                                <label className="block text-sm font-medium text-foreground mb-2">Quantités par Produit (Intrant)</label>
+                                <label className="block text-sm font-medium text-foreground mb-2">{d.quantities_by_product}</label>
                                 {campaignAvailableIntrants.length === 0 ? (
-                                  <div className="text-sm text-foreground-muted italic">Aucun intrant n'est configuré pour cette campagne.</div>
+                                  <div className="text-sm text-foreground-muted italic">{d.no_intrants_configured}</div>
                                 ) : (
                                   <div className="space-y-2 border border-surface-border rounded-md p-2 bg-background max-h-64 overflow-y-auto">
                                     {campaignAvailableIntrants.map(i => {
@@ -287,9 +290,9 @@ export default function CreateDistributionModal({
                                         <div key={i.id} className="flex items-center justify-between gap-4 p-2 hover:bg-surface rounded-md">
                                           <div className="text-sm">
                                             <div className="font-medium text-foreground">{i.nom}</div>
-                                            <div className={`text-xs ${exceed ? 'text-danger' : 'text-foreground-muted'}`}>Stock : {i.quantite_stock}</div>
+                                            <div className={`text-xs ${exceed ? 'text-danger' : 'text-foreground-muted'}`}>{d.stock_colon} {i.quantite_stock}</div>
                                           </div>
-                                          <input 
+                                          <input
                                             type="number"
                                             step="0.01"
                                             min="0"
@@ -319,7 +322,7 @@ export default function CreateDistributionModal({
                   </>
                 ) : (
                   <div className="text-sm text-foreground-muted text-center py-4">
-                    Veuillez sélectionner une campagne pour continuer.
+                    {d.select_campaign_prompt}
                   </div>
                 )}
               </div>
@@ -332,14 +335,14 @@ export default function CreateDistributionModal({
                   disabled={loading || !selectedCampagneId || enrolledMembres.length === 0}
                   className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover sm:ml-3 sm:w-auto disabled:opacity-50"
                 >
-                  {loading ? 'Validation...' : 'Valider la distribution'}
+                  {loading ? d.validating : d.validate_submit}
                 </button>
                 <button
                   type="button"
                   onClick={closeAndReset}
                   className="mt-3 inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background sm:mt-0 sm:w-auto"
                 >
-                  Fermer
+                  {dict.common.close}
                 </button>
               </div>
             </div>

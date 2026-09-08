@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import CheckoutClient from './CheckoutClient'
 import { redirect } from 'next/navigation'
 import { hasBictorysKeys, hasMonerooKeys, hasChariowKeys } from '@/lib/payments/config'
+import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function CheckoutPage({
   searchParams,
@@ -11,6 +12,8 @@ export default async function CheckoutPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const params = await searchParams
+  const locale = await getLocale()
+  const dict = await getDictionary(locale)
   
   const plan = params.plan || 'standard'
   const isUpgrade = params.upgrade === 'true'
@@ -40,6 +43,8 @@ export default async function CheckoutPage({
       currentTier={currentTier}
       isUpgrade={isUpgrade}
       hasOnlinePayment={{ mobileMoney: hasBictorysKeys, carte: hasMonerooKeys, chariow: hasChariowKeys }}
+      dict={dict}
+      locale={locale}
     />
   )
 }

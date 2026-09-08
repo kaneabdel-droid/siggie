@@ -71,11 +71,12 @@ export default async function DistributionPage() {
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <CreateDistributionModal 
-            campagnes={campagnes || []} 
-            campagneMembres={campagneMembres} 
-            intrants={intrants || []} 
+          <CreateDistributionModal
+            campagnes={campagnes || []}
+            campagneMembres={campagneMembres}
+            intrants={intrants || []}
             campagneIntrants={campagneIntrants || []}
+            dict={dict}
           />
         </div>
       </div>
@@ -151,10 +152,11 @@ export default async function DistributionPage() {
                           {dist.campagnes?.nom || '-'}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <DistributionRowActions 
-                            id={dist.id} 
-                            intrantNom={dist.intrants?.nom || 'produit'} 
-                            quantite={dist.quantite} 
+                          <DistributionRowActions
+                            id={dist.id}
+                            intrantNom={dist.intrants?.nom || 'produit'}
+                            quantite={dist.quantite}
+                            dict={dict}
                           />
                         </td>
                       </tr>

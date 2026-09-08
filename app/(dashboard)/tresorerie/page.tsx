@@ -24,7 +24,7 @@ export default async function TresoreriePage() {
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <AddCompteModal />
+          <AddCompteModal dict={dict} />
         </div>
       </div>
 

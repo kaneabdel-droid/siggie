@@ -25,7 +25,7 @@ export default function FacturationClient({ factures, dict, locale }: { factures
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 flex gap-3 sm:flex-none">
-          <GenererFacturesModal />
+          <GenererFacturesModal dict={dict} />
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export default function FacturationClient({ factures, dict, locale }: { factures
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <div className="flex justify-end gap-2">
-                            <DownloadPdfButton facture={facture} />
+                            <DownloadPdfButton facture={facture} dict={dict} />
                           </div>
                         </td>
                       </tr>

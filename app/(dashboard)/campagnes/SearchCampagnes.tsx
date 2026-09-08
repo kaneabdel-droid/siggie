@@ -4,7 +4,7 @@ import { Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTransition } from 'react'
 
-export default function SearchCampagnes() {
+export default function SearchCampagnes({ dict }: { dict: any }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -30,7 +30,7 @@ export default function SearchCampagnes() {
       <input
         type="text"
         className="block w-full rounded-md border-0 py-2 pl-10 pr-3 bg-surface text-foreground ring-1 ring-inset ring-surface-border placeholder:text-foreground-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 shadow-sm"
-        placeholder="Rechercher par nom ou produit..."
+        placeholder={dict.campagnes_extra.search_placeholder}
         defaultValue={searchParams.get('query')?.toString()}
         onChange={(e) => handleSearch(e.target.value)}
       />

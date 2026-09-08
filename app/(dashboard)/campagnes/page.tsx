@@ -39,13 +39,13 @@ export default async function CampagnesPage({
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <CreateCampagneButton />
+          <CreateCampagneButton dict={dict} />
         </div>
       </div>
 
       {/* Barre de recherche */}
       <div className="mt-8 flex items-center space-x-4">
-        <SearchCampagnes />
+        <SearchCampagnes dict={dict} />
       </div>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -65,7 +65,7 @@ export default async function CampagnesPage({
                         {campagne.statut === 'en_cours' ? dict.campagnes.status.active : campagne.statut === 'terminee' ? dict.campagnes.status.completed : dict.campagnes.status.cancelled}
                       </span>
                     </div>
-                    <CampagneRowActions campagne={campagne} />
+                    <CampagneRowActions campagne={campagne} dict={dict} />
                   </div>
                   <p className="mt-1 truncate text-sm text-foreground-muted">
                     {dict.campagnes.card.from} {campagne.date_debut ? new Date(campagne.date_debut).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'} {dict.campagnes.card.to} {campagne.date_fin ? new Date(campagne.date_fin).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'}
