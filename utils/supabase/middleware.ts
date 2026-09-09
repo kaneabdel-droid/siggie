@@ -42,9 +42,28 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
+  // /admin/login est le point d'entrée dédié de l'espace admin : jamais soumis
+  // aux redirections ci-dessous (sinon boucle de redirection avec lui-même).
+  if (pathname === '/admin/login') {
+    return supabaseResponse
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  // Espace admin plateforme : réservé aux emails listés dans ADMIN_EMAILS, jamais
+  // soumis au verrouillage d'essai d'un GIE (l'admin ne gère pas son propre GIE ici).
+  // Traité avant la redirection générique ci-dessous pour qu'un visiteur non
+  // connecté sur /admin/* atterrisse sur /admin/login, pas sur /login (compte client).
+  if (pathname.startsWith('/admin')) {
+    if (!isAdminEmail(user?.email)) {
+      const url = request.nextUrl.clone()
+      url.pathname = user ? '/dashboard' : '/admin/login'
+      return NextResponse.redirect(url)
+    }
+    return supabaseResponse
+  }
 
   if (
     !user &&
@@ -60,17 +79,6 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
-  }
-
-  // Espace admin plateforme : réservé aux emails listés dans ADMIN_EMAILS, jamais
-  // soumis au verrouillage d'essai d'un GIE (l'admin ne gère pas son propre GIE ici).
-  if (pathname.startsWith('/admin')) {
-    if (!isAdminEmail(user?.email)) {
-      const url = request.nextUrl.clone()
-      url.pathname = user ? '/dashboard' : '/login'
-      return NextResponse.redirect(url)
-    }
-    return supabaseResponse
   }
 
   // Verrouillage après la période d'essai (ou verrouillage manuel admin) : un GIE

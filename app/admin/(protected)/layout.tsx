@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!isAdminEmail(user?.email)) {
-    redirect(user ? '/dashboard' : '/login')
+    redirect(user ? '/dashboard' : '/admin/login')
   }
 
   const navItems = [
