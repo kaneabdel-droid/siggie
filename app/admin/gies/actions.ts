@@ -85,6 +85,34 @@ export async function changerRoleUtilisateur(gieId: string, utilisateurId: strin
   return { success: true }
 }
 
+export async function creerUtilisateurPourGie(
+  gieId: string,
+  email: string,
+  password: string,
+  role: string
+): Promise<ActionResult> {
+  const authError = await checkAdmin()
+  if (authError) return { error: authError }
+  if (!email.trim()) return { error: "L'email est requis" }
+  if (!password || password.length < 6) return { error: 'Le mot de passe doit contenir au moins 6 caractères' }
+
+  const supabase = createAdminClient()
+
+  // `existing_gie_id` dans les métadonnées indique au trigger handle_new_user()
+  // de rattacher ce compte au GIE existant plutôt que d'en créer un nouveau
+  // (comportement par défaut de toute création dans auth.users).
+  const { error } = await supabase.auth.admin.createUser({
+    email: email.trim(),
+    password,
+    email_confirm: true,
+    user_metadata: { existing_gie_id: gieId, role: role.trim() || 'employe' },
+  })
+  if (error) return { error: error.message }
+
+  revalidatePath(`/admin/gies/${gieId}`)
+  return { success: true }
+}
+
 export async function retirerUtilisateurDuGie(gieId: string, utilisateurId: string): Promise<ActionResult> {
   const authError = await checkAdmin()
   if (authError) return { error: authError }

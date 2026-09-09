@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { createAdminClient } from '@/utils/supabase/admin'
 import GieActions from './GieActions'
 import UtilisateurRow from './UtilisateurRow'
+import AjouterUtilisateurButton from './AjouterUtilisateurButton'
 import SupprimerGieButton from './SupprimerGieButton'
 
 export default async function AdminGieDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +51,10 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="bg-background rounded-xl p-5 border border-surface-border">
-          <h2 className="font-semibold mb-4">Utilisateurs</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">Utilisateurs</h2>
+            <AjouterUtilisateurButton gieId={gie.id} />
+          </div>
           <ul className="text-sm divide-y divide-surface-border">
             {(utilisateurs ?? []).map((u) => {
               const authUser = authParId.get(u.id)
