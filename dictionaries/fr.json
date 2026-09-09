@@ -805,6 +805,8 @@
       "supplier_payments": "Paiements Frs",
       "cash_withdrawals": "Retraits Espèces",
       "credit_balance": "Solde du Crédit",
+      "credit_balance_status_positive": "Solde disponible",
+      "credit_balance_status_negative": "Dépassement de crédit",
       "supplier_payments_title": "Paiements Fournisseurs",
       "cash_withdrawals_title": "Retraits en Espèces",
       "account_label": "Compte",
