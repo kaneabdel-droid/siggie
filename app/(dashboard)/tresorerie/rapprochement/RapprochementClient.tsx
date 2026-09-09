@@ -52,7 +52,7 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
       {!loading && data && (
         <div className="space-y-8">
           {/* Section Bilan */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-surface border border-surface-border p-4 rounded-lg shadow-sm">
               <div className="flex items-center gap-2 text-primary font-semibold mb-2">
                 <Landmark className="w-5 h-5" />
@@ -83,24 +83,15 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
                 {data.bilan.totalRetraits.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
               </div>
             </div>
-          </div>
 
-          {/* Solde final : mis en avant séparément pour rester lisible même avec de gros montants */}
-          <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 rounded-xl shadow-sm text-white ${data.bilan.soldeCredit >= 0 ? 'bg-success' : 'bg-danger'}`}>
-            <div className="flex items-center gap-3">
-              <div className="shrink-0 w-11 h-11 rounded-full bg-white/15 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6" />
+            <div className={`border p-4 rounded-lg shadow-sm text-white ${data.bilan.soldeCredit >= 0 ? 'bg-success border-success' : 'bg-danger border-danger'}`}>
+              <div className="flex items-center gap-2 font-semibold mb-2 text-white">
+                <CheckCircle2 className="w-5 h-5" />
+                {t.credit_balance}
               </div>
-              <div>
-                <div className="text-sm font-semibold uppercase tracking-wide text-white/80">{t.credit_balance}</div>
-                <div className="text-xs text-white/70 mt-0.5">
-                  {data.bilan.soldeCredit >= 0 ? t.credit_balance_status_positive : t.credit_balance_status_negative}
-                </div>
+              <div className="text-2xl font-bold text-white">
+                {data.bilan.soldeCredit.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-white">FCFA</span>
               </div>
-            </div>
-            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight sm:text-right">
-              {data.bilan.soldeCredit.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{' '}
-              <span className="text-base font-medium text-white/80">FCFA</span>
             </div>
           </div>
 

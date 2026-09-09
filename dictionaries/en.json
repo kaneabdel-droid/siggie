@@ -805,8 +805,6 @@
       "supplier_payments": "Supplier Payments",
       "cash_withdrawals": "Cash Withdrawals",
       "credit_balance": "Loan Balance",
-      "credit_balance_status_positive": "Available balance",
-      "credit_balance_status_negative": "Credit overrun",
       "supplier_payments_title": "Supplier Payments",
       "cash_withdrawals_title": "Cash Withdrawals",
       "account_label": "Account",
