@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import LanguageSelector from '@/components/LanguageSelector'
@@ -12,9 +13,10 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
     <header className="sticky top-0 z-50 w-full border-b border-surface-border bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
-            <span className="text-2xl font-bold font-heading text-primary">DEMBA SOLUTION</span>
-          </div>
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <Image src="/logo-icon.png" alt="" width={308} height={260} className="h-9 w-auto" priority />
+            <span className="text-lg sm:text-xl font-bold font-heading text-primary">DEMBA SOLUTION</span>
+          </Link>
           <nav className="hidden md:flex gap-6 items-center">
             <a href="#produits" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.products}</a>
             <a href="#tarifs" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.pricing}</a>
