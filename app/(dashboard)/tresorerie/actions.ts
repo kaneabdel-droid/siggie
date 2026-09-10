@@ -68,7 +68,7 @@ export async function addCompte(nom: string, type_compte: string, solde_initial:
   return { success: true }
 }
 
-export async function addTransaction(data: { compte_id: string, type_transaction: string, montant: number, motif: string, credit_id?: string, type_piece?: string }) {
+export async function addTransaction(data: { compte_id: string, type_transaction: string, montant: number, motif: string, credit_id?: string, type_piece?: string, imputation_id?: string }) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -91,7 +91,8 @@ export async function addTransaction(data: { compte_id: string, type_transaction
       montant: data.montant,
       motif: data.motif,
       credit_id: data.credit_id || null,
-      type_piece: data.type_piece || null
+      type_piece: data.type_piece || null,
+      imputation_id: data.imputation_id || null
     })
 
   if (error) return { error: error.message }

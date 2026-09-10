@@ -284,7 +284,8 @@
     "tabs": {
       "comptes": "Accounts (Balances)",
       "journaux": "Ledgers",
-      "rapprochement": "Reconciliation"
+      "rapprochement": "Reconciliation",
+      "imputations": "Allocations"
     },
     "balances": {
       "title": "Balances Overview",
@@ -779,6 +780,7 @@
       "loading": "Loading journal...",
       "headers": {
         "reason": "Reason",
+        "imputation": "Allocation",
         "in": "In",
         "out": "Out",
         "balance": "Running balance"
@@ -796,7 +798,32 @@
         "piece_deposit": "Deposit",
         "amount_label": "Amount (FCFA)",
         "reason_label": "Reason (Description)",
-        "reason_placeholder": "E.g.: Urea purchase from Supplier X"
+        "reason_placeholder": "E.g.: Urea purchase from Supplier X",
+        "imputation_label": "Allocation (Optional)",
+        "imputation_none": "-- None --"
+      }
+    },
+    "imputations": {
+      "title": "Allocation List",
+      "desc": "Accounting categories used to classify cash and bank transactions.",
+      "add_btn": "New Allocation",
+      "admin_only_notice": "Only the GIE administrator can create, edit or delete an allocation.",
+      "table": {
+        "libelle": "Label",
+        "compte": "Account",
+        "actions": "Actions",
+        "empty": "No allocation created yet."
+      },
+      "modal": {
+        "create_title": "Create an allocation",
+        "edit_title": "Edit the allocation",
+        "libelle": "Label",
+        "libelle_placeholder": "E.g.: Input purchases",
+        "compte": "Account",
+        "compte_placeholder": "E.g.: 601000 - Raw material purchases",
+        "delete_title": "Delete the allocation",
+        "delete_confirm_prefix": "Are you sure you want to delete the allocation",
+        "delete_confirm_suffix": "?"
       }
     },
     "rapprochement": {

@@ -284,7 +284,8 @@
     "tabs": {
       "comptes": "Comptes (Soldes)",
       "journaux": "Journaux",
-      "rapprochement": "Rapprochement"
+      "rapprochement": "Rapprochement",
+      "imputations": "Imputations"
     },
     "balances": {
       "title": "Aperçu des Soldes",
@@ -779,6 +780,7 @@
       "loading": "Chargement du journal...",
       "headers": {
         "reason": "Motif",
+        "imputation": "Imputation",
         "in": "Entrée",
         "out": "Sortie",
         "balance": "Solde en cours"
@@ -796,7 +798,32 @@
         "piece_deposit": "Versement",
         "amount_label": "Montant (FCFA)",
         "reason_label": "Motif (Description)",
-        "reason_placeholder": "Ex: Achat Urée Fournisseur X"
+        "reason_placeholder": "Ex: Achat Urée Fournisseur X",
+        "imputation_label": "Imputation (Optionnel)",
+        "imputation_none": "-- Aucune --"
+      }
+    },
+    "imputations": {
+      "title": "Liste des Imputations",
+      "desc": "Catégories comptables utilisées pour classer les opérations de caisse et de banque.",
+      "add_btn": "Nouvelle Imputation",
+      "admin_only_notice": "Seul l'administrateur du GIE peut créer, modifier ou supprimer une imputation.",
+      "table": {
+        "libelle": "Libellé",
+        "compte": "Compte",
+        "actions": "Actions",
+        "empty": "Aucune imputation créée pour le moment."
+      },
+      "modal": {
+        "create_title": "Créer une imputation",
+        "edit_title": "Modifier l'imputation",
+        "libelle": "Libellé",
+        "libelle_placeholder": "Ex: Achat d'intrants",
+        "compte": "Compte",
+        "compte_placeholder": "Ex: 601000 - Achats de matières premières",
+        "delete_title": "Supprimer l'imputation",
+        "delete_confirm_prefix": "Êtes-vous sûr de vouloir supprimer l'imputation",
+        "delete_confirm_suffix": "?"
       }
     },
     "rapprochement": {

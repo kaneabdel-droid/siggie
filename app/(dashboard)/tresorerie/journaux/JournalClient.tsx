@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getJournal } from '../actions'
 import AddTransactionModal from './AddTransactionModal'
 
-export default function JournalClient({ comptes, dict, locale }: { comptes: any[], dict: any, locale: string }) {
+export default function JournalClient({ comptes, imputations, dict, locale }: { comptes: any[], imputations: any[], dict: any, locale: string }) {
   const [selectedCompte, setSelectedCompte] = useState(comptes[0]?.id || '')
   const [journal, setJournal] = useState<any[]>([])
   const [soldeInitial, setSoldeInitial] = useState(0)
@@ -12,6 +12,7 @@ export default function JournalClient({ comptes, dict, locale }: { comptes: any[
   const [error, setError] = useState('')
   const t = dict.tresorerie_pages.journaux
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
+  const imputationParId = new Map(imputations.map((imp) => [imp.id, imp.libelle]))
 
   const fetchJournal = useCallback(async () => {
     if (!selectedCompte) return
@@ -48,7 +49,7 @@ export default function JournalClient({ comptes, dict, locale }: { comptes: any[
           </select>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <AddTransactionModal compteId={selectedCompte} onSuccess={fetchJournal} dict={dict} />
+          <AddTransactionModal compteId={selectedCompte} imputations={imputations} onSuccess={fetchJournal} dict={dict} />
         </div>
       </div>
 
@@ -62,6 +63,7 @@ export default function JournalClient({ comptes, dict, locale }: { comptes: any[
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.common.date}</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.reason}</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.imputation}</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.in}</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.out}</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.balance}</th>
@@ -77,6 +79,9 @@ export default function JournalClient({ comptes, dict, locale }: { comptes: any[
                     {ligne.motif}
                     {ligne.type_piece && <span className="ml-2 text-xs text-secondary">[{ligne.type_piece}]</span>}
                   </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
+                    {ligne.imputation_id ? (imputationParId.get(ligne.imputation_id) || '-') : '-'}
+                  </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-success font-medium">
                     {ligne.entree ? `+${ligne.entree.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}` : ''}
                   </td>
@@ -90,7 +95,7 @@ export default function JournalClient({ comptes, dict, locale }: { comptes: any[
               ))}
               {/* Ligne du solde initial */}
               <tr className="bg-background/80">
-                <td colSpan={4} className="px-6 py-4 text-sm font-medium text-foreground text-right italic">
+                <td colSpan={5} className="px-6 py-4 text-sm font-medium text-foreground text-right italic">
                   {t.initial_balance}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold">

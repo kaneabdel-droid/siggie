@@ -1,9 +1,11 @@
 import { getComptes } from '../actions'
+import { getImputations } from '../imputations/actions'
 import JournalClient from './JournalClient'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function JournauxPage() {
   const { comptes, error } = await getComptes()
+  const { imputations } = await getImputations()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const t = dict.tresorerie_pages.journaux
@@ -29,7 +31,7 @@ export default async function JournauxPage() {
         </p>
       </div>
 
-      <JournalClient comptes={comptes} dict={dict} locale={locale} />
+      <JournalClient comptes={comptes} imputations={imputations || []} dict={dict} locale={locale} />
     </div>
   )
 }

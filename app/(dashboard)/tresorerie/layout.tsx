@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Landmark, BookText, ArrowLeftRight } from 'lucide-react'
+import { Landmark, BookText, ArrowLeftRight, Tags } from 'lucide-react'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function TresorerieLayout({
@@ -42,6 +42,13 @@ export default async function TresorerieLayout({
         >
           <ArrowLeftRight className="w-4 h-4" />
           {dict.tresorerie.tabs.rapprochement}
+        </Link>
+        <Link
+          href="/tresorerie/imputations"
+          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+        >
+          <Tags className="w-4 h-4" />
+          {dict.tresorerie.tabs.imputations}
         </Link>
       </nav>
 

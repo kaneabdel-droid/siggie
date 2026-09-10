@@ -6,10 +6,12 @@ import { addTransaction } from '../actions'
 
 export default function AddTransactionModal({
   compteId,
+  imputations,
   onSuccess,
   dict,
 }: {
   compteId: string,
+  imputations: any[],
   onSuccess: () => void,
   dict: any,
 }) {
@@ -26,13 +28,15 @@ export default function AddTransactionModal({
     const montant = Number(formData.get('montant'))
     const motif = formData.get('motif') as string
     const type_piece = formData.get('type_piece') as string
+    const imputation_id = (formData.get('imputation_id') as string) || undefined
 
     const res = await addTransaction({
       compte_id: compteId,
       type_transaction,
       montant,
       motif,
-      type_piece
+      type_piece,
+      imputation_id
     })
 
     setLoading(false)
@@ -100,6 +104,19 @@ export default function AddTransactionModal({
                       min={1}
                       className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                     />
+                  </div>
+                  <div>
+                    <label htmlFor="imputation_id" className="block text-sm font-medium text-foreground">{t.imputation_label}</label>
+                    <select
+                      name="imputation_id"
+                      id="imputation_id"
+                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                    >
+                      <option value="">{t.imputation_none}</option>
+                      {imputations.map((imp) => (
+                        <option key={imp.id} value={imp.id}>{imp.libelle}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label htmlFor="motif" className="block text-sm font-medium text-foreground">{t.reason_label}</label>
