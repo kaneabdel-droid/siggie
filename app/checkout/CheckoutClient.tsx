@@ -195,7 +195,7 @@ export default function CheckoutClient({
               {paymentMethod === 'virement' && (
                 <div className="mb-8 bg-surface p-4 rounded-lg border border-surface-border">
                   <p className="text-sm text-foreground-muted mb-2">{d.transfer_instructions}</p>
-                  <p className="font-mono font-semibold">SN010 01234 12345678901 12</p>
+                  <p className="font-mono font-semibold">SN048 08002 01057183001 43</p>
                   <p className="text-sm text-foreground-muted mt-2">{d.transfer_note}</p>
                 </div>
               )}
