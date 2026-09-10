@@ -38,17 +38,38 @@ export default async function IntrantsPage({
     .select('id')
     .eq('statut', 'en_cours')
 
+  const activeCampagneIds = campagnesEnCours?.map(c => c.id) || []
+
   let totalDistributions = 0
-  if (campagnesEnCours && campagnesEnCours.length > 0 && intrants && intrants.length > 0) {
-    const activeCampagneIds = campagnesEnCours.map(c => c.id)
+  if (activeCampagneIds.length > 0 && intrants && intrants.length > 0) {
     const intrantIds = intrants.map(i => i.id)
     const { data: distributions } = await supabase
       .from('distribution_intrants')
       .select('quantite')
       .in('campagne_id', activeCampagneIds)
       .in('intrant_id', intrantIds)
-    
+
     totalDistributions = distributions?.reduce((sum, dist) => sum + Number(dist.quantite), 0) || 0
+  }
+
+  // Total des remboursements en nature reçus pour les campagnes en cours
+  let totalRemboursementsNature = 0
+  if (activeCampagneIds.length > 0) {
+    const { data: facturesEnCours } = await supabase
+      .from('factures')
+      .select('id')
+      .in('campagne_id', activeCampagneIds)
+
+    const factureIds = facturesEnCours?.map(f => f.id) || []
+    if (factureIds.length > 0) {
+      const { data: remboursementsNature } = await supabase
+        .from('remboursements')
+        .select('quantite_nature')
+        .eq('type_remboursement', 'nature')
+        .in('facture_id', factureIds)
+
+      totalRemboursementsNature = remboursementsNature?.reduce((sum, r) => sum + Number(r.quantite_nature || 0), 0) || 0
+    }
   }
 
   return (
@@ -73,7 +94,7 @@ export default async function IntrantsPage({
           </div>
           <div className="min-w-0">
             <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.value}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalValue.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalValue.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
@@ -82,7 +103,7 @@ export default async function IntrantsPage({
           </div>
           <div className="min-w-0">
             <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.distributions}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {dict.intrants.kpis.units}</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {dict.intrants.kpis.units}</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
@@ -91,7 +112,7 @@ export default async function IntrantsPage({
           </div>
           <div className="min-w-0">
             <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.repayments}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">- kg</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalRemboursementsNature.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} kg</dd>
           </div>
         </div>
       </div>

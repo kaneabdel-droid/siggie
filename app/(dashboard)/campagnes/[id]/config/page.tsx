@@ -23,10 +23,11 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
     notFound()
   }
 
-  // Fetch all members of the GIE
+  // Fetch active members of the GIE (les membres inactifs ne peuvent pas être inscrits à une campagne)
   const { data: membres } = await supabase
     .from('membres')
     .select('*')
+    .eq('statut', 'actif')
     .order('prenom', { ascending: true })
 
   // Fetch already enrolled members for this campaign
