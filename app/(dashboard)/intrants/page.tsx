@@ -88,30 +88,30 @@ export default async function IntrantsPage({
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
-          <div className="rounded-md bg-primary/20 p-3 shrink-0">
-            <Package className="h-6 w-6 text-primary" aria-hidden="true" />
+        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-3">
+          <div className="rounded-md bg-primary/20 p-2.5 shrink-0">
+            <Package className="h-5 w-5 text-primary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.value}</dt>
+            <dt className="text-sm font-medium text-foreground-muted">{dict.intrants.kpis.value}</dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalValue.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
           </div>
         </div>
-        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
-          <div className="rounded-md bg-danger/20 p-3 shrink-0">
-            <TrendingDown className="h-6 w-6 text-danger" aria-hidden="true" />
+        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-3">
+          <div className="rounded-md bg-danger/20 p-2.5 shrink-0">
+            <TrendingDown className="h-5 w-5 text-danger" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.distributions}</dt>
+            <dt className="text-sm font-medium text-foreground-muted">{dict.intrants.kpis.distributions}</dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {dict.intrants.kpis.units}</dd>
           </div>
         </div>
-        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
-          <div className="rounded-md bg-secondary/20 p-3 shrink-0">
-            <TrendingUp className="h-6 w-6 text-secondary" aria-hidden="true" />
+        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-3">
+          <div className="rounded-md bg-secondary/20 p-2.5 shrink-0">
+            <TrendingUp className="h-5 w-5 text-secondary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.intrants.kpis.repayments}</dt>
+            <dt className="text-sm font-medium text-foreground-muted">{dict.intrants.kpis.repayments}</dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalRemboursementsNature.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} kg</dd>
           </div>
         </div>

@@ -950,6 +950,10 @@
   "remboursements": {
     "title": "Repayments Tracking",
     "desc": "Record cash payments and weighings for repayments in kind.",
+    "tabs": {
+      "factures": "Invoices",
+      "stock_nature": "In-Kind Stock"
+    },
     "search": "Search for a member...",
     "list": {
       "surplus": "Repayment surplus: ",
@@ -965,6 +969,46 @@
       "cash": "In Cash",
       "nature": "In Kind (Weighing)",
       "empty": "Select a member to view their repayments"
+    }
+  },
+  "remboursements_pages": {
+    "stock_nature": {
+      "no_campaigns": "No season found.",
+      "title": "In-Kind Repayment Stock",
+      "desc": "Track incoming repayments, sales and physical rebates, with the running stock balance, per season.",
+      "select_campaign": "Choose a season",
+      "add_sortie": "Record an outflow",
+      "loading": "Loading stock...",
+      "current_stock": "Current stock",
+      "headers": {
+        "date": "Date",
+        "type": "Type",
+        "tiers": "Party",
+        "unit_price": "Unit price",
+        "quantity": "Quantity",
+        "balance": "Running balance"
+      },
+      "type_entree": "In (Repayment)",
+      "type_vente": "Sale",
+      "type_ristourne": "Rebate",
+      "empty": "No movement recorded for this season yet.",
+      "form": {
+        "title": "Record a stock outflow",
+        "type_label": "Outflow type",
+        "tiers_type_label": "Party",
+        "tiers_type_membre": "A GIE member",
+        "tiers_type_client": "An external customer",
+        "membre_label": "Member",
+        "select_membre": "Select a member...",
+        "client_label": "Customer name",
+        "client_placeholder": "E.g.: Buyer from Ndiaganiao market",
+        "quantity_label": "Quantity (kg)",
+        "price_label_vente": "Unit sale price (FCFA/kg)",
+        "price_label_ristourne": "Estimated unit value (FCFA/kg)",
+        "date_label": "Date",
+        "motif_label": "Reason (Optional)",
+        "motif_placeholder": "E.g.: Sale at the weekly market"
+      }
     }
   }
 }

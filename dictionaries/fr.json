@@ -950,6 +950,10 @@
   "remboursements": {
     "title": "Suivi des Remboursements",
     "desc": "Enregistrez les paiements en numéraire et les pesées pour les remboursements en nature.",
+    "tabs": {
+      "factures": "Factures",
+      "stock_nature": "Stock en Nature"
+    },
     "search": "Rechercher un membre...",
     "list": {
       "surplus": "Surplus de remboursement : ",
@@ -965,6 +969,46 @@
       "cash": "En Numéraire (Espèces)",
       "nature": "En Nature (Pesée)",
       "empty": "Sélectionnez un membre pour voir ses remboursements"
+    }
+  },
+  "remboursements_pages": {
+    "stock_nature": {
+      "no_campaigns": "Aucune campagne trouvée.",
+      "title": "Stock de Remboursement en Nature",
+      "desc": "Suivi des entrées (remboursements reçus), des ventes et des ristournes physiques, avec le solde en cours du stock, par campagne.",
+      "select_campaign": "Choisir une campagne",
+      "add_sortie": "Enregistrer une sortie",
+      "loading": "Chargement du stock...",
+      "current_stock": "Stock actuel",
+      "headers": {
+        "date": "Date",
+        "type": "Type",
+        "tiers": "Tiers",
+        "unit_price": "Prix unitaire",
+        "quantity": "Quantité",
+        "balance": "Solde en cours"
+      },
+      "type_entree": "Entrée (Remboursement)",
+      "type_vente": "Vente",
+      "type_ristourne": "Ristourne",
+      "empty": "Aucun mouvement enregistré pour cette campagne.",
+      "form": {
+        "title": "Enregistrer une sortie de stock",
+        "type_label": "Type de sortie",
+        "tiers_type_label": "Tiers",
+        "tiers_type_membre": "Un membre du GIE",
+        "tiers_type_client": "Un client externe",
+        "membre_label": "Membre",
+        "select_membre": "Sélectionnez un membre...",
+        "client_label": "Nom du client",
+        "client_placeholder": "Ex: Acheteur du marché de Ndiaganiao",
+        "quantity_label": "Quantité (kg)",
+        "price_label_vente": "Prix de vente unitaire (FCFA/kg)",
+        "price_label_ristourne": "Valeur estimée unitaire (FCFA/kg)",
+        "date_label": "Date",
+        "motif_label": "Motif (Optionnel)",
+        "motif_placeholder": "Ex: Vente au marché hebdomadaire"
+      }
     }
   }
 }

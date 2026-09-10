@@ -17,16 +17,7 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
 
   return (
     <div>
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.remboursements.title}</h2>
-          <p className="mt-2 text-sm text-foreground-muted">
-            {dict.remboursements.desc}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Colonne de gauche: Liste des factures impayées */}
         <div className="md:col-span-1 bg-surface border border-surface-border rounded-lg shadow-sm flex flex-col h-[600px]">
