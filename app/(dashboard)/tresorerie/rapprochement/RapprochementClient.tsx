@@ -84,13 +84,13 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
               </div>
             </div>
 
-            <div className={`border p-4 rounded-lg shadow-sm text-white ${data.bilan.soldeCredit >= 0 ? 'bg-success border-success' : 'bg-danger border-danger'}`}>
-              <div className="flex items-center gap-2 font-semibold mb-2 text-white">
+            <div className="border border-gray-200 bg-gray-100 p-4 rounded-lg shadow-sm">
+              <div className="flex items-center gap-2 font-semibold mb-2 text-black">
                 <CheckCircle2 className="w-5 h-5" />
                 {t.credit_balance}
               </div>
-              <div className="text-2xl font-bold text-white">
-                {data.bilan.soldeCredit.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-white">FCFA</span>
+              <div className="text-2xl font-bold text-black">
+                {data.bilan.soldeCredit.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-black">FCFA</span>
               </div>
             </div>
           </div>
