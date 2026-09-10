@@ -79,6 +79,12 @@
     "modules_desc": "Chaque forfait supérieur inclut tout ce qui précède, plus ses propres modules.",
     "choose_prefix": "Choisir",
     "cta_text": "Démarrer mon essai gratuit",
+    "demo_title": "Essayez SIGGIE en direct",
+    "demo_desc": "Connectez-vous au GIE de démonstration WaloAgro pour explorer toutes les fonctionnalités avant de créer votre propre compte.",
+    "demo_email_label": "Email",
+    "demo_password_label": "Mot de passe",
+    "demo_login_btn": "Se connecter à la démo",
+    "demo_note": "Cet espace est partagé entre tous les visiteurs : n'y saisissez pas d'informations sensibles.",
     "modules": {
       "dashboard": "Tableau de bord",
       "membres": "Membres",

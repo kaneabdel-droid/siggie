@@ -83,6 +83,31 @@ export default async function DecouvrirSiggiePage() {
           </div>
         </section>
 
+        {/* Démo en direct */}
+        <section className="py-16 bg-primary/5 border-y border-surface-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl text-center">
+            <h2 className="text-2xl md:text-3xl font-bold font-heading mb-3">{d.demo_title}</h2>
+            <p className="text-foreground-muted mb-8">{d.demo_desc}</p>
+            <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-8 bg-surface border border-surface-border rounded-2xl p-6 shadow-sm">
+              <div className="text-left">
+                <p className="text-xs uppercase tracking-wide text-foreground-muted font-semibold mb-1">{d.demo_email_label}</p>
+                <p className="font-mono font-semibold text-foreground">kaneabdou@yahoo.fr</p>
+              </div>
+              <div className="hidden sm:block w-px bg-surface-border" />
+              <div className="text-left">
+                <p className="text-xs uppercase tracking-wide text-foreground-muted font-semibold mb-1">{d.demo_password_label}</p>
+                <p className="font-mono font-semibold text-foreground">DecouvrezSiggie2026</p>
+              </div>
+            </div>
+            <div className="mt-6">
+              <Link href="/login" className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-primary-hover hover:scale-105 transition-all">
+                {d.demo_login_btn} <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <p className="mt-4 text-xs text-foreground-muted">{d.demo_note}</p>
+          </div>
+        </section>
+
         {/* Parcours : inscription, connexion, abonnement */}
         <section className="py-20 bg-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">

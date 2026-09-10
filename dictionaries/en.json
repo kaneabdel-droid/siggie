@@ -79,6 +79,12 @@
     "modules_desc": "Each higher plan includes everything from the previous one, plus its own modules.",
     "choose_prefix": "Choose",
     "cta_text": "Start my free trial",
+    "demo_title": "Try SIGGIE live",
+    "demo_desc": "Log in to the WaloAgro demo group to explore every feature before creating your own account.",
+    "demo_email_label": "Email",
+    "demo_password_label": "Password",
+    "demo_login_btn": "Log in to the demo",
+    "demo_note": "This space is shared between all visitors: do not enter sensitive information.",
     "modules": {
       "dashboard": "Dashboard",
       "membres": "Members",
