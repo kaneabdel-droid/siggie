@@ -6,15 +6,22 @@ import {
 } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { loginDemo } from './actions'
 
 export const metadata = {
   title: 'Découvrir SIGGIE - Comment ça marche',
 }
 
-export default async function DecouvrirSiggiePage() {
+export default async function DecouvrirSiggiePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ demo_error?: string }>
+}) {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const d = dict.decouvrir
+  const params = await searchParams
+  const demoError = params?.demo_error === '1'
 
   const modulesBase = [
     { icon: LayoutDashboard, label: d.modules.dashboard },
@@ -85,25 +92,20 @@ export default async function DecouvrirSiggiePage() {
 
         {/* Démo en direct */}
         <section className="py-16 bg-primary/5 border-y border-surface-border">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl text-center">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl text-center">
             <h2 className="text-2xl md:text-3xl font-bold font-heading mb-3">{d.demo_title}</h2>
             <p className="text-foreground-muted mb-8">{d.demo_desc}</p>
-            <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-8 bg-surface border border-surface-border rounded-2xl p-6 shadow-sm">
-              <div className="text-left">
-                <p className="text-xs uppercase tracking-wide text-foreground-muted font-semibold mb-1">{d.demo_email_label}</p>
-                <p className="font-mono font-semibold text-foreground">kaneabdou@yahoo.fr</p>
-              </div>
-              <div className="hidden sm:block w-px bg-surface-border" />
-              <div className="text-left">
-                <p className="text-xs uppercase tracking-wide text-foreground-muted font-semibold mb-1">{d.demo_password_label}</p>
-                <p className="font-mono font-semibold text-foreground">DecouvrezSiggie2026</p>
-              </div>
-            </div>
-            <div className="mt-6">
-              <Link href="/login" className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-primary-hover hover:scale-105 transition-all">
+            {demoError && (
+              <p className="mb-6 text-sm bg-danger/10 text-danger p-3 rounded-md max-w-md mx-auto">{d.demo_error}</p>
+            )}
+            <form action={loginDemo}>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-primary-hover hover:scale-105 transition-all"
+              >
                 {d.demo_login_btn} <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+              </button>
+            </form>
             <p className="mt-4 text-xs text-foreground-muted">{d.demo_note}</p>
           </div>
         </section>
