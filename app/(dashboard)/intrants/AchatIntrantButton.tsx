@@ -58,9 +58,29 @@ export default function AchatIntrantButton({ intrants, dict }: { intrants: Intra
                       ))}
                     </select>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">{d.modal.quantity_bought}</label>
+                      <input type="number" step="0.01" name="quantite" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">{d.modal.purchase_price}</label>
+                      <input type="number" step="0.01" name="prix_unitaire" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    </div>
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">{d.modal.quantity_bought}</label>
-                    <input type="number" step="0.01" name="quantite" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <label className="block text-sm font-medium text-foreground">{d.modal.supplier_optional}</label>
+                    <input type="text" name="fournisseur" placeholder={d.modal.supplier_placeholder} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">{d.modal.purchase_date}</label>
+                      <input type="date" name="date_achat" defaultValue={new Date().toISOString().slice(0, 10)} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">{d.modal.invoice_number}</label>
+                      <input type="text" name="numero_facture" placeholder={d.modal.invoice_number_placeholder} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    </div>
                   </div>
                 </form>
               </div>
