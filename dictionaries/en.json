@@ -306,7 +306,8 @@
       "demanded": "Total Demanded",
       "granted": "Total Granted",
       "pending": "Pending",
-      "dossiers": "Dossier(s)"
+      "dossiers": "Dossier(s)",
+      "available": "Available Credit"
     },
     "table": {
       "season": "Season",

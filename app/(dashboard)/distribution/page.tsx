@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { PackageOpen, Users, BarChart3 } from 'lucide-react'
+import { Users, BarChart3 } from 'lucide-react'
 import CreateDistributionModal from './CreateDistributionModal'
 import DistributionRowActions from './DistributionRowActions'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -57,7 +57,6 @@ export default async function DistributionPage() {
     .order('created_at', { ascending: false })
 
   // KPIs
-  const totalQuantite = distributions?.reduce((sum, d) => sum + Number(d.quantite), 0) || 0
   const membresServis = new Set(distributions?.map(d => d.membre_id))
   const nombreMembresServis = membresServis.size
 
@@ -81,16 +80,7 @@ export default async function DistributionPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
-          <div className="rounded-md bg-primary/20 p-3 shrink-0">
-            <PackageOpen className="h-6 w-6 text-primary" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.distribution.kpis.total}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">{totalQuantite} {dict.distribution.kpis.units}</dd>
-          </div>
-        </div>
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
           <div className="rounded-md bg-secondary/20 p-3 shrink-0">
             <Users className="h-6 w-6 text-secondary" aria-hidden="true" />

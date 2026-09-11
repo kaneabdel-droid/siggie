@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { Building, DollarSign, Clock, CheckCircle2 } from 'lucide-react'
+import { Building, DollarSign, Clock, CheckCircle2, Wallet } from 'lucide-react'
 import CreateCreditButton from './CreateCreditButton'
 import CreditRowActions from './CreditRowActions'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -31,6 +31,21 @@ export default async function CreditsPage() {
   const totalAccorde = credits?.reduce((sum, c) => sum + (c.montant_accorde || 0), 0) || 0
   const enAttenteCount = credits?.filter(c => c.statut === 'en_attente').length || 0
 
+  // Crédit disponible = Total accordé - Total décaissé (transactions de type "sortie"
+  // rattachées à un crédit, voir addDecaissementCredit)
+  const creditIds = credits?.map(c => c.id) || []
+  let totalDecaisse = 0
+  if (creditIds.length > 0) {
+    const { data: decaissements } = await supabase
+      .from('transactions')
+      .select('montant')
+      .in('credit_id', creditIds)
+      .eq('type_transaction', 'sortie')
+
+    totalDecaisse = decaissements?.reduce((sum, d) => sum + Number(d.montant || 0), 0) || 0
+  }
+  const creditDisponible = totalAccorde - totalDecaisse
+
   return (
     <div>
       <div className="sm:flex sm:items-center">
@@ -45,7 +60,7 @@ export default async function CreditsPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-4">
           <div className="rounded-lg bg-secondary/10 p-4">
             <DollarSign className="h-8 w-8 text-secondary" aria-hidden="true" />
@@ -71,6 +86,15 @@ export default async function CreditsPage() {
           <div className="min-w-0">
             <dt className="truncate text-sm font-medium text-foreground-muted">{dict.credits.kpis.pending}</dt>
             <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{enAttenteCount} {dict.credits.kpis.dossiers}</dd>
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-4">
+          <div className="rounded-lg bg-primary/10 p-4">
+            <Wallet className="h-8 w-8 text-primary" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <dt className="truncate text-sm font-medium text-foreground-muted">{dict.credits.kpis.available}</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground">{creditDisponible.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
           </div>
         </div>
       </div>

@@ -306,7 +306,8 @@
       "demanded": "Total Demandé",
       "granted": "Total Accordé",
       "pending": "En Attente",
-      "dossiers": "Dossier(s)"
+      "dossiers": "Dossier(s)",
+      "available": "Crédit Disponible"
     },
     "table": {
       "season": "Campagne",
