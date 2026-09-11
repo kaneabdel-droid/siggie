@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { updateMateriel } from './actions'
+import { MATERIEL_TYPES } from '@/lib/materiel/types'
 
 export default function EditMaterielModal({ materiel, asMenuItem, dict }: { materiel: any, asMenuItem?: boolean, dict: any }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -20,6 +21,7 @@ export default function EditMaterielModal({ materiel, asMenuItem, dict }: { mate
     const valeur_acquisition = Number(formData.get('valeur_acquisition') || 0)
     const duree_vie_economique = Number(formData.get('duree_vie_economique') || 0)
     const fournisseur = formData.get('fournisseur') as string
+    const type_materiel = formData.get('type_materiel') as string
 
     const res = await updateMateriel(
       materiel.id,
@@ -28,7 +30,8 @@ export default function EditMaterielModal({ materiel, asMenuItem, dict }: { mate
       date_acquisition,
       valeur_acquisition,
       duree_vie_economique,
-      fournisseur
+      fournisseur,
+      type_materiel
     )
 
     setLoading(false)
@@ -82,6 +85,20 @@ export default function EditMaterielModal({ materiel, asMenuItem, dict }: { mate
                       required
                       className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                     />
+                  </div>
+                  <div>
+                    <label htmlFor="type_materiel" className="block text-sm font-medium text-foreground">{d.modal.type}</label>
+                    <select
+                      name="type_materiel"
+                      id="type_materiel"
+                      required
+                      defaultValue={materiel.type_materiel || MATERIEL_TYPES[1]}
+                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                    >
+                      {MATERIEL_TYPES.map((type) => (
+                        <option key={type} value={type}>{d.type_labels[type]}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label htmlFor="fournisseur" className="block text-sm font-medium text-foreground">{d.modal.supplier}</label>

@@ -247,6 +247,7 @@
     },
     "inventaire_table": {
       "name": "Name / Equipment",
+      "type": "Type",
       "supplier": "Supplier",
       "value": "Value",
       "lifespan": "Lifespan",
@@ -521,10 +522,18 @@
     "etat_bon": "Good condition",
     "etat_reparation": "Under repair",
     "etat_panne": "Out of order",
+    "type_labels": {
+      "Bâtiment et installations": "Buildings and Facilities",
+      "Matériel agricole": "Agricultural Equipment",
+      "Matériel et mobilier": "Equipment and Furniture",
+      "Matériel informatique": "IT Equipment",
+      "Matériel de transport": "Transport Equipment"
+    },
     "modal": {
       "add_title": "Add new equipment",
       "edit_title": "Edit equipment",
       "name": "Name (e.g.: John Deere Tractor)",
+      "type": "Type",
       "supplier": "Supplier",
       "supplier_placeholder": "Supplier name",
       "value": "Value (FCFA)",

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { addMateriel } from './actions'
+import { MATERIEL_TYPES } from '@/lib/materiel/types'
 
 export default function AddMaterielModal({ dict }: { dict: any }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -20,6 +21,7 @@ export default function AddMaterielModal({ dict }: { dict: any }) {
     const valeur_acquisition = Number(formData.get('valeur_acquisition') || 0)
     const duree_vie_economique = Number(formData.get('duree_vie_economique') || 0)
     const fournisseur = formData.get('fournisseur') as string
+    const type_materiel = formData.get('type_materiel') as string
 
     const res = await addMateriel(
       nom,
@@ -27,7 +29,8 @@ export default function AddMaterielModal({ dict }: { dict: any }) {
       date_acquisition,
       valeur_acquisition,
       duree_vie_economique,
-      fournisseur
+      fournisseur,
+      type_materiel
     )
 
     setLoading(false)
@@ -68,6 +71,20 @@ export default function AddMaterielModal({ dict }: { dict: any }) {
                       required
                       className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                     />
+                  </div>
+                  <div>
+                    <label htmlFor="type_materiel" className="block text-sm font-medium text-foreground">{d.modal.type}</label>
+                    <select
+                      name="type_materiel"
+                      id="type_materiel"
+                      required
+                      defaultValue={MATERIEL_TYPES[1]}
+                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                    >
+                      {MATERIEL_TYPES.map((type) => (
+                        <option key={type} value={type}>{d.type_labels[type]}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label htmlFor="fournisseur" className="block text-sm font-medium text-foreground">{d.modal.supplier}</label>

@@ -23,12 +23,13 @@ export async function getMateriels() {
 }
 
 export async function addMateriel(
-  nom: string, 
-  etat: string, 
-  date_acquisition: string | undefined, 
-  valeur_acquisition: number, 
-  duree_vie_economique: number, 
-  fournisseur: string
+  nom: string,
+  etat: string,
+  date_acquisition: string | undefined,
+  valeur_acquisition: number,
+  duree_vie_economique: number,
+  fournisseur: string,
+  type_materiel: string
 ) {
   const supabase = await createClient()
 
@@ -40,7 +41,7 @@ export async function addMateriel(
     .select('gie_id')
     .eq('id', user.id)
     .single()
-    
+
   if (!userData) return { error: "Utilisateur introuvable" }
 
   const { error } = await supabase
@@ -52,7 +53,8 @@ export async function addMateriel(
       date_acquisition: date_acquisition || null,
       valeur_acquisition,
       duree_vie_economique,
-      fournisseur: fournisseur || null
+      fournisseur: fournisseur || null,
+      type_materiel
     })
 
   if (error) return { error: error.message }
@@ -76,13 +78,14 @@ export async function updateMaterielEtat(id: string, nouvelEtat: string) {
 }
 
 export async function updateMateriel(
-  id: string, 
-  nom: string, 
-  etat: string, 
-  date_acquisition: string | undefined, 
-  valeur_acquisition: number, 
-  duree_vie_economique: number, 
-  fournisseur: string
+  id: string,
+  nom: string,
+  etat: string,
+  date_acquisition: string | undefined,
+  valeur_acquisition: number,
+  duree_vie_economique: number,
+  fournisseur: string,
+  type_materiel: string
 ) {
   const supabase = await createClient()
 
@@ -94,7 +97,8 @@ export async function updateMateriel(
       date_acquisition: date_acquisition || null,
       valeur_acquisition,
       duree_vie_economique,
-      fournisseur: fournisseur || null
+      fournisseur: fournisseur || null,
+      type_materiel
     })
     .eq('id', id)
 

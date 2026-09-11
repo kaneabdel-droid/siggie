@@ -247,6 +247,7 @@
     },
     "inventaire_table": {
       "name": "Nom / Équipement",
+      "type": "Type",
       "supplier": "Fournisseur",
       "value": "Valeur",
       "lifespan": "Durée de vie",
@@ -521,10 +522,18 @@
     "etat_bon": "Bon état",
     "etat_reparation": "En réparation",
     "etat_panne": "En panne",
+    "type_labels": {
+      "Bâtiment et installations": "Bâtiment et installations",
+      "Matériel agricole": "Matériel agricole",
+      "Matériel et mobilier": "Matériel et mobilier",
+      "Matériel informatique": "Matériel informatique",
+      "Matériel de transport": "Matériel de transport"
+    },
     "modal": {
       "add_title": "Ajouter un nouvel équipement",
       "edit_title": "Modifier l'équipement",
       "name": "Nom (ex: Tracteur John Deere)",
+      "type": "Type",
       "supplier": "Fournisseur",
       "supplier_placeholder": "Nom du fournisseur",
       "value": "Valeur (FCFA)",

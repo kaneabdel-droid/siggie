@@ -6,6 +6,7 @@ import { updateMaterielEtat, deleteMateriel } from './actions'
 import EditMaterielModal from './EditMaterielModal'
 
 export default function MaterielClient({ materiels, dict, fullDict, locale }: { materiels: any[], dict: any, fullDict: any, locale?: string }) {
+  const typeLabels = fullDict.materiel_extra.type_labels
   const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -48,6 +49,7 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
         <thead className="bg-background">
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.name}</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.type}</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.supplier}</th>
             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.value}</th>
             <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.lifespan}</th>
@@ -61,6 +63,9 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
             <tr key={mat.id} className="hover:bg-surface-hover transition-colors">
               <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-foreground">
                 {mat.nom}
+              </td>
+              <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
+                {typeLabels[mat.type_materiel] || mat.type_materiel || '-'}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
                 {mat.fournisseur || '-'}
@@ -109,7 +114,7 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
           ))}
           {materiels.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
+              <td colSpan={8} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
                 {dict.empty}
               </td>
             </tr>
