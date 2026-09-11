@@ -6,7 +6,14 @@
 // type_intrant est un champ texte libre (avec suggestions par langue) : les
 // deux variantes fr/en sont listées ici pour que la détection fonctionne
 // quelle que soit la langue dans laquelle l'intrant a été créé.
-export const NON_STOCKABLE_INTRANT_TYPES = ['Refacturation', 'Rebilling', 'Service Hydraulique', 'Water Service']
+// "Façon culturale" et "Service Hydraulique" n'ont pas de stock mais restent
+// facturés à la quantité (heures, m³...) ; seule "Refacturation" est un
+// montant forfaitaire (la "quantité" saisie est directement le montant FCFA).
+export const NON_STOCKABLE_INTRANT_TYPES = [
+  'Refacturation', 'Rebilling',
+  'Service Hydraulique', 'Water Service',
+  'Façon culturale', 'Cultivation Work',
+]
 export const FORFAITAIRE_INTRANT_TYPES = ['Refacturation', 'Rebilling']
 
 export function isStockableType(type: string | null | undefined): boolean {

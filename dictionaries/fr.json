@@ -484,7 +484,7 @@
     "search_placeholder": "Rechercher un intrant...",
     "buy_btn": "Nouvel Achat",
     "create_btn": "Nouvel Intrant",
-    "type_options": ["Engrais", "Semence", "Pesticide", "Fongicide", "Herbicide", "Matériel", "Refacturation", "Service Hydraulique"],
+    "type_options": ["Engrais", "Semence", "Pesticide", "Fongicide", "Herbicide", "Matériel", "Refacturation", "Service Hydraulique", "Façon culturale"],
     "modal": {
       "buy_title": "Enregistrer un achat d'intrant",
       "buy_submit": "Valider l'achat",

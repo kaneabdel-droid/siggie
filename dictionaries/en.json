@@ -484,7 +484,7 @@
     "search_placeholder": "Search an input...",
     "buy_btn": "New Purchase",
     "create_btn": "New Input",
-    "type_options": ["Fertilizer", "Seed", "Pesticide", "Fungicide", "Herbicide", "Equipment", "Rebilling", "Water Service"],
+    "type_options": ["Fertilizer", "Seed", "Pesticide", "Fungicide", "Herbicide", "Equipment", "Rebilling", "Water Service", "Cultivation Work"],
     "modal": {
       "buy_title": "Record an input purchase",
       "buy_submit": "Confirm the purchase",
