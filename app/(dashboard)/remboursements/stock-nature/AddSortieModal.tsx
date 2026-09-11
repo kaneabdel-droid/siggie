@@ -75,7 +75,7 @@ export default function AddSortieModal({
       <button
         onClick={() => setIsOpen(true)}
         disabled={!campagneId}
-        className="inline-flex items-center gap-x-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90 disabled:opacity-50"
+        className="inline-flex items-center gap-x-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-secondary/90 disabled:opacity-50"
       >
         <Plus className="-ml-0.5 h-5 w-5" aria-hidden="true" />
         {dict.remboursements_pages.stock_nature.add_sortie}

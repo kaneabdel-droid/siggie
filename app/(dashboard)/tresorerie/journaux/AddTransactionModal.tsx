@@ -52,7 +52,7 @@ export default function AddTransactionModal({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-x-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90"
+        className="inline-flex items-center gap-x-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-secondary/90"
       >
         <Plus className="-ml-0.5 h-5 w-5" aria-hidden="true" />
         {dict.tresorerie_pages.journaux.add_operation}

@@ -7,11 +7,14 @@
   --foreground: #09090b;
   --foreground-muted: #334155;
   --sidebar: #F4F6F5;
-  
+
   --primary: #1E5631;
   --primary-hover: #2F855A;
   --secondary: #D97706;
   --danger: #E74C3C;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --info: #0284C7;
 }
 
 .theme-ocean {
@@ -21,11 +24,14 @@
   --foreground: #0F172A;
   --foreground-muted: #334155;
   --sidebar: #EBF3FA;
-  
+
   --primary: #1E3A8A; /* Deep Navy Blue */
   --primary-hover: #1D4ED8;
   --secondary: #B45309; /* Sand / Amber */
   --danger: #E11D48;
+  --success: #059669;
+  --warning: #F59E0B;
+  --info: #0EA5E9;
 }
 
 .theme-savane {
@@ -35,11 +41,14 @@
   --foreground: #271C19;
   --foreground-muted: #574640;
   --sidebar: #F5F2EC;
-  
+
   --primary: #9A3412; /* Terracotta / Rust */
   --primary-hover: #C2410C;
   --secondary: #854D0E; /* Dark Ochre / Yellow-Brown */
   --danger: #DC2626;
+  --success: #65A30D;
+  --warning: #CA8A04;
+  --info: #0891B2;
 }
 
 @theme inline {
@@ -47,11 +56,14 @@
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
-  
+
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
 
   --font-sans: var(--font-inter);
   --font-heading: var(--font-outfit);
