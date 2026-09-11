@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ShoppingCart } from 'lucide-react'
 import { buyIntrant } from './actions'
+import { isStockableType } from '@/lib/intrants/types'
 
 type Intrant = {
   id: string
@@ -15,6 +16,7 @@ export default function AchatIntrantButton({ intrants, dict }: { intrants: Intra
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const d = dict.intrants_extra
+  const stockableIntrants = intrants.filter((i) => isStockableType(i.type_intrant))
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -53,7 +55,7 @@ export default function AchatIntrantButton({ intrants, dict }: { intrants: Intra
                     <label className="block text-sm font-medium text-foreground">{d.modal.product_bought}</label>
                     <select name="intrant_id" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
                       <option value="">{d.modal.select_product}</option>
-                      {intrants.map(i => (
+                      {stockableIntrants.map(i => (
                         <option key={i.id} value={i.id}>{i.nom} ({d.modal.current_stock}: {i.quantite_stock})</option>
                       ))}
                     </select>

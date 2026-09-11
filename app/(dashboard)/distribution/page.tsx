@@ -18,11 +18,11 @@ export default async function DistributionPage() {
     .in('statut', ['en_cours', 'planifiee'])
     .order('created_at', { ascending: false })
 
-  // 2. Fetch intrants with stock > 0
+  // 2. Fetch all intrants configured for a campaign (les intrants non stockables
+  // comme Refacturation/Service Hydraulique n'ont pas de quantité en stock à filtrer)
   const { data: intrants } = await supabase
     .from('intrants')
     .select('id, nom, type_intrant, quantite_stock, prix_unitaire')
-    .gt('quantite_stock', 0)
     .order('nom', { ascending: true })
 
   // 3. Fetch campagne_membres (to get members enrolled per campaign)

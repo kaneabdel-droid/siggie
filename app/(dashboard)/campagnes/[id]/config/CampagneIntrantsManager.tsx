@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Plus, Trash2, Edit2, X, Check } from 'lucide-react'
 import { addCampagneIntrant, removeCampagneIntrant, updateCampagneIntrant } from './actions'
+import { isForfaitaireType } from '@/lib/intrants/types'
 
 type Intrant = {
   id: string
@@ -44,6 +45,22 @@ export default function CampagneIntrantsManager({
   const availableIntrants = intrants.filter(
     i => !campagneIntrants.some(ci => ci.intrant_id === i.id)
   )
+
+  const selectedIsForfaitaire = isForfaitaireType(
+    availableIntrants.find(i => i.id === selectedIntrant)?.type_intrant
+  )
+
+  const handleSelectIntrant = (id: string) => {
+    setSelectedIntrant(id)
+    const intrant = availableIntrants.find(i => i.id === id)
+    // Pour un intrant forfaitaire (ex: Refacturation), le montant saisi lors de la
+    // distribution correspond directement au montant facturé : le prix doit rester 1.
+    if (isForfaitaireType(intrant?.type_intrant)) {
+      setPrixFacturation('1')
+    } else {
+      setPrixFacturation('')
+    }
+  }
 
   const handleAdd = () => {
     if (!selectedIntrant || !prixFacturation) return
@@ -106,7 +123,7 @@ export default function CampagneIntrantsManager({
           <div className="w-full sm:max-w-xs">
             <select
               value={selectedIntrant}
-              onChange={(e) => setSelectedIntrant(e.target.value)}
+              onChange={(e) => handleSelectIntrant(e.target.value)}
               disabled={isPending}
               className="block w-full rounded-md border-0 py-1.5 text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             >
@@ -122,8 +139,9 @@ export default function CampagneIntrantsManager({
               placeholder={t.billing_price_placeholder}
               value={prixFacturation}
               onChange={(e) => setPrixFacturation(e.target.value)}
-              disabled={isPending}
-              className="block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+              disabled={isPending || selectedIsForfaitaire}
+              title={selectedIsForfaitaire ? t.forfaitaire_price_locked : undefined}
+              className="block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 disabled:opacity-60"
             />
           </div>
           <button

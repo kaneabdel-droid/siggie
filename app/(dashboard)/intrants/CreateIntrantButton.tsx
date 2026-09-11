@@ -3,12 +3,15 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { addIntrant } from './actions'
+import { isStockableType } from '@/lib/intrants/types'
 
 export default function CreateIntrantButton({ dict }: { dict: any }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [typeIntrant, setTypeIntrant] = useState('')
   const d = dict.intrants_extra
   const types: string[] = d.type_options
+  const stockable = isStockableType(typeIntrant)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -18,6 +21,7 @@ export default function CreateIntrantButton({ dict }: { dict: any }) {
       alert(res.error)
     } else {
       setIsOpen(false)
+      setTypeIntrant('')
     }
   }
 
@@ -49,15 +53,26 @@ export default function CreateIntrantButton({ dict }: { dict: any }) {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.type}</label>
-                    <input type="text" list="type_intrants_list" name="type_intrant" required placeholder={d.modal.type_placeholder} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input
+                      type="text"
+                      list="type_intrants_list"
+                      name="type_intrant"
+                      required
+                      placeholder={d.modal.type_placeholder}
+                      value={typeIntrant}
+                      onChange={(e) => setTypeIntrant(e.target.value)}
+                      className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
+                    />
                     <datalist id="type_intrants_list">
                       {types.map((t) => <option key={t} value={t} />)}
                     </datalist>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground">{d.modal.initial_stock}</label>
-                    <input type="number" step="0.01" name="quantite_stock" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
-                  </div>
+                  {stockable && (
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">{d.modal.initial_stock}</label>
+                      <input type="number" step="0.01" name="quantite_stock" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.description_optional}</label>
                     <input type="text" name="description" placeholder={d.modal.description_placeholder} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />

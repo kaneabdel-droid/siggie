@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { isStockableType } from '@/lib/intrants/types'
 
 // Conserver l'ancienne fonction au cas où
 export async function addDistribution(formData: FormData) {
@@ -30,15 +31,17 @@ export async function addDistributionsByIntrant(campagne_id: string, intrant_id:
 
   const totalQuantite = validDistributions.reduce((sum, d) => sum + d.quantite, 0)
 
-  // Vérifier le stock global
+  // Vérifier le stock global (les intrants non stockables, ex: Refacturation,
+  // Service Hydraulique, n'ont pas de stock à vérifier ni à déduire)
   const { data: intrant } = await supabase
     .from('intrants')
-    .select('quantite_stock')
+    .select('quantite_stock, type_intrant')
     .eq('id', intrant_id)
     .single()
 
   if (!intrant) return { error: "Intrant introuvable" }
-  if (intrant.quantite_stock < totalQuantite) {
+  const stockable = isStockableType(intrant.type_intrant)
+  if (stockable && intrant.quantite_stock < totalQuantite) {
     return { error: `Stock insuffisant. Il ne reste que ${intrant.quantite_stock} unités disponibles, mais vous essayez de distribuer ${totalQuantite} unités.` }
   }
 
@@ -55,13 +58,15 @@ export async function addDistributionsByIntrant(campagne_id: string, intrant_id:
   const { error: insertError } = await supabase.from('distribution_intrants').insert(rows)
   if (insertError) return { error: insertError.message }
 
-  // Déduire le stock
-  const { error: updateError } = await supabase
-    .from('intrants')
-    .update({ quantite_stock: intrant.quantite_stock - totalQuantite })
-    .eq('id', intrant_id)
+  // Déduire le stock (uniquement pour les intrants stockables)
+  if (stockable) {
+    const { error: updateError } = await supabase
+      .from('intrants')
+      .update({ quantite_stock: intrant.quantite_stock - totalQuantite })
+      .eq('id', intrant_id)
 
-  if (updateError) return { error: "Distribution enregistrée mais erreur lors de la mise à jour du stock." }
+    if (updateError) return { error: "Distribution enregistrée mais erreur lors de la mise à jour du stock." }
+  }
 
   revalidatePath('/distribution')
   revalidatePath('/intrants')
@@ -87,16 +92,18 @@ export async function addDistributionsByMembre(campagne_id: string, membre_id: s
   const validDistributions = distributions.filter(d => d.quantite > 0)
   if (validDistributions.length === 0) return { error: "Aucune quantité valide à distribuer." }
 
-  // Vérifier les stocks pour CHAQUE intrant (on pourrait faire un in, mais pour simplifier on fait une boucle, c'est peu de produits en général)
+  // Vérifier les stocks pour CHAQUE intrant stockable (on pourrait faire un in, mais pour
+  // simplifier on fait une boucle, c'est peu de produits en général). Les intrants non
+  // stockables (ex: Refacturation, Service Hydraulique) n'ont pas de stock à vérifier.
   for (const d of validDistributions) {
     const { data: intrant } = await supabase
       .from('intrants')
-      .select('quantite_stock, nom')
+      .select('quantite_stock, nom, type_intrant')
       .eq('id', d.intrant_id)
       .single()
-      
+
     if (!intrant) return { error: "Un intrant est introuvable." }
-    if (intrant.quantite_stock < d.quantite) {
+    if (isStockableType(intrant.type_intrant) && intrant.quantite_stock < d.quantite) {
       return { error: `Stock insuffisant pour ${intrant.nom}. Il reste ${intrant.quantite_stock} mais vous demandez ${d.quantite}.` }
     }
   }
@@ -114,11 +121,11 @@ export async function addDistributionsByMembre(campagne_id: string, membre_id: s
   const { error: insertError } = await supabase.from('distribution_intrants').insert(rows)
   if (insertError) return { error: insertError.message }
 
-  // Déduire les stocks individuellement
+  // Déduire les stocks individuellement (intrants stockables uniquement)
   for (const d of validDistributions) {
     // on a déjà vérifié plus haut qu'on a le stock, on refait un get/set (attention concurence, mais c'est ok pour ce stade)
-    const { data: intrant } = await supabase.from('intrants').select('quantite_stock').eq('id', d.intrant_id).single()
-    if (intrant) {
+    const { data: intrant } = await supabase.from('intrants').select('quantite_stock, type_intrant').eq('id', d.intrant_id).single()
+    if (intrant && isStockableType(intrant.type_intrant)) {
       await supabase.from('intrants').update({ quantite_stock: intrant.quantite_stock - d.quantite }).eq('id', d.intrant_id)
     }
   }
@@ -153,14 +160,14 @@ export async function deleteDistribution(id: string) {
     return { error: deleteError.message }
   }
 
-  // On restaure le stock
+  // On restaure le stock (intrants stockables uniquement)
   const { data: intrant } = await supabase
     .from('intrants')
-    .select('quantite_stock')
+    .select('quantite_stock, type_intrant')
     .eq('id', distribution.intrant_id)
     .single()
 
-  if (intrant) {
+  if (intrant && isStockableType(intrant.type_intrant)) {
     await supabase
       .from('intrants')
       .update({ quantite_stock: intrant.quantite_stock + distribution.quantite })
@@ -191,7 +198,7 @@ export async function updateDistribution(id: string, newQuantite: number) {
 
   const { data: intrant } = await supabase
     .from('intrants')
-    .select('quantite_stock')
+    .select('quantite_stock, type_intrant')
     .eq('id', distribution.intrant_id)
     .single()
 
@@ -199,9 +206,10 @@ export async function updateDistribution(id: string, newQuantite: number) {
     return { error: "Intrant introuvable" }
   }
 
+  const stockable = isStockableType(intrant.type_intrant)
   const difference = newQuantite - distribution.quantite
 
-  if (difference > 0 && intrant.quantite_stock < difference) {
+  if (stockable && difference > 0 && intrant.quantite_stock < difference) {
     return { error: `Stock insuffisant. Il ne reste que ${intrant.quantite_stock} unités.` }
   }
 
@@ -214,10 +222,12 @@ export async function updateDistribution(id: string, newQuantite: number) {
     return { error: updateError.message }
   }
 
-  await supabase
-    .from('intrants')
-    .update({ quantite_stock: intrant.quantite_stock - difference })
-    .eq('id', distribution.intrant_id)
+  if (stockable) {
+    await supabase
+      .from('intrants')
+      .update({ quantite_stock: intrant.quantite_stock - difference })
+      .eq('id', distribution.intrant_id)
+  }
 
   revalidatePath('/distribution')
   revalidatePath('/intrants')

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Edit, Trash2 } from 'lucide-react'
 import { updateIntrant, deleteIntrant } from './actions'
+import { isStockableType } from '@/lib/intrants/types'
 
 type Intrant = {
   id: string
@@ -18,8 +19,10 @@ export default function IntrantRowActions({ intrant, dict }: { intrant: Intrant;
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [typeIntrant, setTypeIntrant] = useState(intrant.type_intrant)
   const d = dict.intrants_extra
   const types: string[] = d.type_options
+  const stockable = isStockableType(typeIntrant)
 
   async function handleEdit(formData: FormData) {
     setLoading(true)
@@ -72,7 +75,15 @@ export default function IntrantRowActions({ intrant, dict }: { intrant: Intrant;
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.type}</label>
-                    <input type="text" list="type_intrants_list_edit" name="type_intrant" defaultValue={intrant.type_intrant} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input
+                      type="text"
+                      list="type_intrants_list_edit"
+                      name="type_intrant"
+                      value={typeIntrant}
+                      onChange={(e) => setTypeIntrant(e.target.value)}
+                      required
+                      className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
+                    />
                     <datalist id="type_intrants_list_edit">
                       {types.map((t) => <option key={t} value={t} />)}
                     </datalist>
@@ -81,15 +92,17 @@ export default function IntrantRowActions({ intrant, dict }: { intrant: Intrant;
                     <label className="block text-sm font-medium text-foreground">{d.modal.supplier_optional}</label>
                     <input type="text" name="fournisseur" defaultValue={intrant.fournisseur || ''} placeholder={d.modal.supplier_placeholder} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className={stockable ? 'grid grid-cols-2 gap-4' : ''}>
                     <div>
                       <label className="block text-sm font-medium text-foreground">{d.modal.unit_price}</label>
                       <input type="number" step="0.01" name="prix_unitaire" defaultValue={intrant.prix_unitaire} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground">{d.modal.stock}</label>
-                      <input type="number" step="0.01" name="quantite_stock" defaultValue={intrant.quantite_stock} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
-                    </div>
+                    {stockable && (
+                      <div>
+                        <label className="block text-sm font-medium text-foreground">{d.modal.stock}</label>
+                        <input type="number" step="0.01" name="quantite_stock" defaultValue={intrant.quantite_stock} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.description_optional}</label>

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { isStockableType } from '@/lib/intrants/types'
 
 export async function addIntrant(formData: FormData) {
   const supabase = await createClient()
@@ -19,12 +20,13 @@ export async function addIntrant(formData: FormData) {
 
   // Le fournisseur et le prix sont désormais renseignés lors du premier achat
   // (voir buyIntrant) plutôt qu'à la création de la fiche produit.
+  const typeIntrant = formData.get('type_intrant') as string
   const data = {
     gie_id: userData.gie_id,
-    type_intrant: formData.get('type_intrant'),
+    type_intrant: typeIntrant,
     nom: formData.get('nom'),
     fournisseur: null,
-    quantite_stock: parseFloat(formData.get('quantite_stock') as string) || 0,
+    quantite_stock: isStockableType(typeIntrant) ? (parseFloat(formData.get('quantite_stock') as string) || 0) : 0,
     prix_unitaire: 0,
     description: formData.get('description') || null,
   }
@@ -43,11 +45,12 @@ export async function addIntrant(formData: FormData) {
 export async function updateIntrant(id: string, formData: FormData) {
   const supabase = await createClient()
 
+  const typeIntrant = formData.get('type_intrant') as string
   const data = {
-    type_intrant: formData.get('type_intrant'),
+    type_intrant: typeIntrant,
     nom: formData.get('nom'),
     fournisseur: formData.get('fournisseur') || null,
-    quantite_stock: parseFloat(formData.get('quantite_stock') as string) || 0,
+    quantite_stock: isStockableType(typeIntrant) ? (parseFloat(formData.get('quantite_stock') as string) || 0) : 0,
     prix_unitaire: parseFloat(formData.get('prix_unitaire') as string) || 0,
     description: formData.get('description') || null,
   }
@@ -111,12 +114,15 @@ export async function buyIntrant(formData: FormData) {
   // Fetch existing quantity
   const { data: intrant } = await supabase
     .from('intrants')
-    .select('quantite_stock')
+    .select('quantite_stock, type_intrant')
     .eq('id', id)
     .single()
 
   if (!intrant) {
     return { error: "Intrant introuvable" }
+  }
+  if (!isStockableType(intrant.type_intrant)) {
+    return { error: "Cet intrant n'est pas suivi en stock" }
   }
 
   // Historique de l'achat : conserve fournisseur, prix, date et n° facture

@@ -440,6 +440,7 @@
       "select_product": "Sélectionnez un produit...",
       "stock_label": "Stock",
       "quantities_by_member": "Quantités par Membre",
+      "amounts_by_member": "Montants par Membre (FCFA)",
       "total_entered": "Total saisi :",
       "invalid_quantity_alert": "Saisissez au moins une quantité.",
       "exceeds_stock_alert": "Le total saisi dépasse le stock disponible !",
@@ -448,6 +449,7 @@
       "quantities_by_product": "Quantités par Produit (Intrant)",
       "no_intrants_configured": "Aucun intrant n'est configuré pour cette campagne.",
       "stock_colon": "Stock :",
+      "amount_unit": "FCFA",
       "select_campaign_prompt": "Veuillez sélectionner une campagne pour continuer.",
       "validate_submit": "Valider la distribution",
       "validating": "Validation..."
@@ -481,7 +483,7 @@
     "search_placeholder": "Rechercher un intrant...",
     "buy_btn": "Nouvel Achat",
     "create_btn": "Nouvel Intrant",
-    "type_options": ["Engrais", "Semence", "Pesticide", "Fongicide", "Herbicide", "Matériel"],
+    "type_options": ["Engrais", "Semence", "Pesticide", "Fongicide", "Herbicide", "Matériel", "Refacturation", "Service Hydraulique"],
     "modal": {
       "buy_title": "Enregistrer un achat d'intrant",
       "buy_submit": "Valider l'achat",
@@ -861,6 +863,7 @@
       "select_intrant": "Sélectionner un intrant",
       "purchase_price": "Achat",
       "billing_price_placeholder": "Prix de facturation (FCFA)",
+      "forfaitaire_price_locked": "Intrant forfaitaire : le montant saisi à la distribution est directement le montant facturé (prix fixé à 1).",
       "remove_confirm": "Voulez-vous vraiment retirer cet intrant de la campagne ?",
       "edit_price_title": "Modifier le prix",
       "remove_title": "Retirer l'intrant",

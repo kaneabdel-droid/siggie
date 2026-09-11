@@ -440,6 +440,7 @@
       "select_product": "Select a product...",
       "stock_label": "Stock",
       "quantities_by_member": "Quantities by Member",
+      "amounts_by_member": "Amounts by Member (FCFA)",
       "total_entered": "Total entered:",
       "invalid_quantity_alert": "Enter at least one quantity.",
       "exceeds_stock_alert": "The total entered exceeds the available stock!",
@@ -448,6 +449,7 @@
       "quantities_by_product": "Quantities by Product (Input)",
       "no_intrants_configured": "No input is configured for this season.",
       "stock_colon": "Stock:",
+      "amount_unit": "FCFA",
       "select_campaign_prompt": "Please select a season to continue.",
       "validate_submit": "Validate the distribution",
       "validating": "Validating..."
@@ -481,7 +483,7 @@
     "search_placeholder": "Search an input...",
     "buy_btn": "New Purchase",
     "create_btn": "New Input",
-    "type_options": ["Fertilizer", "Seed", "Pesticide", "Fungicide", "Herbicide", "Equipment"],
+    "type_options": ["Fertilizer", "Seed", "Pesticide", "Fungicide", "Herbicide", "Equipment", "Rebilling", "Water Service"],
     "modal": {
       "buy_title": "Record an input purchase",
       "buy_submit": "Confirm the purchase",
@@ -861,6 +863,7 @@
       "select_intrant": "Select an input",
       "purchase_price": "Purchase",
       "billing_price_placeholder": "Billing price (FCFA)",
+      "forfaitaire_price_locked": "Flat-rate input: the amount entered at distribution is directly the billed amount (price fixed to 1).",
       "remove_confirm": "Do you really want to remove this input from the season?",
       "edit_price_title": "Edit price",
       "remove_title": "Remove input",

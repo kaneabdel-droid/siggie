@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { addDistributionsByIntrant, addDistributionsByMembre } from './actions'
+import { isStockableType, isForfaitaireType } from '@/lib/intrants/types'
 
 type Campagne = { id: string; nom: string }
 type Membre = { id: string; prenom: string; nom: string; telephone?: string; code_membre?: string }
@@ -76,7 +77,7 @@ export default function CreateDistributionModal({
       .map(([membre_id, quantite]) => ({ membre_id, quantite }))
 
     if (distributions.length === 0) return alert(d.invalid_quantity_alert)
-    if (selectedIntrant && totalByIntrant > selectedIntrant.quantite_stock) {
+    if (selectedIntrant && isStockableType(selectedIntrant.type_intrant) && totalByIntrant > selectedIntrant.quantite_stock) {
       return alert(d.exceeds_stock_alert)
     }
 
@@ -212,8 +213,8 @@ export default function CreateDistributionModal({
                                   >
                                     <option value="">{d.select_product}</option>
                                     {campaignAvailableIntrants.map(i => (
-                                      <option key={i.id} value={i.id} disabled={i.quantite_stock <= 0}>
-                                        {i.nom} ({d.stock_label}: {i.quantite_stock})
+                                      <option key={i.id} value={i.id} disabled={isStockableType(i.type_intrant) && i.quantite_stock <= 0}>
+                                        {i.nom}{isStockableType(i.type_intrant) ? ` (${d.stock_label}: ${i.quantite_stock})` : ''}
                                       </option>
                                     ))}
                                   </select>
@@ -222,10 +223,14 @@ export default function CreateDistributionModal({
                                 {selectedIntrantId && selectedIntrant && (
                                   <div className="mt-4">
                                     <div className="flex justify-between items-center mb-2">
-                                      <label className="block text-sm font-medium text-foreground">{d.quantities_by_member}</label>
-                                      <span className={`text-sm font-medium ${totalByIntrant > selectedIntrant.quantite_stock ? 'text-danger' : 'text-foreground-muted'}`}>
-                                        {d.total_entered} {totalByIntrant} / {selectedIntrant.quantite_stock}
-                                      </span>
+                                      <label className="block text-sm font-medium text-foreground">
+                                        {isForfaitaireType(selectedIntrant.type_intrant) ? d.amounts_by_member : d.quantities_by_member}
+                                      </label>
+                                      {isStockableType(selectedIntrant.type_intrant) && (
+                                        <span className={`text-sm font-medium ${totalByIntrant > selectedIntrant.quantite_stock ? 'text-danger' : 'text-foreground-muted'}`}>
+                                          {d.total_entered} {totalByIntrant} / {selectedIntrant.quantite_stock}
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="space-y-2 border border-surface-border rounded-md p-2 bg-background max-h-64 overflow-y-auto">
                                       {enrolledMembres.map(m => (
@@ -285,18 +290,22 @@ export default function CreateDistributionModal({
                                   <div className="space-y-2 border border-surface-border rounded-md p-2 bg-background max-h-64 overflow-y-auto">
                                     {campaignAvailableIntrants.map(i => {
                                       const q = quantitiesByIntrant[i.id] || 0
-                                      const exceed = q > i.quantite_stock
+                                      const stockable = isStockableType(i.type_intrant)
+                                      const forfaitaire = isForfaitaireType(i.type_intrant)
+                                      const exceed = stockable && q > i.quantite_stock
                                       return (
                                         <div key={i.id} className="flex items-center justify-between gap-4 p-2 hover:bg-surface rounded-md">
                                           <div className="text-sm">
-                                            <div className="font-medium text-foreground">{i.nom}</div>
-                                            <div className={`text-xs ${exceed ? 'text-danger' : 'text-foreground-muted'}`}>{d.stock_colon} {i.quantite_stock}</div>
+                                            <div className="font-medium text-foreground">{i.nom}{forfaitaire ? ` (${d.amount_unit})` : ''}</div>
+                                            {stockable && (
+                                              <div className={`text-xs ${exceed ? 'text-danger' : 'text-foreground-muted'}`}>{d.stock_colon} {i.quantite_stock}</div>
+                                            )}
                                           </div>
                                           <input
                                             type="number"
                                             step="0.01"
                                             min="0"
-                                            max={i.quantite_stock}
+                                            max={stockable ? i.quantite_stock : undefined}
                                             placeholder="0"
                                             value={quantitiesByIntrant[i.id] || ''}
                                             onChange={(e) => {
