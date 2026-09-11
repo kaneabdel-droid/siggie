@@ -638,6 +638,11 @@
   "bilans": {
     "title": "Bilans & Relevés",
     "desc": "Tableau de bord récapitulatif de la santé financière et opérationnelle du GIE.",
+    "tabs": {
+      "overview": "Vue d'ensemble",
+      "releve_membre": "Relevé Membre",
+      "releve_client": "Relevé Client"
+    },
     "tresorerie_title": "Trésorerie Globale",
     "tresorerie": {
       "balance": "Solde Actuel",
@@ -1013,14 +1018,70 @@
         "tiers_type_client": "Un client externe",
         "membre_label": "Membre",
         "select_membre": "Sélectionnez un membre...",
-        "client_label": "Nom du client",
-        "client_placeholder": "Ex: Acheteur du marché de Ndiaganiao",
+        "client_label": "Client",
+        "select_client": "Sélectionnez un client...",
+        "new_client_option": "+ Nouveau client...",
+        "client_placeholder": "Nom du nouveau client",
         "quantity_label": "Quantité (kg)",
         "price_label_vente": "Prix de vente unitaire (FCFA/kg)",
         "price_label_ristourne": "Valeur estimée unitaire (FCFA/kg)",
         "date_label": "Date",
         "motif_label": "Motif (Optionnel)",
         "motif_placeholder": "Ex: Vente au marché hebdomadaire"
+      }
+    }
+  },
+  "bilans_pages": {
+    "releve_membre": {
+      "no_members": "Aucun membre trouvé.",
+      "title": "Relevé Membre",
+      "desc": "Montant facturé, montant payé et solde progressif de chaque membre, campagne par campagne.",
+      "select_member": "Choisir un membre",
+      "loading": "Chargement du relevé...",
+      "current_balance": "Solde actuel",
+      "headers": {
+        "season": "Campagne",
+        "date": "Date",
+        "billed": "Montant Facturé",
+        "paid": "Montant Payé",
+        "balance": "Solde Progressif"
+      },
+      "empty": "Aucune facture pour ce membre."
+    },
+    "releve_client": {
+      "no_clients": "Aucun client enregistré.",
+      "title": "Relevé Client",
+      "desc": "Ventes et paiements reçus d'un client externe, avec solde progressif.",
+      "select_client": "Choisir un client",
+      "add_client": "Nouveau Client",
+      "add_payment": "Enregistrer un paiement",
+      "loading": "Chargement du relevé...",
+      "current_balance": "Solde actuel (créance)",
+      "headers": {
+        "date": "Date",
+        "type": "Type",
+        "quantity": "Quantité",
+        "unit_price": "Prix unitaire",
+        "amount": "Montant",
+        "balance": "Solde Progressif"
+      },
+      "type_sale": "Vente",
+      "type_payment": "Paiement reçu",
+      "empty": "Aucun mouvement pour ce client.",
+      "new_client_form": {
+        "title": "Nouveau client",
+        "name": "Nom du client",
+        "name_placeholder": "Ex: Boutique Ndiaganiao",
+        "phone": "Téléphone (optionnel)",
+        "submit": "Créer le client"
+      },
+      "payment_form": {
+        "title": "Enregistrer un paiement client",
+        "amount": "Montant reçu (FCFA)",
+        "date": "Date",
+        "motif": "Motif (Optionnel)",
+        "motif_placeholder": "Ex: Règlement partiel",
+        "submit": "Enregistrer le paiement"
       }
     }
   }

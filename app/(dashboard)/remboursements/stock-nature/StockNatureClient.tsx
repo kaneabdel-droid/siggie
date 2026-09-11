@@ -7,15 +7,18 @@ import AddSortieModal from './AddSortieModal'
 export default function StockNatureClient({
   campagnes,
   membres,
+  initialClients,
   dict,
   locale,
 }: {
   campagnes: any[]
   membres: any[]
+  initialClients: { id: string; nom: string }[]
   dict: any
   locale: string
 }) {
   const [selectedCampagne, setSelectedCampagne] = useState(campagnes[0]?.id || '')
+  const [clients, setClients] = useState(initialClients)
   const [journal, setJournal] = useState<any[]>([])
   const [soldeActuel, setSoldeActuel] = useState(0)
   const [campagneInfo, setCampagneInfo] = useState<any>(null)
@@ -66,7 +69,14 @@ export default function StockNatureClient({
           </select>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <AddSortieModal campagneId={selectedCampagne} membres={membres} onSuccess={fetchStock} dict={dict} />
+          <AddSortieModal
+            campagneId={selectedCampagne}
+            membres={membres}
+            clients={clients}
+            onClientCreated={(c) => setClients((prev) => [...prev, c].sort((a, b) => a.nom.localeCompare(b.nom)))}
+            onSuccess={fetchStock}
+            dict={dict}
+          />
         </div>
       </div>
 

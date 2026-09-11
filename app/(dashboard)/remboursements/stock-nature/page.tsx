@@ -19,6 +19,11 @@ export default async function StockNaturePage() {
     .eq('statut', 'actif')
     .order('prenom', { ascending: true })
 
+  const { data: clients } = await supabase
+    .from('clients_externes')
+    .select('id, nom')
+    .order('nom', { ascending: true })
+
   if (!campagnes || campagnes.length === 0) {
     return (
       <div className="text-center py-12 text-foreground-muted bg-surface rounded-lg border border-surface-border">
@@ -34,7 +39,7 @@ export default async function StockNaturePage() {
         <p className="mt-2 text-sm text-foreground-muted">{t.desc}</p>
       </div>
 
-      <StockNatureClient campagnes={campagnes} membres={membres || []} dict={dict} locale={locale} />
+      <StockNatureClient campagnes={campagnes} membres={membres || []} initialClients={clients || []} dict={dict} locale={locale} />
     </div>
   )
 }

@@ -638,6 +638,11 @@
   "bilans": {
     "title": "Reports & Statements",
     "desc": "Summary dashboard of the group's financial and operational health.",
+    "tabs": {
+      "overview": "Overview",
+      "releve_membre": "Member Statement",
+      "releve_client": "Customer Statement"
+    },
     "tresorerie_title": "Overall Cash Position",
     "tresorerie": {
       "balance": "Current Balance",
@@ -1013,14 +1018,70 @@
         "tiers_type_client": "An external customer",
         "membre_label": "Member",
         "select_membre": "Select a member...",
-        "client_label": "Customer name",
-        "client_placeholder": "E.g.: Buyer from Ndiaganiao market",
+        "client_label": "Customer",
+        "select_client": "Select a customer...",
+        "new_client_option": "+ New customer...",
+        "client_placeholder": "New customer's name",
         "quantity_label": "Quantity (kg)",
         "price_label_vente": "Unit sale price (FCFA/kg)",
         "price_label_ristourne": "Estimated unit value (FCFA/kg)",
         "date_label": "Date",
         "motif_label": "Reason (Optional)",
         "motif_placeholder": "E.g.: Sale at the weekly market"
+      }
+    }
+  },
+  "bilans_pages": {
+    "releve_membre": {
+      "no_members": "No member found.",
+      "title": "Member Statement",
+      "desc": "Amount billed, amount paid and running balance for each member, season by season.",
+      "select_member": "Choose a member",
+      "loading": "Loading statement...",
+      "current_balance": "Current balance",
+      "headers": {
+        "season": "Season",
+        "date": "Date",
+        "billed": "Amount Billed",
+        "paid": "Amount Paid",
+        "balance": "Running Balance"
+      },
+      "empty": "No invoice for this member."
+    },
+    "releve_client": {
+      "no_clients": "No customer registered.",
+      "title": "Customer Statement",
+      "desc": "Sales and payments received from an external customer, with running balance.",
+      "select_client": "Choose a customer",
+      "add_client": "New Customer",
+      "add_payment": "Record a payment",
+      "loading": "Loading statement...",
+      "current_balance": "Current balance (owed)",
+      "headers": {
+        "date": "Date",
+        "type": "Type",
+        "quantity": "Quantity",
+        "unit_price": "Unit price",
+        "amount": "Amount",
+        "balance": "Running Balance"
+      },
+      "type_sale": "Sale",
+      "type_payment": "Payment received",
+      "empty": "No movement for this customer.",
+      "new_client_form": {
+        "title": "New customer",
+        "name": "Customer name",
+        "name_placeholder": "E.g.: Ndiaganiao Shop",
+        "phone": "Phone (optional)",
+        "submit": "Create customer"
+      },
+      "payment_form": {
+        "title": "Record a customer payment",
+        "amount": "Amount received (FCFA)",
+        "date": "Date",
+        "motif": "Reason (Optional)",
+        "motif_placeholder": "E.g.: Partial settlement",
+        "submit": "Record the payment"
       }
     }
   }

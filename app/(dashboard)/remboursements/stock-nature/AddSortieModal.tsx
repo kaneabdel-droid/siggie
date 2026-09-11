@@ -3,15 +3,22 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { addSortieStockNature } from './actions'
+import { addClient } from '../../bilans/releve-client/actions'
+
+const NEW_CLIENT_VALUE = '__new__'
 
 export default function AddSortieModal({
   campagneId,
   membres,
+  clients,
+  onClientCreated,
   onSuccess,
   dict,
 }: {
   campagneId: string
   membres: any[]
+  clients: { id: string; nom: string }[]
+  onClientCreated: (client: { id: string; nom: string }) => void
   onSuccess: () => void
   dict: any
 }) {
@@ -19,6 +26,8 @@ export default function AddSortieModal({
   const [loading, setLoading] = useState(false)
   const [typeSortie, setTypeSortie] = useState('vente')
   const [tiersType, setTiersType] = useState('membre')
+  const [clientId, setClientId] = useState('')
+  const [newClientNom, setNewClientNom] = useState('')
   const t = dict.remboursements_pages.stock_nature.form
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -26,12 +35,24 @@ export default function AddSortieModal({
     setLoading(true)
     const formData = new FormData(e.currentTarget)
 
+    let resolvedClientId = clientId
+    if (tiersType === 'client' && clientId === NEW_CLIENT_VALUE) {
+      const clientRes = await addClient(newClientNom)
+      if (clientRes?.error || !clientRes.client) {
+        setLoading(false)
+        alert(clientRes?.error || "Erreur lors de la création du client")
+        return
+      }
+      resolvedClientId = clientRes.client.id
+      onClientCreated(clientRes.client)
+    }
+
     const res = await addSortieStockNature({
       campagne_id: campagneId,
       type_sortie: formData.get('type_sortie') as string,
       tiers_type: formData.get('tiers_type') as string,
       membre_id: (formData.get('membre_id') as string) || undefined,
-      tiers_nom: (formData.get('tiers_nom') as string) || undefined,
+      client_id: tiersType === 'client' ? resolvedClientId : undefined,
       quantite: Number(formData.get('quantite')),
       prix_unitaire: Number(formData.get('prix_unitaire')),
       motif: (formData.get('motif') as string) || undefined,
@@ -43,6 +64,8 @@ export default function AddSortieModal({
       alert(res.error)
     } else {
       setIsOpen(false)
+      setClientId('')
+      setNewClientNom('')
       onSuccess()
     }
   }
@@ -114,15 +137,30 @@ export default function AddSortieModal({
                     </div>
                   ) : (
                     <div>
-                      <label htmlFor="tiers_nom" className="block text-sm font-medium text-foreground">{t.client_label}</label>
-                      <input
-                        type="text"
-                        name="tiers_nom"
-                        id="tiers_nom"
+                      <label htmlFor="client_id" className="block text-sm font-medium text-foreground">{t.client_label}</label>
+                      <select
+                        id="client_id"
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
                         required
-                        placeholder={t.client_placeholder}
                         className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-                      />
+                      >
+                        <option value="">{t.select_client}</option>
+                        {clients.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nom}</option>
+                        ))}
+                        <option value={NEW_CLIENT_VALUE}>{t.new_client_option}</option>
+                      </select>
+                      {clientId === NEW_CLIENT_VALUE && (
+                        <input
+                          type="text"
+                          value={newClientNom}
+                          onChange={(e) => setNewClientNom(e.target.value)}
+                          required
+                          placeholder={t.client_placeholder}
+                          className="mt-2 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                        />
+                      )}
                     </div>
                   )}
 

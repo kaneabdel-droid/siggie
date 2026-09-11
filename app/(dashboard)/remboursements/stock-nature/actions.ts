@@ -47,7 +47,7 @@ export async function getStockNature(campagneId: string) {
   // Sorties : ventes et ristournes enregistrées manuellement
   const { data: sorties, error: sortiesError } = await supabase
     .from('sorties_stock_nature')
-    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, quantite, prix_unitaire, date_sortie, membres(prenom, nom)')
+    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, date_sortie, membres(prenom, nom), clients_externes(nom)')
     .eq('campagne_id', campagneId)
 
   if (sortiesError) return { error: sortiesError.message }
@@ -69,11 +69,12 @@ export async function getStockNature(campagneId: string) {
 
   for (const s of sorties || []) {
     const membre = Array.isArray(s.membres) ? s.membres[0] : s.membres
+    const client = Array.isArray(s.clients_externes) ? s.clients_externes[0] : s.clients_externes
     mouvements.push({
       id: s.id,
       date: s.date_sortie,
       type: s.type_sortie as 'vente' | 'ristourne',
-      tiers: s.tiers_type === 'membre' ? (membre ? `${membre.prenom} ${membre.nom}` : '-') : (s.tiers_nom || '-'),
+      tiers: s.tiers_type === 'membre' ? (membre ? `${membre.prenom} ${membre.nom}` : '-') : (client?.nom || s.tiers_nom || '-'),
       prix_unitaire: Number(s.prix_unitaire || 0),
       quantite: Number(s.quantite),
     })
@@ -100,7 +101,7 @@ export async function addSortieStockNature(input: {
   type_sortie: string
   tiers_type: string
   membre_id?: string
-  tiers_nom?: string
+  client_id?: string
   quantite: number
   prix_unitaire: number
   motif?: string
@@ -120,7 +121,7 @@ export async function addSortieStockNature(input: {
   if (!userData) return { error: "Utilisateur introuvable" }
   if (!input.quantite || input.quantite <= 0) return { error: "Quantité invalide" }
   if (input.tiers_type === 'membre' && !input.membre_id) return { error: "Sélectionnez un membre" }
-  if (input.tiers_type === 'client' && !input.tiers_nom?.trim()) return { error: "Précisez le nom du client" }
+  if (input.tiers_type === 'client' && !input.client_id) return { error: "Sélectionnez un client" }
 
   const { error } = await supabase.from('sorties_stock_nature').insert({
     gie_id: userData.gie_id,
@@ -128,7 +129,7 @@ export async function addSortieStockNature(input: {
     type_sortie: input.type_sortie,
     tiers_type: input.tiers_type,
     membre_id: input.tiers_type === 'membre' ? input.membre_id : null,
-    tiers_nom: input.tiers_type === 'client' ? input.tiers_nom?.trim() : null,
+    client_id: input.tiers_type === 'client' ? input.client_id : null,
     quantite: input.quantite,
     prix_unitaire: input.prix_unitaire,
     motif: input.motif?.trim() || null,
