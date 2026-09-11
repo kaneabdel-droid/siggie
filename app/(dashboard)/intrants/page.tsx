@@ -45,11 +45,28 @@ export default async function IntrantsPage({
     const intrantIds = intrants.map(i => i.id)
     const { data: distributions } = await supabase
       .from('distribution_intrants')
-      .select('quantite')
+      .select('campagne_id, intrant_id, quantite')
       .in('campagne_id', activeCampagneIds)
       .in('intrant_id', intrantIds)
 
-    totalDistributions = distributions?.reduce((sum, dist) => sum + Number(dist.quantite), 0) || 0
+    // Valeur distribuée = quantité × prix de facturation configuré pour cet intrant
+    // dans la campagne (et non le prix d'achat catalogue) : c'est ce prix qui reflète
+    // la vraie valeur remise au membre, y compris pour les intrants forfaitaires
+    // (Refacturation) dont le "prix de facturation" est fixé à 1 et la "quantité"
+    // saisie est déjà le montant en FCFA.
+    const { data: campagneIntrantsEnCours } = await supabase
+      .from('campagne_intrants')
+      .select('campagne_id, intrant_id, prix_facturation')
+      .in('campagne_id', activeCampagneIds)
+
+    const prixFacturationMap = new Map(
+      (campagneIntrantsEnCours || []).map((ci) => [`${ci.campagne_id}_${ci.intrant_id}`, Number(ci.prix_facturation) || 0])
+    )
+
+    totalDistributions = distributions?.reduce((sum, dist) => {
+      const prix = prixFacturationMap.get(`${dist.campagne_id}_${dist.intrant_id}`) || 0
+      return sum + Number(dist.quantite) * prix
+    }, 0) || 0
   }
 
   // Total des remboursements en nature reçus pour les campagnes en cours
@@ -103,7 +120,7 @@ export default async function IntrantsPage({
           </div>
           <div className="min-w-0">
             <dt className="text-sm font-medium text-foreground-muted">{dict.intrants.kpis.distributions}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {dict.intrants.kpis.units}</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-3">
