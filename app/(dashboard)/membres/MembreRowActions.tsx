@@ -10,6 +10,7 @@ type Membre = {
   prenom: string
   village: string | null
   telephone: string | null
+  superficie: number | null
   statut: string
 }
 
@@ -79,6 +80,10 @@ export default function MembreRowActions({ membre, dict }: { membre: Membre; dic
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.phone}</label>
                     <input type="text" name="telephone" defaultValue={membre.telephone || ''} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.superficie}</label>
+                    <input type="number" step="0.01" min="0" name="superficie" defaultValue={membre.superficie || 0} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.status}</label>

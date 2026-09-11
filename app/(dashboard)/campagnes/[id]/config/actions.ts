@@ -26,17 +26,40 @@ export async function toggleMembreCampagne(campagne_id: string, membre_id: strin
       
     if (error) return { error: error.message }
   } else {
-    // Ajouter l'inscription
+    // Ajouter l'inscription : la superficie déclarée par défaut pour cette campagne
+    // reprend la superficie du membre (modifiable ensuite au cas par cas).
+    const { data: membre } = await supabase
+      .from('membres')
+      .select('superficie')
+      .eq('id', membre_id)
+      .single()
+
     const { error } = await supabase
       .from('campagne_membres')
       .insert([{
         campagne_id,
         membre_id,
-        gie_id: userData.gie_id
+        gie_id: userData.gie_id,
+        superficie: membre?.superficie || 0
       }])
-      
+
     if (error) return { error: error.message }
   }
+
+  revalidatePath(`/campagnes/${campagne_id}/config`)
+  revalidatePath('/distribution')
+  return { success: true }
+}
+
+export async function updateSuperficieCampagneMembre(campagne_id: string, membre_id: string, superficie: number) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('campagne_membres')
+    .update({ superficie })
+    .match({ campagne_id, membre_id })
+
+  if (error) return { error: error.message }
 
   revalidatePath(`/campagnes/${campagne_id}/config`)
   revalidatePath('/distribution')

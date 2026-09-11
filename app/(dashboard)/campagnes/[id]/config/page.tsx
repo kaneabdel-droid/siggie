@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Users } from 'lucide-react'
 import MembreToggle from './MembreToggle'
+import SuperficieCampagneInput from './SuperficieCampagneInput'
 import CampagneIntrantsManager from './CampagneIntrantsManager'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -33,10 +34,11 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
   // Fetch already enrolled members for this campaign
   const { data: enrolledData } = await supabase
     .from('campagne_membres')
-    .select('membre_id')
+    .select('membre_id, superficie')
     .eq('campagne_id', id)
 
   const enrolledIds = new Set(enrolledData?.map(e => e.membre_id) || [])
+  const superficieParMembre = new Map((enrolledData || []).map((e) => [e.membre_id, e.superficie || 0]))
 
   const totalInscrits = enrolledIds.size
   const totalMembres = membres?.length || 0
@@ -109,6 +111,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
                     <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{t.headers.member}</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{t.headers.code}</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{t.headers.village}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{t.headers.superficie}</th>
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{t.headers.enrolled}</th>
                   </tr>
                 </thead>
@@ -128,6 +131,17 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
                             {membre.village}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
+                            {isEnrolled ? (
+                              <SuperficieCampagneInput
+                                campagneId={id}
+                                membreId={membre.id}
+                                initialValue={superficieParMembre.get(membre.id) || 0}
+                              />
+                            ) : (
+                              <span className="text-foreground-muted">{membre.superficie || 0}</span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
                             <MembreToggle
                               campagneId={id}
                               membreId={membre.id}
@@ -139,7 +153,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
                     })
                   ) : (
                     <tr>
-                      <td colSpan={4} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
+                      <td colSpan={5} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
                         {t.empty}
                       </td>
                     </tr>

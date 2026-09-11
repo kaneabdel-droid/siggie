@@ -189,6 +189,7 @@
       "name": "Full Name",
       "village": "Village",
       "phone": "Phone",
+      "superficie": "Area (ha)",
       "status": "Status",
       "actions": "Actions"
     },
@@ -390,6 +391,7 @@
     "approve_tooltip": "Grant the loan",
     "reject_tooltip": "Reject the request",
     "decaissement_tooltip": "Record a disbursement",
+    "remboursement_tooltip": "Repay loan",
     "delete_tooltip": "Delete the record",
     "modal": {
       "create_title": "Record a loan request for the group",
@@ -411,6 +413,10 @@
       "reason_ref": "Reason / Reference",
       "reason_ref_placeholder": "E.g.: Payment of fertilizer invoice #123",
       "decaissement_submit": "Record the disbursement",
+      "remboursement_title": "New repayment on the loan",
+      "remboursement_account": "Account to debit",
+      "remboursement_reason_placeholder": "E.g.: March installment repayment",
+      "remboursement_submit": "Record the repayment",
       "approve_title_prefix": "Loan validation",
       "bank_unspecified": "Bank not specified",
       "amount_requested_label": "Amount initially requested:",
@@ -553,6 +559,7 @@
       "first_name": "First name",
       "village": "Village",
       "phone": "Phone",
+      "superficie": "Area (ha)",
       "status": "Status",
       "status_active": "Active",
       "status_inactive": "Inactive",
@@ -888,6 +895,7 @@
         "member": "Member",
         "code": "Code",
         "village": "Village",
+        "superficie": "Area (ha)",
         "enrolled": "Enrolled in season?"
       },
       "empty": "No member found in the group."

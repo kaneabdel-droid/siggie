@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { addDistributionsByIntrant, addDistributionsByMembre } from './actions'
-import { isStockableType, isForfaitaireType } from '@/lib/intrants/types'
+import { isStockableType, isForfaitaireType, isSuperficieBasedType } from '@/lib/intrants/types'
 
 type Campagne = { id: string; nom: string }
 type Membre = { id: string; prenom: string; nom: string; telephone?: string; code_membre?: string }
 type Intrant = { id: string; nom: string; type_intrant: string; quantite_stock: number; prix_unitaire: number }
-type CampagneMembre = { campagne_id: string; membre: Membre }
+type CampagneMembre = { campagne_id: string; membre: Membre; superficie: number }
 type CampagneIntrant = { campagne_id: string; intrant_id: string; prix_facturation: number }
 
 export default function CreateDistributionModal({
@@ -54,9 +54,9 @@ export default function CreateDistributionModal({
   }
 
   // Derived data
-  const enrolledMembres = campagneMembres
-    .filter(cm => cm.campagne_id === selectedCampagneId)
-    .map(cm => cm.membre)
+  const enrolledCampagneMembres = campagneMembres.filter(cm => cm.campagne_id === selectedCampagneId)
+  const enrolledMembres = enrolledCampagneMembres.map(cm => cm.membre)
+  const superficieParMembre = new Map(enrolledCampagneMembres.map(cm => [cm.membre.id, cm.superficie || 0]))
 
   const campaignIntrantIds = campagneIntrants
     .filter(ci => ci.campagne_id === selectedCampagneId)
@@ -67,6 +67,38 @@ export default function CreateDistributionModal({
   // Calculate totals for validation
   const totalByIntrant = Object.values(quantitiesByMembre).reduce((sum, q) => sum + (q || 0), 0)
   const selectedIntrant = campaignAvailableIntrants.find(i => i.id === selectedIntrantId)
+
+  // Façon culturale / Service Hydraulique sont facturés à l'hectare : préremplir
+  // avec la superficie déclarée par chaque membre pour cette campagne, au lieu de
+  // partir d'une saisie vide (l'utilisateur peut toujours corriger la valeur).
+  useEffect(() => {
+    if (selectedIntrant && isSuperficieBasedType(selectedIntrant.type_intrant)) {
+      setQuantitiesByMembre(() => {
+        const next: Record<string, number> = {}
+        enrolledCampagneMembres.forEach(cm => {
+          next[cm.membre.id] = cm.superficie || 0
+        })
+        return next
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIntrantId])
+
+  useEffect(() => {
+    if (selectedMembreId) {
+      const superficie = superficieParMembre.get(selectedMembreId) || 0
+      setQuantitiesByIntrant((prev) => {
+        const next = { ...prev }
+        campaignAvailableIntrants.forEach(i => {
+          if (isSuperficieBasedType(i.type_intrant)) {
+            next[i.id] = superficie
+          }
+        })
+        return next
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMembreId])
 
   async function handleOption1Submit(e: React.FormEvent) {
     e.preventDefault()

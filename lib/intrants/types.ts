@@ -23,3 +23,31 @@ export function isStockableType(type: string | null | undefined): boolean {
 export function isForfaitaireType(type: string | null | undefined): boolean {
   return FORFAITAIRE_INTRANT_TYPES.includes(type || '')
 }
+
+// Façon culturale et Service Hydraulique sont facturés à l'hectare : la quantité à
+// distribuer par membre correspond par défaut à la superficie qu'il exploite pour
+// la campagne (voir campagne_membres.superficie), plutôt que de partir d'une saisie vide.
+export const SUPERFICIE_BASED_INTRANT_TYPES = [
+  'Façon culturale', 'Cultivation Work',
+  'Service Hydraulique', 'Water Service',
+]
+
+export function isSuperficieBasedType(type: string | null | undefined): boolean {
+  return SUPERFICIE_BASED_INTRANT_TYPES.includes(type || '')
+}
+
+// Ordre d'affichage des colonnes par type d'intrant dans l'état des remboursements
+// membre (bilan de campagne) : Façon culturale, Service Hydraulique, Engrais, Produits
+// phytosanitaires (Pesticide/Fongicide/Herbicide), Refacturation, puis tout le reste.
+const TYPE_ORDER_GROUPS: string[][] = [
+  ['Façon culturale', 'Cultivation Work'],
+  ['Service Hydraulique', 'Water Service'],
+  ['Engrais', 'Fertilizer'],
+  ['Pesticide', 'Fongicide', 'Fungicide', 'Herbicide'],
+  ['Refacturation', 'Rebilling'],
+]
+
+export function getTypeOrderRank(type: string | null | undefined): number {
+  const index = TYPE_ORDER_GROUPS.findIndex((group) => group.includes(type || ''))
+  return index === -1 ? TYPE_ORDER_GROUPS.length : index
+}

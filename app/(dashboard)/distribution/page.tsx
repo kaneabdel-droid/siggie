@@ -30,13 +30,15 @@ export default async function DistributionPage() {
     .from('campagne_membres')
     .select(`
       campagne_id,
+      superficie,
       membres (id, prenom, nom, telephone, code_membre)
     `)
   if (cmError) console.error("Erreur Fetch CampagneMembres:", cmError)
-    
+
   // Format for the client component
   const campagneMembres = (campagneMembresData || []).map((cm: any) => ({
     campagne_id: cm.campagne_id,
+    superficie: cm.superficie || 0,
     membre: cm.membres
   }))
 

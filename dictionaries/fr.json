@@ -189,6 +189,7 @@
       "name": "Nom complet",
       "village": "Village",
       "phone": "Téléphone",
+      "superficie": "Superficie (ha)",
       "status": "Statut",
       "actions": "Actions"
     },
@@ -390,6 +391,7 @@
     "approve_tooltip": "Accorder le crédit",
     "reject_tooltip": "Rejeter la demande",
     "decaissement_tooltip": "Enregistrer un décaissement",
+    "remboursement_tooltip": "Rembourser crédit",
     "delete_tooltip": "Supprimer l'enregistrement",
     "modal": {
       "create_title": "Enregistrer une demande de crédit pour le GIE",
@@ -411,6 +413,10 @@
       "reason_ref": "Motif / Référence",
       "reason_ref_placeholder": "Ex: Paiement facture engrais N°123",
       "decaissement_submit": "Enregistrer le décaissement",
+      "remboursement_title": "Nouveau remboursement du crédit",
+      "remboursement_account": "Compte à débiter",
+      "remboursement_reason_placeholder": "Ex: Remboursement échéance Mars",
+      "remboursement_submit": "Enregistrer le remboursement",
       "approve_title_prefix": "Validation du crédit",
       "bank_unspecified": "Banque non spécifiée",
       "amount_requested_label": "Montant initialement demandé :",
@@ -553,6 +559,7 @@
       "first_name": "Prénom",
       "village": "Village",
       "phone": "Téléphone",
+      "superficie": "Superficie (ha)",
       "status": "Statut",
       "status_active": "Actif",
       "status_inactive": "Inactif",
@@ -888,6 +895,7 @@
         "member": "Membre",
         "code": "Code",
         "village": "Village",
+        "superficie": "Superficie (ha)",
         "enrolled": "Inscrit à la campagne ?"
       },
       "empty": "Aucun membre trouvé dans le GIE."

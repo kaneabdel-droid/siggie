@@ -59,6 +59,10 @@ export default function CreateMembreButton({ dict }: { dict: any }) {
                     <input type="text" name="telephone" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.superficie}</label>
+                    <input type="number" step="0.01" min="0" name="superficie" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.status}</label>
                     <select name="statut" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
                       <option value="actif">{d.modal.status_active}</option>

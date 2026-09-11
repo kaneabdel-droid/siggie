@@ -4,6 +4,7 @@ import { ArrowLeft, Users, PackageOpen, Banknote, BarChart3, TrendingUp } from '
 import { Fragment } from 'react'
 import PrintSectionButton from './PrintSectionButton'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTypeOrderRank } from '@/lib/intrants/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,12 +58,17 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     intrantInfoMap.set(ci.intrant_id, ci.intrants)
   })
 
-  // Prepare column definitions for Pivot Table
-  const intrantsList = Array.from(intrantInfoMap.entries()).map(([iId, info]) => ({
-    id: iId,
-    nom: info.nom,
-    prix_facturation: intrantPriceMap.get(iId) || 0
-  }))
+  // Prepare column definitions for Pivot Table, ordonnées par type d'intrant
+  // (Façon culturale, Service Hydraulique, Engrais, Produits phytosanitaires,
+  // Refacturation, puis le reste) plutôt que par ordre d'ajout à la campagne.
+  const intrantsList = Array.from(intrantInfoMap.entries())
+    .map(([iId, info]) => ({
+      id: iId,
+      nom: info.nom,
+      type_intrant: info.type_intrant,
+      prix_facturation: intrantPriceMap.get(iId) || 0
+    }))
+    .sort((a, b) => getTypeOrderRank(a.type_intrant) - getTypeOrderRank(b.type_intrant))
 
   // 4. Distributions
   const { data: distributionsData } = await supabase
