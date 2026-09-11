@@ -12,7 +12,7 @@ const formatAmount = (amount: number | undefined | null) => {
   return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")
 }
 
-export default function DownloadPdfButton({ facture, dict }: { facture: any; dict: any }) {
+export default function DownloadPdfButton({ facture, dict, gieName }: { facture: any; dict: any; gieName: string }) {
   const [loadingAction, setLoadingAction] = useState<'download' | 'print' | null>(null)
 
   const generatePDF = async (action: 'download' | 'print') => {
@@ -70,19 +70,12 @@ export default function DownloadPdfButton({ facture, dict }: { facture: any; dic
       const quantiteNature = prixCollecte > 0 ? (resteAPayer / prixCollecte).toFixed(2) + ' kg' : 'N/A'
 
       // ==========================================
-      // HEADER (GIE Ndiaganiao & Titre FACTURE)
+      // HEADER (Nom du GIE & Titre FACTURE)
       // ==========================================
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(26)
       doc.setTextColor(45, 106, 79) // Vert
-      doc.text('GIE Ndiaganiao', 14, 25)
-
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(10)
-      doc.setTextColor(100, 100, 100)
-      doc.text('Adresse : Ndiaganiao, Sénégal', 14, 32)
-      doc.text('Téléphone : +221 00 000 00 00', 14, 37)
-      doc.text('Email : contact@gie-ndiaganiao.sn', 14, 42)
+      doc.text(gieName, 14, 30)
 
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(28)
@@ -92,43 +85,43 @@ export default function DownloadPdfButton({ facture, dict }: { facture: any; dic
       // Ligne de séparation
       doc.setDrawColor(45, 106, 79)
       doc.setLineWidth(0.5)
-      doc.line(14, 48, pageWidth - 14, 48)
+      doc.line(14, 40, pageWidth - 14, 40)
 
       // ==========================================
       // INFOS FACTURE ET CLIENT
       // ==========================================
       // Bloc de gauche : Informations Facture
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(10)
+      doc.setFontSize(9)
       doc.setTextColor(0, 0, 0)
-      doc.text('Informations de la facture :', 14, 57)
-      
+      doc.text('Informations de la facture :', 14, 47)
+
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(80, 80, 80)
-      doc.text(`N° Facture : ${facture.id.substring(0, 8).toUpperCase()}`, 14, 63)
-      doc.text(`Date d'émission : ${new Date().toLocaleDateString('fr-FR')}`, 14, 69)
-      doc.text(`Campagne : ${nomCampagne}`, 14, 75)
-      
+      doc.text(`N° Facture : ${facture.id.substring(0, 8).toUpperCase()}`, 14, 52)
+      doc.text(`Date d'émission : ${new Date().toLocaleDateString('fr-FR')}`, 14, 57)
+      doc.text(`Campagne : ${nomCampagne}`, 14, 62)
+
       // Bloc de droite : Facturé à (Client)
       doc.setFillColor(245, 247, 250) // Fond gris très clair
-      doc.roundedRect(pageWidth - 90, 52, 76, 28, 2, 2, 'F')
-      
+      doc.roundedRect(pageWidth - 90, 44, 76, 21, 2, 2, 'F')
+
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(10)
+      doc.setFontSize(9)
       doc.setTextColor(0, 0, 0)
-      doc.text('Facturé à :', pageWidth - 85, 59)
-      
+      doc.text('Facturé à :', pageWidth - 85, 49)
+
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
-      doc.setTextColor(45, 106, 79)
-      doc.text(nomMembre.toUpperCase(), pageWidth - 85, 66)
-      
-      doc.setFont('helvetica', 'normal')
       doc.setFontSize(10)
+      doc.setTextColor(45, 106, 79)
+      doc.text(nomMembre.toUpperCase(), pageWidth - 85, 54.5)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
       doc.setTextColor(80, 80, 80)
-      doc.text(`Village : ${membreDetails?.village || 'Non renseigné'}`, pageWidth - 85, 72)
+      doc.text(`Village : ${membreDetails?.village || 'Non renseigné'}`, pageWidth - 85, 59.5)
       if (membreDetails?.telephone) {
-        doc.text(`Tél : ${membreDetails.telephone}`, pageWidth - 85, 77)
+        doc.text(`Tél : ${membreDetails.telephone}`, pageWidth - 85, 63.5)
       }
 
       // ==========================================
@@ -177,24 +170,25 @@ export default function DownloadPdfButton({ facture, dict }: { facture: any; dic
       }
 
       autoTable(doc, {
-        startY: 90,
-        head: [['Désignation de l\'article', 'Quantité', 'Prix Unitaire', 'Montant (FCFA)']],
+        startY: 70,
+        head: [['Désignation de l\'article', 'Qté', 'Prix Unitaire', 'Montant (FCFA)']],
         body: tableBody,
         theme: 'striped',
-        headStyles: { 
+        headStyles: {
           fillColor: [45, 106, 79],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          halign: 'left'
+          halign: 'left',
+          cellPadding: 2.5,
         },
         styles: {
           font: 'helvetica',
           fontSize: 10,
-          cellPadding: 6,
+          cellPadding: 3,
         },
         columnStyles: {
           0: { halign: 'left', cellWidth: 'auto' },
-          1: { halign: 'center', cellWidth: 25 },
+          1: { halign: 'center', cellWidth: 20 },
           2: { halign: 'right', cellWidth: 35 },
           3: { halign: 'right', cellWidth: 40, fontStyle: 'bold' }
         },
@@ -206,38 +200,49 @@ export default function DownloadPdfButton({ facture, dict }: { facture: any; dic
       // ==========================================
       // RÉCAPITULATIF FINANCIER (TOTALS BOX)
       // ==========================================
-      const finalY = (doc as any).lastAutoTable.finalY || 130
-      
+      const tableEndY = (doc as any).lastAutoTable.finalY || 130
+
+      // Hauteur réservée pour le récapitulatif + modalités + signature + pied de page.
+      // Si la table déborde trop bas, on repart sur une nouvelle page plutôt que de
+      // laisser ce bloc se faire couper en bas de la page courante.
+      const footerBlockHeight = 85
+      let finalY = tableEndY
+      if (finalY + footerBlockHeight > pageHeight) {
+        doc.addPage()
+        finalY = 15
+      }
+
       // Position du bloc total à droite
       const totalBoxX = pageWidth - 85 // élargi un peu pour "SURPLUS DE REMBOURSEMENT"
-      
+
       doc.setDrawColor(220, 220, 220)
       doc.line(totalBoxX, finalY + 5, pageWidth - 14, finalY + 5)
 
-      let ty = finalY + 12
+      let ty = finalY + 11
       doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
       doc.setTextColor(80, 80, 80)
 
       if (montantInteret > 0) {
         doc.text('Intérêt :', totalBoxX, ty)
         doc.text(`${formatAmount(montantInteret)}`, pageWidth - 14, ty, { align: 'right' })
-        ty += 7
+        ty += 6
       }
 
       doc.text('Total Dû :', totalBoxX, ty)
       doc.text(`${formatAmount(totalDu)}`, pageWidth - 14, ty, { align: 'right' })
-      ty += 7
+      ty += 6
 
       doc.text('Montant Payé :', totalBoxX, ty)
       doc.setTextColor(45, 106, 79) // Vert
       doc.text(`-${formatAmount(facture.montant_paye || 0)}`, pageWidth - 14, ty, { align: 'right' })
-      ty += 4
+      ty += 3
 
       // Barre grasse pour le Reste à Payer / Surplus
       doc.setDrawColor(45, 106, 79)
       doc.setLineWidth(0.5)
       doc.line(totalBoxX, ty, pageWidth - 14, ty)
-      ty += 8
+      ty += 7
 
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10)
@@ -258,33 +263,33 @@ export default function DownloadPdfButton({ facture, dict }: { facture: any; dic
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10)
       doc.setTextColor(0, 0, 0)
-      doc.text('Modalités de remboursement :', 14, finalY + 12)
-      
+      doc.text('Modalités de remboursement :', 14, finalY + 11)
+
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(100, 100, 100)
-      doc.text(`• Type de remboursement : Numéraire ou Nature`, 14, finalY + 18)
-      
+      doc.text(`• Type de remboursement : Numéraire ou Nature`, 14, finalY + 17)
+
       if (prixCollecte > 0 && resteAPayer > 0) {
-        doc.text(`• Équivalent nature pour solder : ${quantiteNature}`, 14, finalY + 24)
-        doc.text(`  (Calculé sur la base de ${prixCollecte} FCFA / kg)`, 14, finalY + 29)
+        doc.text(`• Équivalent nature pour solder : ${quantiteNature}`, 14, finalY + 23)
+        doc.text(`  (Calculé sur la base de ${prixCollecte} FCFA / kg)`, 14, finalY + 28)
       }
 
       // Mentions légales / Signature en bas
       doc.setFont('helvetica', 'italic')
       doc.setFontSize(9)
       doc.setTextColor(150, 150, 150)
-      doc.text('Merci de conserver cette facture précieusement.', 14, finalY + 45)
+      doc.text('Merci de conserver cette facture précieusement.', 14, finalY + 42)
 
       // Signature Box
       doc.setDrawColor(200, 200, 200)
       doc.setLineDashPattern([2, 2], 0)
-      doc.rect(pageWidth - 70, finalY + 45, 56, 25)
+      doc.rect(pageWidth - 70, finalY + 42, 56, 22)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
-      doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 50)
-      
-      // Footer tout en bas
+      doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 47)
+
+      // Footer tout en bas de la page courante (même format sur toutes les pages)
       doc.setLineDashPattern([], 0)
       doc.setDrawColor(230, 230, 230)
       doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15)
