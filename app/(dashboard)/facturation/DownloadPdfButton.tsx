@@ -63,7 +63,9 @@ export default function DownloadPdfButton({ facture, dict }: { facture: any; dic
 
       const nomMembre = `${membreDetails?.prenom || ''} ${membreDetails?.nom || ''}`.trim()
       const nomCampagne = facture.campagne?.nom || 'N/A'
-      const resteAPayer = facture.montant_total - (facture.montant_paye || 0)
+      const montantInteret = Number(facture.montant_interet || 0)
+      const totalDu = Number(facture.montant_total || 0) + montantInteret
+      const resteAPayer = totalDu - (facture.montant_paye || 0)
       const prixCollecte = facture.campagne?.prix_collecte || 0
       const quantiteNature = prixCollecte > 0 ? (resteAPayer / prixCollecte).toFixed(2) + ' kg' : 'N/A'
 
@@ -211,32 +213,43 @@ export default function DownloadPdfButton({ facture, dict }: { facture: any; dic
       
       doc.setDrawColor(220, 220, 220)
       doc.line(totalBoxX, finalY + 5, pageWidth - 14, finalY + 5)
-      
+
+      let ty = finalY + 12
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(80, 80, 80)
-      doc.text('Total Dû :', totalBoxX, finalY + 12)
-      doc.text(`${formatAmount(facture.montant_total)}`, pageWidth - 14, finalY + 12, { align: 'right' })
-      
-      doc.text('Montant Payé :', totalBoxX, finalY + 19)
+
+      if (montantInteret > 0) {
+        doc.text('Intérêt :', totalBoxX, ty)
+        doc.text(`${formatAmount(montantInteret)}`, pageWidth - 14, ty, { align: 'right' })
+        ty += 7
+      }
+
+      doc.text('Total Dû :', totalBoxX, ty)
+      doc.text(`${formatAmount(totalDu)}`, pageWidth - 14, ty, { align: 'right' })
+      ty += 7
+
+      doc.text('Montant Payé :', totalBoxX, ty)
       doc.setTextColor(45, 106, 79) // Vert
-      doc.text(`-${formatAmount(facture.montant_paye || 0)}`, pageWidth - 14, finalY + 19, { align: 'right' })
+      doc.text(`-${formatAmount(facture.montant_paye || 0)}`, pageWidth - 14, ty, { align: 'right' })
+      ty += 4
 
       // Barre grasse pour le Reste à Payer / Surplus
       doc.setDrawColor(45, 106, 79)
       doc.setLineWidth(0.5)
-      doc.line(totalBoxX, finalY + 23, pageWidth - 14, finalY + 23)
+      doc.line(totalBoxX, ty, pageWidth - 14, ty)
+      ty += 8
 
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10)
-      
+
       if (resteAPayer < 0) {
         doc.setTextColor(45, 106, 79) // Vert pour le surplus
-        doc.text('SURPLUS DE REMB. :', totalBoxX, finalY + 31)
-        doc.text(`${formatAmount(Math.abs(resteAPayer))} FCFA`, pageWidth - 14, finalY + 31, { align: 'right' })
+        doc.text('SURPLUS DE REMB. :', totalBoxX, ty)
+        doc.text(`${formatAmount(Math.abs(resteAPayer))} FCFA`, pageWidth - 14, ty, { align: 'right' })
       } else {
         doc.setTextColor(220, 38, 38) // Rouge pour le reste à payer
-        doc.text('RESTE À PAYER :', totalBoxX, finalY + 31)
-        doc.text(`${formatAmount(resteAPayer)} FCFA`, pageWidth - 14, finalY + 31, { align: 'right' })
+        doc.text('RESTE À PAYER :', totalBoxX, ty)
+        doc.text(`${formatAmount(resteAPayer)} FCFA`, pageWidth - 14, ty, { align: 'right' })
       }
 
       // ==========================================

@@ -62,15 +62,16 @@ export async function enregistrerRemboursement(
   // 2. Mettre à jour la facture (montant_paye et statut)
   const { data: facture } = await supabase
     .from('factures')
-    .select('montant_total, montant_paye')
+    .select('montant_total, montant_interet, montant_paye')
     .eq('id', factureId)
     .single()
 
   if (facture) {
+    const totalDu = Number(facture.montant_total || 0) + Number(facture.montant_interet || 0)
     const nouveauMontantPaye = Number(facture.montant_paye || 0) + Number(montantFcfa)
     let nouveauStatut = 'impayee'
     if (nouveauMontantPaye > 0) nouveauStatut = 'partiellement_paye'
-    if (nouveauMontantPaye >= facture.montant_total) nouveauStatut = 'payee'
+    if (nouveauMontantPaye >= totalDu) nouveauStatut = 'payee'
 
     await supabase
       .from('factures')

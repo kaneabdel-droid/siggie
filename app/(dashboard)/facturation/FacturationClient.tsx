@@ -5,8 +5,9 @@ import { Plus, Search, ReceiptText, Printer } from 'lucide-react'
 import DownloadPdfButton from './DownloadPdfButton'
 
 import GenererFacturesModal from './GenererFacturesModal'
+import CalculInteretModal from './CalculInteretModal'
 
-export default function FacturationClient({ factures, dict, locale }: { factures: any[], dict: any, locale: string }) {
+export default function FacturationClient({ factures, campagnes, dict, locale }: { factures: any[], campagnes: { id: string; nom: string }[], dict: any, locale: string }) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const filteredFactures = factures.filter(f => 
@@ -25,6 +26,7 @@ export default function FacturationClient({ factures, dict, locale }: { factures
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 flex gap-3 sm:flex-none">
+          <CalculInteretModal campagnes={campagnes} dict={dict} />
           <GenererFacturesModal dict={dict} />
         </div>
       </div>
@@ -53,6 +55,7 @@ export default function FacturationClient({ factures, dict, locale }: { factures
                   <tr>
                     <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{dict.facturation.table.member}</th>
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.season}</th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation_extra.interest_col}</th>
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.total_due}</th>
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.paid}</th>
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.facturation.table.remaining}</th>
@@ -64,8 +67,10 @@ export default function FacturationClient({ factures, dict, locale }: { factures
                 </thead>
                 <tbody className="divide-y divide-surface-border bg-surface">
                   {filteredFactures.map((facture) => {
-                    const resteAPayer = facture.montant_total - (facture.montant_paye || 0)
-                    
+                    const montantInteret = Number(facture.montant_interet || 0)
+                    const totalDu = Number(facture.montant_total || 0) + montantInteret
+                    const resteAPayer = totalDu - (facture.montant_paye || 0)
+
                     return (
                       <tr key={facture.id} className="hover:bg-background/50 transition-colors">
                         <td className="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-6">
@@ -82,8 +87,11 @@ export default function FacturationClient({ factures, dict, locale }: { factures
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-foreground-muted">
                           {facture.campagne?.nom}
                         </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-foreground-muted">
+                          {montantInteret > 0 ? montantInteret.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 }) + ' FCFA' : '-'}
+                        </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold text-foreground">
-                          {facture.montant_total?.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                          {totalDu.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-success">
                           {facture.montant_paye?.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
@@ -112,7 +120,7 @@ export default function FacturationClient({ factures, dict, locale }: { factures
                   
                   {filteredFactures.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
+                      <td colSpan={8} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
                         {dict.facturation.table.empty}
                       </td>
                     </tr>

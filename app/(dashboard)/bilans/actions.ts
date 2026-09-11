@@ -32,12 +32,28 @@ export async function getGlobalStats() {
   const facturesImpayees = (factures || []).filter(f => f.statut === 'impayee').reduce((sum, f) => sum + f.montant_total, 0)
   const facturesPayees = (factures || []).filter(f => f.statut === 'payee').reduce((sum, f) => sum + f.montant_total, 0)
 
-  // 3. Crédits Membres
+  // 3. Crédits Non Remboursés = montant accordé des crédits validés, moins les
+  // remboursements déjà effectués (transactions type_piece='remboursement_credit')
   const { data: credits } = await supabase
     .from('credits')
-    .select('montant_demande, statut')
+    .select('id, montant_accorde, statut')
 
-  const creditsEnCours = (credits || []).filter(c => c.statut === 'valide').reduce((sum, c) => sum + c.montant_demande, 0)
+  const creditsValides = (credits || []).filter(c => c.statut === 'valide')
+  const totalAccordeCredits = creditsValides.reduce((sum, c) => sum + Number(c.montant_accorde || 0), 0)
+
+  let totalRembourseCredits = 0
+  const creditIds = creditsValides.map(c => c.id)
+  if (creditIds.length > 0) {
+    const { data: remboursementsCredits } = await supabase
+      .from('transactions')
+      .select('montant')
+      .in('credit_id', creditIds)
+      .eq('type_piece', 'remboursement_credit')
+
+    totalRembourseCredits = (remboursementsCredits || []).reduce((sum, t) => sum + Number(t.montant || 0), 0)
+  }
+
+  const creditsEnCours = totalAccordeCredits - totalRembourseCredits
 
   // 4. Rentabilité Matériel
   const { data: materiels } = await supabase

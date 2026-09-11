@@ -39,7 +39,7 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
           <div className="flex-1 overflow-y-auto p-2">
             {filteredFactures.map((facture) => {
               const isSelected = selectedFacture?.id === facture.id
-              const reste = facture.montant_total - (facture.montant_paye || 0)
+              const reste = facture.montant_total + (facture.montant_interet || 0) - (facture.montant_paye || 0)
               
               return (
                 <button
@@ -84,11 +84,11 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-background rounded-md p-4 border border-surface-border">
                   <div className="text-sm text-foreground-muted">{dict.remboursements.details.total_due}</div>
-                  <div className="text-xl font-bold text-foreground">{selectedFacture.montant_total.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</div>
+                  <div className="text-xl font-bold text-foreground">{(selectedFacture.montant_total + (selectedFacture.montant_interet || 0)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</div>
                 </div>
                 <div className="bg-background rounded-md p-4 border border-surface-border">
                   {(() => {
-                    const r = selectedFacture.montant_total - (selectedFacture.montant_paye || 0);
+                    const r = selectedFacture.montant_total + (selectedFacture.montant_interet || 0) - (selectedFacture.montant_paye || 0);
                     return r < 0 ? (
                       <>
                         <div className="text-sm text-foreground-muted">{dict.remboursements.details.surplus}</div>

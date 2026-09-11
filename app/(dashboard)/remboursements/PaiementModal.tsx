@@ -19,7 +19,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale }: 
   const d = dict.remboursements_extra.modal
   const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
 
-  const resteAPayer = facture.montant_total - (facture.montant_paye || 0)
+  const resteAPayer = facture.montant_total + (facture.montant_interet || 0) - (facture.montant_paye || 0)
   const prixCollecte = facture.campagne?.prix_collecte || 0
 
   // Calculate equivalent in FCFA when typing nature quantity

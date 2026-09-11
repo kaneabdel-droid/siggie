@@ -22,6 +22,89 @@ export async function getFactures() {
   return { factures }
 }
 
+// Répartit l'intérêt du/des crédit(s) validé(s) d'une campagne entre les factures
+// des membres de cette campagne, au prorata soit de la superficie qu'ils exploitent
+// pour la campagne, soit du montant déjà facturé (intrants + crédits) — stocké à part
+// (factures.montant_interet) pour ne jamais être écrasé par une régénération de la
+// facturation groupée.
+export async function calculerInteret(campagneId: string, methode: 'superficie' | 'intrants') {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: credits } = await supabase
+    .from('credits')
+    .select('montant_accorde, taux_interet, duree_credit')
+    .eq('campagne_id', campagneId)
+    .eq('statut', 'valide')
+
+  const totalInteret = (credits || []).reduce((sum, c) => {
+    const montant = Number(c.montant_accorde) || 0
+    const taux = Number(c.taux_interet) || 0
+    const duree = Number(c.duree_credit) || 0
+    return sum + montant * (taux / 100) * (duree / 12)
+  }, 0)
+
+  if (totalInteret <= 0) {
+    return { error: "Aucun intérêt à répartir : aucun crédit validé avec taux et durée renseignés pour cette campagne." }
+  }
+
+  const { data: factures } = await supabase
+    .from('factures')
+    .select('id, membre_id, montant_total')
+    .eq('campagne_id', campagneId)
+
+  if (!factures || factures.length === 0) {
+    return { error: "Aucune facture trouvée pour cette campagne. Générez d'abord la facturation groupée." }
+  }
+
+  const poidsParMembre: Record<string, number> = {}
+  let totalPoids = 0
+
+  if (methode === 'superficie') {
+    const { data: campagneMembres } = await supabase
+      .from('campagne_membres')
+      .select('membre_id, superficie')
+      .eq('campagne_id', campagneId)
+
+    for (const cm of campagneMembres || []) {
+      const s = Number(cm.superficie) || 0
+      poidsParMembre[cm.membre_id] = s
+      totalPoids += s
+    }
+  } else {
+    for (const f of factures) {
+      const m = Number(f.montant_total) || 0
+      poidsParMembre[f.membre_id] = (poidsParMembre[f.membre_id] || 0) + m
+      totalPoids += m
+    }
+  }
+
+  if (totalPoids <= 0) {
+    return {
+      error: methode === 'superficie'
+        ? "Aucune superficie déclarée pour les membres de cette campagne."
+        : "Aucun montant facturé pour répartir l'intérêt."
+    }
+  }
+
+  for (const f of factures) {
+    const poids = poidsParMembre[f.membre_id] || 0
+    const part = totalInteret * (poids / totalPoids)
+    const { error } = await supabase
+      .from('factures')
+      .update({ montant_interet: part })
+      .eq('id', f.id)
+    if (error) return { error: error.message }
+  }
+
+  revalidatePath('/facturation')
+  revalidatePath('/remboursements')
+  revalidatePath('/bilans/releve-membre')
+  return { success: true }
+}
+
 export async function genererFacturesCampagne(campagneId: string) {
   const supabase = await createClient()
 

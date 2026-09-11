@@ -36,12 +36,24 @@ export async function addCredit(formData: FormData) {
   return { success: true }
 }
 
-export async function updateCreditStatus(id: string, statut: string, montant_accorde?: number) {
+export async function updateCreditStatus(
+  id: string,
+  statut: string,
+  montant_accorde?: number,
+  taux_interet?: number,
+  duree_credit?: number
+) {
   const supabase = await createClient()
 
   const data: any = { statut }
   if (montant_accorde !== undefined) {
     data.montant_accorde = montant_accorde
+  }
+  if (taux_interet !== undefined) {
+    data.taux_interet = taux_interet
+  }
+  if (duree_credit !== undefined) {
+    data.duree_credit = duree_credit
   }
 
   const { error } = await supabase
@@ -103,6 +115,42 @@ export async function addDecaissementCredit(formData: FormData) {
 
   if (error) {
     console.error("Erreur ajout décaissement crédit:", error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/credits')
+  revalidatePath('/tresorerie')
+  return { success: true }
+}
+
+export async function addRemboursementCredit(formData: FormData) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Non authentifié")
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) throw new Error("Utilisateur introuvable")
+
+  const data = {
+    gie_id: userData.gie_id,
+    credit_id: formData.get('credit_id'),
+    compte_id: formData.get('compte_id'),
+    type_transaction: 'sortie',
+    type_piece: 'remboursement_credit',
+    montant: parseFloat(formData.get('montant') as string) || 0,
+    motif: formData.get('motif') || 'Remboursement de crédit',
+  }
+
+  const { error } = await supabase.from('transactions').insert([data])
+
+  if (error) {
+    console.error("Erreur ajout remboursement crédit:", error)
     return { error: error.message }
   }
 

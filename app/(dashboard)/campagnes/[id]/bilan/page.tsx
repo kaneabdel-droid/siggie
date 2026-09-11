@@ -87,13 +87,17 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
   // 5. Factures / Remboursements
   const { data: facturesData } = await supabase
     .from('factures')
-    .select('membre_id, montant_paye')
+    .select('membre_id, montant_paye, montant_interet, membres (prenom, nom, code_membre)')
     .eq('campagne_id', id)
-    
+
   const rembMap = new Map<string, number>()
+  const interetMap = new Map<string, number>()
+  const factureInfoMap = new Map<string, any>()
   if (facturesData) {
-    facturesData.forEach(f => {
+    facturesData.forEach((f: any) => {
       rembMap.set(f.membre_id, (rembMap.get(f.membre_id) || 0) + Number(f.montant_paye))
+      interetMap.set(f.membre_id, (interetMap.get(f.membre_id) || 0) + Number(f.montant_interet || 0))
+      factureInfoMap.set(f.membre_id, f.membres)
     })
   }
 
@@ -175,14 +179,26 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     }
   }).sort((a, b) => b.valeur_facturee - a.valeur_facturee) // Sort by value desc
 
+  // S'assurer qu'un membre avec un intérêt réparti mais aucune distribution
+  // (ex: n'a reçu que du crédit) apparaît quand même dans le bilan.
+  interetMap.forEach((_, mId) => {
+    if (!memberDebt.has(mId)) {
+      memberDebt.set(mId, { info: factureInfoMap.get(mId), totalDette: 0, produitsCount: 0, intrants: {} })
+    }
+  })
+
   const memberList = Array.from(memberDebt.entries()).map(([mId, data]) => {
     const remboursement = rembMap.get(mId) || 0
-    const solde = data.totalDette - remboursement
+    const interet = interetMap.get(mId) || 0
+    const totalDette = data.totalDette + interet
+    const solde = totalDette - remboursement
     return {
       id: mId,
       remboursement,
+      interet,
       solde,
-      ...data
+      ...data,
+      totalDette
     }
   }).sort((a, b) => b.totalDette - a.totalDette) // Sort by debt desc
 
@@ -411,6 +427,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                       <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString(dateLocale)} FCFA/u</span>
                     </th>
                   ))}
+                  <th scope="col" rowSpan={2} className="px-3 py-2 text-right font-semibold text-foreground align-bottom border-r border-surface-border">
+                    {t.deliveries_section.interest}
+                  </th>
                   <th scope="col" rowSpan={2} className="px-3 py-3 text-right font-bold text-foreground align-bottom bg-background/80">
                     {t.deliveries_section.total_global}
                   </th>
@@ -445,6 +464,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                           </Fragment>
                         )
                       })}
+                      <td className="whitespace-nowrap px-3 py-3 text-right text-foreground border-r border-surface-border">
+                        {row.interet ? row.interet.toLocaleString(dateLocale) : '-'}
+                      </td>
                       <td className="whitespace-nowrap px-3 py-3 text-right font-bold text-danger bg-background/30">
                         {row.totalDette.toLocaleString(dateLocale)}
                       </td>
@@ -452,7 +474,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={intrantsList.length * 2 + 2} className="whitespace-nowrap py-8 text-center text-foreground-muted">
+                    <td colSpan={intrantsList.length * 2 + 3} className="whitespace-nowrap py-8 text-center text-foreground-muted">
                       {t.deliveries_section.empty}
                     </td>
                   </tr>
@@ -478,6 +500,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                         </Fragment>
                       )
                     })}
+                    <td className="whitespace-nowrap px-3 py-3 text-right text-foreground border-r border-surface-border">
+                      {memberList.reduce((sum, row) => sum + row.interet, 0).toLocaleString(dateLocale)}
+                    </td>
                     <td className="whitespace-nowrap px-3 py-3 text-right text-primary font-bold">
                       {memberList.reduce((sum, row) => sum + row.totalDette, 0).toLocaleString(dateLocale)}
                     </td>

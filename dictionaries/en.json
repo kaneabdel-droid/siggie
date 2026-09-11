@@ -422,6 +422,8 @@
       "amount_requested_label": "Amount initially requested:",
       "amount_granted": "Amount actually granted (FCFA)",
       "amount_granted_note": "The amount granted by the bank may differ from the initial request.",
+      "interest_rate": "Interest rate (%)",
+      "credit_duration": "Credit duration (months)",
       "approve_submit": "Confirm the amount",
       "delete_title": "Delete the record",
       "delete_confirm": "Are you sure you want to delete this row?"
@@ -478,6 +480,19 @@
     "generate_btn": "Bulk Invoicing",
     "print_tooltip": "Print the invoice",
     "download_tooltip": "Download PDF",
+    "interest_col": "Interest",
+    "interet": {
+      "btn": "Calculate Interest",
+      "title": "Calculate and allocate credit interest",
+      "desc": "Allocates the season's validated credit interest across members' invoices, using the chosen method.",
+      "campaign": "Season",
+      "select_campaign": "Select a season",
+      "method_label": "Allocation method",
+      "method_superficie": "Pro-rata of the area worked for the season",
+      "method_intrants": "Pro-rata of the total inputs billed to the member",
+      "calculating": "Calculating...",
+      "submit": "Calculate and allocate"
+    },
     "modal": {
       "title": "Generate invoices for the season",
       "desc": "This will add up the inputs received and validated loans for each member, and generate or update invoices.",
@@ -945,6 +960,7 @@
         "beneficiary": "Beneficiary",
         "quantity": "Qty",
         "amount": "Amount",
+        "interest": "Interest (FCFA)",
         "total_global": "Grand Total (FCFA)",
         "grand_total": "GRAND TOTAL",
         "empty": "No delivery recorded for this season."

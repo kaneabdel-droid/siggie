@@ -422,6 +422,8 @@
       "amount_requested_label": "Montant initialement demandé :",
       "amount_granted": "Montant réellement accordé (FCFA)",
       "amount_granted_note": "Le montant accordé par la banque peut être différent de la demande initiale.",
+      "interest_rate": "Taux d'intérêt (%)",
+      "credit_duration": "Durée du crédit (mois)",
       "approve_submit": "Confirmer le montant",
       "delete_title": "Supprimer l'enregistrement",
       "delete_confirm": "Êtes-vous sûr de vouloir supprimer cette ligne ?"
@@ -478,6 +480,19 @@
     "generate_btn": "Facturation Groupée",
     "print_tooltip": "Imprimer la facture",
     "download_tooltip": "Télécharger PDF",
+    "interest_col": "Intérêt",
+    "interet": {
+      "btn": "Calcul de l'intérêt",
+      "title": "Calculer et répartir l'intérêt du crédit",
+      "desc": "Répartit l'intérêt du crédit validé de la campagne entre les factures des membres, selon la méthode choisie.",
+      "campaign": "Campagne",
+      "select_campaign": "Sélectionnez une campagne",
+      "method_label": "Méthode de répartition",
+      "method_superficie": "Au prorata des superficies exploitées pour la campagne",
+      "method_intrants": "Au prorata du total des intrants facturés au membre",
+      "calculating": "Calcul en cours...",
+      "submit": "Calculer et répartir"
+    },
     "modal": {
       "title": "Générer les factures de la campagne",
       "desc": "Cette action va additionner les intrants reçus et les crédits validés pour chaque membre, et générer ou mettre à jour les factures.",
@@ -945,6 +960,7 @@
         "beneficiary": "Bénéficiaire",
         "quantity": "Qté",
         "amount": "Montant",
+        "interest": "Intérêt (FCFA)",
         "total_global": "Total Global (FCFA)",
         "grand_total": "TOTAL GÉNÉRAL",
         "empty": "Aucune livraison enregistrée pour cette campagne."
