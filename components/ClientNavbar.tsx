@@ -14,7 +14,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/logo-icon.png" alt="" width={308} height={260} className="h-9 w-auto" priority />
+            <Image src="/logo-icon.png" alt="" width={248} height={260} className="h-9 w-auto" priority />
             <span className="text-lg sm:text-xl font-bold font-heading text-primary">DEMBA SOLUTION</span>
           </Link>
           <nav className="hidden md:flex gap-6 items-center">
