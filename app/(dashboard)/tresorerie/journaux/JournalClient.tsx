@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getJournal } from '../actions'
 import AddTransactionModal from './AddTransactionModal'
+import TransactionRowActions from './TransactionRowActions'
 
 export default function JournalClient({ comptes, imputations, dict, locale }: { comptes: any[], imputations: any[], dict: any, locale: string }) {
   const [selectedCompte, setSelectedCompte] = useState(comptes[0]?.id || '')
@@ -67,6 +68,9 @@ export default function JournalClient({ comptes, imputations, dict, locale }: { 
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.in}</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.out}</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.balance}</th>
+                <th scope="col" className="relative px-6 py-3">
+                  <span className="sr-only">{t.headers.actions}</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border bg-surface">
@@ -91,6 +95,9 @@ export default function JournalClient({ comptes, imputations, dict, locale }: { 
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold bg-background/50">
                     {ligne.solde.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
                   </td>
+                  <td className="relative whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                    <TransactionRowActions transaction={ligne} imputations={imputations} onSuccess={fetchJournal} dict={dict} />
+                  </td>
                 </tr>
               ))}
               {/* Ligne du solde initial */}
@@ -101,6 +108,7 @@ export default function JournalClient({ comptes, imputations, dict, locale }: { 
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold">
                   {Number(soldeInitial).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
                 </td>
+                <td></td>
               </tr>
             </tbody>
           </table>

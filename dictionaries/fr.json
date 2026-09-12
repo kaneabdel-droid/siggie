@@ -49,8 +49,8 @@
     },
     "tips": {
       "title": "Astuces de Gestion",
-      "tip1": "Digitalisez vos reçus",
-      "tip2": "Suivez la rentabilité par machine",
+      "tip1": "Digitalisez vos processus",
+      "tip2": "Suivez la rentabilité par secteur",
       "tip3": "Impliquez vos membres"
     },
     "footer": {
@@ -827,9 +827,16 @@
         "imputation": "Imputation",
         "in": "Entrée",
         "out": "Sortie",
-        "balance": "Solde en cours"
+        "balance": "Solde en cours",
+        "actions": "Actions"
       },
       "initial_balance": "Solde Initial",
+      "edit_tooltip": "Modifier l'opération",
+      "delete_tooltip": "Supprimer l'opération",
+      "edit_title": "Modifier l'opération",
+      "delete_title": "Supprimer l'opération",
+      "delete_confirm_prefix": "Êtes-vous sûr de vouloir supprimer l'opération",
+      "delete_confirm_suffix": "? Le solde du compte sera recalculé.",
       "form": {
         "title": "Saisir une nouvelle opération",
         "type_label": "Type d'opération",

@@ -101,6 +101,48 @@ export async function addTransaction(data: { compte_id: string, type_transaction
   return { success: true }
 }
 
+export async function updateTransaction(id: string, data: { type_transaction: string, montant: number, motif: string, type_piece?: string, imputation_id?: string }) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { error } = await supabase
+    .from('transactions')
+    .update({
+      type_transaction: data.type_transaction,
+      montant: data.montant,
+      motif: data.motif,
+      type_piece: data.type_piece || null,
+      imputation_id: data.imputation_id || null
+    })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/tresorerie')
+  revalidatePath('/credits')
+  return { success: true }
+}
+
+export async function deleteTransaction(id: string) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { error } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/tresorerie')
+  revalidatePath('/credits')
+  return { success: true }
+}
+
 export async function getJournal(compteId: string) {
   const supabase = await createClient()
 

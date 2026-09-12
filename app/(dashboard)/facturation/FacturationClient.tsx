@@ -7,7 +7,7 @@ import DownloadPdfButton from './DownloadPdfButton'
 import GenererFacturesModal from './GenererFacturesModal'
 import CalculInteretModal from './CalculInteretModal'
 
-export default function FacturationClient({ factures, campagnes, dict, locale }: { factures: any[], campagnes: { id: string; nom: string }[], dict: any, locale: string }) {
+export default function FacturationClient({ factures, campagnes, dict, locale, gieName }: { factures: any[], campagnes: { id: string; nom: string }[], dict: any, locale: string, gieName: string }) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const filteredFactures = factures.filter(f => 
@@ -111,7 +111,7 @@ export default function FacturationClient({ factures, campagnes, dict, locale }:
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <div className="flex justify-end gap-2">
-                            <DownloadPdfButton facture={facture} dict={dict} />
+                            <DownloadPdfButton facture={facture} dict={dict} gieName={gieName} />
                           </div>
                         </td>
                       </tr>

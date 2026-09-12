@@ -41,6 +41,7 @@ export default async function CreditsPage() {
       .select('montant')
       .in('credit_id', creditIds)
       .eq('type_transaction', 'sortie')
+      .neq('type_piece', 'remboursement_credit')
 
     totalDecaisse = decaissements?.reduce((sum, d) => sum + Number(d.montant || 0), 0) || 0
   }
@@ -61,41 +62,41 @@ export default async function CreditsPage() {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-3">
-          <div className="rounded-lg bg-secondary/10 p-3 shrink-0">
-            <DollarSign className="h-6 w-6 text-secondary" aria-hidden="true" />
+        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="rounded-lg bg-secondary/10 p-2.5 shrink-0">
+              <DollarSign className="h-5 w-5 text-secondary" aria-hidden="true" />
+            </div>
+            <dt className="text-sm font-medium text-foreground-muted leading-tight pt-1 flex-1 min-w-0">{dict.credits.kpis.demanded}</dt>
           </div>
-          <div className="min-w-0">
-            <dt className="text-sm font-medium text-foreground-muted">{dict.credits.kpis.demanded}</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground break-words">{totalDemande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
-          </div>
+          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{totalDemande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
         </div>
-        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-3">
-          <div className="rounded-lg bg-success/10 p-3 shrink-0">
-            <CheckCircle2 className="h-6 w-6 text-success" aria-hidden="true" />
+        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="rounded-lg bg-success/10 p-2.5 shrink-0">
+              <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
+            </div>
+            <dt className="text-sm font-medium text-foreground-muted leading-tight pt-1 flex-1 min-w-0">{dict.credits.kpis.granted}</dt>
           </div>
-          <div className="min-w-0">
-            <dt className="text-sm font-medium text-foreground-muted">{dict.credits.kpis.granted}</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground break-words">{totalAccorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
-          </div>
+          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{totalAccorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
         </div>
-        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-3 shrink-0">
-            <Wallet className="h-6 w-6 text-primary" aria-hidden="true" />
+        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="rounded-lg bg-primary/10 p-2.5 shrink-0">
+              <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
+            </div>
+            <dt className="text-sm font-medium text-foreground-muted leading-tight pt-1 flex-1 min-w-0">{dict.credits.kpis.available}</dt>
           </div>
-          <div className="min-w-0">
-            <dt className="text-sm font-medium text-foreground-muted">{dict.credits.kpis.available}</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground break-words">{creditDisponible.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
-          </div>
+          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{creditDisponible.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
         </div>
-        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md flex items-center gap-3">
-          <div className="rounded-lg bg-warning/10 p-3 shrink-0">
-            <Clock className="h-6 w-6 text-warning" aria-hidden="true" />
+        <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="rounded-lg bg-warning/10 p-2.5 shrink-0">
+              <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
+            </div>
+            <dt className="text-sm font-medium text-foreground-muted leading-tight pt-1 flex-1 min-w-0">{dict.credits.kpis.pending}</dt>
           </div>
-          <div className="min-w-0">
-            <dt className="text-sm font-medium text-foreground-muted">{dict.credits.kpis.pending}</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground break-words">{enAttenteCount} {dict.credits.kpis.dossiers}</dd>
-          </div>
+          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{enAttenteCount} {dict.credits.kpis.dossiers}</dd>
         </div>
       </div>
 

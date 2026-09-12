@@ -827,9 +827,16 @@
         "imputation": "Allocation",
         "in": "In",
         "out": "Out",
-        "balance": "Running balance"
+        "balance": "Running balance",
+        "actions": "Actions"
       },
       "initial_balance": "Initial Balance",
+      "edit_tooltip": "Edit the transaction",
+      "delete_tooltip": "Delete the transaction",
+      "edit_title": "Edit the transaction",
+      "delete_title": "Delete the transaction",
+      "delete_confirm_prefix": "Are you sure you want to delete the transaction",
+      "delete_confirm_suffix": "? The account balance will be recalculated.",
       "form": {
         "title": "Record a new transaction",
         "type_label": "Transaction type",

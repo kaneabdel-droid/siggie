@@ -27,6 +27,13 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     return <div>{t.not_found}</div>
   }
 
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userData } = user
+    ? await supabase.from('utilisateurs').select('gies(nom)').eq('id', user.id).single()
+    : { data: null }
+  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+  const gieName = gie?.nom || 'Mon GIE'
+
   // 2. Counts (Members)
   const { count: totalMembresGie } = await supabase
     .from('membres')
@@ -293,6 +300,10 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Table By Product */}
         <div className="flow-root" id="section-produits">
+          <div className="hidden print:block mb-4">
+            <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+            <p className="text-sm text-foreground-muted">{t.margin_section.title} — {campagne.nom}</p>
+          </div>
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold leading-6 text-foreground">{t.margin_section.title}</h3>
@@ -353,6 +364,10 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
 
         {/* Table By Member (Summary) */}
         <div className="flow-root" id="section-dettes">
+          <div className="hidden print:block mb-4">
+            <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+            <p className="text-sm text-foreground-muted">{t.debts_section.title} — {campagne.nom}</p>
+          </div>
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold leading-6 text-foreground">{t.debts_section.title}</h3>
@@ -406,6 +421,10 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
 
       {/* Table État des Livraisons (Matrix) */}
       <div className="flow-root mt-12" id="section-livraisons">
+        <div className="hidden print:block mb-4">
+          <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+          <p className="text-sm text-foreground-muted">{t.deliveries_section.title} — {campagne.nom}</p>
+        </div>
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold leading-6 text-foreground">{t.deliveries_section.title}</h3>
