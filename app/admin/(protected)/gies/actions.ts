@@ -181,8 +181,16 @@ export async function supprimerGie(gieId: string): Promise<ActionResult> {
   const { error } = await supabase.from('gies').delete().eq('id', gieId)
   if (error) return { error: error.message }
 
+  const echecsSuppressionAuth: string[] = []
   for (const u of utilisateurs ?? []) {
-    await supabase.auth.admin.deleteUser(u.id)
+    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(u.id)
+    if (authDeleteError) echecsSuppressionAuth.push(`${u.id} (${authDeleteError.message})`)
+  }
+
+  if (echecsSuppressionAuth.length > 0) {
+    return {
+      error: `GIE supprimé, mais ${echecsSuppressionAuth.length} compte(s) auth n'ont pas pu être supprimés et restent orphelins : ${echecsSuppressionAuth.join(', ')}. Nettoyage manuel requis.`,
+    }
   }
 
   return { success: true }
