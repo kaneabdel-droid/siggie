@@ -16,14 +16,14 @@ export default async function TresoreriePage() {
 
   return (
     <div>
-      <div className="sm:flex sm:items-center sm:justify-between mb-8">
-        <div>
-          <h3 className="text-base font-semibold leading-6 text-foreground">{dict.tresorerie.balances.title}</h3>
-          <p className="mt-2 text-sm text-foreground-muted">
+      <div className="sm:flex sm:items-center sm:justify-between sm:gap-4 mb-8">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold leading-6 text-foreground break-words">{dict.tresorerie.balances.title}</h3>
+          <p className="mt-2 text-sm text-foreground-muted break-words">
             {dict.tresorerie.balances.desc}
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:flex-none">
           <AddCompteModal dict={dict} />
         </div>
       </div>

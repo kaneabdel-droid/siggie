@@ -92,13 +92,13 @@ export default async function IntrantsPage({
   return (
     <div>
       <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.intrants.title}</h2>
+        <div className="sm:flex-auto min-w-0">
+          <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.intrants.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
             {dict.intrants.desc}
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 flex gap-3 sm:flex-none">
+        <div className="mt-4 sm:ml-16 sm:mt-0 flex flex-wrap gap-3 sm:flex-none">
           <AchatIntrantButton intrants={intrants || []} dict={dict} />
           <CreateIntrantButton dict={dict} />
         </div>

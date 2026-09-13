@@ -32,8 +32,8 @@ export default async function CampagnesPage({
   return (
     <div>
       <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.campagnes.title}</h2>
+        <div className="sm:flex-auto min-w-0">
+          <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.campagnes.title}</h2>
           <p className="mt-2 text-sm text-foreground-muted">
             {dict.campagnes.desc}
           </p>

@@ -46,24 +46,24 @@ export default async function RentabilitePage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm">
           <p className="text-sm font-medium text-foreground-muted">{t.revenue}</p>
-          <p className="mt-2 text-2xl font-bold text-success">{formatMoney(totalRecettes)}</p>
+          <p className="mt-2 text-2xl font-bold text-success break-words">{formatMoney(totalRecettes)}</p>
         </div>
         <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm">
           <p className="text-sm font-medium text-foreground-muted">{t.expenses}</p>
-          <p className="mt-2 text-2xl font-bold text-danger">{formatMoney(totalDepenses)}</p>
+          <p className="mt-2 text-2xl font-bold text-danger break-words">{formatMoney(totalDepenses)}</p>
         </div>
         <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm">
           <p className="text-sm font-medium text-foreground-muted">{t.gross_balance}</p>
-          <p className={`mt-2 text-2xl font-bold ${soldeGlobal >= 0 ? 'text-success' : 'text-danger'}`}>
+          <p className={`mt-2 text-2xl font-bold break-words ${soldeGlobal >= 0 ? 'text-success' : 'text-danger'}`}>
             {formatMoney(soldeGlobal)}
           </p>
         </div>
         <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm ring-1 ring-primary/20">
-          <p className="text-sm font-medium text-foreground-muted flex items-center justify-between">
+          <p className="text-sm font-medium text-foreground-muted flex flex-wrap items-center justify-between gap-2">
             {t.net_profit}
             <span className="text-[10px] bg-background px-2 py-0.5 rounded-full border border-surface-border">{t.net_profit_badge}</span>
           </p>
-          <p className={`mt-2 text-2xl font-bold ${rentabiliteNette >= 0 ? 'text-primary' : 'text-danger'}`}>
+          <p className={`mt-2 text-2xl font-bold break-words ${rentabiliteNette >= 0 ? 'text-primary' : 'text-danger'}`}>
             {formatMoney(rentabiliteNette)}
           </p>
         </div>

@@ -63,7 +63,7 @@ export default async function AdminDashboardPage() {
 
       <div className="bg-background rounded-xl p-5 border border-surface-border mb-8">
         <h2 className="font-semibold mb-3">Répartition par forfait</h2>
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-6">
           {parForfait.map(({ niveau, count }) => (
             <div key={niveau}>
               <p className="text-xl font-bold">{count}</p>

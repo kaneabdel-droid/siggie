@@ -54,7 +54,7 @@ export default function StockNatureClient({
 
   return (
     <div className="space-y-6">
-      <div className="sm:flex sm:items-end sm:justify-between">
+      <div className="sm:flex sm:items-end sm:justify-between sm:gap-4">
         <div className="max-w-sm w-full">
           <label htmlFor="campagne" className="block text-sm font-medium text-foreground mb-1">{t.select_campaign}</label>
           <select
@@ -68,7 +68,7 @@ export default function StockNatureClient({
             ))}
           </select>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:flex-none">
           <AddSortieModal
             campagneId={selectedCampagne}
             membres={membres}

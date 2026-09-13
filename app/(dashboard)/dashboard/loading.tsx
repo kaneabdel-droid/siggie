@@ -5,8 +5,8 @@ export default function DashboardLoading() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-4 w-96" />
+          <Skeleton className="h-8 w-64 max-w-full mb-2" />
+          <Skeleton className="h-4 w-full max-w-sm" />
         </div>
       </div>
       

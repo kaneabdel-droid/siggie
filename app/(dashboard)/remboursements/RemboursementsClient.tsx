@@ -49,11 +49,11 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
                     isSelected ? 'bg-primary/10 border border-primary/30' : 'hover:bg-background border border-transparent'
                   }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="font-medium text-foreground">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="font-medium text-foreground truncate min-w-0">
                       {facture.membre?.prenom} {facture.membre?.nom}
                     </div>
-                    <div className="text-xs text-foreground-muted">
+                    <div className="text-xs text-foreground-muted shrink-0 text-right">
                       {facture.campagne?.nom}
                     </div>
                   </div>
@@ -77,11 +77,11 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
         <div className="md:col-span-2">
           {selectedFacture ? (
             <div className="bg-surface border border-surface-border rounded-lg shadow-sm p-6 h-full">
-              <h3 className="text-xl font-bold text-foreground mb-6">
+              <h3 className="text-xl font-bold text-foreground mb-6 break-words">
                 {dict.remboursements.details.title} {selectedFacture.membre?.prenom} {selectedFacture.membre?.nom}
               </h3>
-              
-              <div className="grid grid-cols-2 gap-4 mb-8">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 <div className="bg-background rounded-md p-4 border border-surface-border">
                   <div className="text-sm text-foreground-muted">{dict.remboursements.details.total_due}</div>
                   <div className="text-xl font-bold text-foreground">{(selectedFacture.montant_total + (selectedFacture.montant_interet || 0)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</div>
@@ -110,8 +110,8 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
 
               <div className="space-y-4">
                 <h4 className="font-medium text-foreground">{dict.remboursements.details.record_payment}</h4>
-                <div className="flex gap-4">
-                  <button 
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
                     onClick={() => setPaiementType('espece')}
                     className="flex-1 p-4 rounded-lg border-2 border-dashed border-secondary/50 hover:bg-secondary/5 hover:border-secondary flex flex-col items-center justify-center gap-2 transition-colors"
                   >

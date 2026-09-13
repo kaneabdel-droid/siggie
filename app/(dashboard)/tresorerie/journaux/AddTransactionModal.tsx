@@ -4,20 +4,25 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { addTransaction } from '../actions'
 
+type Campagne = { id: string; nom: string; statut: string }
+
 export default function AddTransactionModal({
   compteId,
   imputations,
+  campagnes,
   onSuccess,
   dict,
 }: {
   compteId: string,
   imputations: any[],
+  campagnes: Campagne[],
   onSuccess: () => void,
   dict: any,
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const t = dict.tresorerie_pages.journaux.form
+  const campagneEnCours = campagnes.find((c) => c.statut === 'en_cours')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -29,6 +34,7 @@ export default function AddTransactionModal({
     const motif = formData.get('motif') as string
     const type_piece = formData.get('type_piece') as string
     const imputation_id = (formData.get('imputation_id') as string) || undefined
+    const campagne_id = (formData.get('campagne_id') as string) || undefined
 
     const res = await addTransaction({
       compte_id: compteId,
@@ -36,7 +42,8 @@ export default function AddTransactionModal({
       montant,
       motif,
       type_piece,
-      imputation_id
+      imputation_id,
+      campagne_id
     })
 
     setLoading(false)
@@ -115,6 +122,20 @@ export default function AddTransactionModal({
                       <option value="">{t.imputation_none}</option>
                       {imputations.map((imp) => (
                         <option key={imp.id} value={imp.id}>{imp.libelle}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="campagne_id" className="block text-sm font-medium text-foreground">{t.campagne_label}</label>
+                    <select
+                      name="campagne_id"
+                      id="campagne_id"
+                      defaultValue={campagneEnCours?.id || ''}
+                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                    >
+                      <option value="">{t.campagne_none}</option>
+                      {campagnes.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nom}</option>
                       ))}
                     </select>
                   </div>

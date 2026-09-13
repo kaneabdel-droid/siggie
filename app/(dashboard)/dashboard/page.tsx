@@ -105,7 +105,7 @@ export default async function Dashboard() {
             <div className="mt-4">
               <p className="text-sm font-medium text-foreground-muted">{item.name}</p>
               {item.value !== null ? (
-                <p className="mt-1 text-2xl font-semibold text-foreground">{item.value}</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground break-words">{item.value}</p>
               ) : item.link && item.linkText ? (
                 <div className="mt-1">
                   <Link href={item.link} className="inline-flex items-center text-lg font-semibold text-foreground hover:text-primary transition-colors">

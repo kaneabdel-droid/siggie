@@ -1,10 +1,11 @@
 import { createClient } from '@/utils/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users } from 'lucide-react'
+import { ArrowLeft, Users, Lock } from 'lucide-react'
 import MembreToggle from './MembreToggle'
 import SuperficieCampagneInput from './SuperficieCampagneInput'
 import CampagneIntrantsManager from './CampagneIntrantsManager'
+import BudgetPrevisionsManager from './BudgetPrevisionsManager'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function CampagneConfigPage({ params }: { params: Promise<{ id: string }> }) {
@@ -55,6 +56,38 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
     .select('id, intrant_id, prix_facturation, intrants(nom, type_intrant)')
     .eq('campagne_id', id)
 
+  // Détermine le forfait du GIE pour n'afficher la prévision budgétaire
+  // (feature Premium) que si l'abonnement le permet, comme dans layout.tsx.
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userData } = user
+    ? await supabase.from('utilisateurs').select('gie_id, gies(subscription_tier)').eq('id', user.id).single()
+    : { data: null }
+  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+  const subscriptionTier = gie?.subscription_tier || 'standard'
+  const isPremium = subscriptionTier === 'premium'
+
+  let rubriquesExploitation: { id: string; libelle: string; compte: string; nature: string }[] = []
+  let rubriquesMateriel: { id: string; libelle: string; compte: string; nature: string }[] = []
+  let previsions: Record<string, number> = {}
+
+  if (isPremium) {
+    const { data: imputations } = await supabase
+      .from('imputations')
+      .select('*')
+      .order('libelle')
+
+    rubriquesExploitation = (imputations || []).filter((imp) => imp.categorie === 'exploitation')
+    rubriquesMateriel = (imputations || []).filter((imp) => imp.categorie === 'materiel')
+
+    const { data: budgetPrevisions } = await supabase
+      .from('budget_previsions')
+      .select('imputation_id, montant_prevu')
+      .eq('campagne_id', id)
+
+    const previsionsMap = new Map((budgetPrevisions || []).map((p) => [p.imputation_id, Number(p.montant_prevu) || 0]))
+    previsions = Object.fromEntries(previsionsMap)
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -65,8 +98,8 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
       </div>
 
       <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">
+        <div className="sm:flex-auto min-w-0">
+          <h2 className="text-2xl font-bold font-heading text-foreground break-words">
             {t.title} {campagne.nom}
           </h2>
           <p className="mt-2 text-sm text-foreground-muted">
@@ -94,6 +127,28 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
           campagneIntrants={(campagneIntrants as any) || []}
           dict={dict}
         />
+      </div>
+
+      <div className="mt-8">
+        {isPremium ? (
+          <BudgetPrevisionsManager
+            campagneId={id}
+            rubriquesExploitation={rubriquesExploitation}
+            rubriquesMateriel={rubriquesMateriel}
+            previsions={previsions}
+            dict={dict}
+          />
+        ) : (
+          <div className="mb-8 flex items-start gap-3 rounded-lg border border-surface-border bg-background/50 px-4 py-4 sm:px-6">
+            <Lock className="h-5 w-5 text-foreground-muted shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-sm text-foreground-muted break-words">{t.budget.premium_required}</p>
+              <Link href="/abonnement" className="mt-1 inline-block text-sm font-medium text-primary hover:text-primary-hover">
+                {t.budget.premium_upgrade_link}
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 flow-root">

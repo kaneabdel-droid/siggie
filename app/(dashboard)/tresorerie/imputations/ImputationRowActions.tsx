@@ -8,6 +8,8 @@ type Imputation = {
   id: string
   libelle: string
   compte: string
+  categorie: string
+  nature: string
 }
 
 export default function ImputationRowActions({ imputation, dict }: { imputation: Imputation; dict: any }) {
@@ -22,8 +24,10 @@ export default function ImputationRowActions({ imputation, dict }: { imputation:
     const formData = new FormData(e.currentTarget)
     const libelle = formData.get('libelle') as string
     const compte = formData.get('compte') as string
+    const categorie = formData.get('categorie') as string
+    const nature = formData.get('nature') as string
 
-    const res = await updateImputation(imputation.id, libelle, compte)
+    const res = await updateImputation(imputation.id, libelle, compte, categorie, nature)
     setLoading(false)
     if (res?.error) {
       alert(res.error)
@@ -66,6 +70,20 @@ export default function ImputationRowActions({ imputation, dict }: { imputation:
                   {t.modal.edit_title}
                 </h3>
                 <form id={`edit-imputation-form-${imputation.id}`} onSubmit={handleEdit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">{t.modal.categorie}</label>
+                    <select name="categorie" defaultValue={imputation.categorie} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
+                      <option value="exploitation">{t.modal.categorie_exploitation}</option>
+                      <option value="materiel">{t.modal.categorie_materiel}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">{t.modal.nature}</label>
+                    <select name="nature" defaultValue={imputation.nature} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
+                      <option value="depense">{t.modal.nature_depense}</option>
+                      <option value="recette">{t.modal.nature_recette}</option>
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{t.modal.libelle}</label>
                     <input type="text" name="libelle" defaultValue={imputation.libelle} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />

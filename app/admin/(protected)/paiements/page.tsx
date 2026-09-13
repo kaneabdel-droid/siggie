@@ -31,7 +31,7 @@ export default async function AdminPaiementsPage({
     <div>
       <h1 className="text-2xl font-bold font-heading mb-6">Paiements</h1>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         {filtres.map((f) => (
           <Link
             key={f.label}

@@ -58,10 +58,10 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
                 <Landmark className="w-5 h-5" />
                 {t.credit_granted}
               </div>
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-2xl font-bold text-foreground break-words">
                 {data.bilan.montantAccorde.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
               </div>
-              <div className="text-sm text-foreground-muted mt-1">{data.credit.banque_nom}</div>
+              <div className="text-sm text-foreground-muted mt-1 break-words">{data.credit.banque_nom}</div>
             </div>
 
             <div className="bg-surface border border-surface-border p-4 rounded-lg shadow-sm">
@@ -69,7 +69,7 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
                 <Building2 className="w-5 h-5" />
                 {t.supplier_payments}
               </div>
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-2xl font-bold text-foreground break-words">
                 {data.bilan.totalPaiementsFournisseurs.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
                 <Wallet className="w-5 h-5" />
                 {t.cash_withdrawals}
               </div>
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-2xl font-bold text-foreground break-words">
                 {data.bilan.totalRetraits.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
               </div>
             </div>
@@ -89,7 +89,7 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
                 <CheckCircle2 className="w-5 h-5" />
                 {t.credit_balance}
               </div>
-              <div className="text-2xl font-bold text-black">
+              <div className="text-2xl font-bold text-black break-words">
                 {data.bilan.soldeCredit.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-black">FCFA</span>
               </div>
             </div>

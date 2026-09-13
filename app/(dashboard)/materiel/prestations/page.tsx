@@ -15,14 +15,14 @@ export default async function PrestationsPage() {
 
   return (
     <div>
-      <div className="sm:flex sm:items-center sm:justify-between mb-6">
-        <div>
-          <h3 className="text-xl font-bold leading-7 text-foreground">{dict.materiel_pages.prestations.title}</h3>
-          <p className="mt-1 text-sm text-foreground-muted">
+      <div className="sm:flex sm:items-center sm:justify-between sm:gap-4 mb-6">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold leading-7 text-foreground break-words">{dict.materiel_pages.prestations.title}</h3>
+          <p className="mt-1 text-sm text-foreground-muted break-words">
             {dict.materiel_pages.prestations.desc}
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:flex-none">
           <AddPrestationModal materiels={materiels || []} dict={dict} />
         </div>
       </div>

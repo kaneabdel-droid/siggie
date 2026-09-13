@@ -28,9 +28,11 @@
       "title": "Nos Solutions Web",
       "desc": "Découvrez notre écosystème d'applications conçues pour simplifier votre quotidien.",
       "online_badge": "En ligne",
+      "coming_soon_badge": "Bientôt disponible",
       "siggie_desc": "Le Système Intégré de Gestion de Groupement d'Intérêt Économique et entreprises assimilées. Gérez vos membres, campagnes agricoles, intrants et trésorerie en un clic et bien plus.",
       "discover_link": "Découvrir SIGGIE",
-      "subscribe_link": "S'abonner à SIGGIE"
+      "subscribe_link": "S'abonner à SIGGIE",
+      "dquinca_desc": "La solution de gestion pour quincailleries en Afrique de l'Ouest francophone. Suivez vos stocks, vos ventes et vos magasins en toute simplicité."
     },
     "pricing": {
       "title": "Des tarifs adaptés à votre croissance",
@@ -42,7 +44,7 @@
       "feature_all_standard": "Tout du plan Standard",
       "feature_materiel": "Gestion complète du matériel",
       "feature_all_medium": "Tout du plan Medium",
-      "feature_etats": "États financiers complets",
+      "feature_etats": "États de suivi budgétaire complets",
       "choose_standard": "Choisir Standard",
       "choose_medium": "Choisir Medium",
       "choose_premium": "Choisir Premium"
@@ -95,12 +97,12 @@
       "remboursements": "Remboursements",
       "tresorerie": "Trésorerie",
       "materiel": "Gestion du matériel (inventaire, prestations, consommations, rentabilité, amortissements)",
-      "bilans": "Bilans & états financiers avancés"
+      "bilans": "Bilans & états de suivi budgétaire avancés"
     },
     "plans": {
       "standard_resume": "L'essentiel pour gérer un GIE : membres, campagnes, stock et trésorerie.",
       "medium_resume": "Tout Standard, plus le suivi complet du matériel agricole.",
-      "premium_resume": "Tout Medium, plus les bilans et états financiers complets du GIE."
+      "premium_resume": "Tout Medium, plus les bilans et états de suivi budgétaire complets du GIE."
     }
   },
   "auth": {
@@ -663,7 +665,8 @@
     "tabs": {
       "overview": "Vue d'ensemble",
       "releve_membre": "Relevé Membre",
-      "releve_client": "Relevé Client"
+      "releve_client": "Relevé Client",
+      "suivi_budgetaire": "Suivi Budgétaire"
     },
     "tresorerie_title": "Trésorerie Globale",
     "tresorerie": {
@@ -684,6 +687,31 @@
       "expenses": "Total Dépenses",
       "depreciation": "Dépréciation (Amort.)"
     }
+  },
+  "suivi_budgetaire": {
+    "title": "Suivi Budgétaire",
+    "desc": "Comparez les prévisions et les réalisations de chaque campagne, par rubrique.",
+    "select_campaign": "Choisir une campagne",
+    "no_campaigns": "Aucune campagne trouvée.",
+    "loading": "Chargement des données budgétaires...",
+    "tabs": {
+      "exploitation": "Exploitation",
+      "materiel": "Matériel",
+      "consolide": "Consolidé"
+    },
+    "recettes_title": "Recettes",
+    "depenses_title": "Dépenses",
+    "solde_title": "Solde (Recettes - Dépenses)",
+    "headers": {
+      "rubrique": "Rubrique",
+      "sous_rubrique": "Sous-Rubrique",
+      "prevu": "Prévu",
+      "realise": "Réalisé",
+      "ecart": "Écart",
+      "taux": "Taux de réalisation"
+    },
+    "total": "Total",
+    "empty": "Aucune donnée budgétaire pour cette campagne."
   },
   "support": {
     "title": "Aide & Support",
@@ -851,27 +879,37 @@
         "reason_label": "Motif (Description)",
         "reason_placeholder": "Ex: Achat Urée Fournisseur X",
         "imputation_label": "Imputation (Optionnel)",
-        "imputation_none": "-- Aucune --"
+        "imputation_none": "-- Aucune --",
+        "campagne_label": "Campagne (Optionnel)",
+        "campagne_none": "-- Aucune --"
       }
     },
     "imputations": {
       "title": "Liste des Imputations",
-      "desc": "Catégories comptables utilisées pour classer les opérations de caisse et de banque.",
+      "desc": "Catégories utilisées pour classer les opérations de caisse et de banque, et pour construire le budget de suivi par campagne.",
       "add_btn": "Nouvelle Imputation",
       "admin_only_notice": "Seul l'administrateur du GIE peut créer, modifier ou supprimer une imputation.",
       "table": {
-        "libelle": "Libellé",
-        "compte": "Compte",
+        "libelle": "Rubrique",
+        "compte": "Sous-Rubrique / Poste",
+        "categorie": "Type",
+        "nature": "Nature",
         "actions": "Actions",
         "empty": "Aucune imputation créée pour le moment."
       },
       "modal": {
         "create_title": "Créer une imputation",
         "edit_title": "Modifier l'imputation",
-        "libelle": "Libellé",
-        "libelle_placeholder": "Ex: Achat d'intrants",
-        "compte": "Compte",
-        "compte_placeholder": "Ex: 601000 - Achats de matières premières",
+        "libelle": "Rubrique",
+        "libelle_placeholder": "Ex: Intrants agricoles",
+        "compte": "Sous-Rubrique / Poste",
+        "compte_placeholder": "Ex: Engrais NPK",
+        "categorie": "Type de budget",
+        "categorie_exploitation": "Exploitation",
+        "categorie_materiel": "Matériel",
+        "nature": "Nature",
+        "nature_recette": "Recette",
+        "nature_depense": "Dépense",
         "delete_title": "Supprimer l'imputation",
         "delete_confirm_prefix": "Êtes-vous sûr de vouloir supprimer l'imputation",
         "delete_confirm_suffix": "?"
@@ -920,7 +958,26 @@
         "superficie": "Superficie (ha)",
         "enrolled": "Inscrit à la campagne ?"
       },
-      "empty": "Aucun membre trouvé dans le GIE."
+      "empty": "Aucun membre trouvé dans le GIE.",
+      "budget": {
+        "title": "Prévision budgétaire",
+        "desc": "Définissez le budget prévisionnel de cette campagne par rubrique (recette ou dépense), pour le budget Exploitation et le budget Matériel.",
+        "exploitation_title": "Budget Exploitation",
+        "materiel_title": "Budget Matériel",
+        "recettes_title": "Recettes prévues",
+        "depenses_title": "Dépenses prévues",
+        "solde": "Solde prévisionnel",
+        "nature_recette": "Recette",
+        "nature_depense": "Dépense",
+        "add_rubrique_placeholder_libelle": "Rubrique",
+        "add_rubrique_placeholder_compte": "Sous-rubrique / Poste",
+        "amount_placeholder": "Montant prévu (FCFA)",
+        "total": "Total",
+        "grand_total": "Solde consolidé",
+        "empty": "Aucune rubrique créée pour ce budget.",
+        "premium_required": "La prévision budgétaire est réservée au forfait Premium.",
+        "premium_upgrade_link": "Voir les forfaits"
+      }
     },
     "bilan": {
       "title": "Bilan :",
@@ -993,7 +1050,7 @@
     "plans": {
       "standard": { "name": "Standard", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts"] },
       "medium": { "name": "Medium", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts", "Gestion du matériel & stocks"] },
-      "premium": { "name": "Premium", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts", "Gestion du matériel & stocks", "États financiers avancés"] }
+      "premium": { "name": "Premium", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts", "Gestion du matériel & stocks", "États de suivi budgétaire avancés"] }
     }
   },
   "remboursements": {

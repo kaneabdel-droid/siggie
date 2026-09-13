@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Landmark, BookText, ArrowLeftRight, Tags } from 'lucide-react'
+import { createClient } from '@/utils/supabase/server'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function TresorerieLayout({
@@ -9,6 +10,17 @@ export default async function TresorerieLayout({
 }) {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+
+  // Les rubriques budgétaires (imputations) sont réservées au forfait Premium :
+  // l'onglet n'est proposé que si le GIE y a accès (la page elle-même
+  // redirige en plus les accès directs par URL, comme pour /bilans).
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userData } = user
+    ? await supabase.from('utilisateurs').select('gies(subscription_tier)').eq('id', user.id).single()
+    : { data: null }
+  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+  const isPremium = (gie?.subscription_tier || 'standard') === 'premium'
 
   return (
     <div className="space-y-6">
@@ -21,7 +33,7 @@ export default async function TresorerieLayout({
         </p>
       </div>
 
-      <nav className="flex space-x-4 border-b border-surface-border pb-4" aria-label="Tabs">
+      <nav className="flex flex-wrap gap-2 border-b border-surface-border pb-4" aria-label="Tabs">
         <Link
           href="/tresorerie"
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
@@ -43,13 +55,15 @@ export default async function TresorerieLayout({
           <ArrowLeftRight className="w-4 h-4" />
           {dict.tresorerie.tabs.rapprochement}
         </Link>
-        <Link
-          href="/tresorerie/imputations"
-          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
-        >
-          <Tags className="w-4 h-4" />
-          {dict.tresorerie.tabs.imputations}
-        </Link>
+        {isPremium && (
+          <Link
+            href="/tresorerie/imputations"
+            className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+          >
+            <Tags className="w-4 h-4" />
+            {dict.tresorerie.tabs.imputations}
+          </Link>
+        )}
       </nav>
 
       {children}

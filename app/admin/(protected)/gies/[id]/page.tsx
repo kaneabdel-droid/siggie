@@ -37,7 +37,7 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
         <ArrowLeft className="w-4 h-4" /> Retour aux GIE
       </Link>
 
-      <h1 className="text-2xl font-bold font-heading mb-6">{gie.nom}</h1>
+      <h1 className="text-2xl font-bold font-heading mb-6 break-words">{gie.nom}</h1>
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div className="bg-background rounded-xl p-5 border border-surface-border">
@@ -51,7 +51,7 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="bg-background rounded-xl p-5 border border-surface-border">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <h2 className="font-semibold">Utilisateurs</h2>
             <AjouterUtilisateurButton gieId={gie.id} />
           </div>

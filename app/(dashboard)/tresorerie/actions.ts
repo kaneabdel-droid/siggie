@@ -68,7 +68,7 @@ export async function addCompte(nom: string, type_compte: string, solde_initial:
   return { success: true }
 }
 
-export async function addTransaction(data: { compte_id: string, type_transaction: string, montant: number, motif: string, credit_id?: string, type_piece?: string, imputation_id?: string }) {
+export async function addTransaction(data: { compte_id: string, type_transaction: string, montant: number, motif: string, credit_id?: string, type_piece?: string, imputation_id?: string, campagne_id?: string }) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -79,7 +79,7 @@ export async function addTransaction(data: { compte_id: string, type_transaction
     .select('gie_id')
     .eq('id', user.id)
     .single()
-    
+
   if (!userData) return { error: "Utilisateur introuvable" }
 
   const { error } = await supabase
@@ -92,7 +92,8 @@ export async function addTransaction(data: { compte_id: string, type_transaction
       motif: data.motif,
       credit_id: data.credit_id || null,
       type_piece: data.type_piece || null,
-      imputation_id: data.imputation_id || null
+      imputation_id: data.imputation_id || null,
+      campagne_id: data.campagne_id || null
     })
 
   if (error) return { error: error.message }
@@ -101,7 +102,7 @@ export async function addTransaction(data: { compte_id: string, type_transaction
   return { success: true }
 }
 
-export async function updateTransaction(id: string, data: { type_transaction: string, montant: number, motif: string, type_piece?: string, imputation_id?: string }) {
+export async function updateTransaction(id: string, data: { type_transaction: string, montant: number, motif: string, type_piece?: string, imputation_id?: string, campagne_id?: string }) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -114,7 +115,8 @@ export async function updateTransaction(id: string, data: { type_transaction: st
       montant: data.montant,
       motif: data.motif,
       type_piece: data.type_piece || null,
-      imputation_id: data.imputation_id || null
+      imputation_id: data.imputation_id || null,
+      campagne_id: data.campagne_id || null
     })
     .eq('id', id)
 

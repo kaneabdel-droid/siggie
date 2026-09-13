@@ -119,7 +119,7 @@ export default function CampagneIntrantsManager({
           <p>{t.intrants_desc}</p>
         </div>
 
-        <div className="mt-5 sm:flex sm:items-center gap-3">
+        <div className="mt-5 sm:flex sm:flex-wrap sm:items-center gap-3">
           <div className="w-full sm:max-w-xs">
             <select
               value={selectedIntrant}

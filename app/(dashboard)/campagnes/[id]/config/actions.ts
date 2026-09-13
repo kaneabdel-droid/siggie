@@ -125,3 +125,68 @@ export async function updateCampagneIntrant(campagne_intrant_id: string, campagn
   revalidatePath('/distribution')
   return { success: true }
 }
+
+export async function addRubrique(categorie: string, nature: string, libelle: string, compte: string) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id, role')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+  if (userData.role !== 'admin') return { error: "Réservé à l'administrateur du GIE" }
+  if (!libelle.trim() || !compte.trim()) return { error: "Rubrique et sous-rubrique requises" }
+
+  const categorieValide = categorie === 'materiel' ? 'materiel' : 'exploitation'
+  const natureValide = nature === 'recette' ? 'recette' : 'depense'
+
+  const { error } = await supabase.from('imputations').insert({
+    gie_id: userData.gie_id,
+    libelle: libelle.trim(),
+    compte: compte.trim(),
+    categorie: categorieValide,
+    nature: natureValide,
+  })
+
+  if (error) return { error: error.message }
+
+  // Cette action ne reçoit pas de campagne_id (une rubrique n'appartient pas à
+  // une campagne), donc pas de revalidatePath ciblé ici : l'appelant
+  // (BudgetPrevisionsManager) déclenche un router.refresh() pour recharger la
+  // liste des rubriques du GIE.
+  return { success: true }
+}
+
+export async function setBudgetPrevision(campagne_id: string, imputation_id: string, montant_prevu: number) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+
+  const { error } = await supabase
+    .from('budget_previsions')
+    .upsert({
+      gie_id: userData.gie_id,
+      campagne_id,
+      imputation_id,
+      montant_prevu,
+    }, { onConflict: 'campagne_id,imputation_id' })
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/campagnes/${campagne_id}/config`)
+  return { success: true }
+}

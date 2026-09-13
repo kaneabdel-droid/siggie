@@ -15,7 +15,15 @@ export async function getImputations() {
   return { imputations: data }
 }
 
-export async function addImputation(libelle: string, compte: string) {
+function normalizeCategorie(categorie?: string) {
+  return categorie === 'materiel' ? 'materiel' : 'exploitation'
+}
+
+function normalizeNature(nature?: string) {
+  return nature === 'recette' ? 'recette' : 'depense'
+}
+
+export async function addImputation(libelle: string, compte: string, categorie?: string, nature?: string) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -35,6 +43,8 @@ export async function addImputation(libelle: string, compte: string) {
     gie_id: userData.gie_id,
     libelle: libelle.trim(),
     compte: compte.trim(),
+    categorie: normalizeCategorie(categorie),
+    nature: normalizeNature(nature),
   })
 
   if (error) return { error: error.message }
@@ -43,7 +53,7 @@ export async function addImputation(libelle: string, compte: string) {
   return { success: true }
 }
 
-export async function updateImputation(id: string, libelle: string, compte: string) {
+export async function updateImputation(id: string, libelle: string, compte: string, categorie?: string, nature?: string) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -61,7 +71,7 @@ export async function updateImputation(id: string, libelle: string, compte: stri
 
   const { error } = await supabase
     .from('imputations')
-    .update({ libelle: libelle.trim(), compte: compte.trim() })
+    .update({ libelle: libelle.trim(), compte: compte.trim(), categorie: normalizeCategorie(categorie), nature: normalizeNature(nature) })
     .eq('id', id)
 
   if (error) return { error: error.message }

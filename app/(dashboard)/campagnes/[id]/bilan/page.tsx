@@ -216,15 +216,15 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
           <ArrowLeft className="h-4 w-4" /> {dict.campagnes_detail.back}
         </Link>
         <div className="sm:flex sm:items-center justify-between border-b border-surface-border pb-6">
-          <div className="sm:flex-auto">
-            <h2 className="text-2xl font-bold font-heading text-foreground">
+          <div className="sm:flex-auto min-w-0">
+            <h2 className="text-2xl font-bold font-heading text-foreground break-words">
               {t.title} {campagne.nom}
             </h2>
             <p className="mt-2 text-sm text-foreground-muted">
               {t.desc}
             </p>
           </div>
-          <div className="mt-4 sm:ml-16 sm:mt-0">
+          <div className="mt-4 sm:ml-16 sm:mt-0 shrink-0">
             <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
               campagne.statut === 'en_cours' ? 'bg-primary/10 text-primary' : 
               campagne.statut === 'terminee' ? 'bg-success/10 text-success' : 'bg-secondary/10 text-secondary'
@@ -235,7 +235,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="overflow-hidden rounded-lg bg-surface p-4 shadow-sm border border-surface-border flex flex-col items-center justify-center text-center gap-1 hover:border-primary transition-colors cursor-default">
           <div className="rounded-md bg-secondary/20 p-2 shrink-0">
             <Users className="h-5 w-5 text-secondary" aria-hidden="true" />
@@ -304,8 +304,8 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
             <p className="text-sm text-foreground-muted">{t.margin_section.title} — {campagne.nom}</p>
           </div>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h3 className="text-lg font-semibold leading-6 text-foreground">{t.margin_section.title}</h3>
               <p className="mt-1 text-sm text-foreground-muted">{t.margin_section.desc}</p>
             </div>
@@ -368,8 +368,8 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
             <p className="text-sm text-foreground-muted">{t.debts_section.title} — {campagne.nom}</p>
           </div>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h3 className="text-lg font-semibold leading-6 text-foreground">{t.debts_section.title}</h3>
               <p className="mt-1 text-sm text-foreground-muted">{t.debts_section.desc}</p>
             </div>
@@ -425,8 +425,8 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
           <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
           <p className="text-sm text-foreground-muted">{t.deliveries_section.title} — {campagne.nom}</p>
         </div>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h3 className="text-lg font-semibold leading-6 text-foreground">{t.deliveries_section.title}</h3>
             <p className="mt-1 text-sm text-foreground-muted">{t.deliveries_section.desc}</p>
           </div>

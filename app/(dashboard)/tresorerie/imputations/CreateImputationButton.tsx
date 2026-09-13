@@ -15,8 +15,10 @@ export default function CreateImputationButton({ dict }: { dict: any }) {
     const formData = new FormData(e.currentTarget)
     const libelle = formData.get('libelle') as string
     const compte = formData.get('compte') as string
+    const categorie = formData.get('categorie') as string
+    const nature = formData.get('nature') as string
 
-    const res = await addImputation(libelle, compte)
+    const res = await addImputation(libelle, compte, categorie, nature)
     setLoading(false)
     if (res?.error) {
       alert(res.error)
@@ -46,6 +48,30 @@ export default function CreateImputationButton({ dict }: { dict: any }) {
                   {t.modal.create_title}
                 </h3>
                 <form id="add-imputation-form" onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="categorie" className="block text-sm font-medium text-foreground">{t.modal.categorie}</label>
+                    <select
+                      name="categorie"
+                      id="categorie"
+                      defaultValue="exploitation"
+                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                    >
+                      <option value="exploitation">{t.modal.categorie_exploitation}</option>
+                      <option value="materiel">{t.modal.categorie_materiel}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="nature" className="block text-sm font-medium text-foreground">{t.modal.nature}</label>
+                    <select
+                      name="nature"
+                      id="nature"
+                      defaultValue="depense"
+                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                    >
+                      <option value="depense">{t.modal.nature_depense}</option>
+                      <option value="recette">{t.modal.nature_recette}</option>
+                    </select>
+                  </div>
                   <div>
                     <label htmlFor="libelle" className="block text-sm font-medium text-foreground">{t.modal.libelle}</label>
                     <input

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { LayoutDashboard, User, Users } from 'lucide-react'
+import { LayoutDashboard, User, Users, ClipboardList } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -42,7 +42,7 @@ export default async function BilansLayout({
         </p>
       </div>
 
-      <nav className="flex space-x-4 border-b border-surface-border pb-4" aria-label="Tabs">
+      <nav className="flex flex-wrap gap-2 border-b border-surface-border pb-4" aria-label="Tabs">
         <Link
           href="/bilans"
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
@@ -63,6 +63,13 @@ export default async function BilansLayout({
         >
           <Users className="w-4 h-4" />
           {dict.bilans.tabs.releve_client}
+        </Link>
+        <Link
+          href="/bilans/suivi-budgetaire"
+          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+        >
+          <ClipboardList className="w-4 h-4" />
+          {dict.bilans.tabs.suivi_budgetaire}
         </Link>
       </nav>
 

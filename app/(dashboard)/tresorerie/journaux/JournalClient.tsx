@@ -5,7 +5,9 @@ import { getJournal } from '../actions'
 import AddTransactionModal from './AddTransactionModal'
 import TransactionRowActions from './TransactionRowActions'
 
-export default function JournalClient({ comptes, imputations, dict, locale }: { comptes: any[], imputations: any[], dict: any, locale: string }) {
+type Campagne = { id: string; nom: string; statut: string }
+
+export default function JournalClient({ comptes, imputations, campagnes, dict, locale }: { comptes: any[], imputations: any[], campagnes: Campagne[], dict: any, locale: string }) {
   const [selectedCompte, setSelectedCompte] = useState(comptes[0]?.id || '')
   const [journal, setJournal] = useState<any[]>([])
   const [soldeInitial, setSoldeInitial] = useState(0)
@@ -35,7 +37,7 @@ export default function JournalClient({ comptes, imputations, dict, locale }: { 
 
   return (
     <div className="space-y-6">
-      <div className="sm:flex sm:items-end sm:justify-between">
+      <div className="sm:flex sm:items-end sm:justify-between sm:gap-4">
         <div className="max-w-sm w-full">
           <label htmlFor="compte" className="block text-sm font-medium text-foreground mb-1">{t.select_account}</label>
           <select
@@ -49,8 +51,8 @@ export default function JournalClient({ comptes, imputations, dict, locale }: { 
             ))}
           </select>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <AddTransactionModal compteId={selectedCompte} imputations={imputations} onSuccess={fetchJournal} dict={dict} />
+        <div className="mt-4 sm:mt-0 sm:flex-none">
+          <AddTransactionModal compteId={selectedCompte} imputations={imputations} campagnes={campagnes} onSuccess={fetchJournal} dict={dict} />
         </div>
       </div>
 
@@ -96,7 +98,7 @@ export default function JournalClient({ comptes, imputations, dict, locale }: { 
                     {ligne.solde.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
                   </td>
                   <td className="relative whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                    <TransactionRowActions transaction={ligne} imputations={imputations} onSuccess={fetchJournal} dict={dict} />
+                    <TransactionRowActions transaction={ligne} imputations={imputations} campagnes={campagnes} onSuccess={fetchJournal} dict={dict} />
                   </td>
                 </tr>
               ))}

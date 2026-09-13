@@ -1,11 +1,17 @@
+import { createClient } from '@/utils/supabase/server'
 import { getComptes } from '../actions'
 import { getImputations } from '../imputations/actions'
 import JournalClient from './JournalClient'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function JournauxPage() {
+  const supabase = await createClient()
   const { comptes, error } = await getComptes()
   const { imputations } = await getImputations()
+  const { data: campagnes } = await supabase
+    .from('campagnes')
+    .select('id, nom, statut')
+    .order('date_debut', { ascending: false })
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const t = dict.tresorerie_pages.journaux
@@ -31,7 +37,7 @@ export default async function JournauxPage() {
         </p>
       </div>
 
-      <JournalClient comptes={comptes} imputations={imputations || []} dict={dict} locale={locale} />
+      <JournalClient comptes={comptes} imputations={imputations || []} campagnes={campagnes || []} dict={dict} locale={locale} />
     </div>
   )
 }

@@ -70,7 +70,7 @@ export default function ReleveClientClient({
             ))}
           </select>
         </div>
-        <div className="mt-4 sm:mt-0 flex gap-3">
+        <div className="mt-4 sm:mt-0 flex flex-wrap gap-3">
           <AddClientModal onCreated={handleClientCreated} dict={dict} />
           <AddPaiementClientModal clientId={selectedClient} onSuccess={fetchReleve} dict={dict} />
         </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -86,6 +86,14 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <p className="text-foreground-muted mb-6">{dict.landing.products.siggie_desc}</p>
                 <Link href="/decouvrir-siggie" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link} <ArrowRight className="w-4 h-4" /></Link>
                 <Link href="#tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link} <ArrowRight className="w-4 h-4" /></Link>
+              </div>
+
+              {/* Produit 2 : D-QUINCA */}
+              <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
+                <div className="absolute top-0 right-0 bg-foreground-muted text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.coming_soon_badge}</div>
+                <Store className="w-10 h-10 text-primary mb-4" />
+                <h3 className="text-2xl font-bold mb-2">D-QUINCA</h3>
+                <p className="text-foreground-muted mb-6">{dict.landing.products.dquinca_desc}</p>
               </div>
             </div>
           </div>

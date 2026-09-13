@@ -98,9 +98,9 @@ export default function ClientLayout({
                             href={item.href}
                             onClick={() => setSidebarOpen(false)}
                             className={`
-                              group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold
-                              ${pathname === item.href 
-                                ? 'bg-primary text-white' 
+                              group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold
+                              ${pathname === item.href
+                                ? 'bg-primary text-white'
                                 : 'text-foreground-muted hover:text-foreground hover:bg-black/5'
                               }
                             `}
@@ -109,7 +109,7 @@ export default function ClientLayout({
                               className={`h-6 w-6 shrink-0 ${pathname === item.href ? 'text-white' : 'text-foreground-muted group-hover:text-foreground'}`}
                               aria-hidden="true"
                             />
-                            {dict.sidebar[item.key]}
+                            <span className="truncate">{dict.sidebar[item.key]}</span>
                           </Link>
                         </li>
                       ))}
@@ -138,9 +138,9 @@ export default function ClientLayout({
                       <Link
                         href={item.href}
                         className={`
-                          group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors
-                          ${pathname === item.href 
-                            ? 'bg-primary text-white' 
+                          group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors
+                          ${pathname === item.href
+                            ? 'bg-primary text-white'
                             : 'text-foreground-muted hover:text-foreground hover:bg-black/5'
                           }
                         `}
@@ -149,7 +149,7 @@ export default function ClientLayout({
                           className={`h-6 w-6 shrink-0 ${pathname === item.href ? 'text-white' : 'text-foreground-muted group-hover:text-foreground'}`}
                           aria-hidden="true"
                         />
-                        {dict.sidebar[item.key]}
+                        <span className="truncate">{dict.sidebar[item.key]}</span>
                       </Link>
                     </li>
                   ))}
@@ -180,14 +180,14 @@ export default function ClientLayout({
           {/* Separator */}
           <div className="h-6 w-px bg-surface-border lg:hidden" aria-hidden="true" />
 
-          <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+          <div className="flex flex-1 min-w-0 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1"></div>
-            <div className="flex items-center gap-x-4 lg:gap-x-6">
+            <div className="flex min-w-0 items-center gap-x-3 sm:gap-x-4 lg:gap-x-6">
               <LanguageSelector currentLang={locale} />
               <ThemeSwitcher />
               {/* Profile dropdown or simple user info could go here */}
-              <div className="text-sm font-semibold leading-6 text-foreground">
-                {gieName} ({dict.header.admin})
+              <div className="min-w-0 max-w-[6rem] truncate text-sm font-semibold leading-6 text-foreground sm:max-w-[10rem] sm:text-base md:max-w-xs">
+                {gieName} <span className="hidden sm:inline">({dict.header.admin})</span>
               </div>
             </div>
           </div>

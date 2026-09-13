@@ -18,14 +18,14 @@ export default function FacturationClient({ factures, campagnes, dict, locale, g
 
   return (
     <div>
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h2 className="text-2xl font-bold font-heading text-foreground">{dict.facturation.title}</h2>
-          <p className="mt-2 text-sm text-foreground-muted">
+      <div className="sm:flex sm:items-center sm:gap-4">
+        <div className="sm:flex-auto min-w-0">
+          <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.facturation.title}</h2>
+          <p className="mt-2 text-sm text-foreground-muted break-words">
             {dict.facturation.desc}
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 flex gap-3 sm:flex-none">
+        <div className="mt-4 flex flex-wrap gap-3 sm:mt-0 sm:flex-none">
           <CalculInteretModal campagnes={campagnes} dict={dict} />
           <GenererFacturesModal dict={dict} />
         </div>

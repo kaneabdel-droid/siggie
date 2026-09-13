@@ -4,9 +4,9 @@ export default function MembresLoading() {
   return (
     <div>
       <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-96" />
+        <div className="sm:flex-auto min-w-0">
+          <Skeleton className="h-8 w-48 max-w-full mb-2" />
+          <Skeleton className="h-4 w-full max-w-sm" />
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
           <Skeleton className="h-10 w-32 rounded-md" />

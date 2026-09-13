@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getImputations } from './actions'
 import CreateImputationButton from './CreateImputationButton'
@@ -12,9 +13,17 @@ export default async function ImputationsPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
   const { data: userData } = user
-    ? await supabase.from('utilisateurs').select('role').eq('id', user.id).single()
+    ? await supabase.from('utilisateurs').select('role, gies(subscription_tier)').eq('id', user.id).single()
     : { data: null }
   const isAdmin = userData?.role === 'admin'
+
+  // Les rubriques budgétaires (imputations) sont réservées au forfait Premium,
+  // au même titre que la prévision et le suivi budgétaires.
+  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
+  const tier = gie?.subscription_tier || 'standard'
+  if (tier !== 'premium') {
+    redirect('/dashboard?error=upgrade_required')
+  }
 
   const { imputations, error } = await getImputations()
 
@@ -24,13 +33,13 @@ export default async function ImputationsPage() {
 
   return (
     <div>
-      <div className="sm:flex sm:items-center sm:justify-between mb-6">
-        <div>
-          <h3 className="text-base font-semibold leading-6 text-foreground">{t.title}</h3>
-          <p className="mt-2 text-sm text-foreground-muted">{t.desc}</p>
+      <div className="sm:flex sm:items-center sm:justify-between sm:gap-4 mb-6">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold leading-6 text-foreground break-words">{t.title}</h3>
+          <p className="mt-2 text-sm text-foreground-muted break-words">{t.desc}</p>
         </div>
         {isAdmin && (
-          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+          <div className="mt-4 sm:mt-0 sm:flex-none">
             <CreateImputationButton dict={dict} />
           </div>
         )}
@@ -45,6 +54,8 @@ export default async function ImputationsPage() {
           <thead className="bg-background">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.table.libelle}</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.table.categorie}</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.table.nature}</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.table.compte}</th>
               {isAdmin && (
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.table.actions}</th>
@@ -55,6 +66,20 @@ export default async function ImputationsPage() {
             {(imputations ?? []).map((imp) => (
               <tr key={imp.id} className="hover:bg-surface-hover transition-colors">
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-foreground">{imp.libelle}</td>
+                <td className="whitespace-nowrap px-6 py-4 text-sm">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    imp.categorie === 'materiel' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'
+                  }`}>
+                    {imp.categorie === 'materiel' ? t.modal.categorie_materiel : t.modal.categorie_exploitation}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-6 py-4 text-sm">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    imp.nature === 'recette' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+                  }`}>
+                    {imp.nature === 'recette' ? t.modal.nature_recette : t.modal.nature_depense}
+                  </span>
+                </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">{imp.compte}</td>
                 {isAdmin && (
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
@@ -65,7 +90,7 @@ export default async function ImputationsPage() {
             ))}
             {(imputations ?? []).length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 3 : 2} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
+                <td colSpan={isAdmin ? 5 : 4} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
                   {t.table.empty}
                 </td>
               </tr>

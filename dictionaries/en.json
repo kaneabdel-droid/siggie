@@ -28,9 +28,11 @@
       "title": "Our Web Solutions",
       "desc": "Discover our ecosystem of applications designed to simplify your daily life.",
       "online_badge": "Live",
+      "coming_soon_badge": "Coming soon",
       "siggie_desc": "The Integrated Management System for Economic Interest Groups and similar organizations. Manage your members, agricultural seasons, inputs and treasury in one click and much more.",
       "discover_link": "Discover SIGGIE",
-      "subscribe_link": "Subscribe to SIGGIE"
+      "subscribe_link": "Subscribe to SIGGIE",
+      "dquinca_desc": "The management solution for hardware stores in French-speaking West Africa. Track your inventory, sales and shops with ease."
     },
     "pricing": {
       "title": "Pricing adapted to your growth",
@@ -42,7 +44,7 @@
       "feature_all_standard": "Everything in Standard",
       "feature_materiel": "Full equipment management",
       "feature_all_medium": "Everything in Medium",
-      "feature_etats": "Complete financial statements",
+      "feature_etats": "Complete budget tracking statements",
       "choose_standard": "Choose Standard",
       "choose_medium": "Choose Medium",
       "choose_premium": "Choose Premium"
@@ -95,12 +97,12 @@
       "remboursements": "Repayments",
       "tresorerie": "Treasury",
       "materiel": "Equipment management (inventory, services, consumption, profitability, depreciation)",
-      "bilans": "Advanced financial statements"
+      "bilans": "Advanced budget tracking statements"
     },
     "plans": {
       "standard_resume": "The essentials to manage a group: members, seasons, stock and treasury.",
       "medium_resume": "Everything in Standard, plus full tracking of agricultural equipment.",
-      "premium_resume": "Everything in Medium, plus the group's complete financial statements."
+      "premium_resume": "Everything in Medium, plus the group's complete budget tracking statements."
     }
   },
   "auth": {
@@ -663,7 +665,8 @@
     "tabs": {
       "overview": "Overview",
       "releve_membre": "Member Statement",
-      "releve_client": "Customer Statement"
+      "releve_client": "Customer Statement",
+      "suivi_budgetaire": "Budget Tracking"
     },
     "tresorerie_title": "Overall Cash Position",
     "tresorerie": {
@@ -684,6 +687,31 @@
       "expenses": "Total Expenses",
       "depreciation": "Depreciation"
     }
+  },
+  "suivi_budgetaire": {
+    "title": "Budget Tracking",
+    "desc": "Compare forecast and actual spending for each season, by budget line.",
+    "select_campaign": "Choose a season",
+    "no_campaigns": "No season found.",
+    "loading": "Loading budget data...",
+    "tabs": {
+      "exploitation": "Operating",
+      "materiel": "Equipment",
+      "consolide": "Consolidated"
+    },
+    "recettes_title": "Revenue",
+    "depenses_title": "Expenses",
+    "solde_title": "Balance (Revenue - Expenses)",
+    "headers": {
+      "rubrique": "Budget line",
+      "sous_rubrique": "Sub-line",
+      "prevu": "Forecast",
+      "realise": "Actual",
+      "ecart": "Variance",
+      "taux": "Realization rate"
+    },
+    "total": "Total",
+    "empty": "No budget data for this season."
   },
   "support": {
     "title": "Help & Support",
@@ -851,27 +879,37 @@
         "reason_label": "Reason (Description)",
         "reason_placeholder": "E.g.: Urea purchase from Supplier X",
         "imputation_label": "Allocation (Optional)",
-        "imputation_none": "-- None --"
+        "imputation_none": "-- None --",
+        "campagne_label": "Campaign (Optional)",
+        "campagne_none": "-- None --"
       }
     },
     "imputations": {
       "title": "Allocation List",
-      "desc": "Accounting categories used to classify cash and bank transactions.",
+      "desc": "Categories used to classify cash and bank transactions, and to build the season budget tracking.",
       "add_btn": "New Allocation",
       "admin_only_notice": "Only the GIE administrator can create, edit or delete an allocation.",
       "table": {
-        "libelle": "Label",
-        "compte": "Account",
+        "libelle": "Budget line",
+        "compte": "Sub-line / Item",
+        "categorie": "Type",
+        "nature": "Nature",
         "actions": "Actions",
         "empty": "No allocation created yet."
       },
       "modal": {
         "create_title": "Create an allocation",
         "edit_title": "Edit the allocation",
-        "libelle": "Label",
-        "libelle_placeholder": "E.g.: Input purchases",
-        "compte": "Account",
-        "compte_placeholder": "E.g.: 601000 - Raw material purchases",
+        "libelle": "Budget line",
+        "libelle_placeholder": "E.g.: Farm inputs",
+        "compte": "Sub-line / Item",
+        "compte_placeholder": "E.g.: NPK fertilizer",
+        "categorie": "Budget type",
+        "categorie_exploitation": "Exploitation",
+        "categorie_materiel": "Matériel",
+        "nature": "Nature",
+        "nature_recette": "Revenue",
+        "nature_depense": "Expense",
         "delete_title": "Delete the allocation",
         "delete_confirm_prefix": "Are you sure you want to delete the allocation",
         "delete_confirm_suffix": "?"
@@ -920,7 +958,26 @@
         "superficie": "Area (ha)",
         "enrolled": "Enrolled in season?"
       },
-      "empty": "No member found in the group."
+      "empty": "No member found in the group.",
+      "budget": {
+        "title": "Budget Forecast",
+        "desc": "Define this season's forecast budget by line (revenue or expense), for the Exploitation budget and the Matériel budget.",
+        "exploitation_title": "Exploitation Budget",
+        "materiel_title": "Matériel Budget",
+        "recettes_title": "Forecast revenue",
+        "depenses_title": "Forecast expenses",
+        "solde": "Forecast balance",
+        "nature_recette": "Revenue",
+        "nature_depense": "Expense",
+        "add_rubrique_placeholder_libelle": "Budget line",
+        "add_rubrique_placeholder_compte": "Sub-line / Item",
+        "amount_placeholder": "Forecast amount (FCFA)",
+        "total": "Total",
+        "grand_total": "Consolidated balance",
+        "empty": "No budget line created yet.",
+        "premium_required": "Budget forecasting is reserved for the Premium plan.",
+        "premium_upgrade_link": "View plans"
+      }
     },
     "bilan": {
       "title": "Statement:",
@@ -993,7 +1050,7 @@
     "plans": {
       "standard": { "name": "Standard", "features": ["Dashboard", "Member management", "Contributions", "Loans"] },
       "medium": { "name": "Medium", "features": ["Dashboard", "Member management", "Contributions", "Loans", "Equipment & stock management"] },
-      "premium": { "name": "Premium", "features": ["Dashboard", "Member management", "Contributions", "Loans", "Equipment & stock management", "Advanced financial statements"] }
+      "premium": { "name": "Premium", "features": ["Dashboard", "Member management", "Contributions", "Loans", "Equipment & stock management", "Advanced budget tracking statements"] }
     }
   },
   "remboursements": {
