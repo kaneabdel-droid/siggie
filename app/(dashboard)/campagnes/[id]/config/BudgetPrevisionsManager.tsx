@@ -113,12 +113,26 @@ function RubriqueList({
   )
 }
 
+// Types de consommation matériel, alignés sur les valeurs stockées par
+// materiel_consommations (voir AddConsommationModal.tsx) : la sous-rubrique
+// d'une dépense Matériel doit reprendre exactement ces valeurs pour que le
+// suivi budgétaire puisse rapprocher prévision et réalisation.
+const TYPES_CONSOMMATION = ['Carburant', 'Huile', 'Piece', 'Reparation', 'Autre'] as const
+const TYPE_CONSOMMATION_LABEL_KEY: Record<string, string> = {
+  Carburant: 'type_fuel',
+  Huile: 'type_oil',
+  Piece: 'type_part',
+  Reparation: 'type_repair',
+  Autre: 'type_other',
+}
+
 function RubriqueSection({
   campagneId,
   categorie,
   title,
   rubriques,
   previsions,
+  materiels,
   dict,
   onRubriqueAdded,
 }: {
@@ -127,14 +141,17 @@ function RubriqueSection({
   title: string
   rubriques: Rubrique[]
   previsions: Record<string, number>
+  materiels: { id: string; nom: string }[]
   dict: any
   onRubriqueAdded: () => void
 }) {
   const t = dict.campagnes_detail.config.budget
+  const tConso = dict.materiel_pages.consommations.form
   const [isPending, startTransition] = useTransition()
   const [libelle, setLibelle] = useState('')
   const [compte, setCompte] = useState('')
   const [nature, setNature] = useState('depense')
+  const isMateriel = categorie === 'materiel'
 
   const handleAdd = () => {
     if (!libelle.trim() || !compte.trim()) return
@@ -172,22 +189,52 @@ function RubriqueSection({
             <option value="depense">{t.nature_depense}</option>
             <option value="recette">{t.nature_recette}</option>
           </select>
-          <input
-            type="text"
-            placeholder={t.add_rubrique_placeholder_libelle}
-            value={libelle}
-            onChange={(e) => setLibelle(e.target.value)}
-            disabled={isPending}
-            className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-          />
-          <input
-            type="text"
-            placeholder={t.add_rubrique_placeholder_compte}
-            value={compte}
-            onChange={(e) => setCompte(e.target.value)}
-            disabled={isPending}
-            className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-          />
+          {isMateriel ? (
+            <select
+              value={libelle}
+              onChange={(e) => setLibelle(e.target.value)}
+              disabled={isPending}
+              className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+            >
+              <option value="">{t.select_equipement}</option>
+              {materiels.map((m) => (
+                <option key={m.id} value={m.nom}>{m.nom}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              placeholder={t.add_rubrique_placeholder_libelle}
+              value={libelle}
+              onChange={(e) => setLibelle(e.target.value)}
+              disabled={isPending}
+              className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+            />
+          )}
+          {isMateriel && nature === 'depense' ? (
+            <select
+              value={compte}
+              onChange={(e) => setCompte(e.target.value)}
+              disabled={isPending}
+              className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+            >
+              <option value="">{t.select_type}</option>
+              {TYPES_CONSOMMATION.map((type) => (
+                <option key={type} value={type}>{TYPE_CONSOMMATION_LABEL_KEY[type]
+                  ? tConso[TYPE_CONSOMMATION_LABEL_KEY[type]]
+                  : type}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              placeholder={isMateriel ? t.add_rubrique_placeholder_type_prestation : t.add_rubrique_placeholder_compte}
+              value={compte}
+              onChange={(e) => setCompte(e.target.value)}
+              disabled={isPending}
+              className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+            />
+          )}
           <button
             type="button"
             onClick={handleAdd}
@@ -233,12 +280,14 @@ export default function BudgetPrevisionsManager({
   rubriquesExploitation,
   rubriquesMateriel,
   previsions,
+  materiels,
   dict,
 }: {
   campagneId: string
   rubriquesExploitation: Rubrique[]
   rubriquesMateriel: Rubrique[]
   previsions: Record<string, number>
+  materiels: { id: string; nom: string }[]
   dict: any
 }) {
   const t = dict.campagnes_detail.config.budget
@@ -269,6 +318,7 @@ export default function BudgetPrevisionsManager({
             title={t.exploitation_title}
             rubriques={rubriquesExploitation}
             previsions={previsions}
+            materiels={[]}
             dict={dict}
             onRubriqueAdded={() => router.refresh()}
           />
@@ -278,6 +328,7 @@ export default function BudgetPrevisionsManager({
             title={t.materiel_title}
             rubriques={rubriquesMateriel}
             previsions={previsions}
+            materiels={materiels}
             dict={dict}
             onRubriqueAdded={() => router.refresh()}
           />

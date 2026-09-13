@@ -36,6 +36,14 @@ function buildSolde(recettes: Totals, depenses: Totals): Totals {
   }
 }
 
+// Clé de rapprochement pour le budget Matériel : la rubrique est l'équipement
+// (imputations.libelle = materiels.nom) et la sous-rubrique son type de
+// prestation/consommation (imputations.compte = type_prestation /
+// type_consommation) — voir campagnes/[id]/config/BudgetPrevisionsManager.tsx.
+function cleMateriel(nom: string, type: string) {
+  return `${nom}::${type}`
+}
+
 export async function getSuiviBudgetaire(campagneId: string) {
   const supabase = await createClient()
 
@@ -54,9 +62,28 @@ export async function getSuiviBudgetaire(campagneId: string) {
     .select('imputation_id, montant_prevu')
     .eq('campagne_id', campagneId)
 
+  // Réalisation Exploitation : opérations de caisse/banque imputées à la
+  // rubrique pour cette campagne.
   const { data: transactions } = await supabase
     .from('transactions')
     .select('imputation_id, type_transaction, montant')
+    .eq('campagne_id', campagneId)
+
+  // Réalisation Matériel : pas de transaction imputée, elle est tirée des
+  // prestations (recettes) et consommations (dépenses) de chaque équipement
+  // enregistrées pour cette campagne.
+  const { data: materiels } = await supabase
+    .from('materiels')
+    .select('id, nom')
+
+  const { data: prestations } = await supabase
+    .from('materiel_prestations')
+    .select('materiel_id, type_prestation, montant_facture')
+    .eq('campagne_id', campagneId)
+
+  const { data: consommations } = await supabase
+    .from('materiel_consommations')
+    .select('materiel_id, type_consommation, montant_total')
     .eq('campagne_id', campagneId)
 
   const previsionParImputation = new Map(
@@ -64,7 +91,7 @@ export async function getSuiviBudgetaire(campagneId: string) {
   )
 
   // Solde net des opérations de trésorerie imputées à chaque rubrique
-  // (sorties - entrées), indépendamment de la nature de la rubrique.
+  // (sorties - entrées), pour le budget Exploitation uniquement.
   const soldeParImputation = new Map<string, number>()
   for (const tx of transactions || []) {
     if (!tx.imputation_id) continue
@@ -77,34 +104,49 @@ export async function getSuiviBudgetaire(campagneId: string) {
     }
   }
 
+  const nomMaterielParId = new Map((materiels || []).map((m) => [m.id, m.nom]))
+
+  const realiseRecetteMateriel = new Map<string, number>()
+  for (const p of prestations || []) {
+    const nom = nomMaterielParId.get(p.materiel_id)
+    if (!nom) continue
+    const cle = cleMateriel(nom, p.type_prestation)
+    realiseRecetteMateriel.set(cle, (realiseRecetteMateriel.get(cle) || 0) + (Number(p.montant_facture) || 0))
+  }
+
+  const realiseDepenseMateriel = new Map<string, number>()
+  for (const c of consommations || []) {
+    const nom = nomMaterielParId.get(c.materiel_id)
+    if (!nom) continue
+    const cle = cleMateriel(nom, c.type_consommation)
+    realiseDepenseMateriel.set(cle, (realiseDepenseMateriel.get(cle) || 0) + (Number(c.montant_total) || 0))
+  }
+
+  // Calcule le montant réalisé d'une rubrique, dans le sens "favorable si
+  // positif par rapport à la prévision" : une recette se lit en entrées
+  // nettes, une dépense en sorties nettes.
+  function getRealise(imp: { id: string; libelle: string; compte: string; categorie: string; nature: string }): number {
+    if (imp.categorie === 'materiel') {
+      const cle = cleMateriel(imp.libelle, imp.compte)
+      return imp.nature === 'recette'
+        ? (realiseRecetteMateriel.get(cle) || 0)
+        : (realiseDepenseMateriel.get(cle) || 0)
+    }
+
+    const soldeNet = soldeParImputation.get(imp.id) || 0
+    return imp.nature === 'recette' ? -soldeNet : soldeNet
+  }
+
   function buildLigne(imp: { id: string; libelle: string; compte: string; categorie: string; nature: string }): Ligne | null {
     const prevu = previsionParImputation.get(imp.id) || 0
-    const soldeNet = soldeParImputation.get(imp.id) || 0
+    const realise = getRealise(imp)
 
     // Masque les rubriques ni budgétées ni utilisées cette campagne, pour ne
     // pas polluer le suivi avec tout le référentiel du GIE.
-    if (prevu === 0 && soldeNet === 0) return null
+    if (prevu === 0 && realise === 0) return null
 
-    if (imp.nature === 'recette') {
-      // Une recette se lit en entrées nettes (entrées - sorties) : dépasser
-      // la prévision est favorable (écart positif).
-      const realise = -soldeNet
-      return {
-        imputation_id: imp.id,
-        libelle: imp.libelle,
-        compte: imp.compte,
-        categorie: imp.categorie,
-        nature: imp.nature,
-        prevu,
-        realise,
-        ecart: realise - prevu,
-        taux: prevu > 0 ? (realise / prevu) * 100 : null,
-      }
-    }
+    const ecart = imp.nature === 'recette' ? realise - prevu : prevu - realise
 
-    // Dépense : se lit en sorties nettes (sorties - entrées) ; dépenser
-    // moins que prévu est favorable (écart positif).
-    const realise = soldeNet
     return {
       imputation_id: imp.id,
       libelle: imp.libelle,
@@ -113,7 +155,7 @@ export async function getSuiviBudgetaire(campagneId: string) {
       nature: imp.nature,
       prevu,
       realise,
-      ecart: prevu - realise,
+      ecart,
       taux: prevu > 0 ? (realise / prevu) * 100 : null,
     }
   }

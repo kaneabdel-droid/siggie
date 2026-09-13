@@ -961,7 +961,7 @@
       "empty": "Aucun membre trouvé dans le GIE.",
       "budget": {
         "title": "Prévision budgétaire",
-        "desc": "Définissez le budget prévisionnel de cette campagne par rubrique (recette ou dépense), pour le budget Exploitation et le budget Matériel.",
+        "desc": "Définissez le budget prévisionnel de cette campagne par rubrique (recette ou dépense), pour le budget Exploitation et le budget Matériel. Pour le Matériel, la rubrique est l'équipement et la sous-rubrique son type de prestation ou de consommation : la réalisation sera automatiquement tirée des prestations et consommations enregistrées pour cet équipement.",
         "exploitation_title": "Budget Exploitation",
         "materiel_title": "Budget Matériel",
         "recettes_title": "Recettes prévues",
@@ -971,6 +971,9 @@
         "nature_depense": "Dépense",
         "add_rubrique_placeholder_libelle": "Rubrique",
         "add_rubrique_placeholder_compte": "Sous-rubrique / Poste",
+        "add_rubrique_placeholder_type_prestation": "Type de prestation (Ex: Labour, Moisson...)",
+        "select_equipement": "Sélectionner un équipement",
+        "select_type": "Sélectionner un type",
         "amount_placeholder": "Montant prévu (FCFA)",
         "total": "Total",
         "grand_total": "Solde consolidé",

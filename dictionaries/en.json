@@ -961,7 +961,7 @@
       "empty": "No member found in the group.",
       "budget": {
         "title": "Budget Forecast",
-        "desc": "Define this season's forecast budget by line (revenue or expense), for the Exploitation budget and the Matériel budget.",
+        "desc": "Define this season's forecast budget by line (revenue or expense), for the Exploitation budget and the Matériel budget. For Matériel, the budget line is the equipment and the sub-line is its service or consumption type: actuals are pulled automatically from the services and consumptions recorded for that equipment.",
         "exploitation_title": "Exploitation Budget",
         "materiel_title": "Matériel Budget",
         "recettes_title": "Forecast revenue",
@@ -971,6 +971,9 @@
         "nature_depense": "Expense",
         "add_rubrique_placeholder_libelle": "Budget line",
         "add_rubrique_placeholder_compte": "Sub-line / Item",
+        "add_rubrique_placeholder_type_prestation": "Service type (e.g.: Plowing, Harvest...)",
+        "select_equipement": "Select an equipment",
+        "select_type": "Select a type",
         "amount_placeholder": "Forecast amount (FCFA)",
         "total": "Total",
         "grand_total": "Consolidated balance",

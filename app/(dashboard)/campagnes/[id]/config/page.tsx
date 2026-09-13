@@ -69,6 +69,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
   let rubriquesExploitation: { id: string; libelle: string; compte: string; nature: string }[] = []
   let rubriquesMateriel: { id: string; libelle: string; compte: string; nature: string }[] = []
   let previsions: Record<string, number> = {}
+  let materielsDuGie: { id: string; nom: string }[] = []
 
   if (isPremium) {
     const { data: imputations } = await supabase
@@ -86,6 +87,16 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
 
     const previsionsMap = new Map((budgetPrevisions || []).map((p) => [p.imputation_id, Number(p.montant_prevu) || 0]))
     previsions = Object.fromEntries(previsionsMap)
+
+    // Pour le budget Matériel, la rubrique est l'équipement lui-même (la
+    // sous-rubrique est son type de prestation/consommation) : la réalisation
+    // est ensuite tirée de materiel_prestations / materiel_consommations
+    // plutôt que des imputations de trésorerie (voir suivi-budgetaire/actions.ts).
+    const { data: materielsData } = await supabase
+      .from('materiels')
+      .select('id, nom')
+      .order('nom')
+    materielsDuGie = materielsData || []
   }
 
   return (
@@ -136,6 +147,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
             rubriquesExploitation={rubriquesExploitation}
             rubriquesMateriel={rubriquesMateriel}
             previsions={previsions}
+            materiels={materielsDuGie}
             dict={dict}
           />
         ) : (
