@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Building2, Wallet, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Building2, Wallet, Settings, LogOut, LayoutGrid } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import { isAdminEmail } from '@/lib/admin/auth'
 
@@ -19,6 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: '/admin/gies', label: 'GIE', icon: Building2 },
     { href: '/admin/paiements', label: 'Paiements', icon: Wallet },
     { href: '/admin/config', label: 'Configuration', icon: Settings },
+    { href: '/admin/produits', label: 'Produits DembaSolution', icon: LayoutGrid },
   ]
 
   return (

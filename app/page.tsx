@@ -193,7 +193,9 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
           <div className="flex justify-center gap-6 mb-8">
             <LanguageSelector currentLang={locale} />
           </div>
-          <p className="text-background/50 text-sm">© {new Date().getFullYear()} Demba Solution.</p>
+          <p className="text-background/50 text-sm">
+            © {new Date().getFullYear()} Demba Solution. <Link href="/admin/produits" className="hover:text-background/80 transition-colors">Administration</Link>
+          </p>
         </div>
       </footer>
     </div>
