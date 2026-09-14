@@ -1,13 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/utils/supabase/server'
+import { createAdminIdentityClient } from '@/utils/supabase/admin-identity'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/auth'
 import { applyPaymentResult } from '@/lib/payments/fulfill'
 
 export async function confirmerVirement(paymentId: string) {
-  const supabase = await createClient()
+  const supabase = await createAdminIdentityClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!isAdminEmail(user?.email)) {
     return { error: 'Non autorisé' }

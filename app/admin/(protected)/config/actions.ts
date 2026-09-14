@@ -1,12 +1,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/utils/supabase/server'
+import { createAdminIdentityClient } from '@/utils/supabase/admin-identity'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/auth'
 
 export async function upsertChariowProduit(montant: number, productId: string) {
-  const supabase = await createClient()
+  const supabase = await createAdminIdentityClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!isAdminEmail(user?.email)) {
     return { error: 'Non autorisé' }
@@ -28,7 +28,7 @@ export async function upsertChariowProduit(montant: number, productId: string) {
 }
 
 export async function supprimerChariowProduit(montant: number) {
-  const supabase = await createClient()
+  const supabase = await createAdminIdentityClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!isAdminEmail(user?.email)) {
     return { error: 'Non autorisé' }
