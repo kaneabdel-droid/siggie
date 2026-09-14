@@ -75,3 +75,46 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Impression d'une section isolée (voir PrintSectionButton). On masque tout
+   le document avec display:none (pas visibility:hidden, qui laisse l'espace
+   occupé dans le flux et produit des pages blanches), puis on redonne à la
+   section ciblée et à ses descendants leur display naturel via `revert` —
+   nécessaire pour que les lignes/cellules de tableau gardent leur affichage
+   tabulaire au lieu d'être forcées en display:block. */
+@media print {
+  body * {
+    display: none !important;
+  }
+  .print-target,
+  .print-target * {
+    display: revert !important;
+  }
+  .print-target {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .print-target button {
+    display: none !important;
+  }
+  .print-target * {
+    overflow: visible !important;
+    max-height: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .print-target table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .print-target thead {
+    display: table-header-group !important;
+  }
+  .print-target tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
