@@ -108,6 +108,7 @@ body {
   .print-target button {
     display: none !important;
   }
+  .print-target,
   .print-target * {
     overflow: visible !important;
     max-height: none !important;

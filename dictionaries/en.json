@@ -1021,7 +1021,8 @@
           "balance": "Balance"
         },
         "settled": "Settled",
-        "empty": "No member has received inputs yet."
+        "empty": "No member has received inputs yet.",
+        "grand_total": "GRAND TOTAL"
       },
       "deliveries_section": {
         "title": "Deliveries by Member",

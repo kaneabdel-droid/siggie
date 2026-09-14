@@ -1021,7 +1021,8 @@
           "balance": "Solde"
         },
         "settled": "Soldé",
-        "empty": "Aucun membre n'a encore reçu d'intrants."
+        "empty": "Aucun membre n'a encore reçu d'intrants.",
+        "grand_total": "TOTAL GÉNÉRAL"
       },
       "deliveries_section": {
         "title": "État des Livraisons par Membre",

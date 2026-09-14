@@ -1,10 +1,11 @@
 import { resetPasswordForEmail } from './actions'
 import { getDictionary, getLocale } from '@/dictionaries'
 
-export default async function ForgotPasswordPage({ searchParams }: { searchParams: { message: string } }) {
+export default async function ForgotPasswordPage({ searchParams }: { searchParams: { message?: string; admin?: string } }) {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const d = dict.auth.forgot_password
+  const isAdmin = searchParams?.admin === '1'
 
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-background">
@@ -19,6 +20,7 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form className="space-y-6" action={resetPasswordForEmail}>
+          {isAdmin && <input type="hidden" name="admin" value="1" />}
           {searchParams?.message && (
             <p className="text-sm text-center bg-secondary/10 text-secondary p-3 rounded-md">
               {searchParams.message}
@@ -52,7 +54,7 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
         </form>
 
         <p className="mt-10 text-center text-sm text-foreground-muted">
-          <a href="/login" className="font-semibold leading-6 text-primary hover:text-primary-hover">
+          <a href={isAdmin ? '/admin/login' : '/login'} className="font-semibold leading-6 text-primary hover:text-primary-hover">
             {d.back_to_login}
           </a>
         </p>

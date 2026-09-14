@@ -52,7 +52,7 @@ export default async function AdminLoginPage({
               <label htmlFor="password" className="block text-sm font-medium leading-6 text-foreground">
                 Mot de passe
               </label>
-              <a href="/forgot-password" className="text-sm font-semibold text-primary hover:text-primary-hover">
+              <a href="/forgot-password?admin=1" className="text-sm font-semibold text-primary hover:text-primary-hover">
                 Mot de passe oublié ?
               </a>
             </div>

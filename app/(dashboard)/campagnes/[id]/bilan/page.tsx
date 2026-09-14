@@ -414,6 +414,22 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                       </td>
                     </tr>
                   )}
+                  {memberList.length > 0 && (
+                    <tr className="bg-background/80 font-bold border-t-2 border-surface-border">
+                      <td className="whitespace-nowrap py-3 pl-4 pr-3 text-sm text-foreground">
+                        {t.debts_section.grand_total}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-foreground text-right">
+                        {memberList.reduce((sum, m) => sum + m.totalDette, 0).toLocaleString(dateLocale)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-success text-right">
+                        {memberList.reduce((sum, m) => sum + m.remboursement, 0).toLocaleString(dateLocale)}
+                      </td>
+                      <td className={`whitespace-nowrap px-3 py-3 text-sm text-right ${memberList.reduce((sum, m) => sum + m.solde, 0) > 0 ? 'text-danger' : memberList.reduce((sum, m) => sum + m.solde, 0) < 0 ? 'text-info' : 'text-success'}`}>
+                        {memberList.reduce((sum, m) => sum + m.solde, 0).toLocaleString(dateLocale)}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

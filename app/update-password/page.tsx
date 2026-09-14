@@ -1,10 +1,11 @@
 import { updatePassword } from './actions'
 import { getDictionary, getLocale } from '@/dictionaries'
 
-export default async function UpdatePasswordPage({ searchParams }: { searchParams: { message: string } }) {
+export default async function UpdatePasswordPage({ searchParams }: { searchParams: { message?: string; admin?: string } }) {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const d = dict.update_password
+  const isAdmin = searchParams?.admin === '1'
 
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-background">
@@ -19,6 +20,7 @@ export default async function UpdatePasswordPage({ searchParams }: { searchParam
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form className="space-y-6" action={updatePassword}>
+          {isAdmin && <input type="hidden" name="admin" value="1" />}
           {searchParams?.message && (
             <p className="text-sm text-center bg-danger/10 text-danger p-3 rounded-md">
               {searchParams.message}
