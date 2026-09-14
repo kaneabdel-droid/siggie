@@ -15,18 +15,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const navItems = [
-    { href: '/admin', label: 'Tableau de bord', icon: LayoutDashboard },
+    { href: '/admin', label: 'Accueil', icon: LayoutGrid },
+    { href: '/admin/siggie', label: 'Tableau de bord SIGGIE', icon: LayoutDashboard },
     { href: '/admin/gies', label: 'GIE', icon: Building2 },
     { href: '/admin/paiements', label: 'Paiements', icon: Wallet },
     { href: '/admin/config', label: 'Configuration', icon: Settings },
-    { href: '/admin/produits', label: 'Produits DembaSolution', icon: LayoutGrid },
   ]
 
   return (
     <div className="min-h-screen bg-surface flex">
       <aside className="w-64 shrink-0 bg-background border-r border-surface-border flex flex-col">
         <div className="p-6 border-b border-surface-border">
-          <p className="font-bold font-heading text-lg">SIGGIE Admin</p>
+          <p className="font-bold font-heading text-lg">Demba Admin</p>
           <p className="text-xs text-foreground-muted mt-1">{user?.email}</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">

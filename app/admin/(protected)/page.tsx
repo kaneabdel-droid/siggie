@@ -1,83 +1,68 @@
-import { createAdminClient } from '@/utils/supabase/admin'
-import { Building2, Clock, Wallet, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
+import { Building2, Wrench, ArrowUpRight, Clock } from 'lucide-react'
 
-export default async function AdminDashboardPage() {
-  const supabase = createAdminClient()
+// Chaque produit DembaSolution a son propre projet Supabase et son propre espace
+// /admin — pas de portail unifié (une seule connexion, une seule session) pour
+// l'instant, cf. plan D-QUINCA §0. Cette page est l'accueil de Demba Admin : un
+// point d'entrée unique qui renvoie vers l'espace admin de chaque produit ; passer
+// à un produit externe demande de s'y connecter avec ses propres identifiants
+// admin (même email possible, session distincte).
+const produits = [
+  {
+    nom: 'SIGGIE',
+    description: 'Gestion des GIE agricoles — membres, campagnes, intrants, trésorerie.',
+    href: '/admin/siggie',
+    externe: false,
+    icon: Building2,
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'D-QUINCA',
+    description: 'Gestion de quincailleries — stock, ventes, trésorerie multi-magasins.',
+    href: 'https://d-quinca.dembasolution.com/admin/login',
+    externe: true,
+    icon: Wrench,
+    statut: 'en_ligne' as const,
+  },
+]
 
-  const { data: gies } = await supabase.from('gies').select('subscription_tier, essai_expire_le, compte_verrouille')
-  const { data: paiementsEnAttente } = await supabase
-    .from('abonnement_paiements')
-    .select('id')
-    .eq('statut', 'pending')
-    .neq('provider', 'virement')
-  const { data: virementsEnAttente } = await supabase
-    .from('abonnement_paiements')
-    .select('id')
-    .eq('statut', 'pending')
-    .eq('provider', 'virement')
-
-  const debutMois = new Date()
-  debutMois.setDate(1)
-  debutMois.setHours(0, 0, 0, 0)
-  const { data: paiementsDuMois } = await supabase
-    .from('abonnement_paiements')
-    .select('montant')
-    .eq('statut', 'completed')
-    .gte('updated_at', debutMois.toISOString())
-
-  const revenuDuMois = (paiementsDuMois ?? []).reduce((sum, p) => sum + Number(p.montant), 0)
-
-  const maintenant = new Date()
-  const dans48h = new Date(maintenant.getTime() + 48 * 60 * 60 * 1000)
-  const essaisExpirantBientot = (gies ?? []).filter((g) => {
-    if (!g.essai_expire_le) return false
-    const d = new Date(g.essai_expire_le)
-    return d > maintenant && d < dans48h
-  }).length
-
-  const parForfait = ['standard', 'medium', 'premium'].map((niveau) => ({
-    niveau,
-    count: (gies ?? []).filter((g) => g.subscription_tier === niveau).length,
-  }))
-
-  const cards = [
-    { label: 'GIE au total', value: gies?.length ?? 0, icon: Building2 },
-    { label: 'Virements en attente de confirmation', value: virementsEnAttente?.length ?? 0, icon: Clock },
-    { label: 'Autres paiements en attente', value: paiementsEnAttente?.length ?? 0, icon: Wallet },
-    { label: 'Revenu du mois (FCFA)', value: revenuDuMois.toLocaleString('fr-FR'), icon: TrendingUp },
-  ]
-
+export default function AdminHomePage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold font-heading mb-6">Tableau de bord</h1>
+      <h1 className="text-2xl font-bold font-heading mb-2">Demba Admin</h1>
+      <p className="text-sm text-foreground-muted mb-6">
+        Chaque produit a son propre espace d&apos;administration et son propre projet Supabase.
+        Un compte admin distinct est nécessaire pour chacun (même email possible).
+      </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {cards.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-background rounded-xl p-5 border border-surface-border">
-            <Icon className="w-5 h-5 text-primary mb-3" />
-            <p className="text-2xl font-bold">{value}</p>
-            <p className="text-sm text-foreground-muted mt-1">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-background rounded-xl p-5 border border-surface-border mb-8">
-        <h2 className="font-semibold mb-3">Répartition par forfait</h2>
-        <div className="flex flex-wrap gap-6">
-          {parForfait.map(({ niveau, count }) => (
-            <div key={niveau}>
-              <p className="text-xl font-bold">{count}</p>
-              <p className="text-sm text-foreground-muted capitalize">{niveau}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {produits.map(({ nom, description, href, externe, icon: Icon, statut }) => (
+          <Link
+            key={nom}
+            href={href}
+            target={externe ? '_blank' : undefined}
+            rel={externe ? 'noopener noreferrer' : undefined}
+            className="group bg-background rounded-xl p-5 border border-surface-border hover:border-primary transition-colors flex flex-col gap-3"
+          >
+            <div className="flex items-start justify-between">
+              <Icon className="w-6 h-6 text-primary" />
+              <ArrowUpRight className="w-4 h-4 text-foreground-muted group-hover:text-primary transition-colors" />
             </div>
-          ))}
+            <div>
+              <p className="font-semibold font-heading">{nom}</p>
+              <p className="text-sm text-foreground-muted mt-1">{description}</p>
+            </div>
+            <span className="text-xs font-medium text-success">
+              {statut === 'en_ligne' ? 'En ligne' : 'Bientôt disponible'}
+            </span>
+          </Link>
+        ))}
+
+        <div className="rounded-xl p-5 border border-dashed border-surface-border flex flex-col items-center justify-center text-center gap-2 text-foreground-muted">
+          <Clock className="w-5 h-5" />
+          <p className="text-sm">Les prochains produits DembaSolution apparaîtront ici à leur lancement.</p>
         </div>
       </div>
-
-      {essaisExpirantBientot > 0 && (
-        <div className="bg-danger/10 border border-danger/20 text-danger rounded-xl p-4 text-sm font-medium">
-          {essaisExpirantBientot} essai{essaisExpirantBientot > 1 ? 's' : ''} expire{essaisExpirantBientot > 1 ? 'nt' : ''} dans les 48 prochaines heures.
-        </div>
-      )}
     </div>
   )
 }

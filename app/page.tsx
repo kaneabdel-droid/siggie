@@ -194,7 +194,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
             <LanguageSelector currentLang={locale} />
           </div>
           <p className="text-background/50 text-sm">
-            © {new Date().getFullYear()} Demba Solution. <Link href="/admin/produits" className="hover:text-background/80 transition-colors">Administration</Link>
+            © {new Date().getFullYear()} Demba Solution. <Link href="/admin" className="hover:text-background/80 transition-colors">Administration</Link>
           </p>
         </div>
       </footer>
