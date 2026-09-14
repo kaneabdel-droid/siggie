@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminEmail } from '@/lib/admin/auth'
+import { createAdminIdentityMiddlewareClient } from '@/utils/supabase/admin-identity'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -56,8 +57,16 @@ export async function updateSession(request: NextRequest) {
   // soumis au verrouillage d'essai d'un GIE (l'admin ne gère pas son propre GIE ici).
   // Traité avant la redirection générique ci-dessous pour qu'un visiteur non
   // connecté sur /admin/* atterrisse sur /admin/login, pas sur /login (compte client).
+  //
+  // La session admin est portée par le client d'identité partagée (cookie à domaine
+  // .dembasolution.com, cf. utils/supabase/admin-identity.ts) et non par le client
+  // "produit" ci-dessus, pour qu'elle soit reconnue aussi par les autres produits
+  // DembaSolution (SSO admin inter-produits).
   if (pathname.startsWith('/admin')) {
-    if (!isAdminEmail(user?.email)) {
+    const adminSupabase = createAdminIdentityMiddlewareClient(request, supabaseResponse)
+    const { data: { user: adminUser } } = await adminSupabase.auth.getUser()
+
+    if (!isAdminEmail(adminUser?.email)) {
       const url = request.nextUrl.clone()
       url.pathname = user ? '/dashboard' : '/admin/login'
       return NextResponse.redirect(url)

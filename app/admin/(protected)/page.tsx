@@ -19,7 +19,7 @@ const produits = [
   {
     nom: 'D-QUINCA',
     description: 'Gestion de quincailleries — stock, ventes, trésorerie multi-magasins.',
-    href: 'https://d-quinca.dembasolution.com/admin/login',
+    href: 'https://d-quinca.dembasolution.com/admin',
     externe: true,
     icon: Wrench,
     statut: 'en_ligne' as const,

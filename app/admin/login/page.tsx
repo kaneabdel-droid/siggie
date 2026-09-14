@@ -4,9 +4,9 @@ import { loginAdmin } from './actions'
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>
+  searchParams: Promise<{ message?: string; next?: string }>
 }) {
-  const { message } = await searchParams
+  const { message, next } = await searchParams
 
   return (
     <div className="flex min-h-screen flex-col justify-center px-6 py-12 lg:px-8 bg-surface">
@@ -15,10 +15,10 @@ export default async function AdminLoginPage({
           <ShieldCheck className="h-6 w-6 text-primary" />
         </div>
         <h2 className="text-2xl font-bold leading-9 tracking-tight text-foreground">
-          Administration SIGGIE
+          Administration Demba Solution
         </h2>
         <p className="mt-2 text-sm text-foreground-muted">
-          Accès réservé à l&apos;équipe Demba Solution
+          Accès réservé à l&apos;équipe Demba Solution — donne accès à tous les produits
         </p>
       </div>
 
@@ -30,6 +30,7 @@ export default async function AdminLoginPage({
         )}
 
         <form className="space-y-6 bg-background p-6 rounded-2xl border border-surface-border shadow-sm" action={loginAdmin}>
+          {next && <input type="hidden" name="next" value={next} />}
           <div>
             <label htmlFor="email" className="block text-sm font-medium leading-6 text-foreground">
               Adresse e-mail

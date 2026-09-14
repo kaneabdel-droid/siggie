@@ -2,8 +2,25 @@
 
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { createClient } from '@/utils/supabase/server'
+import { createAdminIdentityClient } from '@/utils/supabase/admin-identity'
 import { isAdminEmail } from '@/lib/admin/auth'
+
+// N'autorise qu'un chemin relatif ou une URL absolue vers un sous-domaine
+// dembasolution.com — sinon un `next` forgé pourrait rediriger vers un site
+// externe après une connexion réussie (open redirect).
+function safeNextUrl(next: string | null): string {
+  if (!next) return '/admin'
+  if (next.startsWith('/') && !next.startsWith('//')) return next
+  try {
+    const url = new URL(next)
+    if (url.hostname === 'dembasolution.com' || url.hostname.endsWith('.dembasolution.com')) {
+      return url.toString()
+    }
+  } catch {
+    // next n'est pas une URL absolue valide
+  }
+  return '/admin'
+}
 
 // Verrouillage après échecs répétés, séparé de celui de /login (cookies dédiés)
 // pour ne pas mélanger les tentatives d'un client avec celles de l'admin.
@@ -15,12 +32,15 @@ const LOCKOUT_MS = 60_000
 export async function loginAdmin(formData: FormData) {
   const cookieStore = await cookies()
 
+  const next = safeNextUrl(formData.get('next') as string | null)
+  const nextParam = next === '/admin' ? '' : `&next=${encodeURIComponent(next)}`
+
   const lockoutUntil = cookieStore.get(LOCKOUT_COOKIE)?.value
   if (lockoutUntil && parseInt(lockoutUntil) > Date.now()) {
-    redirect('/admin/login?message=Trop de tentatives échouées. Veuillez patienter 1 minute avant de réessayer.')
+    redirect(`/admin/login?message=Trop de tentatives échouées. Veuillez patienter 1 minute avant de réessayer.${nextParam}`)
   }
 
-  const supabase = await createClient()
+  const supabase = await createAdminIdentityClient()
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -41,7 +61,7 @@ export async function loginAdmin(formData: FormData) {
 
   if (error) {
     await registerFailedAttempt()
-    redirect('/admin/login?message=Identifiant ou mot de passe incorrect')
+    redirect(`/admin/login?message=Identifiant ou mot de passe incorrect${nextParam}`)
   }
 
   // L'email/mot de passe est valide mais ce n'est pas un compte administrateur :
@@ -50,11 +70,11 @@ export async function loginAdmin(formData: FormData) {
   if (!isAdminEmail(data.user?.email)) {
     await registerFailedAttempt()
     await supabase.auth.signOut()
-    redirect('/admin/login?message=Ce compte n\'a pas accès à l\'administration')
+    redirect(`/admin/login?message=Ce compte n\'a pas accès à l\'administration${nextParam}`)
   }
 
   cookieStore.delete(ATTEMPTS_COOKIE)
   cookieStore.delete(LOCKOUT_COOKIE)
 
-  redirect('/admin')
+  redirect(next)
 }
