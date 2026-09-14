@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, ChevronDown } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { updateMaterielEtat, deleteMateriel } from './actions'
 import EditMaterielModal from './EditMaterielModal'
 
@@ -9,7 +9,6 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
   const typeLabels = fullDict.materiel_extra.type_labels
   const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
   const [updatingId, setUpdatingId] = useState<string | null>(null)
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   async function handleEtatChange(id: string, newEtat: string) {
     setUpdatingId(id)
@@ -83,31 +82,16 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
                 {getEtatBadge(mat.etat)}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-right sticky right-0 bg-surface shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10">
-                <div className="relative flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <EditMaterielModal materiel={mat} iconOnly dict={fullDict} />
                   <button
-                    onClick={() => setOpenMenuId(openMenuId === mat.id ? null : mat.id)}
-                    className="flex items-center gap-1 bg-surface-hover text-foreground border border-surface-border px-3 py-1.5 rounded-md font-medium text-sm shadow-sm hover:bg-surface-border transition-colors"
+                    onClick={() => handleDelete(mat.id)}
+                    disabled={updatingId === mat.id}
+                    title={dict.action_delete}
+                    className="text-danger hover:text-danger/80 p-1 disabled:opacity-50"
                   >
-                    {dict.actions}
-                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
-                  
-                  {openMenuId === mat.id && (
-                    <div className="absolute right-0 top-full mt-1 w-40 rounded-md shadow-lg bg-surface ring-1 ring-black ring-opacity-5 z-20 py-1">
-                      <EditMaterielModal materiel={mat} asMenuItem dict={fullDict} />
-                      <button
-                        onClick={() => {
-                          setOpenMenuId(null)
-                          handleDelete(mat.id)
-                        }}
-                        disabled={updatingId === mat.id}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-surface-hover text-left disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4 text-danger/80" aria-hidden="true" />
-                        <span>{dict.action_delete}</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </td>
             </tr>

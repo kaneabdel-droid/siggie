@@ -5,7 +5,7 @@ import { Pencil } from 'lucide-react'
 import { updateMateriel } from './actions'
 import { MATERIEL_TYPES } from '@/lib/materiel/types'
 
-export default function EditMaterielModal({ materiel, asMenuItem, dict }: { materiel: any, asMenuItem?: boolean, dict: any }) {
+export default function EditMaterielModal({ materiel, asMenuItem, iconOnly, dict }: { materiel: any, asMenuItem?: boolean, iconOnly?: boolean, dict: any }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const d = dict.materiel_extra
@@ -44,7 +44,15 @@ export default function EditMaterielModal({ materiel, asMenuItem, dict }: { mate
 
   return (
     <>
-      {asMenuItem ? (
+      {iconOnly ? (
+        <button
+          onClick={() => setIsOpen(true)}
+          title={d.edit_tooltip}
+          className="text-secondary hover:text-secondary/80 p-1"
+        >
+          <Pencil className="h-4 w-4" aria-hidden="true" />
+        </button>
+      ) : asMenuItem ? (
         <button
           onClick={() => setIsOpen(true)}
           title={d.edit_tooltip}

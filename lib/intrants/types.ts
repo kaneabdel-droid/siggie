@@ -37,17 +37,25 @@ export function isSuperficieBasedType(type: string | null | undefined): boolean 
 }
 
 // Ordre d'affichage des colonnes par type d'intrant dans l'état des remboursements
-// membre (bilan de campagne) : Façon culturale, Service Hydraulique, Engrais, Produits
-// phytosanitaires (Pesticide/Fongicide/Herbicide), Refacturation, puis tout le reste.
-const TYPE_ORDER_GROUPS: string[][] = [
-  ['Façon culturale', 'Cultivation Work'],
-  ['Service Hydraulique', 'Water Service'],
-  ['Engrais', 'Fertilizer'],
-  ['Pesticide', 'Fongicide', 'Fungicide', 'Herbicide'],
-  ['Refacturation', 'Rebilling'],
+// membre (bilan de campagne) : Façon culturale, Service Hydraulique, Semence, Engrais,
+// Produits phytosanitaires (Pesticide/Fongicide/Herbicide), Refacturation, puis Autres.
+// type_intrant étant un champ texte libre, les GIE n'utilisent pas toujours la casse ou
+// le libellé exact suggéré (ex: "engrais" en minuscule, ou "Produits phytosanitaires"
+// saisi tel quel plutôt que "Pesticide"/"Herbicide") : le classement se fait donc par
+// mot-clé, insensible à la casse, plutôt que par égalité stricte.
+const TYPE_ORDER_KEYWORDS: string[][] = [
+  ['façon culturale', 'cultivation work'],
+  ['service hydraulique', 'water service', 'hydraulique'],
+  ['semence', 'seed'],
+  ['engrais', 'fertilizer', 'fertiliser'],
+  ['pesticide', 'fongicide', 'fungicide', 'herbicide', 'phytosanitaire'],
+  ['refacturation', 'rebilling'],
 ]
 
 export function getTypeOrderRank(type: string | null | undefined): number {
-  const index = TYPE_ORDER_GROUPS.findIndex((group) => group.includes(type || ''))
-  return index === -1 ? TYPE_ORDER_GROUPS.length : index
+  const normalized = (type || '').trim().toLowerCase()
+  const index = TYPE_ORDER_KEYWORDS.findIndex((keywords) =>
+    keywords.some((keyword) => normalized.includes(keyword))
+  )
+  return index === -1 ? TYPE_ORDER_KEYWORDS.length : index
 }
