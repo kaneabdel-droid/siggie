@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { Download, Printer, Loader2 } from 'lucide-react'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { createClient } from '@/utils/supabase/client'
 
 // Fonction pour formater les montants proprement sans espaces insécables qui posent problème à jsPDF
@@ -18,6 +16,15 @@ export default function DownloadPdfButton({ facture, dict, gieName }: { facture:
   const generatePDF = async (action: 'download' | 'print') => {
     setLoadingAction(action)
     try {
+      // Import différé : jspdf + jspdf-autotable ne sont nécessaires que
+      // lorsqu'on génère réellement un PDF, pas pour le simple affichage de
+      // la liste des factures — les charger ici évite de les inclure dans le
+      // bundle initial de la page pour les visiteurs qui n'exportent rien.
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ])
+
       const supabase = createClient()
       
       const membreId = facture.membre?.id || facture.membre_id

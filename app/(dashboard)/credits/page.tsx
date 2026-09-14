@@ -9,22 +9,23 @@ export default async function CreditsPage() {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 
-  // 1. Fetch campaigns for the Create Modal
-  const { data: campagnes } = await supabase
-    .from('campagnes')
-    .select('id, nom')
-    .order('created_at', { ascending: false })
-
-  // 2. Fetch credits with campaign info
-  const { data: credits, error } = await supabase
-    .from('credits')
-    .select(`
+  // Ces 3 requêtes sont indépendantes les unes des autres : les lancer en
+  // parallèle évite de cumuler leurs latences réseau. Seule la requête des
+  // décaissements plus bas dépend du résultat de "credits".
+  const [
+    { data: campagnes },
+    { data: credits },
+    { data: comptes },
+  ] = await Promise.all([
+    // 1. Fetch campaigns for the Create Modal
+    supabase.from('campagnes').select('id, nom').order('created_at', { ascending: false }),
+    // 2. Fetch credits with campaign info
+    supabase.from('credits').select(`
       *,
       campagnes ( nom )
-    `)
-    .order('created_at', { ascending: false })
-
-  const { data: comptes } = await supabase.from('comptes').select('id, nom, type_compte')
+    `).order('created_at', { ascending: false }),
+    supabase.from('comptes').select('id, nom, type_compte'),
+  ])
 
   // KPIs
   const totalDemande = credits?.reduce((sum, c) => sum + (c.montant_demande || 0), 0) || 0

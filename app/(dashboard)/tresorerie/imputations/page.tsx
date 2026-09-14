@@ -1,27 +1,21 @@
-import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getImputations } from './actions'
 import CreateImputationButton from './CreateImputationButton'
 import ImputationRowActions from './ImputationRowActions'
 
 export default async function ImputationsPage() {
-  const supabase = await createClient()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const t = dict.tresorerie_pages.imputations
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: userData } = user
-    ? await supabase.from('utilisateurs').select('role, gies(subscription_tier)').eq('id', user.id).single()
-    : { data: null }
-  const isAdmin = userData?.role === 'admin'
+  const tenant = await getTenantContext()
+  const isAdmin = tenant?.role === 'admin'
 
   // Les rubriques budgétaires (imputations) sont réservées au forfait Premium,
   // au même titre que la prévision et le suivi budgétaires.
-  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
-  const tier = gie?.subscription_tier || 'standard'
-  if (tier !== 'premium') {
+  if (tenant?.subscriptionTier !== 'premium') {
     redirect('/dashboard?error=upgrade_required')
   }
 

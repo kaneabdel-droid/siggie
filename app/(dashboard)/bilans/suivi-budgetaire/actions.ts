@@ -50,41 +50,31 @@ export async function getSuiviBudgetaire(campagneId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Non authentifié" }
 
-  const { data: imputations, error: impError } = await supabase
-    .from('imputations')
-    .select('id, libelle, compte, categorie, nature')
-    .order('libelle')
+  // Ces 6 requêtes sont indépendantes les unes des autres : les lancer en
+  // parallèle évite de cumuler leurs latences réseau à chaque changement de
+  // campagne/onglet dans le suivi budgétaire.
+  const [
+    { data: imputations, error: impError },
+    { data: previsions },
+    { data: transactions },
+    { data: materiels },
+    { data: prestations },
+    { data: consommations },
+  ] = await Promise.all([
+    supabase.from('imputations').select('id, libelle, compte, categorie, nature').order('libelle'),
+    supabase.from('budget_previsions').select('imputation_id, montant_prevu').eq('campagne_id', campagneId),
+    // Réalisation Exploitation : opérations de caisse/banque imputées à la
+    // rubrique pour cette campagne.
+    supabase.from('transactions').select('imputation_id, type_transaction, montant').eq('campagne_id', campagneId),
+    // Réalisation Matériel : pas de transaction imputée, elle est tirée des
+    // prestations (recettes) et consommations (dépenses) de chaque équipement
+    // enregistrées pour cette campagne.
+    supabase.from('materiels').select('id, nom'),
+    supabase.from('materiel_prestations').select('materiel_id, type_prestation, montant_facture').eq('campagne_id', campagneId),
+    supabase.from('materiel_consommations').select('materiel_id, type_consommation, montant_total').eq('campagne_id', campagneId),
+  ])
 
   if (impError) return { error: impError.message }
-
-  const { data: previsions } = await supabase
-    .from('budget_previsions')
-    .select('imputation_id, montant_prevu')
-    .eq('campagne_id', campagneId)
-
-  // Réalisation Exploitation : opérations de caisse/banque imputées à la
-  // rubrique pour cette campagne.
-  const { data: transactions } = await supabase
-    .from('transactions')
-    .select('imputation_id, type_transaction, montant')
-    .eq('campagne_id', campagneId)
-
-  // Réalisation Matériel : pas de transaction imputée, elle est tirée des
-  // prestations (recettes) et consommations (dépenses) de chaque équipement
-  // enregistrées pour cette campagne.
-  const { data: materiels } = await supabase
-    .from('materiels')
-    .select('id, nom')
-
-  const { data: prestations } = await supabase
-    .from('materiel_prestations')
-    .select('materiel_id, type_prestation, montant_facture')
-    .eq('campagne_id', campagneId)
-
-  const { data: consommations } = await supabase
-    .from('materiel_consommations')
-    .select('materiel_id, type_consommation, montant_total')
-    .eq('campagne_id', campagneId)
 
   const previsionParImputation = new Map(
     (previsions || []).map((p) => [p.imputation_id, Number(p.montant_prevu) || 0])

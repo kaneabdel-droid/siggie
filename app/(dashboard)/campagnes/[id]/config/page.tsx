@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Users, Lock } from 'lucide-react'
@@ -25,18 +26,25 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
     notFound()
   }
 
-  // Fetch active members of the GIE (les membres inactifs ne peuvent pas être inscrits à une campagne)
-  const { data: membres } = await supabase
-    .from('membres')
-    .select('*')
-    .eq('statut', 'actif')
-    .order('prenom', { ascending: true })
-
-  // Fetch already enrolled members for this campaign
-  const { data: enrolledData } = await supabase
-    .from('campagne_membres')
-    .select('membre_id, superficie')
-    .eq('campagne_id', id)
+  // Ces requêtes ne dépendent ni les unes des autres ni du contenu de
+  // `campagne` (seulement de `id`, déjà connu) : elles partent en parallèle
+  // plutôt qu'en série pour ne pas cumuler leurs latences réseau.
+  const [
+    { data: membres },
+    { data: enrolledData },
+    { data: intrants },
+    { data: campagneIntrants },
+    tenant,
+  ] = await Promise.all([
+    // Membres actifs du GIE (les inactifs ne peuvent pas être inscrits à une campagne)
+    supabase.from('membres').select('*').eq('statut', 'actif').order('prenom', { ascending: true }),
+    supabase.from('campagne_membres').select('membre_id, superficie').eq('campagne_id', id),
+    supabase.from('intrants').select('*').order('nom', { ascending: true }),
+    supabase.from('campagne_intrants').select('id, intrant_id, prix_facturation, intrants(nom, type_intrant)').eq('campagne_id', id),
+    // Détermine le forfait du GIE pour n'afficher la prévision budgétaire
+    // (feature Premium) que si l'abonnement le permet.
+    getTenantContext(),
+  ])
 
   const enrolledIds = new Set(enrolledData?.map(e => e.membre_id) || [])
   const superficieParMembre = new Map((enrolledData || []).map((e) => [e.membre_id, e.superficie || 0]))
@@ -44,27 +52,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
   const totalInscrits = enrolledIds.size
   const totalMembres = membres?.length || 0
 
-  // Fetch all intrants of the GIE
-  const { data: intrants } = await supabase
-    .from('intrants')
-    .select('*')
-    .order('nom', { ascending: true })
-
-  // Fetch campaign intrants
-  const { data: campagneIntrants } = await supabase
-    .from('campagne_intrants')
-    .select('id, intrant_id, prix_facturation, intrants(nom, type_intrant)')
-    .eq('campagne_id', id)
-
-  // Détermine le forfait du GIE pour n'afficher la prévision budgétaire
-  // (feature Premium) que si l'abonnement le permet, comme dans layout.tsx.
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: userData } = user
-    ? await supabase.from('utilisateurs').select('gie_id, gies(subscription_tier)').eq('id', user.id).single()
-    : { data: null }
-  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
-  const subscriptionTier = gie?.subscription_tier || 'standard'
-  const isPremium = subscriptionTier === 'premium'
+  const isPremium = tenant?.subscriptionTier === 'premium'
 
   let rubriquesExploitation: { id: string; libelle: string; compte: string; nature: string }[] = []
   let rubriquesMateriel: { id: string; libelle: string; compte: string; nature: string }[] = []
@@ -72,30 +60,21 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
   let materielsDuGie: { id: string; nom: string }[] = []
 
   if (isPremium) {
-    const { data: imputations } = await supabase
-      .from('imputations')
-      .select('*')
-      .order('libelle')
-
-    rubriquesExploitation = (imputations || []).filter((imp) => imp.categorie === 'exploitation')
-    rubriquesMateriel = (imputations || []).filter((imp) => imp.categorie === 'materiel')
-
-    const { data: budgetPrevisions } = await supabase
-      .from('budget_previsions')
-      .select('imputation_id, montant_prevu')
-      .eq('campagne_id', id)
-
-    const previsionsMap = new Map((budgetPrevisions || []).map((p) => [p.imputation_id, Number(p.montant_prevu) || 0]))
-    previsions = Object.fromEntries(previsionsMap)
-
     // Pour le budget Matériel, la rubrique est l'équipement lui-même (la
     // sous-rubrique est son type de prestation/consommation) : la réalisation
     // est ensuite tirée de materiel_prestations / materiel_consommations
     // plutôt que des imputations de trésorerie (voir suivi-budgetaire/actions.ts).
-    const { data: materielsData } = await supabase
-      .from('materiels')
-      .select('id, nom')
-      .order('nom')
+    const [{ data: imputations }, { data: budgetPrevisions }, { data: materielsData }] = await Promise.all([
+      supabase.from('imputations').select('*').order('libelle'),
+      supabase.from('budget_previsions').select('imputation_id, montant_prevu').eq('campagne_id', id),
+      supabase.from('materiels').select('id, nom').order('nom'),
+    ])
+
+    rubriquesExploitation = (imputations || []).filter((imp) => imp.categorie === 'exploitation')
+    rubriquesMateriel = (imputations || []).filter((imp) => imp.categorie === 'materiel')
+
+    const previsionsMap = new Map((budgetPrevisions || []).map((p) => [p.imputation_id, Number(p.montant_prevu) || 0]))
+    previsions = Object.fromEntries(previsionsMap)
     materielsDuGie = materielsData || []
   }
 

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { LayoutDashboard, User, Users, ClipboardList } from 'lucide-react'
-import { createClient } from '@/utils/supabase/server'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function BilansLayout({
@@ -9,22 +9,13 @@ export default async function BilansLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const tenant = await getTenantContext()
 
-  if (!user) {
+  if (!tenant) {
     redirect('/login')
   }
 
-  const { data: userData } = await supabase
-    .from('utilisateurs')
-    .select('gies(subscription_tier)')
-    .eq('id', user.id)
-    .single()
-
-  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
-  const tier = gie?.subscription_tier || 'standard'
-  if (tier !== 'premium') {
+  if (tenant.subscriptionTier !== 'premium') {
     redirect('/dashboard?error=upgrade_required')
   }
 

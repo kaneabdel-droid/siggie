@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import ClientLayout from './ClientLayout'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -8,32 +8,19 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
+  const tenant = await getTenantContext()
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!tenant) {
     redirect('/login')
   }
-
-  // Get user details
-  const { data: userData } = await supabase
-    .from('utilisateurs')
-    .select('role, gies(nom, subscription_tier)')
-    .eq('id', user.id)
-    .single()
-
-  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
-  const subscriptionTier = gie?.subscription_tier || 'standard'
-  const gieName = gie?.nom || 'Mon GIE'
 
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 
   return (
-    <ClientLayout 
-      subscriptionTier={subscriptionTier} 
-      gieName={gieName}
+    <ClientLayout
+      subscriptionTier={tenant.subscriptionTier}
+      gieName={tenant.gieName}
       dict={dict}
       locale={locale}
     >

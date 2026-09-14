@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Landmark, BookText, ArrowLeftRight, Tags } from 'lucide-react'
-import { createClient } from '@/utils/supabase/server'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function TresorerieLayout({
@@ -14,13 +14,8 @@ export default async function TresorerieLayout({
   // Les rubriques budgétaires (imputations) sont réservées au forfait Premium :
   // l'onglet n'est proposé que si le GIE y a accès (la page elle-même
   // redirige en plus les accès directs par URL, comme pour /bilans).
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: userData } = user
-    ? await supabase.from('utilisateurs').select('gies(subscription_tier)').eq('id', user.id).single()
-    : { data: null }
-  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
-  const isPremium = (gie?.subscription_tier || 'standard') === 'premium'
+  const tenant = await getTenantContext()
+  const isPremium = tenant?.subscriptionTier === 'premium'
 
   return (
     <div className="space-y-6">

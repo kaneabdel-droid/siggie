@@ -8,35 +8,42 @@ export async function getGlobalStats() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Non authentifié")
 
-  // 1. Trésorerie : Solde des comptes
-  const { data: comptes } = await supabase
-    .from('comptes')
-    .select('solde_initial')
-  
-  const { data: transactions } = await supabase
-    .from('transactions')
-    .select('type_transaction, montant')
+  // Ces 6 requêtes sont indépendantes les unes des autres : les lancer en
+  // parallèle évite de cumuler leurs latences réseau. Seule la requête des
+  // remboursements de crédits (plus bas) dépend du résultat de "credits",
+  // elle reste donc séquentielle après ce bloc.
+  const [
+    { data: comptes },
+    { data: transactions },
+    { data: factures },
+    { data: credits },
+    { data: materiels },
+    { data: prestations },
+    { data: consommations },
+  ] = await Promise.all([
+    // 1. Trésorerie : Solde des comptes
+    supabase.from('comptes').select('solde_initial'),
+    supabase.from('transactions').select('type_transaction, montant'),
+    // 2. Créances (Factures)
+    supabase.from('factures').select('montant_total, statut'),
+    // 3. Crédits Non Remboursés = montant accordé des crédits validés, moins
+    // les remboursements déjà effectués (transactions type_piece='remboursement_credit')
+    supabase.from('credits').select('id, montant_accorde, statut'),
+    // 4. Rentabilité Matériel
+    supabase.from('materiels').select('id, valeur_acquisition, duree_vie_economique, date_acquisition'),
+    supabase.from('materiel_prestations').select('montant_facture'),
+    supabase.from('materiel_consommations').select('montant_total'),
+  ])
 
   let soldeTresorerie = (comptes || []).reduce((sum, c) => sum + (c.solde_initial || 0), 0)
-  
+
   const totalEntrees = (transactions || []).filter(t => t.type_transaction === 'entree').reduce((sum, t) => sum + t.montant, 0)
   const totalSorties = (transactions || []).filter(t => t.type_transaction === 'sortie').reduce((sum, t) => sum + t.montant, 0)
-  
+
   soldeTresorerie += (totalEntrees - totalSorties)
 
-  // 2. Créances (Factures)
-  const { data: factures } = await supabase
-    .from('factures')
-    .select('montant_total, statut')
-  
   const facturesImpayees = (factures || []).filter(f => f.statut === 'impayee').reduce((sum, f) => sum + f.montant_total, 0)
   const facturesPayees = (factures || []).filter(f => f.statut === 'payee').reduce((sum, f) => sum + f.montant_total, 0)
-
-  // 3. Crédits Non Remboursés = montant accordé des crédits validés, moins les
-  // remboursements déjà effectués (transactions type_piece='remboursement_credit')
-  const { data: credits } = await supabase
-    .from('credits')
-    .select('id, montant_accorde, statut')
 
   const creditsValides = (credits || []).filter(c => c.statut === 'valide')
   const totalAccordeCredits = creditsValides.reduce((sum, c) => sum + Number(c.montant_accorde || 0), 0)
@@ -54,19 +61,6 @@ export async function getGlobalStats() {
   }
 
   const creditsEnCours = totalAccordeCredits - totalRembourseCredits
-
-  // 4. Rentabilité Matériel
-  const { data: materiels } = await supabase
-    .from('materiels')
-    .select('id, valeur_acquisition, duree_vie_economique, date_acquisition')
-  
-  const { data: prestations } = await supabase
-    .from('materiel_prestations')
-    .select('montant_facture')
-
-  const { data: consommations } = await supabase
-    .from('materiel_consommations')
-    .select('montant_total')
 
   const totalRecettesMateriel = (prestations || []).reduce((sum, p) => sum + (p.montant_facture || 0), 0)
   const totalDepensesMateriel = (consommations || []).reduce((sum, c) => sum + (c.montant_total || 0), 0)

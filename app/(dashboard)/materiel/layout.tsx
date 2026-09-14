@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import ClientMaterielLayout from './ClientMaterielLayout'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -8,23 +8,14 @@ export default async function MaterielLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const tenant = await getTenantContext()
 
-  if (user) {
-    const { data: userData } = await supabase
-      .from('utilisateurs')
-      .select('gies(subscription_tier)')
-      .eq('id', user.id)
-      .single()
-
-    const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
-    const tier = gie?.subscription_tier || 'standard'
-    if (tier === 'standard') {
-      redirect('/dashboard?error=upgrade_required')
-    }
-  } else {
+  if (!tenant) {
     redirect('/login')
+  }
+
+  if (tenant.subscriptionTier === 'standard') {
+    redirect('/dashboard?error=upgrade_required')
   }
 
   const locale = await getLocale()

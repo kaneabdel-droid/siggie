@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import Link from 'next/link'
 import { ArrowLeft, Users, PackageOpen, Banknote, BarChart3, TrendingUp } from 'lucide-react'
 import { Fragment } from 'react'
@@ -27,35 +28,41 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     return <div>{t.not_found}</div>
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: userData } = user
-    ? await supabase.from('utilisateurs').select('gies(nom)').eq('id', user.id).single()
-    : { data: null }
-  const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
-  const gieName = gie?.nom || 'Mon GIE'
-
-  // 2. Counts (Members)
-  const { count: totalMembresGie } = await supabase
-    .from('membres')
-    .select('*', { count: 'exact', head: true })
-
-  const { data: enrolledData } = await supabase
-    .from('campagne_membres')
-    .select('membre_id')
-    .eq('campagne_id', id)
-    
-  const totalInscrits = enrolledData?.length || 0
-
-  // 3. Campaign Inputs (Prices)
-  const { data: campagneIntrantsData } = await supabase
-    .from('campagne_intrants')
-    .select(`
-      intrant_id, 
-      prix_facturation, 
+  // Ces requêtes sont indépendantes les unes des autres (aucune ne dépend du
+  // résultat d'une autre) : les lancer en parallèle plutôt qu'en série évite
+  // de cumuler leurs latences réseau sur une page déjà chargée en calculs.
+  const [
+    tenant,
+    { count: totalMembresGie },
+    { data: enrolledData },
+    { data: campagneIntrantsData },
+    { data: distributionsData },
+    { data: facturesData },
+  ] = await Promise.all([
+    getTenantContext(),
+    // 2. Counts (Members)
+    supabase.from('membres').select('*', { count: 'exact', head: true }),
+    supabase.from('campagne_membres').select('membre_id').eq('campagne_id', id),
+    // 3. Campaign Inputs (Prices)
+    supabase.from('campagne_intrants').select(`
+      intrant_id,
+      prix_facturation,
       intrants (nom, type_intrant, prix_unitaire)
-    `)
-    .eq('campagne_id', id)
-    
+    `).eq('campagne_id', id),
+    // 4. Distributions
+    supabase.from('distribution_intrants').select(`
+      id,
+      membre_id,
+      intrant_id,
+      quantite,
+      membres (prenom, nom, code_membre)
+    `).eq('campagne_id', id),
+    // 5. Factures / Remboursements
+    supabase.from('factures').select('membre_id, montant_paye, montant_interet, membres (prenom, nom, code_membre)').eq('campagne_id', id),
+  ])
+
+  const gieName = tenant?.gieName || 'Mon GIE'
+  const totalInscrits = enrolledData?.length || 0
   const campagneIntrants = campagneIntrantsData || []
   const intrantPriceMap = new Map<string, number>()
   const intrantInfoMap = new Map<string, { nom: string, type_intrant: string, prix_unitaire: number }>()
@@ -77,25 +84,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     }))
     .sort((a, b) => getTypeOrderRank(a.type_intrant) - getTypeOrderRank(b.type_intrant))
 
-  // 4. Distributions
-  const { data: distributionsData } = await supabase
-    .from('distribution_intrants')
-    .select(`
-      id,
-      membre_id, 
-      intrant_id, 
-      quantite, 
-      membres (prenom, nom, code_membre)
-    `)
-    .eq('campagne_id', id)
-
   const distributions = distributionsData || []
-
-  // 5. Factures / Remboursements
-  const { data: facturesData } = await supabase
-    .from('factures')
-    .select('membre_id, montant_paye, montant_interet, membres (prenom, nom, code_membre)')
-    .eq('campagne_id', id)
 
   const rembMap = new Map<string, number>()
   const interetMap = new Map<string, number>()

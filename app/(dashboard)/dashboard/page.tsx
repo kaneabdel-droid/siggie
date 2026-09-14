@@ -8,17 +8,26 @@ export default async function Dashboard() {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 
-  // Fetch real data
-  const { count: membresCount } = await supabase.from('membres').select('*', { count: 'exact', head: true })
-  
-  const { data: campagneData } = await supabase
-    .from('campagnes')
-    .select('id, nom, statut')
-    .eq('statut', 'en_cours')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-    
+  // Ces 5 requêtes sont indépendantes les unes des autres : les lancer en
+  // parallèle évite de cumuler leurs latences réseau sur la page la plus
+  // visitée de l'app. Seule la requête "factures" plus bas dépend du
+  // résultat de campagneData, elle reste donc séquentielle après ce bloc.
+  const [
+    { count: membresCount },
+    { data: campagneData },
+    { data: recentsMembres },
+    { data: comptes },
+    { data: transactions },
+  ] = await Promise.all([
+    supabase.from('membres').select('*', { count: 'exact', head: true }),
+    supabase.from('campagnes').select('id, nom, statut').eq('statut', 'en_cours').order('created_at', { ascending: false }).limit(1).single(),
+    // Activités récentes (Derniers membres inscrits)
+    supabase.from('membres').select('prenom, nom, created_at').order('created_at', { ascending: false }).limit(3),
+    // Aperçu financier (Trésorerie)
+    supabase.from('comptes').select('solde_initial'),
+    supabase.from('transactions').select('type_transaction, montant'),
+  ])
+
   const nomCampagne = campagneData?.nom || dict.dashboard.stats.season_none
 
   let tauxRemboursement = 0
@@ -41,18 +50,8 @@ export default async function Dashboard() {
     }
   }
 
-  // Activités récentes (Derniers membres inscrits)
-  const { data: recentsMembres } = await supabase
-    .from('membres')
-    .select('prenom, nom, created_at')
-    .order('created_at', { ascending: false })
-    .limit(3)
-
-  // Aperçu financier (Trésorerie)
-  const { data: comptes } = await supabase.from('comptes').select('solde_initial')
   const soldeInitialTotal = comptes?.reduce((acc, c) => acc + (Number(c.solde_initial) || 0), 0) || 0
 
-  const { data: transactions } = await supabase.from('transactions').select('type_transaction, montant')
   let totalEntrees = 0
   let totalSorties = 0
   
