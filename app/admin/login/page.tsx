@@ -48,9 +48,14 @@ export default async function AdminLoginPage({
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium leading-6 text-foreground">
-              Mot de passe
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium leading-6 text-foreground">
+                Mot de passe
+              </label>
+              <a href="/forgot-password" className="text-sm font-semibold text-primary hover:text-primary-hover">
+                Mot de passe oublié ?
+              </a>
+            </div>
             <div className="mt-2">
               <input
                 id="password"
