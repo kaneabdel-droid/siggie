@@ -54,7 +54,7 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
             <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.lifespan}</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.acq_date}</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.status}</th>
-            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider sticky right-0 bg-background shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10">{dict.actions}</th>
+            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider sticky right-0 bg-background shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10 print:hidden">{dict.actions}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-surface-border bg-surface">
@@ -81,7 +81,7 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
               <td className="whitespace-nowrap px-6 py-4 text-sm">
                 {getEtatBadge(mat.etat)}
               </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-right sticky right-0 bg-surface shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10">
+              <td className="whitespace-nowrap px-6 py-4 text-sm text-right sticky right-0 bg-surface shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10 print:hidden">
                 <div className="flex justify-end gap-2">
                   <EditMaterielModal materiel={mat} iconOnly dict={fullDict} />
                   <button

@@ -40,7 +40,7 @@ export default function ConsommationsClient({ consommations, materiels, dict, lo
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.type}</th>
               <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.quantity}</th>
               <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.amount}</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.common.actions}</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider print:hidden">{dict.common.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border bg-surface">
@@ -62,7 +62,7 @@ export default function ConsommationsClient({ consommations, materiels, dict, lo
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-right font-medium text-danger">
                   -{c.montant_total.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-right">
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-right print:hidden">
                   <div className="flex items-center justify-end gap-2">
                     <EditConsommationModal consommation={c} materiels={materiels} dict={dict} />
                     <button
