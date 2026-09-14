@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getSuiviBudgetaire } from './actions'
+import PrintSectionButton from '@/components/PrintSectionButton'
 
 type Ligne = {
   imputation_id: string
@@ -97,10 +98,12 @@ export default function SuiviBudgetaireClient({
   campagnes,
   defaultCampagneId,
   dict,
+  gieName,
 }: {
   campagnes: { id: string; nom: string; statut: string }[]
   defaultCampagneId: string
   dict: any
+  gieName: string
 }) {
   const [selectedCampagne, setSelectedCampagne] = useState(defaultCampagneId)
   const [activeTab, setActiveTab] = useState<Tab>('exploitation')
@@ -131,6 +134,7 @@ export default function SuiviBudgetaireClient({
   const isEmpty = categorieData
     ? categorieData.recettes.lignes.length === 0 && categorieData.depenses.lignes.length === 0
     : false
+  const selectedCampagneNom = campagnes.find((c) => c.id === selectedCampagne)?.nom || ''
 
   return (
     <div className="space-y-6">
@@ -148,21 +152,26 @@ export default function SuiviBudgetaireClient({
         </select>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`rounded-md px-3 py-2 text-sm font-medium border transition-colors ${
-              activeTab === tab
-                ? 'bg-primary text-white border-primary'
-                : 'bg-surface text-foreground-muted hover:text-foreground border-surface-border'
-            }`}
-          >
-            {t.tabs[tab]}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-md px-3 py-2 text-sm font-medium border transition-colors ${
+                activeTab === tab
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-surface text-foreground-muted hover:text-foreground border-surface-border'
+              }`}
+            >
+              {t.tabs[tab]}
+            </button>
+          ))}
+        </div>
+        {categorieData && !isEmpty && (
+          <PrintSectionButton sectionId="suivi-budgetaire-print" label={dict.common.print} />
+        )}
       </div>
 
       {loading && <div className="text-foreground-muted animate-pulse">{t.loading}</div>}
@@ -174,7 +183,11 @@ export default function SuiviBudgetaireClient({
             {t.empty}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6" id="suivi-budgetaire-print">
+            <div className="hidden print:block mb-4">
+              <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+              <p className="text-sm text-foreground-muted">{t.title} — {selectedCampagneNom} — {t.tabs[activeTab]}</p>
+            </div>
             <GroupeTable title={t.recettes_title} groupe={categorieData.recettes} nature="recette" t={t} />
             <GroupeTable title={t.depenses_title} groupe={categorieData.depenses} nature="depense" t={t} />
 

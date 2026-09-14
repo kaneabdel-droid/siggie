@@ -1,11 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
 import RapprochementClient from './RapprochementClient'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
 
 export default async function RapprochementPage() {
   const supabase = await createClient()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+  const tenant = await getTenantContext()
   const t = dict.tresorerie_pages.rapprochement
 
   // On récupère toutes les campagnes du GIE
@@ -35,7 +37,7 @@ export default async function RapprochementPage() {
         </p>
       </div>
 
-      <RapprochementClient campagnes={campagnes} dict={dict} locale={locale} />
+      <RapprochementClient campagnes={campagnes} dict={dict} locale={locale} gieName={tenant?.gieName || 'Mon GIE'} />
     </div>
   )
 }

@@ -359,6 +359,7 @@
     "deleting": "Deleting...",
     "actions": "Actions",
     "date": "Date",
+    "print": "Print",
     "irreversible_warning": "⚠️ Warning: This action cannot be undone."
   },
   "campagnes_extra": {
@@ -1007,6 +1008,7 @@
           "total_qty": "Total Qty",
           "global_margin": "Global Margin"
         },
+        "grand_total": "GRAND TOTAL",
         "empty": "No distribution recorded for this season."
       },
       "debts_section": {

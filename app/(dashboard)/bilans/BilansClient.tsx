@@ -1,13 +1,14 @@
 'use client'
 
-import { 
-  Banknote, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
+import {
+  Banknote,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
   Tractor,
   Wallet
 } from 'lucide-react'
+import PrintSectionButton from '@/components/PrintSectionButton'
 
 type StatsProps = {
   tresorerie: { soldeActuel: number, totalEntrees: number, totalSorties: number },
@@ -15,9 +16,16 @@ type StatsProps = {
   materiel: { rentabiliteNette: number, totalRecettes: number, totalDepenses: number, amortissementCumule: number }
 }
 
-export default function BilansClient({ stats, dict }: { stats: StatsProps, dict: any }) {
+export default function BilansClient({ stats, dict, gieName }: { stats: StatsProps, dict: any, gieName: string }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="bilan-vue-ensemble">
+      <div className="hidden print:block mb-4">
+        <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+        <p className="text-sm text-foreground-muted">{dict.bilans.tabs.overview}</p>
+      </div>
+      <div className="flex justify-end">
+        <PrintSectionButton sectionId="bilan-vue-ensemble" label={dict.common.print} />
+      </div>
 
       {/* 1. Trésorerie Globale */}
       <div>

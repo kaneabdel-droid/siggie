@@ -359,6 +359,7 @@
     "deleting": "Suppression...",
     "actions": "Actions",
     "date": "Date",
+    "print": "Imprimer",
     "irreversible_warning": "⚠️ Attention : Cette action est irréversible."
   },
   "campagnes_extra": {
@@ -1007,6 +1008,7 @@
           "total_qty": "Total Qté",
           "global_margin": "Marge Globale"
         },
+        "grand_total": "TOTAL GÉNÉRAL",
         "empty": "Aucune distribution enregistrée pour cette campagne."
       },
       "debts_section": {

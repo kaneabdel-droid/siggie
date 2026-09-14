@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { getJournal } from '../actions'
 import AddTransactionModal from './AddTransactionModal'
 import TransactionRowActions from './TransactionRowActions'
+import PrintSectionButton from '@/components/PrintSectionButton'
 
 type Campagne = { id: string; nom: string; statut: string }
 
-export default function JournalClient({ comptes, imputations, campagnes, dict, locale }: { comptes: any[], imputations: any[], campagnes: Campagne[], dict: any, locale: string }) {
+export default function JournalClient({ comptes, imputations, campagnes, dict, locale, gieName }: { comptes: any[], imputations: any[], campagnes: Campagne[], dict: any, locale: string, gieName: string }) {
   const [selectedCompte, setSelectedCompte] = useState(comptes[0]?.id || '')
   const [journal, setJournal] = useState<any[]>([])
   const [soldeInitial, setSoldeInitial] = useState(0)
@@ -51,7 +52,8 @@ export default function JournalClient({ comptes, imputations, campagnes, dict, l
             ))}
           </select>
         </div>
-        <div className="mt-4 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:flex-none flex items-center gap-2">
+          <PrintSectionButton sectionId="journal-print" label={dict.common.print} />
           <AddTransactionModal compteId={selectedCompte} imputations={imputations} campagnes={campagnes} onSuccess={fetchJournal} dict={dict} />
         </div>
       </div>
@@ -60,7 +62,11 @@ export default function JournalClient({ comptes, imputations, campagnes, dict, l
       {error && <div className="text-danger">{error}</div>}
 
       {!loading && !error && (
-        <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
+        <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow" id="journal-print">
+          <div className="hidden print:block px-6 pt-4">
+            <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+            <p className="text-sm text-foreground-muted">{t.title} — {comptes.find((c) => c.id === selectedCompte)?.nom || ''}</p>
+          </div>
           <table className="min-w-full divide-y divide-surface-border">
             <thead className="bg-background">
               <tr>

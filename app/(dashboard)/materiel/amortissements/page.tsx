@@ -1,11 +1,13 @@
 import { getMateriels } from '../actions'
 import AmortissementsClient from './AmortissementsClient'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
 
 export default async function AmortissementsPage() {
   const { materiels, error } = await getMateriels()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+  const tenant = await getTenantContext()
 
   if (error) {
     return <div className="p-4 bg-danger/10 text-danger rounded-md">Erreur: {error}</div>
@@ -22,7 +24,7 @@ export default async function AmortissementsPage() {
         </div>
       </div>
 
-      <AmortissementsClient materiels={materiels || []} dict={dict} locale={locale} />
+      <AmortissementsClient materiels={materiels || []} dict={dict} locale={locale} gieName={tenant?.gieName || 'Mon GIE'} />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getReleveClient } from './actions'
 import AddClientModal from './AddClientModal'
 import AddPaiementClientModal from './AddPaiementClientModal'
+import PrintSectionButton from '@/components/PrintSectionButton'
 
 type Client = { id: string; nom: string; telephone: string | null }
 
@@ -11,10 +12,12 @@ export default function ReleveClientClient({
   initialClients,
   dict,
   locale,
+  gieName,
 }: {
   initialClients: Client[]
   dict: any
   locale: string
+  gieName: string
 }) {
   const [clients, setClients] = useState<Client[]>(initialClients)
   const [selectedClient, setSelectedClient] = useState(initialClients[0]?.id || '')
@@ -48,6 +51,8 @@ export default function ReleveClientClient({
     setSelectedClient(client.id)
   }
 
+  const selectedClientNom = clients.find((c) => c.id === selectedClient)?.nom || ''
+
   return (
     <div className="space-y-6">
       <div className="mb-2">
@@ -73,6 +78,9 @@ export default function ReleveClientClient({
         <div className="mt-4 sm:mt-0 flex flex-wrap gap-3">
           <AddClientModal onCreated={handleClientCreated} dict={dict} />
           <AddPaiementClientModal clientId={selectedClient} onSuccess={fetchReleve} dict={dict} />
+          {clients.length > 0 && !loading && !error && (
+            <PrintSectionButton sectionId="releve-client-print" label={dict.common.print} />
+          )}
         </div>
       </div>
 
@@ -86,7 +94,11 @@ export default function ReleveClientClient({
       {error && <div className="text-danger p-4 bg-danger/10 rounded-md">{error}</div>}
 
       {clients.length > 0 && !loading && !error && (
-        <>
+        <div id="releve-client-print">
+          <div className="hidden print:block mb-4">
+            <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+            <p className="text-sm text-foreground-muted">{t.title} — {selectedClientNom}</p>
+          </div>
           <div className={`overflow-hidden rounded-lg px-4 py-5 shadow sm:p-6 max-w-xs ${soldeActuel > 0 ? 'bg-danger' : 'bg-success'} text-white`}>
             <dt className="text-sm font-medium text-white/90">{t.current_balance}</dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight">{soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA</dd>
@@ -141,7 +153,7 @@ export default function ReleveClientClient({
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

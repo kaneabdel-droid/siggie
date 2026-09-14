@@ -1,11 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import SuiviBudgetaireClient from './SuiviBudgetaireClient'
 
 export default async function SuiviBudgetairePage() {
   const supabase = await createClient()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+  const tenant = await getTenantContext()
   const t = dict.suivi_budgetaire
 
   const { data: campagnes } = await supabase
@@ -30,7 +32,7 @@ export default async function SuiviBudgetairePage() {
           {t.no_campaigns}
         </div>
       ) : (
-        <SuiviBudgetaireClient campagnes={campagnes} defaultCampagneId={defaultCampagneId} dict={dict} />
+        <SuiviBudgetaireClient campagnes={campagnes} defaultCampagneId={defaultCampagneId} dict={dict} gieName={tenant?.gieName || 'Mon GIE'} />
       )}
     </div>
   )

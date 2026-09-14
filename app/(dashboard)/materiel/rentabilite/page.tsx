@@ -1,5 +1,7 @@
 import { getRentabiliteMateriels } from '../actions'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
+import PrintSectionButton from '@/components/PrintSectionButton'
 
 export default async function RentabilitePage() {
   let rentabilite = null
@@ -14,6 +16,7 @@ export default async function RentabilitePage() {
 
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+  const tenant = await getTenantContext()
   const t = dict.materiel_pages.rentabilite
 
   if (error) {
@@ -32,7 +35,7 @@ export default async function RentabilitePage() {
   const rentabiliteNette = soldeGlobal - totalAmortissements
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="materiel-rentabilite-print">
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
         <div>
           <h3 className="text-xl font-bold leading-7 text-foreground">{t.title}</h3>
@@ -40,6 +43,13 @@ export default async function RentabilitePage() {
             {t.desc}
           </p>
         </div>
+        <div className="mt-4 sm:mt-0 sm:flex-none">
+          <PrintSectionButton sectionId="materiel-rentabilite-print" label={dict.common.print} />
+        </div>
+      </div>
+      <div className="hidden print:block mb-4">
+        <h2 className="text-xl font-bold text-foreground">{tenant?.gieName || 'Mon GIE'}</h2>
+        <p className="text-sm text-foreground-muted">{t.title}</p>
       </div>
 
       {/* Résumé Global */}

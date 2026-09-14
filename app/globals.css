@@ -76,23 +76,31 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Impression d'une section isolée (voir PrintSectionButton). On masque tout
-   le document avec display:none (pas visibility:hidden, qui laisse l'espace
-   occupé dans le flux et produit des pages blanches), puis on redonne à la
-   section ciblée et à ses descendants leur display naturel via `revert` —
-   nécessaire pour que les lignes/cellules de tableau gardent leur affichage
-   tabulaire au lieu d'être forcées en display:block. */
+/* Impression d'une section isolée (voir PrintSectionButton). Un simple
+   `body * { display: none }` masquerait aussi les ANCÊTRES de la section
+   ciblée (le <main>, les wrappers du layout...) — et display:none sur un
+   ancêtre retire tout son sous-arbre du rendu, sans qu'aucun style sur un
+   descendant (même `display: revert`) ne puisse le rétablir. On distingue
+   donc trois cas avec :has() : les ancêtres de la cible deviennent
+   `display: contents` (ils disparaissent visuellement sans bloquer leurs
+   enfants ni imposer leur propre mise en page — padding, flex, largeur de
+   sidebar...), tout le reste est masqué, et la cible + ses descendants
+   retrouvent leur display naturel via `revert` (indispensable pour que les
+   lignes/cellules de tableau gardent un affichage tabulaire au lieu d'être
+   forcées en display:block). */
 @media print {
-  body * {
+  body *:not(:has(.print-target)):not(.print-target):not(.print-target *) {
     display: none !important;
+  }
+  body *:has(.print-target) {
+    display: contents !important;
   }
   .print-target,
   .print-target * {
     display: revert !important;
   }
   .print-target {
-    position: absolute !important;
-    inset: 0 !important;
+    position: static !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;

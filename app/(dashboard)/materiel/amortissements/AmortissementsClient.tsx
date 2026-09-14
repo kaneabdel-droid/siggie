@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import PrintSectionButton from '@/components/PrintSectionButton'
 
-export default function AmortissementsClient({ materiels, dict, locale }: { materiels: any[], dict: any, locale: string }) {
+export default function AmortissementsClient({ materiels, dict, locale, gieName }: { materiels: any[], dict: any, locale: string, gieName: string }) {
   const [selectedMatId, setSelectedMatId] = useState<string | null>(materiels.length > 0 ? materiels[0].id : null)
   const t = dict.materiel_pages.amortissements
 
@@ -99,14 +100,20 @@ export default function AmortissementsClient({ materiels, dict, locale }: { mate
       </div>
 
       {selectedMat && tableau ? (
-        <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
-          <div className="px-6 py-4 border-b border-surface-border bg-background">
-            <h4 className="text-lg font-medium text-foreground">{t.table_title} - {selectedMat.nom}</h4>
-            <p className="text-sm text-foreground-muted mt-1">
-              {t.acq_date} : {new Date(selectedMat.date_acquisition).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} |
-              {t.duration} : {selectedMat.duree_vie_economique} {t.years} |
-              {t.rate} : {Math.round((1 / selectedMat.duree_vie_economique) * 100)}%
-            </p>
+        <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow" id="materiel-amortissements-print">
+          <div className="hidden print:block px-6 pt-4">
+            <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+          </div>
+          <div className="px-6 py-4 border-b border-surface-border bg-background flex items-start justify-between gap-4">
+            <div>
+              <h4 className="text-lg font-medium text-foreground">{t.table_title} - {selectedMat.nom}</h4>
+              <p className="text-sm text-foreground-muted mt-1">
+                {t.acq_date} : {new Date(selectedMat.date_acquisition).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} |
+                {t.duration} : {selectedMat.duree_vie_economique} {t.years} |
+                {t.rate} : {Math.round((1 / selectedMat.duree_vie_economique) * 100)}%
+              </p>
+            </div>
+            <PrintSectionButton sectionId="materiel-amortissements-print" label={dict.common.print} />
           </div>
           <table className="min-w-full divide-y divide-surface-border">
             <thead className="bg-surface">

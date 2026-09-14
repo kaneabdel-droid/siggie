@@ -3,7 +3,7 @@ import { getTenantContext } from '@/utils/supabase/tenant'
 import Link from 'next/link'
 import { ArrowLeft, Users, PackageOpen, Banknote, BarChart3, TrendingUp } from 'lucide-react'
 import { Fragment } from 'react'
-import PrintSectionButton from './PrintSectionButton'
+import PrintSectionButton from '@/components/PrintSectionButton'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getTypeOrderRank } from '@/lib/intrants/types'
 
@@ -342,6 +342,19 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                     <tr>
                       <td colSpan={6} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
                         {t.margin_section.empty}
+                      </td>
+                    </tr>
+                  )}
+                  {productList.length > 0 && (
+                    <tr className="bg-background/80 font-bold border-t-2 border-surface-border">
+                      <td colSpan={4} className="whitespace-nowrap py-3 pl-4 pr-3 text-right text-foreground">
+                        {t.margin_section.grand_total}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-foreground text-right">
+                        {productList.reduce((sum, p) => sum + p.quantite, 0).toLocaleString(dateLocale)}
+                      </td>
+                      <td className={`whitespace-nowrap px-3 py-3 text-sm text-right ${productList.reduce((sum, p) => sum + p.marge_totale, 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                        {productList.reduce((sum, p) => sum + p.marge_totale, 0).toLocaleString(dateLocale)}
                       </td>
                     </tr>
                   )}

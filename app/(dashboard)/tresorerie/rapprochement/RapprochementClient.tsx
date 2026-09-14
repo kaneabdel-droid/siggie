@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getRapprochement } from '../actions'
 import { Building2, Landmark, Wallet, CheckCircle2 } from 'lucide-react'
+import PrintSectionButton from '@/components/PrintSectionButton'
 
-export default function RapprochementClient({ campagnes, dict, locale }: { campagnes: any[], dict: any, locale: string }) {
+export default function RapprochementClient({ campagnes, dict, locale, gieName }: { campagnes: any[], dict: any, locale: string, gieName: string }) {
   const [selectedCampagne, setSelectedCampagne] = useState(campagnes[0]?.id || '')
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -32,25 +33,36 @@ export default function RapprochementClient({ campagnes, dict, locale }: { campa
 
   return (
     <div className="space-y-6">
-      <div className="max-w-sm mb-8">
-        <label htmlFor="campagne" className="block text-sm font-medium text-foreground mb-1">{t.select_campaign}</label>
-        <select
-          id="campagne"
-          value={selectedCampagne}
-          onChange={(e) => setSelectedCampagne(e.target.value)}
-          className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-        >
-          {campagnes.map(c => (
-            <option key={c.id} value={c.id}>{c.nom} ({c.statut})</option>
-          ))}
-        </select>
+      <div className="sm:flex sm:items-end sm:justify-between gap-4 mb-8">
+        <div className="max-w-sm w-full">
+          <label htmlFor="campagne" className="block text-sm font-medium text-foreground mb-1">{t.select_campaign}</label>
+          <select
+            id="campagne"
+            value={selectedCampagne}
+            onChange={(e) => setSelectedCampagne(e.target.value)}
+            className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+          >
+            {campagnes.map(c => (
+              <option key={c.id} value={c.id}>{c.nom} ({c.statut})</option>
+            ))}
+          </select>
+        </div>
+        {!loading && data && (
+          <div className="mt-4 sm:mt-0">
+            <PrintSectionButton sectionId="rapprochement-print" label={dict.common.print} />
+          </div>
+        )}
       </div>
 
       {loading && <div className="text-foreground-muted animate-pulse">{t.loading}</div>}
       {error && <div className="text-danger p-4 bg-danger/10 rounded-md">{error}</div>}
 
       {!loading && data && (
-        <div className="space-y-8">
+        <div className="space-y-8" id="rapprochement-print">
+          <div className="hidden print:block">
+            <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+            <p className="text-sm text-foreground-muted">{t.title} — {campagnes.find((c) => c.id === selectedCampagne)?.nom || ''}</p>
+          </div>
           {/* Section Bilan */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-surface border border-surface-border p-4 rounded-lg shadow-sm">

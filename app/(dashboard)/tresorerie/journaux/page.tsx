@@ -3,6 +3,7 @@ import { getComptes } from '../actions'
 import { getImputations } from '../imputations/actions'
 import JournalClient from './JournalClient'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
 
 export default async function JournauxPage() {
   const supabase = await createClient()
@@ -14,6 +15,7 @@ export default async function JournauxPage() {
     .order('date_debut', { ascending: false })
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+  const tenant = await getTenantContext()
   const t = dict.tresorerie_pages.journaux
 
   if (error) {
@@ -37,7 +39,7 @@ export default async function JournauxPage() {
         </p>
       </div>
 
-      <JournalClient comptes={comptes} imputations={imputations || []} campagnes={campagnes || []} dict={dict} locale={locale} />
+      <JournalClient comptes={comptes} imputations={imputations || []} campagnes={campagnes || []} dict={dict} locale={locale} gieName={tenant?.gieName || 'Mon GIE'} />
     </div>
   )
 }
