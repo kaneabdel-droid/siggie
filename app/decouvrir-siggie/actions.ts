@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/utils/supabase/admin'
 import { createClient } from '@/utils/supabase/server'
+import { withRetry } from '@/utils/supabase/retry'
 import { redirect } from 'next/navigation'
 
 // Compte de démonstration public (GIE WaloAgro), toujours déverrouillé. Chaque
@@ -13,10 +14,9 @@ const DEMO_EMAIL = 'kaneabdou@yahoo.fr'
 export async function loginDemo() {
   const admin = createAdminClient()
 
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email: DEMO_EMAIL,
-  })
+  const { data, error } = await withRetry(() =>
+    admin.auth.admin.generateLink({ type: 'magiclink', email: DEMO_EMAIL })
+  ).catch((e) => ({ data: null, error: e }))
 
   if (error || !data?.properties?.hashed_token) {
     console.error('Erreur génération lien démo:', error)
@@ -24,10 +24,12 @@ export async function loginDemo() {
   }
 
   const supabase = await createClient()
-  const { error: verifyError } = await supabase.auth.verifyOtp({
-    token_hash: data.properties.hashed_token,
-    type: 'magiclink',
-  })
+  const { error: verifyError } = await withRetry(() =>
+    supabase.auth.verifyOtp({
+      token_hash: data.properties.hashed_token,
+      type: 'magiclink',
+    })
+  ).catch((e) => ({ error: e }))
 
   if (verifyError) {
     console.error('Erreur connexion démo:', verifyError)
