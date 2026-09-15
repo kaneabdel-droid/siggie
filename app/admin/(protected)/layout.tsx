@@ -1,16 +1,17 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { LayoutDashboard, Building2, Wallet, Settings, LogOut, LayoutGrid } from 'lucide-react'
-import { createAdminIdentityClient } from '@/utils/supabase/admin-identity'
+import { getSharedAdminUser } from '@/utils/supabase/admin-identity'
 import { isAdminEmail } from '@/lib/admin/auth'
 
 // Défense en profondeur : le middleware bloque déjà /admin aux non-admins, mais on
 // re-vérifie ici comme (dashboard)/layout.tsx re-vérifie déjà l'auth malgré le middleware.
 // Vérification faite via l'identité admin partagée (SSO inter-produits), pas le
-// client "produit" habituel — cf. utils/supabase/admin-identity.ts.
+// client "produit" habituel — cf. utils/supabase/admin-identity.ts. getSharedAdminUser
+// est mémoïsé par requête, donc partagé sans coût avec les actions appelées depuis
+// cette même navigation/revalidation.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createAdminIdentityClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSharedAdminUser()
 
   if (!isAdminEmail(user?.email)) {
     redirect(user ? '/dashboard' : '/admin/login')

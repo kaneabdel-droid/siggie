@@ -1,15 +1,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createAdminIdentityClient } from '@/utils/supabase/admin-identity'
+import { getSharedAdminUser } from '@/utils/supabase/admin-identity'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/auth'
 
 type ActionResult = { success?: true; error?: string }
 
 async function checkAdmin(): Promise<string | null> {
-  const supabase = await createAdminIdentityClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSharedAdminUser()
   return isAdminEmail(user?.email) ? null : 'Non autorisé'
 }
 

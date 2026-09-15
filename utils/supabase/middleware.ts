@@ -63,8 +63,13 @@ export async function updateSession(request: NextRequest) {
   // "produit" ci-dessus, pour qu'elle soit reconnue aussi par les autres produits
   // DembaSolution (SSO admin inter-produits).
   if (pathname.startsWith('/admin')) {
-    const adminSupabase = createAdminIdentityMiddlewareClient(request, supabaseResponse)
-    const { data: { user: adminUser } } = await adminSupabase.auth.getUser()
+    // Un pépin réseau transitoire sur le projet Supabase partagé ne doit pas faire
+    // planter la requête — on le traite comme "pas de session admin" plutôt que
+    // de laisser l'exception remonter.
+    const adminUser = await createAdminIdentityMiddlewareClient(request, supabaseResponse)
+      .auth.getUser()
+      .then(({ data }) => data.user)
+      .catch(() => null)
 
     if (!isAdminEmail(adminUser?.email)) {
       const url = request.nextUrl.clone()
