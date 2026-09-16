@@ -19,7 +19,8 @@ import {
   LogOut,
   PackageOpen,
   LifeBuoy,
-  Shield
+  Shield,
+  Settings
 } from 'lucide-react'
 
 export default function ClientLayout({
@@ -51,6 +52,7 @@ export default function ClientLayout({
     { key: 'materiel', href: '/materiel', icon: Tractor },
     { key: 'bilans', href: '/bilans', icon: FileSpreadsheet },
     { key: 'abonnement', href: '/abonnement', icon: Shield },
+    { key: 'parametres', href: '/parametres', icon: Settings },
     { key: 'support', href: '/support', icon: LifeBuoy },
   ]
 
