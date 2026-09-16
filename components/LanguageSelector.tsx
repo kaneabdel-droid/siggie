@@ -8,6 +8,7 @@ import { Check, Globe } from 'lucide-react'
 const LANGUAGES = [
   { code: 'fr', name: 'Français' },
   { code: 'en', name: 'English' },
+  { code: 'ar', name: 'العربية' },
 ]
 
 export default function LanguageSelector({ currentLang }: { currentLang: string }) {

@@ -1,0 +1,1205 @@
+{
+  "landing": {
+    "nav": {
+      "products": "المنتجات",
+      "pricing": "الأسعار",
+      "tips": "نصائح",
+      "login": "تسجيل الدخول",
+      "subscribe": "اشترك"
+    },
+    "hero": {
+      "title_1": "بسّط إدارة",
+      "title_2": "شركتك",
+      "desc": "تقدم Demba Solution حلولاً تقنية حديثة وسهلة الاستخدام لأتمتة عملياتك، ومتابعة أموالك، وتعزيز إنتاجيتك.",
+      "btn_offers": "شاهد عروضنا",
+      "btn_client": "فضاء العملاء"
+    },
+    "features": {
+      "title": "التميز في خدمة نشاطك",
+      "desc": "أدوات مصممة للواقع المحلي والمعايير الدولية.",
+      "f1_title": "سريع وفعّال",
+      "f1_desc": "واجهات سلسة توفّر لك وقتًا ثمينًا كل يوم.",
+      "f2_title": "أمان قصوى",
+      "f2_desc": "بياناتك مشفّرة ومحفوظة ولا يمكن الوصول إليها إلا من طرفك.",
+      "f3_title": "متجاوب 100%",
+      "f3_desc": "أدر نشاطك من مكتبك أو من الميدان عبر هاتفك الذكي."
+    },
+    "products": {
+      "title": "حلولنا الإلكترونية",
+      "desc": "اكتشف مجموعة تطبيقاتنا المصممة لتبسيط حياتك اليومية.",
+      "online_badge": "متاح الآن",
+      "coming_soon_badge": "قريبًا",
+      "siggie_desc": "النظام المتكامل لإدارة التعاونيات الاقتصادية والشركات المماثلة. أدر أعضاءك ومواسمك الزراعية ومدخلاتك وخزينتك بنقرة واحدة وأكثر من ذلك.",
+      "discover_link": "اكتشف SIGGIE",
+      "subscribe_link": "اشترك في SIGGIE",
+      "dquinca_desc": "حل إدارة محلات مواد البناء في أفريقيا. تابع مخزونك ومبيعاتك ومتاجرك بكل بساطة.",
+      "discover_link_dquinca": "اكتشف D-QUINCA",
+      "subscribe_link_dquinca": "اشترك في D-QUINCA"
+    },
+    "pricing": {
+      "title": "أسعار تناسب نمو شركتك",
+      "desc": "اختر الباقة التي تناسب احتياجات شركتك. دفع سنوي آمن عبر Wave أو Orange Money أو Visa أو تحويل بنكي.",
+      "per_year": "فرنك غرب أفريقي / سنويًا",
+      "popular_badge": "الأكثر رواجًا",
+      "feature_membres": "إدارة الأعضاء",
+      "feature_campagnes": "إدارة المواسم",
+      "feature_all_standard": "كل ما في الباقة الأساسية",
+      "feature_materiel": "إدارة كاملة للمعدات",
+      "feature_all_medium": "كل ما في باقة Medium",
+      "feature_etats": "تقارير متابعة ميزانية كاملة",
+      "choose_standard": "اختر Standard",
+      "choose_medium": "اختر Medium",
+      "choose_premium": "اختر Premium"
+    },
+    "tips": {
+      "title": "نصائح للإدارة",
+      "tip1": "رقمِن عملياتك",
+      "tip2": "تابع الربحية حسب القطاع",
+      "tip3": "أشرك أعضاءك"
+    },
+    "footer": {
+      "desc": "ادفع بإدارة مؤسستك نحو المستقبل بفضل حلولنا البرمجية السهلة والفعّالة."
+    }
+  },
+  "decouvrir": {
+    "meta_title": "اكتشف SIGGIE - كيف يعمل",
+    "back_home": "العودة إلى الصفحة الرئيسية",
+    "hero_title_prefix": "كيف يعمل",
+    "hero_desc": "من إنشاء حسابك إلى الإدارة اليومية لتعاونيتك: ما الذي تحصل عليه، وكيف يسير الأمر، وما الذي يتغير حسب باقتك.",
+    "steps_title": "مسارك في 3 خطوات",
+    "step1_title": "1. إنشاء حساب",
+    "step1_desc_before": "اختر باقة، وأدخل اسم تعاونيتك وبريدك الإلكتروني وكلمة مرور. يُنشأ حسابك فورًا مع",
+    "step1_desc_strong": "7 أيام تجربة مجانية",
+    "step1_desc_after": "على الباقة المختارة — لا حاجة لأي دفع للبدء.",
+    "step1_link": "إنشاء حسابي",
+    "step2_title": "2. تسجيل الدخول",
+    "step2_desc": "ادخل إلى لوحة قيادتك بواسطة بريدك الإلكتروني وكلمة المرور. نسيت كلمة المرور؟ يُرسل لك رابط إعادة التعيين عبر البريد الإلكتروني بنقرة واحدة.",
+    "step2_link": "تسجيل الدخول",
+    "step3_title": "3. الاشتراك",
+    "step3_desc": "قبل نهاية فترة التجربة، سدّد اشتراكك السنوي عبر Wave أو Orange Money أو بطاقة بنكية أو تحويل، مباشرة من فضاء «اشتراكي». يمكنك أيضًا تغيير الباقة في أي وقت بدفع الفرق فقط.",
+    "warning_before": "بدون تأكيد الدفع قبل نهاية الأيام السبعة للتجربة، يُعلَّق الوصول إلى فضائك تلقائيًا",
+    "warning_after": "إلى حين التسوية — تبقى بياناتك سليمة، لا شيء يُفقد.",
+    "modules_title": "الوحدات حسب باقتك",
+    "modules_desc": "كل باقة أعلى تتضمن كل ما سبق، بالإضافة إلى وحداتها الخاصة.",
+    "choose_prefix": "اختر",
+    "cta_text": "ابدأ تجربتي المجانية",
+    "demo_title": "جرّب SIGGIE مباشرة",
+    "demo_desc": "ادخل بنقرة واحدة إلى تعاونية العرض التوضيحي WaloAgro لاستكشاف جميع الميزات قبل إنشاء حسابك الخاص.",
+    "demo_login_btn": "جرّب العرض التوضيحي الآن",
+    "demo_note": "هذا الفضاء مشترك بين جميع الزوار: لا تُدخل فيه معلومات حساسة.",
+    "demo_error": "تعذّر الوصول إلى العرض التوضيحي حاليًا. حاول مرة أخرى بعد لحظة.",
+    "modules": {
+      "dashboard": "لوحة القيادة",
+      "membres": "الأعضاء",
+      "campagnes": "المواسم الزراعية",
+      "intrants": "المدخلات والمخزون",
+      "distribution": "التوزيع",
+      "credits": "القروض البنكية",
+      "facturation": "الفوترة",
+      "remboursements": "التسديدات",
+      "tresorerie": "الخزينة",
+      "materiel": "إدارة المعدات (الجرد، الخدمات، الاستهلاكات، الربحية، الإهلاك)",
+      "bilans": "الميزانيات وتقارير المتابعة المالية المتقدمة"
+    },
+    "plans": {
+      "standard_resume": "الأساسيات لإدارة تعاونية: الأعضاء، المواسم، المخزون والخزينة.",
+      "medium_resume": "كل ما في Standard، بالإضافة إلى المتابعة الكاملة للمعدات الزراعية.",
+      "premium_resume": "كل ما في Medium، بالإضافة إلى الميزانيات وتقارير المتابعة المالية الكاملة للتعاونية."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "تسجيل الدخول إلى SIGGIE",
+      "desc": "النظام المتكامل لإدارة التعاونيات الزراعية",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "forgot": "نسيت كلمة المرور؟",
+      "btn": "تسجيل الدخول",
+      "no_account": "تعاونيتك ليس لديها حساب بعد؟",
+      "signup": "سجّل تعاونيتك"
+    },
+    "signup": {
+      "title": "إنشاء حساب SIGGIE",
+      "desc": "سجّل تعاونيتك لتبدأ في إدارة مواسمك.",
+      "gie_name": "اسم التعاونية",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "btn": "التسجيل",
+      "has_account": "لديك حساب بالفعل؟",
+      "login": "سجّل الدخول"
+    },
+    "forgot_password": {
+      "title": "نسيت كلمة المرور",
+      "desc": "أدخل عنوان بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.",
+      "email": "البريد الإلكتروني",
+      "submit": "إرسال الرابط",
+      "back_to_login": "العودة إلى تسجيل الدخول"
+    }
+  },
+  "sidebar": {
+    "dashboard": "لوحة القيادة",
+    "membres": "الأعضاء",
+    "campagnes": "المواسم",
+    "intrants": "المدخلات والمخزون",
+    "distribution": "التوزيع",
+    "credits": "القروض البنكية",
+    "facturation": "الفوترة",
+    "remboursements": "التسديدات",
+    "tresorerie": "الخزينة",
+    "materiel": "المعدات",
+    "bilans": "الميزانيات والكشوفات",
+    "abonnement": "الاشتراك",
+    "parametres": "الإعدادات",
+    "support": "المساعدة والدعم",
+    "logout": "تسجيل الخروج"
+  },
+  "header": {
+    "admin": "المسؤول",
+    "open_sidebar": "فتح القائمة الجانبية",
+    "close_sidebar": "إغلاق القائمة الجانبية"
+  },
+  "dashboard": {
+    "title": "لوحة القيادة",
+    "welcome": "مرحبًا بك في SIGGIE. إليك ملخص نشاط تعاونيتك.",
+    "stats": {
+      "members": "الأعضاء المسجّلون",
+      "members_desc": "في التعاونية",
+      "season": "الموسم الحالي",
+      "season_none": "لا يوجد",
+      "season_active": "جارٍ",
+      "season_done": "منتهٍ",
+      "repayment": "معدل السداد",
+      "repayment_desc": "في الموسم",
+      "equipment": "أسطول المعدات",
+      "equipment_link": "عرض المعدات"
+    },
+    "finance": {
+      "title": "نظرة مالية عامة",
+      "view_journal": "عرض السجل",
+      "balance": "رصيد الخزينة",
+      "inflows": "إجمالي المداخيل",
+      "outflows": "إجمالي المصاريف"
+    },
+    "recent_members": {
+      "title": "الأعضاء الجدد",
+      "registered": "تسجيل",
+      "empty": "لا يوجد أعضاء جدد.",
+      "view_all": "عرض جميع الأعضاء"
+    }
+  },
+  "membres": {
+    "title": "الأعضاء",
+    "desc": "قائمة بجميع أعضاء التعاونية، تتضمن أسماءهم وقراهم وأرقام هواتفهم.",
+    "table": {
+      "name": "الاسم الكامل",
+      "village": "القرية",
+      "phone": "الهاتف",
+      "superficie": "المساحة (هكتار)",
+      "status": "الحالة",
+      "actions": "إجراءات"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "empty": "لم يُعثر على أي عضو. انقر على \"عضو جديد\" للبدء."
+  },
+  "campagnes": {
+    "title": "المواسم الزراعية",
+    "desc": "أدر مواسمك، واضبط طرق السداد، وأغلق الدورات المالية.",
+    "status": {
+      "active": "جارٍ",
+      "completed": "منتهٍ",
+      "cancelled": "ملغى"
+    },
+    "card": {
+      "from": "من",
+      "to": "إلى",
+      "repayment": "السداد:",
+      "configure": "إعداد",
+      "report": "التقرير"
+    },
+    "empty": "لم يُعثر على أي موسم. انقر على \"موسم جديد\" للبدء."
+  },
+  "intrants": {
+    "title": "المدخلات والمخزون",
+    "desc": "أدر كتالوج مدخلاتك، وتابع المشتريات والتوزيعات وحالة المخزون في الوقت الفعلي.",
+    "kpis": {
+      "value": "القيمة الإجمالية للمخزون",
+      "distributions": "التوزيعات (الموسم الجاري)",
+      "repayments": "التسديدات العينية",
+      "units": "وحدات"
+    },
+    "table": {
+      "item": "المدخل",
+      "type": "النوع",
+      "details": "التفاصيل",
+      "supplier": "المورّد",
+      "price": "سعر الوحدة",
+      "stock": "المخزون",
+      "actions": "إجراءات"
+    },
+    "empty": "لم يُعثر على أي مدخل. انقر على \"مدخل جديد\" لتزويد كتالوجك."
+  },
+  "materiel": {
+    "title": "أسطول المعدات والمتابعة",
+    "desc": "أدر معداتك وخدماتك ونفقات صيانتك.",
+    "tabs": {
+      "inventaire": "الجرد",
+      "prestations": "الخدمات (الإيرادات)",
+      "consommations": "الاستهلاكات (النفقات)",
+      "rentabilite": "الربحية",
+      "amortissements": "الإهلاك"
+    },
+    "inventaire_table": {
+      "name": "الاسم / المعدة",
+      "type": "النوع",
+      "supplier": "المورّد",
+      "value": "القيمة",
+      "lifespan": "العمر الافتراضي",
+      "acq_date": "تاريخ الاقتناء",
+      "status": "الحالة الحالية",
+      "actions": "إجراءات",
+      "years": "سنوات",
+      "status_good": "حالة جيدة",
+      "status_repair": "قيد الإصلاح",
+      "status_broken": "معطّل",
+      "action_delete": "حذف",
+      "empty": "لا توجد معدات مسجّلة.",
+      "confirm_delete": "هل أنت متأكد من رغبتك في حذف هذه المعدة؟"
+    }
+  },
+  "distribution": {
+    "title": "التوزيع على الأعضاء",
+    "desc": "سلّم المدخلات للأعضاء المسجّلين في المواسم.",
+    "kpis": {
+      "total": "الإجمالي الموزَّع",
+      "members": "الأعضاء المستفيدون",
+      "operations": "العمليات",
+      "units": "وحدات"
+    },
+    "table": {
+      "date": "التاريخ",
+      "beneficiary": "المستفيد",
+      "product": "المنتج المسلَّم",
+      "quantity": "الكمية",
+      "season": "الموسم",
+      "actions": "إجراءات",
+      "unknown_member": "عضو غير معروف",
+      "deleted_product": "منتج محذوف",
+      "empty": "لم يُسجَّل أي توزيع بعد."
+    }
+  },
+  "tresorerie": {
+    "title": "الخزينة والبنك",
+    "desc": "أدر حساباتك البنكية وصندوقك، وقم بمطابقة قروض المواسم.",
+    "tabs": {
+      "comptes": "الحسابات (الأرصدة)",
+      "journaux": "السجلات",
+      "rapprochement": "المطابقة",
+      "imputations": "التصنيفات"
+    },
+    "balances": {
+      "title": "نظرة على الأرصدة",
+      "desc": "الرصيد الحالي للصندوق وحساباتك البنكية.",
+      "total": "الخزينة الإجمالية",
+      "empty": "لم يُنشأ أي حساب بعد."
+    }
+  },
+  "credits": {
+    "title": "القروض البنكية (التعاونية)",
+    "desc": "أدر طلبات تمويل التعاونية لدى البنوك الشريكة، ومتابعة الصرف والمطابقة.",
+    "kpis": {
+      "demanded": "إجمالي المطلوب",
+      "granted": "إجمالي الممنوح",
+      "pending": "قيد الانتظار",
+      "dossiers": "ملف (ملفات)",
+      "available": "القرض المتاح"
+    },
+    "table": {
+      "season": "الموسم",
+      "bank": "البنك",
+      "demanded": "المطلوب",
+      "granted": "الممنوح",
+      "status": "الحالة",
+      "actions": "إجراءات",
+      "unspecified": "غير محدد",
+      "status_pending": "قيد الانتظار",
+      "status_valid": "مقبول",
+      "status_rejected": "مرفوض",
+      "empty": "لم يُعثر على أي طلب قرض."
+    }
+  },
+  "facturation": {
+    "title": "الفوترة",
+    "desc": "أنشئ فواتير الموسم لكل عضو، واطّلع عليها واطبعها.",
+    "search": "البحث عن فاتورة (اسم العضو، الرقم)...",
+    "table": {
+      "member": "الرقم / العضو",
+      "season": "الموسم",
+      "total_due": "الإجمالي المستحق",
+      "paid": "المبلغ المدفوع",
+      "remaining": "المتبقي للدفع",
+      "status": "الحالة",
+      "actions": "إجراءات",
+      "status_unpaid": "غير مدفوعة",
+      "status_paid": "مدفوعة",
+      "status_partial": "جزئي",
+      "empty": "لم يُعثر على أي فاتورة."
+    }
+  },
+  "parametres": {
+    "title": "الإعدادات",
+    "subtitle": "معلومات التعاونية، تظهر على المستندات المطبوعة (الفواتير، الإيصالات).",
+    "logoTitle": "الشعار",
+    "changeLogo": "تغيير الشعار",
+    "addLogo": "إضافة شعار",
+    "uploading": "جارٍ الإرسال...",
+    "logoHint": "PNG أو JPG، بحد أقصى 2 ميغابايت.",
+    "generalInfo": "المعلومات العامة",
+    "companyName": "اسم التعاونية",
+    "address": "العنوان",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "identification": "الرقم الضريبي (NINEA أو RCCM أو ما يعادله)",
+    "identificationPlaceholder": "مثال: NINEA 0012345678",
+    "currency": "عملة العمل",
+    "currencyHint": "تُستخدم لجميع المبالغ المعروضة والمطبوعة في التطبيق.",
+    "saved": "تم الحفظ",
+    "logoSaved": "تم تحديث الشعار"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ...",
+    "add": "إضافة",
+    "adding": "جارٍ الإضافة...",
+    "create": "إنشاء",
+    "creating": "جارٍ الإنشاء...",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "deleting": "جارٍ الحذف...",
+    "actions": "إجراءات",
+    "date": "التاريخ",
+    "print": "طباعة",
+    "irreversible_warning": "⚠️ تنبيه: هذا الإجراء لا يمكن التراجع عنه."
+  },
+  "campagnes_extra": {
+    "search_placeholder": "البحث بالاسم أو المنتج...",
+    "create_btn": "موسم جديد",
+    "modal": {
+      "create_title": "إنشاء موسم جديد",
+      "edit_title": "تعديل الموسم",
+      "name": "اسم الموسم",
+      "name_placeholder": "مثال: موسم الخريف 2024",
+      "start_date": "تاريخ البداية",
+      "end_date": "تاريخ النهاية",
+      "mode": "طريقة السداد",
+      "mode_espece": "نقدًا فقط",
+      "mode_nature": "عينيًا (منتجات) فقط",
+      "mode_mixte": "مختلط (نقدي + عيني)",
+      "product": "المنتج المُجمَّع",
+      "product_placeholder": "مثال: فول سوداني، دخن...",
+      "price": "السعر المُجمَّع (فرنك/كغ)",
+      "standard_weight": "الوزن القياسي (كغ)",
+      "status": "الحالة",
+      "create_submit": "إنشاء الموسم",
+      "delete_title": "حذف الموسم",
+      "delete_confirm": "هل أنت متأكد من رغبتك في حذف الموسم",
+      "delete_warning": "⚠️ تنبيه: سيؤدي هذا أيضًا إلى حذف جميع المدخلات والقروض المرتبطة بهذا الموسم!",
+      "configure_tooltip": "إعداد الموسم"
+    }
+  },
+  "credits_extra": {
+    "create_btn": "طلب جديد",
+    "reject_confirm": "هل أنت متأكد من رغبتك في رفض طلب القرض هذا؟",
+    "approve_tooltip": "منح القرض",
+    "reject_tooltip": "رفض الطلب",
+    "decaissement_tooltip": "تسجيل صرف",
+    "remboursement_tooltip": "سداد القرض",
+    "delete_tooltip": "حذف السجل",
+    "modal": {
+      "create_title": "تسجيل طلب قرض للتعاونية",
+      "linked_campaign": "الموسم المرتبط",
+      "select_campaign": "اختر موسمًا...",
+      "bank_optional": "البنك الشريك (اختياري)",
+      "amount_requested": "المبلغ المطلوب (فرنك)",
+      "reason": "سبب / غرض القرض",
+      "reason_placeholder": "مثال: شراء جماعي للمدخلات لموسم الأمطار",
+      "create_submit": "تسجيل الطلب",
+      "decaissement_title": "صرف جديد من القرض",
+      "credit_granted_label": "القرض الممنوح:",
+      "operation_type": "نوع العملية",
+      "op_supplier": "دفع للمورّد (تحويل)",
+      "op_withdrawal": "سحب نقدي",
+      "source_account": "الحساب المصدر (البنك)",
+      "select_account": "اختر حسابًا...",
+      "amount": "المبلغ (فرنك)",
+      "reason_ref": "السبب / المرجع",
+      "reason_ref_placeholder": "مثال: دفع فاتورة سماد رقم 123",
+      "decaissement_submit": "تسجيل الصرف",
+      "remboursement_title": "سداد جديد للقرض",
+      "remboursement_account": "الحساب المدين",
+      "remboursement_reason_placeholder": "مثال: سداد قسط مارس",
+      "remboursement_submit": "تسجيل السداد",
+      "approve_title_prefix": "التحقق من القرض",
+      "bank_unspecified": "بنك غير محدد",
+      "amount_requested_label": "المبلغ المطلوب أصلاً:",
+      "amount_granted": "المبلغ الممنوح فعليًا (فرنك)",
+      "amount_granted_note": "قد يختلف المبلغ الممنوح من البنك عن الطلب الأصلي.",
+      "interest_rate": "معدل الفائدة (%)",
+      "credit_duration": "مدة القرض (أشهر)",
+      "approve_submit": "تأكيد المبلغ",
+      "delete_title": "حذف السجل",
+      "delete_confirm": "هل أنت متأكد من رغبتك في حذف هذا السطر؟"
+    }
+  },
+  "distribution_extra": {
+    "edit_tooltip": "تعديل الكمية",
+    "cancel_tooltip": "إلغاء التوزيع",
+    "invalid_quantity": "كمية غير صالحة",
+    "create_btn": "توزيع جديد",
+    "create_modal": {
+      "title": "توزيع جماعي",
+      "tab1": "الخيار 1: حسب المنتج (المدخل)",
+      "tab2": "الخيار 2: حسب العضو",
+      "campaign": "الموسم",
+      "select_campaign": "اختر موسمًا...",
+      "no_members_prefix": "⚠️ لا يوجد أي عضو مسجّل في هذا الموسم بعد.",
+      "no_members_link": "انقر هنا للانتقال إلى إعداد الموسم",
+      "no_members_suffix": "لتسجيل المشاركين.",
+      "no_products_prefix": "⚠️ لا يوجد أي منتج مُعدّ لهذا الموسم.",
+      "no_products_link": "انتقل إلى الإعداد",
+      "no_products_suffix": "لإضافة مدخلات.",
+      "product_to_distribute": "المنتج المراد توزيعه",
+      "select_product": "اختر منتجًا...",
+      "stock_label": "المخزون",
+      "quantities_by_member": "الكميات حسب العضو",
+      "amounts_by_member": "المبالغ حسب العضو (فرنك)",
+      "total_entered": "الإجمالي المُدخَل:",
+      "invalid_quantity_alert": "أدخل كمية واحدة على الأقل.",
+      "exceeds_stock_alert": "الإجمالي المُدخَل يتجاوز المخزون المتاح!",
+      "beneficiary": "المستفيد (عضو مسجّل)",
+      "select_member": "اختر عضوًا...",
+      "quantities_by_product": "الكميات حسب المنتج (المدخل)",
+      "no_intrants_configured": "لا يوجد أي مدخل مُعدّ لهذا الموسم.",
+      "stock_colon": "المخزون:",
+      "amount_unit": "فرنك",
+      "select_campaign_prompt": "الرجاء اختيار موسم للمتابعة.",
+      "validate_submit": "تأكيد التوزيع",
+      "validating": "جارٍ التأكيد..."
+    },
+    "modal": {
+      "edit_title": "تعديل الكمية الموزَّعة",
+      "product_label": "المنتج:",
+      "current_quantity_label": "الكمية الحالية:",
+      "new_quantity": "الكمية الجديدة",
+      "cancel_title": "إلغاء التوزيع",
+      "cancel_confirm_prefix": "هل أنت متأكد من رغبتك في إلغاء هذا التسليم البالغ",
+      "cancel_note": "✅ سيُعاد إضافة نفس الكمية إلى المخزون.",
+      "cancelling": "جارٍ الإلغاء...",
+      "cancel_submit": "إلغاء التوزيع"
+    }
+  },
+  "facturation_extra": {
+    "generate_btn": "فوترة جماعية",
+    "print_tooltip": "طباعة الفاتورة",
+    "download_tooltip": "تحميل PDF",
+    "interest_col": "الفائدة",
+    "interet": {
+      "btn": "حساب الفائدة",
+      "title": "حساب وتوزيع فائدة القرض",
+      "desc": "يوزّع فائدة القرض المعتمد للموسم بين فواتير الأعضاء، وفق الطريقة المختارة.",
+      "campaign": "الموسم",
+      "select_campaign": "اختر موسمًا",
+      "method_label": "طريقة التوزيع",
+      "method_superficie": "بالتناسب مع المساحات المستغلة في الموسم",
+      "method_intrants": "بالتناسب مع إجمالي المدخلات المفوترة للعضو",
+      "calculating": "جارٍ الحساب...",
+      "submit": "حساب وتوزيع"
+    },
+    "modal": {
+      "title": "إنشاء فواتير الموسم",
+      "desc": "سيقوم هذا الإجراء بجمع المدخلات المستلمة والقروض المعتمدة لكل عضو، وإنشاء أو تحديث الفواتير.",
+      "campaign": "الموسم",
+      "select_campaign": "اختر موسمًا",
+      "generating": "جارٍ الإنشاء...",
+      "submit": "إنشاء"
+    }
+  },
+  "intrants_extra": {
+    "search_placeholder": "البحث عن مدخل...",
+    "buy_btn": "شراء جديد",
+    "create_btn": "مدخل جديد",
+    "type_options": ["سماد", "بذور", "مبيد حشري", "مبيد فطري", "مبيد أعشاب", "معدات", "إعادة فوترة", "خدمة ري", "عمليات فلاحية"],
+    "modal": {
+      "buy_title": "تسجيل شراء مدخل",
+      "buy_submit": "تأكيد الشراء",
+      "product_bought": "المنتج المشترى",
+      "select_product": "اختر منتجًا...",
+      "current_stock": "المخزون الحالي",
+      "quantity_bought": "الكمية المشتراة (تُضاف إلى المخزون)",
+      "purchase_price": "سعر الشراء للوحدة (فرنك)",
+      "purchase_date": "تاريخ الشراء",
+      "invoice_number": "رقم الفاتورة (اختياري)",
+      "invoice_number_placeholder": "مثال: FAC-2024-0123",
+      "create_title": "إضافة مدخل جديد",
+      "edit_title": "تعديل المدخل",
+      "product_name": "اسم المنتج",
+      "product_name_placeholder": "مثال: سماد NPK 15-15-15",
+      "type": "نوع المدخل",
+      "type_placeholder": "مثال: سماد، بذور...",
+      "supplier_optional": "المورّد (اختياري)",
+      "supplier_placeholder": "اسم المورّد أو الشركة",
+      "unit_price": "سعر الوحدة (فرنك)",
+      "initial_stock": "الكمية (المخزون الأولي)",
+      "stock": "الكمية (المخزون)",
+      "description_optional": "الوصف / الوحدة (اختياري)",
+      "description_placeholder": "مثال: كيس 50 كغ، لتر...",
+      "create_submit": "إضافة إلى الكتالوج",
+      "delete_title": "حذف المدخل",
+      "delete_confirm_prefix": "هل أنت متأكد من رغبتك في حذف المدخل",
+      "delete_confirm_suffix": "من الكتالوج؟"
+    }
+  },
+  "materiel_extra": {
+    "add_btn": "إضافة معدة",
+    "edit_tooltip": "تعديل المعدة",
+    "etat_bon": "حالة جيدة",
+    "etat_reparation": "قيد الإصلاح",
+    "etat_panne": "معطّل",
+    "type_labels": {
+      "Bâtiment et installations": "المباني والمنشآت",
+      "Matériel agricole": "معدات زراعية",
+      "Matériel et mobilier": "معدات وأثاث",
+      "Matériel informatique": "معدات معلوماتية",
+      "Matériel de transport": "معدات نقل"
+    },
+    "modal": {
+      "add_title": "إضافة معدة جديدة",
+      "edit_title": "تعديل المعدة",
+      "name": "الاسم (مثال: جرار John Deere)",
+      "type": "النوع",
+      "supplier": "المورّد",
+      "supplier_placeholder": "اسم المورّد",
+      "value": "القيمة (فرنك)",
+      "lifespan": "العمر الافتراضي (سنوات)",
+      "acq_date": "تاريخ الاقتناء",
+      "initial_state": "الحالة الأولية",
+      "current_state": "الحالة الحالية"
+    }
+  },
+  "membres_extra": {
+    "search_placeholder": "البحث بالاسم أو اللقب أو القرية...",
+    "create_btn": "عضو جديد",
+    "modal": {
+      "create_title": "إضافة عضو جديد",
+      "edit_title": "تعديل العضو",
+      "last_name": "اللقب",
+      "first_name": "الاسم",
+      "village": "القرية",
+      "phone": "الهاتف",
+      "superficie": "المساحة (هكتار)",
+      "status": "الحالة",
+      "status_active": "نشط",
+      "status_inactive": "غير نشط",
+      "delete_title": "حذف العضو",
+      "delete_confirm_prefix": "هل أنت متأكد من رغبتك في حذف",
+      "delete_confirm_suffix": "؟ هذا الإجراء لا يمكن التراجع عنه."
+    }
+  },
+  "remboursements_extra": {
+    "modal": {
+      "title_cash": "تسجيل دفعة نقدية",
+      "title_nature": "تسجيل دفعة عينية",
+      "surplus_label": "فائض السداد:",
+      "remaining_label": "المتبقي للدفع:",
+      "amount_paid": "المبلغ المدفوع (فرنك)",
+      "amount_paid_note": "سيُضاف المبلغ إلى الخزينة.",
+      "nature_product": "نوع المنتج المستلَم",
+      "nature_product_placeholder": "مثال: أرز شعير، طماطم، فول سوداني...",
+      "weight_label": "الوزن أو الكمية المستلمة",
+      "calc_base": "أساس الحساب:",
+      "per_unit_suffix": "فرنك/وحدة",
+      "equivalent_label": "المعادل المالي المخصوم من الفاتورة:",
+      "missing_product_error": "الرجاء تحديد نوع المنتج المستلَم (مثال: أرز شعير، طماطم، فول سوداني...).",
+      "invalid_amount_error": "يجب أن يكون المبلغ أكبر من 0",
+      "validating": "جارٍ التأكيد...",
+      "validate_submit": "تأكيد الدفعة"
+    }
+  },
+  "tresorerie_extra": {
+    "add_account_btn": "حساب جديد",
+    "modal": {
+      "title": "إنشاء حساب",
+      "name": "اسم الحساب",
+      "name_placeholder": "مثال: الصندوق الرئيسي، البنك الزراعي...",
+      "type": "نوع الحساب",
+      "type_caisse": "صندوق (نقدي)",
+      "type_banque": "حساب بنكي",
+      "initial_balance": "الرصيد الافتتاحي (فرنك)"
+    }
+  },
+  "checkout_extra": {
+    "back_offers": "العودة إلى العروض",
+    "order_summary": "ملخص الطلب",
+    "subscription": "الاشتراك",
+    "total_ttc": "الإجمالي للدفع",
+    "payment_method": "طريقة الدفع",
+    "orange_money": "Orange Money",
+    "card": "بطاقة بنكية",
+    "mobile_money_chariow": "الدفع عبر الهاتف (Chariow)",
+    "transfer": "تحويل بنكي",
+    "transfer_instructions": "الرجاء إجراء التحويل إلى الحساب التالي:",
+    "transfer_note": "سيُفعَّل اشتراكك فور استلام وتأكيد الأموال.",
+    "phone_label": "رقم الهاتف",
+    "phone_placeholder": "77 123 45 67",
+    "phone_required_error": "الرجاء إدخال رقم هاتفك",
+    "redirect_notice_prefix": "سيتم توجيهك إلى صفحة الدفع الآمنة لإتمام",
+    "redirect_notice_card": "الدفع بالبطاقة",
+    "redirect_notice_mobile": "الدفع عبر الهاتف",
+    "processing": "جارٍ المعالجة...",
+    "create_account_btn": "إنشاء حسابي",
+    "pay_prefix": "دفع",
+    "virement_saved_title": "تم تسجيل التحويل",
+    "virement_saved_desc": "تم تسجيل طلبك. سيُفعَّل اشتراكك فور استلام وتأكيد تحويلك.",
+    "back_to_subscription": "العودة إلى اشتراكي",
+    "retour": {
+      "activated_title": "تم تفعيل الاشتراك!",
+      "activated_desc_prefix": "شكرًا، تم تأكيد دفعتك وباقتك",
+      "activated_desc_suffix": "نشطة الآن.",
+      "dashboard_link": "الانتقال إلى لوحة القيادة",
+      "failed_title": "لم يكتمل الدفع",
+      "failed_desc": "تعذّر تأكيد الدفع. يمكنك إعادة المحاولة من فضاء اشتراكك.",
+      "retry_link": "إعادة المحاولة",
+      "pending_title": "جارٍ التحقق من الدفع...",
+      "pending_desc": "قد يستغرق هذا بضع لحظات. حدّث هذه الصفحة أو عد لاحقًا إلى فضاء اشتراكك."
+    }
+  },
+  "update_password": {
+    "title": "تحديث كلمة المرور",
+    "desc": "أدخل كلمة مرورك الجديدة.",
+    "label": "كلمة المرور الجديدة",
+    "submit": "حفظ"
+  },
+  "bilans": {
+    "title": "الميزانيات والكشوفات",
+    "desc": "لوحة تلخيصية للصحة المالية والتشغيلية للتعاونية.",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "releve_membre": "كشف العضو",
+      "releve_client": "كشف العميل",
+      "suivi_budgetaire": "المتابعة المالية"
+    },
+    "tresorerie_title": "الخزينة الإجمالية",
+    "tresorerie": {
+      "balance": "الرصيد الحالي",
+      "inflows": "إجمالي المداخيل",
+      "outflows": "إجمالي المصاريف"
+    },
+    "creances_title": "الالتزامات والديون المستحقة",
+    "creances": {
+      "unpaid": "فواتير غير مدفوعة",
+      "credits": "قروض غير مسدَّدة"
+    },
+    "materiel_title": "ملخص أسطول المعدات",
+    "materiel": {
+      "net_profit": "الربحية الصافية للأسطول",
+      "net_profit_desc": "الإيرادات - النفقات - الإهلاك",
+      "revenue": "إجمالي الإيرادات",
+      "expenses": "إجمالي النفقات",
+      "depreciation": "الإهلاك"
+    }
+  },
+  "suivi_budgetaire": {
+    "title": "المتابعة المالية",
+    "desc": "قارن التوقعات والإنجازات لكل موسم، حسب البند.",
+    "select_campaign": "اختر موسمًا",
+    "no_campaigns": "لم يُعثر على أي موسم.",
+    "loading": "جارٍ تحميل البيانات المالية...",
+    "tabs": {
+      "exploitation": "التشغيل",
+      "materiel": "المعدات",
+      "consolide": "موحّد"
+    },
+    "recettes_title": "الإيرادات",
+    "depenses_title": "النفقات",
+    "solde_title": "الرصيد (الإيرادات - النفقات)",
+    "headers": {
+      "rubrique": "البند",
+      "sous_rubrique": "البند الفرعي",
+      "prevu": "المتوقع",
+      "realise": "المنجز",
+      "ecart": "الفارق",
+      "taux": "معدل الإنجاز"
+    },
+    "total": "الإجمالي",
+    "empty": "لا توجد بيانات مالية لهذا الموسم."
+  },
+  "support": {
+    "title": "المساعدة والدعم",
+    "desc": "بحاجة لمساعدة في استخدام SIGGIE؟ فريقنا في خدمتك لمرافقتك.",
+    "contact_title": "معلومات الاتصال",
+    "phone": "الهاتف",
+    "phone_hours": "من الإثنين إلى الجمعة، 8 صباحًا - 6 مساءً",
+    "email": "البريد الإلكتروني",
+    "email_desc": "الدعم التقني",
+    "office": "المكتب",
+    "office_desc": "داكار، السنغال",
+    "resources_title": "موارد مفيدة",
+    "resources_desc": "اطّلع على دليل الاستخدام أو الأسئلة الشائعة للعثور بسرعة على إجابات لأسئلتك.",
+    "doc_link": "عرض الوثائق",
+    "form_title": "أرسل لنا رسالة",
+    "form_desc": "تواجه مشكلة تقنية أو لديك سؤال محدد؟ املأ هذا النموذج وسنجيبك مباشرة عبر البريد الإلكتروني.",
+    "form": {
+      "subject": "موضوع طلبك",
+      "subject_placeholder": "مثال: مشكلة في موسم، سؤال حول الفوترة...",
+      "message": "رسالة مفصّلة",
+      "message_placeholder": "صف مشكلتك أو سؤالك بالتفصيل...",
+      "send": "إرسال الرسالة",
+      "sending": "جارٍ الإرسال...",
+      "sent_title": "تم إرسال الرسالة بنجاح!",
+      "sent_desc": "استلم فريق الدعم رسالتك وسيرد عليك في أقرب وقت ممكن.",
+      "send_another": "إرسال رسالة أخرى"
+    }
+  },
+  "materiel_pages": {
+    "amortissements": {
+      "title": "جداول الإهلاك",
+      "desc": "اطّلع على خطة الإهلاك المحاسبي لكل معدة من أسطولك.",
+      "select_label": "اختر معدة لعرض جدول إهلاكها:",
+      "not_valued": "غير مُقيَّمة",
+      "table_title": "جدول الإهلاك (الخطي)",
+      "acq_date": "تاريخ الاقتناء",
+      "duration": "المدة",
+      "years": "سنوات",
+      "rate": "المعدل",
+      "headers": {
+        "year": "السنة",
+        "base": "الأساس القابل للإهلاك",
+        "annuity": "القسط السنوي",
+        "cumulative": "الإهلاك التراكمي",
+        "vnc": "القيمة الصافية المحاسبية"
+      },
+      "error": "تعذّر حساب الإهلاك لهذه المعدة. تحقق من إدخال قيمة الاقتناء والتاريخ والعمر الافتراضي بشكل صحيح."
+    },
+    "consommations": {
+      "title": "النفقات والاستهلاكات",
+      "desc": "تابع مصاريف الصيانة والوقود وقطع الغيار لكل معدة.",
+      "add_btn": "تسجيل نفقة",
+      "total": "إجمالي النفقات (صيانة ووقود)",
+      "headers": {
+        "equipment": "المعدة",
+        "type": "النوع (المورّد)",
+        "quantity": "الكمية",
+        "amount": "المبلغ (فرنك)"
+      },
+      "at_supplier": "لدى",
+      "empty": "لا توجد نفقات مسجّلة.",
+      "delete_confirm": "هل أنت متأكد من رغبتك في حذف هذه النفقة؟",
+      "delete_title": "حذف النفقة",
+      "edit_title_btn": "تعديل النفقة",
+      "form": {
+        "add_title": "نفقة جديدة (استهلاك / صيانة)",
+        "edit_title": "تعديل النفقة",
+        "equipment_label": "المعدة المعنية",
+        "select_machine": "اختر آلة",
+        "type_label": "نوع النفقة",
+        "type_fuel": "وقود",
+        "type_oil": "زيت / مواد تشحيم",
+        "type_part": "قطعة غيار",
+        "type_repair": "إصلاح / يد عاملة",
+        "type_other": "أخرى",
+        "supplier_label": "المورّد / محطة الخدمة",
+        "quantity_label": "الكمية (لتر، وحدة...)",
+        "amount_label": "المبلغ الإجمالي (فرنك)",
+        "date_label": "التاريخ"
+      }
+    },
+    "prestations": {
+      "title": "سجل الخدمات",
+      "desc": "أعمال أنجزتها معداتك وحقّقت إيرادات.",
+      "add_btn": "إضافة خدمة",
+      "total": "إجمالي الإيرادات (الخدمات)",
+      "headers": {
+        "equipment": "المعدة",
+        "type": "النوع (العميل)",
+        "area": "المساحة",
+        "amount": "المبلغ (فرنك)"
+      },
+      "for_client": "لصالح",
+      "empty": "لا توجد خدمات مسجّلة.",
+      "delete_confirm": "هل أنت متأكد من رغبتك في حذف هذه الخدمة؟",
+      "delete_title": "حذف الخدمة",
+      "edit_title_btn": "تعديل الخدمة",
+      "form": {
+        "add_title": "خدمة جديدة (إيراد)",
+        "edit_title": "تعديل الخدمة",
+        "equipment_label": "المعدة المستخدَمة",
+        "select_machine": "اختر آلة",
+        "type_label": "نوع الخدمة",
+        "type_placeholder": "مثال: تسوية، حرث، حصاد...",
+        "client_label": "العميل / العضو",
+        "area_label": "المساحة (هكتار)",
+        "amount_label": "المبلغ الإجمالي (فرنك)",
+        "date_label": "تاريخ الإنجاز"
+      }
+    },
+    "rentabilite": {
+      "title": "ربحية أسطول المعدات",
+      "desc": "تحليل مالي (الإيرادات - النفقات - الإهلاك) حسب المعدة.",
+      "revenue": "إجمالي الإيرادات",
+      "expenses": "إجمالي النفقات",
+      "gross_balance": "الرصيد الإجمالي (الخزينة)",
+      "net_profit": "الربحية الصافية",
+      "net_profit_badge": "يشمل الإهلاك",
+      "headers": {
+        "equipment": "المعدة",
+        "revenue": "الإيرادات (الخدمات)",
+        "expenses": "النفقات (الاستهلاكات)",
+        "gross_balance": "الرصيد الإجمالي",
+        "depreciation": "الإهلاك التراكمي",
+        "net_result": "النتيجة الصافية"
+      },
+      "acq_value": "قيمة الاقتناء",
+      "empty": "لا توجد معدات مسجّلة."
+    }
+  },
+  "tresorerie_pages": {
+    "journaux": {
+      "no_account": "لم يُعثر على أي حساب. الرجاء إنشاء حساب أولاً.",
+      "title": "سجلات الصندوق والبنك",
+      "desc": "اختر حسابًا لعرض جميع عملياته مع الرصيد التراكمي.",
+      "select_account": "اختر حسابًا",
+      "add_operation": "تسجيل عملية",
+      "loading": "جارٍ تحميل السجل...",
+      "headers": {
+        "reason": "السبب",
+        "imputation": "التصنيف",
+        "in": "دخول",
+        "out": "خروج",
+        "balance": "الرصيد الجاري",
+        "actions": "إجراءات"
+      },
+      "initial_balance": "الرصيد الافتتاحي",
+      "edit_tooltip": "تعديل العملية",
+      "delete_tooltip": "حذف العملية",
+      "edit_title": "تعديل العملية",
+      "delete_title": "حذف العملية",
+      "delete_confirm_prefix": "هل أنت متأكد من رغبتك في حذف العملية",
+      "delete_confirm_suffix": "؟ سيُعاد حساب رصيد الحساب.",
+      "form": {
+        "title": "تسجيل عملية جديدة",
+        "type_label": "نوع العملية",
+        "type_in": "دخول أموال (+)",
+        "type_out": "خروج أموال (-)",
+        "piece_label": "نوع المستند (اختياري)",
+        "piece_none": "-- بدون --",
+        "piece_supplier": "دفع فاتورة مورّد",
+        "piece_withdrawal": "سحب نقدي",
+        "piece_deposit": "إيداع",
+        "amount_label": "المبلغ (فرنك)",
+        "reason_label": "السبب (الوصف)",
+        "reason_placeholder": "مثال: شراء يوريا من المورّد X",
+        "imputation_label": "التصنيف (اختياري)",
+        "imputation_none": "-- بدون --",
+        "campagne_label": "الموسم (اختياري)",
+        "campagne_none": "-- بدون --"
+      }
+    },
+    "imputations": {
+      "title": "قائمة التصنيفات",
+      "desc": "فئات تُستخدم لتصنيف عمليات الصندوق والبنك، ولبناء ميزانية المتابعة حسب الموسم.",
+      "add_btn": "تصنيف جديد",
+      "admin_only_notice": "يمكن فقط لمسؤول التعاونية إنشاء أو تعديل أو حذف تصنيف.",
+      "table": {
+        "libelle": "البند",
+        "compte": "البند الفرعي / المنصب",
+        "categorie": "النوع",
+        "nature": "الطبيعة",
+        "actions": "إجراءات",
+        "empty": "لم يُنشأ أي تصنيف بعد."
+      },
+      "modal": {
+        "create_title": "إنشاء تصنيف",
+        "edit_title": "تعديل التصنيف",
+        "libelle": "البند",
+        "libelle_placeholder": "مثال: مدخلات زراعية",
+        "compte": "البند الفرعي / المنصب",
+        "compte_placeholder": "مثال: سماد NPK",
+        "categorie": "نوع الميزانية",
+        "categorie_exploitation": "التشغيل",
+        "categorie_materiel": "المعدات",
+        "nature": "الطبيعة",
+        "nature_recette": "إيراد",
+        "nature_depense": "نفقة",
+        "delete_title": "حذف التصنيف",
+        "delete_confirm_prefix": "هل أنت متأكد من رغبتك في حذف التصنيف",
+        "delete_confirm_suffix": "؟"
+      }
+    },
+    "rapprochement": {
+      "no_campaigns": "لم يُعثر على أي موسم.",
+      "title": "المطابقة البنكية",
+      "desc": "حصيلة استخدام قرض البنك لموسم معيّن.",
+      "select_campaign": "اختر موسمًا",
+      "loading": "جارٍ تحميل الحصيلة...",
+      "credit_granted": "القرض الممنوح",
+      "supplier_payments": "مدفوعات الموردين",
+      "cash_withdrawals": "السحوبات النقدية",
+      "credit_balance": "رصيد القرض",
+      "supplier_payments_title": "مدفوعات الموردين",
+      "cash_withdrawals_title": "السحوبات النقدية",
+      "account_label": "الحساب",
+      "unknown_account": "غير معروف",
+      "no_payment": "لا توجد مدفوعات.",
+      "no_withdrawal": "لا توجد سحوبات."
+    }
+  },
+  "campagnes_detail": {
+    "back": "العودة إلى المواسم",
+    "config": {
+      "title": "الإعداد:",
+      "desc": "اختر الأعضاء المشاركين في هذا الموسم. الأعضاء المسجَّلون هنا فقط يمكنهم استلام المدخلات عند التوزيع.",
+      "enrollment_rate": "معدل التسجيل",
+      "members_unit": "أعضاء",
+      "intrants_title": "مدخلات الموسم",
+      "intrants_desc": "أضف المدخلات التي ستُوزَّع خلال هذا الموسم وحدّد سعر فوترتها للأعضاء.",
+      "select_intrant": "اختر مدخلاً",
+      "purchase_price": "الشراء",
+      "billing_price_placeholder": "سعر الفوترة (فرنك)",
+      "forfaitaire_price_locked": "مدخل بسعر ثابت: المبلغ المُدخَل عند التوزيع هو مباشرة المبلغ المفوتَر (السعر محدَّد بـ 1).",
+      "remove_confirm": "هل تريد فعلاً إزالة هذا المدخل من الموسم؟",
+      "edit_price_title": "تعديل السعر",
+      "remove_title": "إزالة المدخل",
+      "intrants_empty": "لم يُضَف أي مدخل إلى هذا الموسم.",
+      "enrolled_title": "الأعضاء المسجَّلون",
+      "headers": {
+        "member": "العضو",
+        "code": "الرمز",
+        "village": "القرية",
+        "superficie": "المساحة (هكتار)",
+        "enrolled": "مسجَّل في الموسم؟"
+      },
+      "empty": "لم يُعثر على أي عضو في التعاونية.",
+      "budget": {
+        "title": "التوقع المالي",
+        "desc": "حدّد الميزانية التوقعية لهذا الموسم حسب البند (إيراد أو نفقة)، لميزانية التشغيل وميزانية المعدات. بالنسبة للمعدات، البند هو المعدة والبند الفرعي هو نوع الخدمة أو الاستهلاك: يُستخرج الإنجاز تلقائيًا من الخدمات والاستهلاكات المسجَّلة لهذه المعدة.",
+        "exploitation_title": "ميزانية التشغيل",
+        "materiel_title": "ميزانية المعدات",
+        "recettes_title": "الإيرادات المتوقعة",
+        "depenses_title": "النفقات المتوقعة",
+        "solde": "الرصيد التوقعي",
+        "nature_recette": "إيراد",
+        "nature_depense": "نفقة",
+        "add_rubrique_placeholder_libelle": "البند",
+        "add_rubrique_placeholder_compte": "البند الفرعي / المنصب",
+        "add_rubrique_placeholder_type_prestation": "نوع الخدمة (مثال: حرث، حصاد...)",
+        "select_equipement": "اختر معدة",
+        "select_type": "اختر نوعًا",
+        "amount_placeholder": "المبلغ المتوقع (فرنك)",
+        "total": "الإجمالي",
+        "grand_total": "الرصيد الموحّد",
+        "empty": "لم يُنشأ أي بند لهذه الميزانية.",
+        "premium_required": "التوقع المالي مخصص لباقة Premium.",
+        "premium_upgrade_link": "عرض الباقات"
+      }
+    },
+    "bilan": {
+      "title": "التقرير:",
+      "desc": "إحصائيات التوزيعات، التقييم المالي، حالة الهوامش والديون النظرية.",
+      "not_found": "الموسم غير موجود.",
+      "print": "طباعة",
+      "kpis": {
+        "enrolled": "الأعضاء المسجَّلون",
+        "served": "المخدومون",
+        "served_unit": "أعضاء",
+        "total_billed": "الإجمالي المفوتَر",
+        "net_margin": "الهامش الصافي",
+        "operations": "العمليات",
+        "operations_unit": "مسجَّلة"
+      },
+      "margin_section": {
+        "title": "حالة الهامش حسب المدخل",
+        "desc": "مقارنة بين أسعار الشراء وأسعار الفوترة.",
+        "headers": {
+          "product": "المنتج",
+          "buy_price": "سعر الشراء",
+          "billed_price": "السعر المفوتَر",
+          "unit_margin": "الهامش/وحدة",
+          "total_qty": "إجمالي الكمية",
+          "global_margin": "الهامش الإجمالي"
+        },
+        "grand_total": "المجموع العام",
+        "empty": "لا توجد توزيعات مسجَّلة لهذا الموسم."
+      },
+      "debts_section": {
+        "title": "الديون والتسديدات حسب العضو",
+        "desc": "متابعة الديون المفوتَرة والتسديدات المنجزة.",
+        "headers": {
+          "beneficiary": "المستفيد",
+          "debt": "الدين (فرنك)",
+          "repayment": "السداد",
+          "balance": "الرصيد"
+        },
+        "settled": "مسدَّد",
+        "empty": "لم يستلم أي عضو مدخلات بعد.",
+        "grand_total": "المجموع العام"
+      },
+      "deliveries_section": {
+        "title": "حالة التسليمات حسب العضو",
+        "desc": "ملخص مفصّل للكميات والمبالغ المسلَّمة لكل عضو ولكل مدخل.",
+        "beneficiary": "المستفيد",
+        "quantity": "الكمية",
+        "amount": "المبلغ",
+        "interest": "الفائدة (فرنك)",
+        "total_global": "الإجمالي العام (فرنك)",
+        "grand_total": "المجموع العام",
+        "empty": "لا توجد تسليمات مسجَّلة لهذا الموسم."
+      }
+    }
+  },
+  "abonnement": {
+    "title": "اشتراكي",
+    "manage_desc": "أدر باقة تعاونيتك:",
+    "trial_locked": "انتهت فترة تجربتك وتم قفل الوصول إلى فضائك. اختر وسيلة دفع أدناه لمواصلة استخدام SIGGIE.",
+    "trial_remaining_prefix": "تبقّى لك",
+    "trial_remaining_day": "يوم",
+    "trial_remaining_days": "أيام",
+    "trial_remaining_suffix": "من التجربة المجانية. ادفع قبل نهاية التجربة لتجنّب قفل فضائك.",
+    "current_plan": "الباقة الحالية:",
+    "renewal": "تجديد سنوي -",
+    "upgrade_title": "الترقية",
+    "upgrade_desc": "انتقل إلى المستوى الأعلى بدفع الفرق فقط بين باقتك الحالية والباقة الجديدة.",
+    "current_badge": "الحالية",
+    "current_plan_btn": "الباقة الحالية",
+    "lower_tier": "مستوى أقل",
+    "pay_prefix": "دفع",
+    "plans": {
+      "standard": { "name": "Standard", "features": ["لوحة القيادة", "إدارة الأعضاء", "الاشتراكات", "القروض"] },
+      "medium": { "name": "Medium", "features": ["لوحة القيادة", "إدارة الأعضاء", "الاشتراكات", "القروض", "إدارة المعدات والمخزون"] },
+      "premium": { "name": "Premium", "features": ["لوحة القيادة", "إدارة الأعضاء", "الاشتراكات", "القروض", "إدارة المعدات والمخزون", "تقارير متابعة مالية متقدمة"] }
+    }
+  },
+  "remboursements": {
+    "title": "متابعة التسديدات",
+    "desc": "سجّل المدفوعات النقدية وعمليات الوزن الخاصة بالتسديدات العينية.",
+    "tabs": {
+      "factures": "الفواتير",
+      "stock_nature": "المخزون العيني"
+    },
+    "search": "البحث عن عضو...",
+    "list": {
+      "surplus": "فائض السداد: ",
+      "reste": "المتبقي: ",
+      "empty": "لم يُعثر على أي فاتورة."
+    },
+    "details": {
+      "title": "فاتورة",
+      "total_due": "الإجمالي المستحق",
+      "surplus": "فائض السداد",
+      "remaining": "المتبقي للدفع",
+      "record_payment": "تسجيل دفعة",
+      "cash": "نقدًا",
+      "nature": "عينيًا (وزن)",
+      "empty": "اختر عضوًا لعرض تسديداته"
+    }
+  },
+  "remboursements_pages": {
+    "stock_nature": {
+      "no_campaigns": "لم يُعثر على أي موسم.",
+      "title": "مخزون التسديد العيني",
+      "desc": "متابعة المدخلات (التسديدات المستلمة) والمبيعات والحسومات العينية، مع الرصيد الجاري للمخزون، حسب الموسم.",
+      "select_campaign": "اختر موسمًا",
+      "add_sortie": "تسجيل خروج",
+      "loading": "جارٍ تحميل المخزون...",
+      "current_stock": "المخزون الحالي",
+      "headers": {
+        "date": "التاريخ",
+        "type": "النوع",
+        "tiers": "الطرف",
+        "unit_price": "سعر الوحدة",
+        "quantity": "الكمية",
+        "balance": "الرصيد الجاري"
+      },
+      "type_entree": "دخول (تسديد)",
+      "type_vente": "بيع",
+      "type_ristourne": "حسم",
+      "empty": "لا توجد حركة مسجَّلة لهذا الموسم.",
+      "form": {
+        "title": "تسجيل خروج من المخزون",
+        "type_label": "نوع الخروج",
+        "tiers_type_label": "الطرف",
+        "tiers_type_membre": "عضو في التعاونية",
+        "tiers_type_client": "عميل خارجي",
+        "membre_label": "العضو",
+        "select_membre": "اختر عضوًا...",
+        "client_label": "العميل",
+        "select_client": "اختر عميلاً...",
+        "new_client_option": "+ عميل جديد...",
+        "client_placeholder": "اسم العميل الجديد",
+        "quantity_label": "الكمية (كغ)",
+        "price_label_vente": "سعر البيع للوحدة (فرنك/كغ)",
+        "price_label_ristourne": "القيمة التقديرية للوحدة (فرنك/كغ)",
+        "date_label": "التاريخ",
+        "motif_label": "السبب (اختياري)",
+        "motif_placeholder": "مثال: بيع في السوق الأسبوعي"
+      }
+    }
+  },
+  "bilans_pages": {
+    "releve_membre": {
+      "no_members": "لم يُعثر على أي عضو.",
+      "title": "كشف العضو",
+      "desc": "المبلغ المفوتَر والمبلغ المدفوع والرصيد التراكمي لكل عضو، موسمًا بموسم.",
+      "select_member": "اختر عضوًا",
+      "loading": "جارٍ تحميل الكشف...",
+      "current_balance": "الرصيد الحالي",
+      "headers": {
+        "season": "الموسم",
+        "date": "التاريخ",
+        "billed": "المبلغ المفوتَر",
+        "paid": "المبلغ المدفوع",
+        "balance": "الرصيد التراكمي"
+      },
+      "empty": "لا توجد فاتورة لهذا العضو."
+    },
+    "releve_client": {
+      "no_clients": "لا يوجد عميل مسجّل.",
+      "title": "كشف العميل",
+      "desc": "المبيعات والمدفوعات المستلمة من عميل خارجي، مع الرصيد التراكمي.",
+      "select_client": "اختر عميلاً",
+      "add_client": "عميل جديد",
+      "add_payment": "تسجيل دفعة",
+      "loading": "جارٍ تحميل الكشف...",
+      "current_balance": "الرصيد الحالي (دين مستحق)",
+      "headers": {
+        "date": "التاريخ",
+        "type": "النوع",
+        "quantity": "الكمية",
+        "unit_price": "سعر الوحدة",
+        "amount": "المبلغ",
+        "balance": "الرصيد التراكمي"
+      },
+      "type_sale": "بيع",
+      "type_payment": "دفعة مستلمة",
+      "empty": "لا توجد حركة لهذا العميل.",
+      "new_client_form": {
+        "title": "عميل جديد",
+        "name": "اسم العميل",
+        "name_placeholder": "مثال: متجر Ndiaganiao",
+        "phone": "الهاتف (اختياري)",
+        "submit": "إنشاء العميل"
+      },
+      "payment_form": {
+        "title": "تسجيل دفعة عميل",
+        "amount": "المبلغ المستلَم (فرنك)",
+        "date": "التاريخ",
+        "motif": "السبب (اختياري)",
+        "motif_placeholder": "مثال: تسديد جزئي",
+        "submit": "تسجيل الدفعة"
+      }
+    }
+  }
+}

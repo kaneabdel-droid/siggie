@@ -348,6 +348,26 @@
       "empty": "No invoice found."
     }
   },
+  "parametres": {
+    "title": "Settings",
+    "subtitle": "Cooperative information, shown on printed documents (invoices, receipts).",
+    "logoTitle": "Logo",
+    "changeLogo": "Change logo",
+    "addLogo": "Add a logo",
+    "uploading": "Uploading...",
+    "logoHint": "PNG or JPG, 2 MB maximum.",
+    "generalInfo": "General information",
+    "companyName": "Cooperative name",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "identification": "Tax identification (NINEA, RCCM or equivalent)",
+    "identificationPlaceholder": "E.g.: NINEA 0012345678",
+    "currency": "Working currency",
+    "currencyHint": "Used for every amount shown and printed in the application.",
+    "saved": "Saved",
+    "logoSaved": "Logo updated"
+  },
   "common": {
     "cancel": "Cancel",
     "close": "Close",

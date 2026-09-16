@@ -348,6 +348,26 @@
       "empty": "Aucune facture trouvée."
     }
   },
+  "parametres": {
+    "title": "Paramètres",
+    "subtitle": "Informations du GIE, affichées sur les documents imprimés (factures, reçus).",
+    "logoTitle": "Logo",
+    "changeLogo": "Changer le logo",
+    "addLogo": "Ajouter un logo",
+    "uploading": "Envoi...",
+    "logoHint": "PNG ou JPG, 2 Mo maximum.",
+    "generalInfo": "Informations générales",
+    "companyName": "Dénomination",
+    "address": "Adresse",
+    "phone": "Téléphone",
+    "email": "E-mail",
+    "identification": "Identification fiscale (NINEA, RCCM ou équivalent)",
+    "identificationPlaceholder": "Ex : NINEA 0012345678",
+    "currency": "Devise de travail",
+    "currencyHint": "Utilisée pour tous les montants affichés et imprimés dans l'application.",
+    "saved": "Enregistré",
+    "logoSaved": "Logo mis à jour"
+  },
   "common": {
     "cancel": "Annuler",
     "close": "Fermer",
