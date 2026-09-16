@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import LanguageSelector from '@/components/LanguageSelector'
 
 export default function ClientNavbar({ dict, currentLang }: { dict: any, currentLang: string }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [pricingMenuOpen, setPricingMenuOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-surface-border bg-background/80 backdrop-blur-md">
@@ -19,7 +20,19 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
           </Link>
           <nav className="hidden md:flex gap-6 items-center">
             <a href="#produits" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.products}</a>
-            <a href="#tarifs" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.pricing}</a>
+            <div className="relative" onMouseEnter={() => setPricingMenuOpen(true)} onMouseLeave={() => setPricingMenuOpen(false)}>
+              <button className="flex items-center gap-1 text-sm font-medium text-foreground-muted hover:text-primary transition-colors">
+                {dict.landing.nav.pricing} <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {pricingMenuOpen && (
+                <div className="absolute left-0 top-full pt-2 w-44">
+                  <div className="bg-background border border-surface-border rounded-lg shadow-xl py-1">
+                    <Link href="/tarifs" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">SIGGIE</Link>
+                    <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-QUINCA</a>
+                  </div>
+                </div>
+              )}
+            </div>
             <a href="#astuces" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.tips}</a>
           </nav>
           <div className="flex gap-2 sm:gap-4 items-center">
@@ -42,7 +55,13 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-surface-border bg-background/95 backdrop-blur-md px-4 py-4 space-y-4">
           <a href="#produits" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.products}</a>
-          <a href="#tarifs" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.pricing}</a>
+          <div>
+            <p className="text-base font-medium text-foreground mb-2">{dict.landing.nav.pricing}</p>
+            <div className="pl-4 space-y-2">
+              <Link href="/tarifs" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-medium text-foreground-muted hover:text-primary">SIGGIE</Link>
+              <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-QUINCA</a>
+            </div>
+          </div>
           <a href="#astuces" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.tips}</a>
           <hr className="border-surface-border" />
           <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.login}</Link>
