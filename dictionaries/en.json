@@ -32,9 +32,12 @@
       "siggie_desc": "The Integrated Management System for Economic Interest Groups and similar organizations. Manage your members, agricultural seasons, inputs and treasury in one click and much more.",
       "discover_link": "Discover SIGGIE",
       "subscribe_link": "Subscribe to SIGGIE",
-      "dquinca_desc": "The management solution for hardware stores in Africa. Track your inventory, sales and shops with ease.",
+      "dquinca_desc": "The management solution for hardware stores in Africa. Track your stock, sales, and stores with ease.",
       "discover_link_dquinca": "Discover D-QUINCA",
-      "subscribe_link_dquinca": "Subscribe to D-QUINCA"
+      "subscribe_link_dquinca": "Subscribe to D-QUINCA",
+      "dintrants_desc": "Your ally for agricultural inputs management. Optimize your stock and track your sales in real time.",
+      "discover_link_dintrants": "Discover D-INTRANTS",
+      "subscribe_link_dintrants": "Subscribe to D-INTRANTS"
     },
     "pricing": {
       "title": "Pricing adapted to your growth",

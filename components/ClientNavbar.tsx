@@ -29,6 +29,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
                   <div className="bg-background border border-surface-border rounded-lg shadow-xl py-1">
                     <Link href="/tarifs" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">SIGGIE</Link>
                     <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-QUINCA</a>
+                    <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-INTRANTS</a>
                   </div>
                 </div>
               )}
@@ -60,6 +61,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
             <div className="pl-4 space-y-2">
               <Link href="/tarifs" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-medium text-foreground-muted hover:text-primary">SIGGIE</Link>
               <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-QUINCA</a>
+              <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-INTRANTS</a>
             </div>
           </div>
           <a href="#astuces" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.tips}</a>
