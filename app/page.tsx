@@ -31,14 +31,6 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
               <p className="mt-4 text-xl md:text-2xl text-foreground-muted mb-10 leading-relaxed">
                 {dict.landing.hero.desc}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/tarifs" className="rounded-full bg-primary px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg hover:bg-primary-hover hover:scale-105 transition-all flex items-center justify-center gap-2">
-                  {dict.landing.hero.btn_offers} <ArrowRight className="w-5 h-5" />
-                </Link>
-                <Link href="/decouvrir-siggie" className="rounded-full bg-surface border border-surface-border px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-foreground hover:bg-black/5 transition-all flex items-center justify-center gap-2">
-                  {dict.landing.products.discover_link}
-                </Link>
-              </div>
             </div>
           </div>
           {/* Background decorative elements */}

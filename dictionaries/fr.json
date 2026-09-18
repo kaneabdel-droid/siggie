@@ -4,14 +4,12 @@
       "products": "Produits",
       "pricing": "Tarifs",
       "tips": "Astuces",
-      "login": "Connexion",
       "subscribe": "S'abonner"
     },
     "hero": {
       "title_1": "Simplifiez la gestion de votre",
       "title_2": "Entreprise",
-      "desc": "Demba Solution offre des solutions informatiques modernes et intuitives pour automatiser vos processus, suivre vos finances et booster votre productivité.",
-      "btn_offers": "Voir nos offres"
+      "desc": "Demba Solution offre des solutions informatiques modernes et intuitives pour automatiser vos processus, suivre vos finances et booster votre productivité."
     },
     "features": {
       "title": "L'excellence au service de votre activité",
