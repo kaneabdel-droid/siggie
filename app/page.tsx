@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store } from 'lucide-react'
+import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -32,11 +32,11 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 {dict.landing.hero.desc}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#tarifs" className="rounded-full bg-primary px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg hover:bg-primary-hover hover:scale-105 transition-all flex items-center justify-center gap-2">
+                <Link href="/tarifs" className="rounded-full bg-primary px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-white shadow-lg hover:bg-primary-hover hover:scale-105 transition-all flex items-center justify-center gap-2">
                   {dict.landing.hero.btn_offers} <ArrowRight className="w-5 h-5" />
-                </a>
-                <Link href="/login" className="rounded-full bg-surface border border-surface-border px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-foreground hover:bg-black/5 transition-all flex items-center justify-center gap-2">
-                  {dict.landing.hero.btn_client}
+                </Link>
+                <Link href="/decouvrir-siggie" className="rounded-full bg-surface border border-surface-border px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-foreground hover:bg-black/5 transition-all flex items-center justify-center gap-2">
+                  {dict.landing.products.discover_link}
                 </Link>
               </div>
             </div>
@@ -85,7 +85,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <h3 className="text-2xl font-bold mb-2">SIGGIE</h3>
                 <p className="text-foreground-muted mb-6">{dict.landing.products.siggie_desc}</p>
                 <Link href="/decouvrir-siggie" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link} <ArrowRight className="w-4 h-4" /></Link>
-                <Link href="#tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link} <ArrowRight className="w-4 h-4" /></Link>
+                <Link href="/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link} <ArrowRight className="w-4 h-4" /></Link>
               </div>
 
               {/* Produit 2 : D-QUINCA */}
@@ -111,67 +111,6 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
           </div>
         </section>
 
-        {/* Tarifs */}
-        <section id="tarifs" className="py-24 bg-background">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.pricing.title}</h2>
-              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">{dict.landing.pricing.desc}</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {/* Standard */}
-              <div className="rounded-3xl border border-surface-border p-8 bg-surface flex flex-col hover:shadow-xl transition-shadow">
-                <h3 className="text-2xl font-bold mb-2">Standard</h3>
-                <div className="mb-8">
-                  <span className="text-4xl font-extrabold">50.000</span>
-                  <span className="text-foreground-muted font-medium"> {dict.landing.pricing.per_year}</span>
-                </div>
-                <ul className="space-y-4 mb-8 flex-1">
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>{dict.landing.pricing.feature_membres}</span></li>
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>{dict.landing.pricing.feature_campagnes}</span></li>
-                </ul>
-                <Link href="/checkout?plan=standard" className="w-full rounded-xl bg-background border-2 border-primary text-primary px-4 py-3 font-bold text-center hover:bg-primary hover:text-white transition-colors">
-                  {dict.landing.pricing.choose_standard}
-                </Link>
-              </div>
-
-              {/* Medium */}
-              <div className="rounded-3xl border-2 border-primary p-8 bg-primary/5 flex flex-col relative transform md:-translate-y-4 shadow-2xl">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wide">{dict.landing.pricing.popular_badge}</div>
-                <h3 className="text-2xl font-bold mb-2 text-primary">Medium</h3>
-                <div className="mb-8">
-                  <span className="text-4xl font-extrabold text-primary">75.000</span>
-                  <span className="text-foreground-muted font-medium"> {dict.landing.pricing.per_year}</span>
-                </div>
-                <ul className="space-y-4 mb-8 flex-1">
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> <span>{dict.landing.pricing.feature_all_standard}</span></li>
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> <strong>{dict.landing.pricing.feature_materiel}</strong></li>
-                </ul>
-                <Link href="/checkout?plan=medium" className="w-full rounded-xl bg-primary text-white px-4 py-3 font-bold text-center hover:bg-primary-hover transition-colors shadow-lg shadow-primary/25">
-                  {dict.landing.pricing.choose_medium}
-                </Link>
-              </div>
-
-              {/* Premium */}
-              <div className="rounded-3xl border border-surface-border p-8 bg-surface flex flex-col hover:shadow-xl transition-shadow">
-                <h3 className="text-2xl font-bold mb-2">Premium</h3>
-                <div className="mb-8">
-                  <span className="text-4xl font-extrabold">100.000</span>
-                  <span className="text-foreground-muted font-medium"> {dict.landing.pricing.per_year}</span>
-                </div>
-                <ul className="space-y-4 mb-8 flex-1">
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>{dict.landing.pricing.feature_all_medium}</span></li>
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <strong>{dict.landing.pricing.feature_etats}</strong></li>
-                </ul>
-                <Link href="/checkout?plan=premium" className="w-full rounded-xl bg-background border-2 border-foreground text-foreground px-4 py-3 font-bold text-center hover:bg-foreground hover:text-background transition-colors">
-                  {dict.landing.pricing.choose_premium}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-        
         {/* Astuces & Blog */}
         <section id="astuces" className="py-24 bg-surface border-t border-surface-border">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">

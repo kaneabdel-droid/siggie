@@ -121,7 +121,7 @@ export default function CheckoutClient({
     <div className="min-h-screen bg-surface py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <Link href="/#tarifs" className="text-foreground-muted hover:text-primary flex items-center gap-2 w-fit transition-colors">
+          <Link href="/tarifs" className="text-foreground-muted hover:text-primary flex items-center gap-2 w-fit transition-colors">
             <ArrowLeft className="w-4 h-4" /> {d.back_offers}
           </Link>
         </div>

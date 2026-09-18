@@ -15,8 +15,8 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/logo-icon.png" alt="" width={248} height={260} className="h-9 w-auto" priority />
-            <span className="text-lg sm:text-xl font-bold font-heading text-primary">DEMBA SOLUTION</span>
+            <Image src="/logo-icon.png" alt="Demba Solution" width={248} height={260} className="h-8 w-auto sm:h-9" priority />
+            <span className="hidden sm:inline text-lg sm:text-xl font-bold font-heading text-primary whitespace-nowrap">DEMBA SOLUTION</span>
           </Link>
           <nav className="hidden md:flex gap-6 items-center">
             <a href="#produits" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.products}</a>
@@ -39,7 +39,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
           <div className="flex gap-2 sm:gap-4 items-center">
             <LanguageSelector currentLang={currentLang} />
             <Link href="/login" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors hidden sm:block">{dict.landing.nav.login}</Link>
-            <Link href="#tarifs" className="rounded-full bg-primary px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all">
+            <Link href="/tarifs" className="rounded-full bg-primary px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all">
               {dict.landing.nav.subscribe}
             </Link>
             <button 
