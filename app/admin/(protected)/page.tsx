@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, Wrench, ArrowUpRight, Clock } from 'lucide-react'
+import { Building2, Wrench, Package, ArrowUpRight, Clock } from 'lucide-react'
 
 // Chaque produit DembaSolution a son propre projet Supabase et son propre espace
 // /admin — pas de portail unifié (une seule connexion, une seule session) pour
@@ -22,6 +22,14 @@ const produits = [
     href: 'https://d-quinca.dembasolution.com/admin',
     externe: true,
     icon: Wrench,
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'D-INTRANTS',
+    description: "Gestion de boutiques d'intrants agricoles — stock, ventes, trésorerie multi-magasins.",
+    href: 'https://d-intrants.dembasolution.com/admin',
+    externe: true,
+    icon: Package,
     statut: 'en_ligne' as const,
   },
 ]
