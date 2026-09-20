@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 type Mouvement = {
   id: string
@@ -107,6 +108,8 @@ export async function addSortieStockNature(input: {
   motif?: string
   date_sortie?: string
 }) {
+  const denied = await requirePermission('stock_nature', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

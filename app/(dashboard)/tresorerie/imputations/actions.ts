@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function getImputations() {
   const supabase = await createClient()
@@ -24,6 +25,8 @@ function normalizeNature(nature?: string) {
 }
 
 export async function addImputation(libelle: string, compte: string, categorie?: string, nature?: string) {
+  const denied = await requirePermission('imputations', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -54,6 +57,8 @@ export async function addImputation(libelle: string, compte: string, categorie?:
 }
 
 export async function updateImputation(id: string, libelle: string, compte: string, categorie?: string, nature?: string) {
+  const denied = await requirePermission('imputations', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -81,6 +86,8 @@ export async function updateImputation(id: string, libelle: string, compte: stri
 }
 
 export async function deleteImputation(id: string) {
+  const denied = await requirePermission('imputations', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

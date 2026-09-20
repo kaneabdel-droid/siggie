@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { UserPlus } from 'lucide-react'
 import { creerUtilisateurPourGie } from '../actions'
+import PermissionsMatrix from './PermissionsMatrix'
+import { readOnlyPermissions, sanitizePermissions, type PermissionMap } from '@/lib/permissions'
 
 function genererMotDePasse(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
@@ -16,6 +18,8 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('employe')
+  const [custom, setCustom] = useState(true)
+  const [perms, setPerms] = useState<PermissionMap>(readOnlyPermissions())
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -25,6 +29,8 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
     setEmail('')
     setPassword('')
     setRole('employe')
+    setCustom(true)
+    setPerms(readOnlyPermissions())
     setMessage(null)
     setSuccess(null)
   }
@@ -35,7 +41,7 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
     setSuccess(null)
     startTransition(async () => {
       try {
-        const result = await creerUtilisateurPourGie(gieId, email, password, role)
+        const result = await creerUtilisateurPourGie(gieId, email, password, role, custom && role.trim() !== 'admin' ? sanitizePermissions(perms) : null)
         if (result.error) {
           setMessage(`Erreur : ${result.error}`)
         } else {
@@ -64,7 +70,7 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={close} />
 
-            <div className="relative transform overflow-hidden rounded-lg bg-surface text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-surface-border">
+            <div className="relative transform overflow-hidden rounded-lg bg-surface text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-surface-border">
               <div className="bg-surface px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                 <h3 className="text-lg font-semibold leading-6 text-foreground mb-4">
                   Ajouter un utilisateur à ce GIE
@@ -120,6 +126,19 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
                         className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                       />
                     </div>
+                    {role.trim() !== 'admin' && (
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <input type="checkbox" checked={custom} disabled={isPending} onChange={(e) => setCustom(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
+                          Restreindre les pages et actions accessibles
+                        </label>
+                        {custom ? (
+                          <PermissionsMatrix value={perms} onChange={setPerms} disabled={isPending} />
+                        ) : (
+                          <p className="text-xs text-foreground-muted">Accès complet à toutes les pages et actions.</p>
+                        )}
+                      </div>
+                    )}
                   </form>
                 )}
               </div>

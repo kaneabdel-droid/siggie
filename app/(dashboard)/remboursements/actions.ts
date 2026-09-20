@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function getFacturesPourRemboursement() {
   const supabase = await createClient()
@@ -31,6 +32,8 @@ export async function enregistrerRemboursement(
   quantiteNature?: number | null,
   produitNature?: string | null
 ) {
+  const denied = await requirePermission('remboursements', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

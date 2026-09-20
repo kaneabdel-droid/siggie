@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function getClients() {
   const supabase = await createClient()
@@ -16,6 +17,8 @@ export async function getClients() {
 }
 
 export async function addClient(nom: string, telephone?: string) {
+  const denied = await requirePermission('bilans_clients', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -122,6 +125,8 @@ export async function addPaiementClient(input: {
   date_paiement?: string
   motif?: string
 }) {
+  const denied = await requirePermission('bilans_clients', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import LanguageSelector from '@/components/LanguageSelector'
+import { hasPermission, moduleForPath, type PermissionMap } from '@/lib/permissions'
 import { 
   LayoutDashboard, 
   Users, 
@@ -26,12 +27,16 @@ import {
 export default function ClientLayout({
   children,
   subscriptionTier,
+  role,
+  permissions,
   gieName,
   dict,
   locale
 }: {
   children: React.ReactNode
   subscriptionTier: string
+  role: string
+  permissions: PermissionMap | null
   gieName: string
   dict: any
   locale: string
@@ -67,6 +72,8 @@ export default function ClientLayout({
     if (subscriptionTier === 'medium') {
       if (item.href === '/bilans') return false
     }
+    const moduleKey = moduleForPath(item.href)
+    if (moduleKey && !hasPermission(role, permissions, moduleKey, 'read')) return false
     return true
   })
 

@@ -2,8 +2,11 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function addCampagne(formData: FormData) {
+  const denied = await requirePermission('campagnes', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -41,6 +44,8 @@ export async function addCampagne(formData: FormData) {
 }
 
 export async function updateCampagne(id: string, formData: FormData) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const data = {
@@ -69,6 +74,8 @@ export async function updateCampagne(id: string, formData: FormData) {
 }
 
 export async function deleteCampagne(id: string) {
+  const denied = await requirePermission('campagnes', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase

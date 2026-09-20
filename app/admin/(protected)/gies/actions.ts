@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getSharedAdminUser } from '@/utils/supabase/admin-identity'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/auth'
+import { sanitizePermissions, type PermissionMap } from '@/lib/permissions'
 
 type ActionResult = { success?: true; error?: string }
 
@@ -88,7 +89,8 @@ export async function creerUtilisateurPourGie(
   gieId: string,
   email: string,
   password: string,
-  role: string
+  role: string,
+  permissions: PermissionMap | null = null
 ): Promise<ActionResult> {
   const authError = await checkAdmin()
   if (authError) return { error: authError }
@@ -100,12 +102,43 @@ export async function creerUtilisateurPourGie(
   // `existing_gie_id` dans les métadonnées indique au trigger handle_new_user()
   // de rattacher ce compte au GIE existant plutôt que d'en créer un nouveau
   // (comportement par défaut de toute création dans auth.users).
-  const { error } = await supabase.auth.admin.createUser({
+  const { data: created, error } = await supabase.auth.admin.createUser({
     email: email.trim(),
     password,
     email_confirm: true,
     user_metadata: { existing_gie_id: gieId, role: role.trim() || 'employe' },
   })
+  if (error) return { error: error.message }
+
+  // Le trigger handle_new_user() a déjà créé la ligne utilisateurs : on y ajoute les droits.
+  // Sans droits fournis (null), le compte garde l'accès complet.
+  if (permissions && created.user) {
+    const { error: permError } = await supabase
+      .from('utilisateurs')
+      .update({ permissions: sanitizePermissions(permissions) })
+      .eq('id', created.user.id)
+    if (permError) return { error: `Compte créé, mais les permissions n'ont pas pu être enregistrées (${permError.message}). Réessayez depuis la liste des utilisateurs.` }
+  }
+
+  revalidatePath(`/admin/gies/${gieId}`)
+  return { success: true }
+}
+
+// permissions = null : accès complet (comportement historique).
+export async function changerPermissionsUtilisateur(
+  gieId: string,
+  utilisateurId: string,
+  permissions: PermissionMap | null
+): Promise<ActionResult> {
+  const authError = await checkAdmin()
+  if (authError) return { error: authError }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from('utilisateurs')
+    .update({ permissions: permissions ? sanitizePermissions(permissions) : null })
+    .eq('id', utilisateurId)
+    .eq('gie_id', gieId)
   if (error) return { error: error.message }
 
   revalidatePath(`/admin/gies/${gieId}`)

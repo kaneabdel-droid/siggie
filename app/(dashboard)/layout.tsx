@@ -20,6 +20,8 @@ export default async function DashboardLayout({
   return (
     <ClientLayout
       subscriptionTier={tenant.subscriptionTier}
+      role={tenant.role}
+      permissions={tenant.permissions}
       gieName={tenant.gieName}
       dict={dict}
       locale={locale}

@@ -2,8 +2,11 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function toggleMembreCampagne(campagne_id: string, membre_id: string, isEnrolled: boolean) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -52,6 +55,8 @@ export async function toggleMembreCampagne(campagne_id: string, membre_id: strin
 }
 
 export async function updateSuperficieCampagneMembre(campagne_id: string, membre_id: string, superficie: number) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -67,6 +72,8 @@ export async function updateSuperficieCampagneMembre(campagne_id: string, membre
 }
 
 export async function addCampagneIntrant(campagne_id: string, intrant_id: string, prix_facturation: number) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -97,6 +104,8 @@ export async function addCampagneIntrant(campagne_id: string, intrant_id: string
 }
 
 export async function removeCampagneIntrant(campagne_intrant_id: string, campagne_id: string) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -112,6 +121,8 @@ export async function removeCampagneIntrant(campagne_intrant_id: string, campagn
 }
 
 export async function updateCampagneIntrant(campagne_intrant_id: string, campagne_id: string, prix_facturation: number) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -127,6 +138,8 @@ export async function updateCampagneIntrant(campagne_intrant_id: string, campagn
 }
 
 export async function addRubrique(categorie: string, nature: string, libelle: string, compte: string) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -163,6 +176,8 @@ export async function addRubrique(categorie: string, nature: string, libelle: st
 }
 
 export async function setBudgetPrevision(campagne_id: string, imputation_id: string, montant_prevu: number) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

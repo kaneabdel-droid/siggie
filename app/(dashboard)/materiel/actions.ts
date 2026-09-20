@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function getMateriels() {
   const supabase = await createClient()
@@ -31,6 +32,8 @@ export async function addMateriel(
   fournisseur: string,
   type_materiel: string
 ) {
+  const denied = await requirePermission('materiel', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -64,6 +67,8 @@ export async function addMateriel(
 }
 
 export async function updateMaterielEtat(id: string, nouvelEtat: string) {
+  const denied = await requirePermission('materiel', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -87,6 +92,8 @@ export async function updateMateriel(
   fournisseur: string,
   type_materiel: string
 ) {
+  const denied = await requirePermission('materiel', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -110,6 +117,8 @@ export async function updateMateriel(
 
 
 export async function deleteMateriel(id: string) {
+  const denied = await requirePermission('materiel', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -149,6 +158,8 @@ export async function addPrestation(
   montant_facture: number,
   date_prestation: string
 ) {
+  const denied = await requirePermission('materiel_prestations', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -181,6 +192,8 @@ export async function addPrestation(
 }
 
 export async function deletePrestation(id: string) {
+  const denied = await requirePermission('materiel_prestations', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -298,6 +311,8 @@ export async function addConsommation(
   montant_total: number,
   date_consommation: string
 ) {
+  const denied = await requirePermission('materiel_consommations', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -330,6 +345,8 @@ export async function addConsommation(
 }
 
 export async function deleteConsommation(id: string) {
+  const denied = await requirePermission('materiel_consommations', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -352,6 +369,8 @@ export async function updatePrestation(
   montant_facture: number,
   date_prestation: string
 ) {
+  const denied = await requirePermission('materiel_prestations', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -384,6 +403,8 @@ export async function updateConsommation(
   montant_total: number,
   date_consommation: string
 ) {
+  const denied = await requirePermission('materiel_consommations', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase

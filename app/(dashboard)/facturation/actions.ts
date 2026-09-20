@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function getFactures() {
   const supabase = await createClient()
@@ -28,6 +29,8 @@ export async function getFactures() {
 // (factures.montant_interet) pour ne jamais être écrasé par une régénération de la
 // facturation groupée.
 export async function calculerInteret(campagneId: string, methode: 'superficie' | 'intrants') {
+  const denied = await requirePermission('facturation', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -106,6 +109,8 @@ export async function calculerInteret(campagneId: string, methode: 'superficie' 
 }
 
 export async function genererFacturesCampagne(campagneId: string) {
+  const denied = await requirePermission('facturation', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

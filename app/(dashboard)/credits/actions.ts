@@ -2,8 +2,11 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function addCredit(formData: FormData) {
+  const denied = await requirePermission('credits', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -43,6 +46,8 @@ export async function updateCreditStatus(
   taux_interet?: number,
   duree_credit?: number
 ) {
+  const denied = await requirePermission('credits', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const data: any = { statut }
@@ -71,6 +76,8 @@ export async function updateCreditStatus(
 }
 
 export async function deleteCredit(id: string) {
+  const denied = await requirePermission('credits', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -88,6 +95,8 @@ export async function deleteCredit(id: string) {
 }
 
 export async function addDecaissementCredit(formData: FormData) {
+  const denied = await requirePermission('credits', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -124,6 +133,8 @@ export async function addDecaissementCredit(formData: FormData) {
 }
 
 export async function addRemboursementCredit(formData: FormData) {
+  const denied = await requirePermission('credits', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

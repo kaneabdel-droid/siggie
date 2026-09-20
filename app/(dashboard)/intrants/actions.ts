@@ -3,8 +3,11 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { isStockableType } from '@/lib/intrants/types'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function addIntrant(formData: FormData) {
+  const denied = await requirePermission('intrants', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -43,6 +46,8 @@ export async function addIntrant(formData: FormData) {
 }
 
 export async function updateIntrant(id: string, formData: FormData) {
+  const denied = await requirePermission('intrants', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const typeIntrant = formData.get('type_intrant') as string
@@ -70,6 +75,8 @@ export async function updateIntrant(id: string, formData: FormData) {
 }
 
 export async function deleteIntrant(id: string) {
+  const denied = await requirePermission('intrants', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -87,6 +94,8 @@ export async function deleteIntrant(id: string) {
 }
 
 export async function buyIntrant(formData: FormData) {
+  const denied = await requirePermission('intrants', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

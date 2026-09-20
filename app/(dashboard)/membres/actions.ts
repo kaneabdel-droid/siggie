@@ -2,8 +2,11 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function addMembre(formData: FormData) {
+  const denied = await requirePermission('membres', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   // Récupérer le gie_id de l'utilisateur connecté
@@ -40,6 +43,8 @@ export async function addMembre(formData: FormData) {
 }
 
 export async function updateMembre(id: string, formData: FormData) {
+  const denied = await requirePermission('membres', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const data = {
@@ -66,6 +71,8 @@ export async function updateMembre(id: string, formData: FormData) {
 }
 
 export async function deleteMembre(id: string) {
+  const denied = await requirePermission('membres', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { error } = await supabase

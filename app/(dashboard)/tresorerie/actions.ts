@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 export async function getComptes() {
   const supabase = await createClient()
@@ -40,6 +41,8 @@ export async function getComptes() {
 }
 
 export async function addCompte(nom: string, type_compte: string, solde_initial: number) {
+  const denied = await requirePermission('tresorerie', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -69,6 +72,8 @@ export async function addCompte(nom: string, type_compte: string, solde_initial:
 }
 
 export async function addTransaction(data: { compte_id: string, type_transaction: string, montant: number, motif: string, credit_id?: string, type_piece?: string, imputation_id?: string, campagne_id?: string }) {
+  const denied = await requirePermission('tresorerie', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -103,6 +108,8 @@ export async function addTransaction(data: { compte_id: string, type_transaction
 }
 
 export async function updateTransaction(id: string, data: { type_transaction: string, montant: number, motif: string, type_piece?: string, imputation_id?: string, campagne_id?: string }) {
+  const denied = await requirePermission('tresorerie', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -128,6 +135,8 @@ export async function updateTransaction(id: string, data: { type_transaction: st
 }
 
 export async function deleteTransaction(id: string) {
+  const denied = await requirePermission('tresorerie', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

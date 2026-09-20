@@ -4,10 +4,13 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { estDeviseValide } from '@/lib/currency'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 type ActionResult = { success?: true; error?: string; logoUrl?: string }
 
 export async function updateGieInfos(formData: FormData): Promise<ActionResult> {
+  const denied = await requirePermission('parametres', 'update')
+  if (denied) return denied as never
   const tenant = await getTenantContext()
   if (!tenant) return { error: 'Non autorisé' }
   const supabase = await createClient()
@@ -40,6 +43,8 @@ export async function updateGieInfos(formData: FormData): Promise<ActionResult> 
 // indépendamment des autres champs via update_gie_logo, une fois l'upload
 // Storage terminé et l'URL publique connue.
 export async function uploadLogo(formData: FormData): Promise<ActionResult> {
+  const denied = await requirePermission('parametres', 'update')
+  if (denied) return denied as never
   const tenant = await getTenantContext()
   if (!tenant) return { error: 'Non autorisé' }
   const supabase = await createClient()

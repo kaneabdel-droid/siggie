@@ -3,15 +3,20 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { isStockableType } from '@/lib/intrants/types'
+import { requirePermission } from '@/utils/supabase/permissions'
 
 // Conserver l'ancienne fonction au cas où
 export async function addDistribution(formData: FormData) {
+  const denied = await requirePermission('distribution', 'create')
+  if (denied) return denied as never
   // ... existing code ...
   // (We'll just leave it or rewrite it if needed, but since we are replacing the UI, let's write the new functions)
 }
 
 // Option 1 : Distribution par Intrant
 export async function addDistributionsByIntrant(campagne_id: string, intrant_id: string, distributions: { membre_id: string, quantite: number }[]) {
+  const denied = await requirePermission('distribution', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -75,6 +80,8 @@ export async function addDistributionsByIntrant(campagne_id: string, intrant_id:
 
 // Option 2 : Distribution par Membre
 export async function addDistributionsByMembre(campagne_id: string, membre_id: string, distributions: { intrant_id: string, quantite: number }[]) {
+  const denied = await requirePermission('distribution', 'create')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -136,6 +143,8 @@ export async function addDistributionsByMembre(campagne_id: string, membre_id: s
 }
 
 export async function deleteDistribution(id: string) {
+  const denied = await requirePermission('distribution', 'delete')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   // On récupère d'abord les infos de la distribution pour restaurer le stock
@@ -180,6 +189,8 @@ export async function deleteDistribution(id: string) {
 }
 
 export async function updateDistribution(id: string, newQuantite: number) {
+  const denied = await requirePermission('distribution', 'update')
+  if (denied) return denied as never
   const supabase = await createClient()
 
   const { data: distribution } = await supabase

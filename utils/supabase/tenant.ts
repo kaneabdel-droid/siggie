@@ -1,10 +1,12 @@
 import { cache } from 'react'
 import { createClient } from './server'
+import type { PermissionMap } from '@/lib/permissions'
 
 export type TenantContext = {
   userId: string
   gieId: string
   role: string
+  permissions: PermissionMap | null
   gieName: string
   subscriptionTier: string
 }
@@ -24,7 +26,7 @@ export const getTenantContext = cache(async (): Promise<TenantContext | null> =>
 
   const { data } = await supabase
     .from('utilisateurs')
-    .select('gie_id, role, gies(nom, subscription_tier)')
+    .select('gie_id, role, permissions, gies(nom, subscription_tier)')
     .eq('id', user.id)
     .single()
 
@@ -36,6 +38,7 @@ export const getTenantContext = cache(async (): Promise<TenantContext | null> =>
     userId: user.id,
     gieId: data.gie_id,
     role: data.role,
+    permissions: (data.permissions as PermissionMap | null) ?? null,
     gieName: gie?.nom || 'Mon GIE',
     subscriptionTier: gie?.subscription_tier || 'standard',
   }

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminEmail } from '@/lib/admin/auth'
 import { createAdminIdentityMiddlewareClient } from '@/utils/supabase/admin-identity'
+import { firstAllowedPath, hasPermission, moduleForPath, type PermissionMap } from '@/lib/permissions'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -107,7 +108,7 @@ export async function updateSession(request: NextRequest) {
   if (user && !exemptFromTrialLock) {
     const { data: userData } = await supabase
       .from('utilisateurs')
-      .select('gies(essai_expire_le, compte_verrouille)')
+      .select('role, permissions, gies(essai_expire_le, compte_verrouille)')
       .eq('id', user.id)
       .single()
 
@@ -120,6 +121,21 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/abonnement'
       url.searchParams.set('essai_expire', '1')
       return NextResponse.redirect(url)
+    }
+
+    // Droits par page : un utilisateur sans "lecture" sur le module de cette URL
+    // est renvoyé vers la première page qui lui est ouverte. Les server actions
+    // d'écriture revérifient chacune leur droit (requirePermission).
+    const moduleKey = moduleForPath(pathname)
+    if (moduleKey) {
+      const role = userData?.role as string | undefined
+      const permissions = (userData?.permissions as PermissionMap | null) ?? null
+      if (!hasPermission(role, permissions, moduleKey, 'read')) {
+        const url = request.nextUrl.clone()
+        url.pathname = firstAllowedPath(role, permissions)
+        url.search = ''
+        if (url.pathname !== pathname) return NextResponse.redirect(url)
+      }
     }
   }
 
