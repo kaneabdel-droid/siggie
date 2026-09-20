@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Receipt, Package } from 'lucide-react'
+import { Receipt, Package, Coins } from 'lucide-react'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function RemboursementsLayout({
@@ -35,6 +35,13 @@ export default async function RemboursementsLayout({
         >
           <Package className="w-4 h-4" />
           {dict.remboursements.tabs.stock_nature}
+        </Link>
+        <Link
+          href="/remboursements/ristournes"
+          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+        >
+          <Coins className="w-4 h-4" />
+          {dict.remboursements.tabs.ristournes}
         </Link>
       </nav>
 

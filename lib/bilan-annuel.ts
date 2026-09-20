@@ -7,9 +7,9 @@ export type BilanRaw = {
   intrants: { id: string; quantite_stock: number | null; prix_unitaire: number | null }[]
   achats: { intrant_id: string; quantite: number | null; prix_unitaire: number | null; date_achat: string }[]
   distributions: { intrant_id: string; quantite: number | null; date_distribution: string | null }[]
-  factures: { id: string; campagne_id: string | null; montant_total: number | null; montant_interet: number | null; date_emission: string | null }[]
-  remboursements: { facture_id: string; type_remboursement: string; montant_fcfa: number | null; quantite_nature: number | null; date_paiement: string | null }[]
-  sorties: { campagne_id: string; type_sortie: string; tiers_type: string; quantite: number | null; prix_unitaire: number | null; date_sortie: string }[]
+  factures: { id: string; membre_id: string | null; campagne_id: string | null; montant_total: number | null; montant_interet: number | null; date_emission: string | null }[]
+  remboursements: { facture_id: string; membre_id: string | null; type_remboursement: string; montant_fcfa: number | null; quantite_nature: number | null; date_paiement: string | null }[]
+  sorties: { campagne_id: string; membre_id: string | null; type_sortie: string; tiers_type: string; quantite: number | null; prix_unitaire: number | null; date_sortie: string }[]
   campagnes: { id: string; prix_collecte: number | null }[]
   paiementsClients: { montant: number | null; date_paiement: string }[]
   materiels: { valeur_acquisition: number | null; duree_vie_economique: number | null; date_acquisition: string | null }[]
@@ -17,6 +17,7 @@ export type BilanRaw = {
   consommations: { montant_total: number | null; date_consommation: string }[]
   comptes: { solde_initial: number | null }[]
   transactions: { type_transaction: string; montant: number | null; date_transaction: string | null; type_piece: string | null; credit_id: string | null }[]
+  ristournes: { membre_id: string; montant: number | null; date_ristourne: string }[]
   credits: { id: string; statut: string | null; montant_accorde: number | null; taux_interet: number | null; duree_credit: number | null; date_demande: string | null }[]
 }
 
@@ -133,9 +134,22 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
     return Math.max(0, entrees - sorties) * (prixCollecte.get(c.id) || 0)
   })
 
-  const creancesMembres =
-    somme(raw.factures.filter((f) => avant(f.date_emission, fin)), (f) => n(f.montant_total) + n(f.montant_interet)) -
-    somme(raw.remboursements.filter((r) => avant(r.date_paiement, fin)), (r) => n(r.montant_fcfa))
+  // Solde par membre = facturé - remboursé + ristournes. Une ristourne rend au membre son surplus
+  // de remboursement (en nature ou en numéraire) : elle réduit ce qu'il a remboursé. Un solde
+  // positif est une créance du GIE ; un solde négatif (surplus non encore rendu) est une dette
+  // du GIE envers le membre, à porter au passif et non en créance négative.
+  const soldeMembre = new Map<string, number>()
+  const ajouter = (id: string | null, v: number) => soldeMembre.set(id ?? 'externe', (soldeMembre.get(id ?? 'externe') || 0) + v)
+  for (const f of raw.factures.filter((x) => avant(x.date_emission, fin))) ajouter(f.membre_id, n(f.montant_total) + n(f.montant_interet))
+  for (const r of raw.remboursements.filter((x) => avant(x.date_paiement, fin))) ajouter(r.membre_id, -n(r.montant_fcfa))
+  for (const s of raw.sorties.filter((x) => x.type_sortie === 'ristourne' && x.tiers_type === 'membre' && x.membre_id && avant(x.date_sortie, fin))) {
+    ajouter(s.membre_id, n(s.quantite) * n(s.prix_unitaire))
+  }
+  // Ristournes en numéraire (commande Ristourne du module Remboursements).
+  for (const r of raw.ristournes.filter((x) => avant(x.date_ristourne, fin))) ajouter(r.membre_id, n(r.montant))
+  const soldes = [...soldeMembre.values()]
+  const creancesMembres = somme(soldes, (v) => Math.max(0, v))
+  const dettesMembres = somme(soldes, (v) => Math.max(0, -v))
   const creancesClients =
     somme(raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && avant(s.date_sortie, fin)), (s) => n(s.quantite) * n(s.prix_unitaire)) -
     somme(raw.paiementsClients.filter((p) => avant(p.date_paiement, fin)), (p) => n(p.montant))
@@ -160,9 +174,11 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   // ---- Compte de résultat ----
   const ventes = somme(raw.factures.filter((f) => dansAnnee(f.date_emission, annee)), (f) => n(f.montant_total) + n(f.montant_interet))
 
+  // Uniquement la vente du produit issu des remboursements en nature (stock en nature) ;
+  // la vente d'intrants aux membres est dans "ventes" (factures), les ristournes sont prises en compte dans le solde de chaque membre.
   let gain = 0
   let perte = 0
-  for (const s of raw.sorties.filter((x) => dansAnnee(x.date_sortie, annee))) {
+  for (const s of raw.sorties.filter((x) => x.type_sortie === 'vente' && dansAnnee(x.date_sortie, annee))) {
     const ecart = (n(s.prix_unitaire) - (prixCollecte.get(s.campagne_id) || 0)) * n(s.quantite)
     if (ecart >= 0) gain += ecart
     else perte += -ecart
@@ -198,12 +214,13 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
       somme(tresoAvant.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsCredits.has(t.credit_id)), (t) => n(t.montant))
   )
 
-  const dettes = Math.max(
+  const dettesFournisseurs = Math.max(
     0,
     somme(raw.achats.filter((a) => avant(a.date_achat, fin)), (a) => n(a.quantite) * n(a.prix_unitaire)) -
       somme(tresoAvant.filter((t) => t.type_transaction === 'sortie' && t.type_piece === 'facture_fournisseur'), (t) => n(t.montant))
   )
 
+  const dettes = dettesFournisseurs + dettesMembres
   const subventions = n(saisies.subventions)
   const emprunts = n(saisies.emprunts)
   // Capital = solde du bilan : ce qu'il faut pour équilibrer le total du passif avec l'actif net.

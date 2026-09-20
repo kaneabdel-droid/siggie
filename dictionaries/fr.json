@@ -1125,7 +1125,8 @@
     "desc": "Enregistrez les paiements en numéraire et les pesées pour les remboursements en nature.",
     "tabs": {
       "factures": "Factures",
-      "stock_nature": "Stock en Nature"
+      "stock_nature": "Stock en Nature",
+      "ristournes": "Ristournes"
     },
     "search": "Rechercher un membre...",
     "list": {
@@ -1287,18 +1288,18 @@
     "notes": {
       "immobilisations": "Matériel : valeur d'acquisition, amortissement linéaire cumulé",
       "stocks": "Stock d'intrants (dernier prix) + stock en nature (prix de collecte)",
-      "creances": "Solde des comptes clients : factures membres non remboursées + clients externes",
+      "creances": "Solde des comptes clients : par membre, factures - remboursements + ristournes (si positif), plus clients externes",
       "disponibilites": "Solde des comptes de trésorerie",
       "capital": "Solde du bilan (équilibre actif / passif)",
       "resultat_passif": "Voir compte de résultat",
       "a_saisir": "À saisir",
-      "dettes": "Solde des comptes fournisseurs : achats d'intrants non réglés",
+      "dettes": "Solde des comptes fournisseurs (achats non réglés) + surplus de remboursement dû aux membres (solde négatif d'un membre)",
       "credits_tresorerie": "Restant dû des crédits de campagne validés",
       "ventes": "Total des factures membres (intérêts refacturés inclus)",
-      "gain_remboursement": "Prix de vente - prix de collecte (sorties du stock en nature)",
+      "gain_remboursement": "Ventes du produit issu des remboursements : (prix de vente - prix de collecte) × quantité",
       "prestations": "Total des prestations du matériel",
       "achats": "Achats de l'année",
-      "perte_remboursement": "Prix de vente - prix de collecte (si négatif)",
+      "perte_remboursement": "Idem, lorsque le prix de vente est inférieur au prix de collecte",
       "charges_materiel": "Consommations + dotation aux amortissements de l'année",
       "interets": "Intérêts des crédits validés (taux × durée)",
       "resultat": "Total produits - total charges",
@@ -1307,5 +1308,34 @@
     "footnote": "Les montants « à saisir » se renseignent par exercice ; changez d'exercice pour saisir ceux de l'année précédente. Le stock, les soldes et l'amortissement des exercices passés sont reconstitués à partir de l'historique (au dernier prix connu pour les stocks).",
     "read_only": "Vous n'avez pas le droit de modifier les montants saisis.",
     "export_pdf": "Télécharger PDF"
+  },
+  "ristournes": {
+    "title": "Ristournes aux membres",
+    "desc": "Surplus de remboursement rendu à un membre : la ristourne sort de la trésorerie et vient en réduction de ce qu'il a remboursé.",
+    "surplus_title": "Surplus de remboursement à rendre",
+    "surplus_desc": "Surplus = remboursé - facturé - ristournes déjà rendues (en numéraire ou en nature).",
+    "no_surplus": "Aucun membre n'a de surplus à récupérer.",
+    "cols": {
+      "membre": "Membre",
+      "facture": "Facturé",
+      "rembourse": "Remboursé",
+      "ristournes": "Ristournes rendues",
+      "surplus": "Surplus à rendre"
+    },
+    "give_back": "Rendre",
+    "form_title": "Nouvelle ristourne en numéraire",
+    "select_member": "Choisir un membre",
+    "amount": "Montant",
+    "account": "Compte de trésorerie",
+    "date": "Date",
+    "motif": "Motif (optionnel)",
+    "form_hint": "Crée une sortie de trésorerie sur le compte choisi.",
+    "submit": "Enregistrer la ristourne",
+    "saving": "Enregistrement...",
+    "history_title": "Historique des ristournes en numéraire",
+    "no_history": "Aucune ristourne enregistrée.",
+    "delete": "Supprimer",
+    "confirm_delete": "Supprimer cette ristourne et sa sortie de trésorerie ?",
+    "nature_hint": "Les ristournes en nature s'enregistrent dans « Stock en nature » (sortie de type Ristourne) ; elles sont prises en compte dans le surplus ci-dessus."
   }
 }

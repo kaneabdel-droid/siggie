@@ -1125,7 +1125,8 @@
     "desc": "Record cash payments and weighings for repayments in kind.",
     "tabs": {
       "factures": "Invoices",
-      "stock_nature": "In-Kind Stock"
+      "stock_nature": "In-Kind Stock",
+      "ristournes": "Rebates"
     },
     "search": "Search for a member...",
     "list": {
@@ -1287,18 +1288,18 @@
     "notes": {
       "immobilisations": "Equipment: acquisition cost, cumulative straight-line depreciation",
       "stocks": "Input stock (latest price) + in-kind stock (collection price)",
-      "creances": "Customer accounts balance: unpaid member invoices + external customers",
+      "creances": "Customer accounts balance: per member, invoices - repayments + rebates (if positive), plus external customers",
       "disponibilites": "Balance of treasury accounts",
       "capital": "Balancing figure (assets / liabilities)",
       "resultat_passif": "See income statement",
       "a_saisir": "To be entered",
-      "dettes": "Supplier accounts balance: unpaid input purchases",
+      "dettes": "Supplier accounts balance (unpaid purchases) + repayment surplus owed to members (a member's negative balance)",
       "credits_tresorerie": "Remaining balance of validated campaign credits",
       "ventes": "Total member invoices (re-invoiced interest included)",
-      "gain_remboursement": "Sale price - collection price (in-kind stock outflows)",
+      "gain_remboursement": "Sales of the product received as repayment: (sale price - collection price) × quantity",
       "prestations": "Total equipment services",
       "achats": "Year's purchases",
-      "perte_remboursement": "Sale price - collection price (when negative)",
+      "perte_remboursement": "Same, when the sale price is below the collection price",
       "charges_materiel": "Consumption + the year's depreciation charge",
       "interets": "Interest on validated credits (rate × duration)",
       "resultat": "Total income - total expenses",
@@ -1307,5 +1308,34 @@
     "footnote": "Amounts \"to be entered\" are recorded per fiscal year; switch year to enter the previous year's. Past-year stock, balances and depreciation are rebuilt from history (stocks at the latest known price).",
     "read_only": "You are not allowed to edit the entered amounts.",
     "export_pdf": "Download PDF"
+  },
+  "ristournes": {
+    "title": "Member rebates",
+    "desc": "Repayment surplus given back to a member: the rebate leaves the treasury and reduces what the member has repaid.",
+    "surplus_title": "Repayment surplus to give back",
+    "surplus_desc": "Surplus = repaid - invoiced - rebates already given (cash or in kind).",
+    "no_surplus": "No member has a surplus to recover.",
+    "cols": {
+      "membre": "Member",
+      "facture": "Invoiced",
+      "rembourse": "Repaid",
+      "ristournes": "Rebates given",
+      "surplus": "Surplus to give back"
+    },
+    "give_back": "Give back",
+    "form_title": "New cash rebate",
+    "select_member": "Select a member",
+    "amount": "Amount",
+    "account": "Treasury account",
+    "date": "Date",
+    "motif": "Reason (optional)",
+    "form_hint": "Creates a treasury outflow on the selected account.",
+    "submit": "Record rebate",
+    "saving": "Saving...",
+    "history_title": "Cash rebate history",
+    "no_history": "No rebate recorded.",
+    "delete": "Delete",
+    "confirm_delete": "Delete this rebate and its treasury outflow?",
+    "nature_hint": "In-kind rebates are recorded in \"In-kind stock\" (outflow of type Rebate); they are included in the surplus above."
   }
 }

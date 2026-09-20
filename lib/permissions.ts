@@ -35,6 +35,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'credits', label: 'Crédits bancaires', group: 'Finance', paths: ['/credits'], actions: CRUD, hint: 'Modification : statut, décaissements, remboursements' },
   { key: 'facturation', label: 'Facturation', group: 'Finance', paths: ['/facturation'], actions: ['read', 'create', 'update'], hint: 'Création : générer les factures · Modification : calcul des intérêts' },
   { key: 'remboursements', label: 'Remboursements', group: 'Finance', paths: ['/remboursements'], actions: ['read', 'create'], hint: 'Création : enregistrer un paiement' },
+  { key: 'ristournes', label: 'Ristournes (surplus rendu aux membres)', group: 'Finance', paths: ['/remboursements/ristournes'], actions: ['read', 'create', 'delete'], hint: 'Création : sortie de trésorerie au profit du membre' },
   { key: 'stock_nature', label: 'Stock en nature', group: 'Finance', paths: ['/remboursements/stock-nature'], actions: ['read', 'create'] },
   { key: 'tresorerie', label: 'Trésorerie (comptes, journaux, rapprochement)', group: 'Finance', paths: ['/tresorerie'], actions: CRUD },
   { key: 'imputations', label: 'Imputations', group: 'Finance', paths: ['/tresorerie/imputations'], actions: CRUD },
