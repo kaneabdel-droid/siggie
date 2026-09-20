@@ -9,13 +9,15 @@ type PaiementModalProps = {
   onClose: () => void
   dict: any
   locale?: string
+  comptes: { id: string; nom: string }[]
 }
 
-export default function PaiementModal({ facture, type, onClose, dict, locale }: PaiementModalProps) {
+export default function PaiementModal({ facture, type, onClose, dict, locale, comptes }: PaiementModalProps) {
   const [loading, setLoading] = useState(false)
   const [quantiteNature, setQuantiteNature] = useState<number | ''>('')
   const [produitNature, setProduitNature] = useState<string>('')
   const [montantSaisi, setMontantSaisi] = useState<number | ''>('')
+  const [compteId, setCompteId] = useState<string>(comptes[0]?.id ?? '')
   const d = dict.remboursements_extra.modal
   const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
 
@@ -66,7 +68,8 @@ export default function PaiementModal({ facture, type, onClose, dict, locale }: 
       type,
       montantFcfa,
       qte,
-      type === 'nature' ? produitNature : undefined
+      type === 'nature' ? produitNature : undefined,
+      type === 'espece' ? compteId : null
     )
 
     setLoading(false)
@@ -106,6 +109,18 @@ export default function PaiementModal({ facture, type, onClose, dict, locale }: 
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <p className="mt-1 text-xs text-foreground-muted">{d.amount_paid_note}</p>
+                  <label className="mt-4 block text-sm font-medium text-foreground">{d.account}</label>
+                  <select
+                    required
+                    value={compteId}
+                    onChange={(e) => setCompteId(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {comptes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nom}</option>
+                    ))}
+                  </select>
+                  {comptes.length === 0 && <p className="mt-1 text-xs text-danger">{d.no_account}</p>}
                 </div>
               ) : (
                 <>
@@ -151,7 +166,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale }: 
             <button
               type="submit"
               form="paiement-form"
-              disabled={loading || (type === 'espece' && !montantSaisi) || (type === 'nature' && (!quantiteNature || !produitNature.trim()))}
+              disabled={loading || (type === 'espece' && (!montantSaisi || !compteId)) || (type === 'nature' && (!quantiteNature || !produitNature.trim()))}
               className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto disabled:opacity-50"
             >
               {loading ? d.validating : d.validate_submit}

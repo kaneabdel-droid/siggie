@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Search, Wallet, Scale } from 'lucide-react'
 import PaiementModal from './PaiementModal'
 
-export default function RemboursementsClient({ factures, dict, locale }: { factures: any[], dict: any, locale: string }) {
+export default function RemboursementsClient({ factures, comptes, dict, locale }: { factures: any[], comptes: { id: string; nom: string }[], dict: any, locale: string }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFacture, setSelectedFacture] = useState<any>(null)
   const [paiementType, setPaiementType] = useState<'espece' | 'nature' | null>(null)
@@ -146,6 +146,7 @@ export default function RemboursementsClient({ factures, dict, locale }: { factu
           }}
           dict={dict}
           locale={locale}
+          comptes={comptes}
         />
       )}
     </div>

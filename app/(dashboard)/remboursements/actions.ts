@@ -30,7 +30,8 @@ export async function enregistrerRemboursement(
   type: 'espece' | 'nature',
   montantFcfa: number,
   quantiteNature?: number | null,
-  produitNature?: string | null
+  produitNature?: string | null,
+  compteId?: string | null
 ) {
   const denied = await requirePermission('remboursements', 'create')
   if (denied) return denied as never
@@ -47,8 +48,12 @@ export async function enregistrerRemboursement(
 
   if (!userData) return { error: "Utilisateur introuvable" }
 
+  // Un remboursement en espèces entre en trésorerie : le compte à créditer est obligatoire.
+  // En nature, il alimente le stock en nature et ne touche pas à la trésorerie.
+  if (type === 'espece' && !compteId) return { error: "Sélectionnez le compte de trésorerie à créditer" }
+
   // 1. Enregistrer dans la table remboursements
-  const { error: rembError } = await supabase
+  const { data: remboursement, error: rembError } = await supabase
     .from('remboursements')
     .insert({
       gie_id: userData.gie_id,
@@ -59,10 +64,30 @@ export async function enregistrerRemboursement(
       quantite_nature: type === 'nature' ? quantiteNature : null,
       produit_nature: type === 'nature' ? produitNature : null
     })
+    .select('id')
+    .single()
 
-  if (rembError) return { error: rembError.message }
+  if (rembError || !remboursement) return { error: rembError?.message || "Échec de l'enregistrement du remboursement" }
 
-  // 2. Mettre à jour la facture (montant_paye et statut)
+  // 2. Entrée de trésorerie sur le compte choisi (espèces uniquement). En cas d'échec on annule
+  // le remboursement pour ne pas laisser un paiement sans écriture de trésorerie.
+  if (type === 'espece') {
+    const { data: membre } = await supabase.from('membres').select('prenom, nom').eq('id', membreId).single()
+    const { error: txError } = await supabase.from('transactions').insert({
+      gie_id: userData.gie_id,
+      compte_id: compteId,
+      type_transaction: 'entree',
+      montant: montantFcfa,
+      motif: `Remboursement - ${membre ? `${membre.prenom} ${membre.nom}` : 'membre'}`,
+      type_piece: 'remboursement_membre',
+    })
+    if (txError) {
+      await supabase.from('remboursements').delete().eq('id', remboursement.id)
+      return { error: txError.message }
+    }
+  }
+
+  // 3. Mettre à jour la facture (montant_paye et statut)
   const { data: facture } = await supabase
     .from('factures')
     .select('montant_total, montant_interet, montant_paye')
@@ -85,29 +110,8 @@ export async function enregistrerRemboursement(
       .eq('id', factureId)
   }
 
-  // 3. Enregistrer dans la Trésorerie
-  const { data: compte } = await supabase
-    .from('comptes_tresorerie')
-    .select('id')
-    .eq('gie_id', userData.gie_id)
-    .limit(1)
-    .single()
-
-  if (compte) {
-    await supabase
-      .from('transactions')
-      .insert({
-        gie_id: userData.gie_id,
-        compte_id: compte.id,
-        type: 'entree',
-        montant: montantFcfa,
-        categorie: 'Remboursement Membre',
-        description: `Remboursement facture ${factureId} en ${type === 'espece' ? 'espèces' : 'nature'}`,
-        enregistre_par: userData.id
-      })
-  }
-
   revalidatePath('/remboursements')
+  revalidatePath('/tresorerie')
   revalidatePath('/facturation')
   revalidatePath('/bilans')
   

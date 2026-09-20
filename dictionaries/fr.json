@@ -636,7 +636,9 @@
       "missing_product_error": "Veuillez préciser la nature du produit reçu (ex: Riz paddy, Tomate, Arachide...).",
       "invalid_amount_error": "Le montant doit être supérieur à 0",
       "validating": "Validation...",
-      "validate_submit": "Valider le paiement"
+      "validate_submit": "Valider le paiement",
+      "account": "Compte de trésorerie à créditer",
+      "no_account": "Aucun compte de trésorerie : créez-en un dans Trésorerie avant d'enregistrer un paiement en espèces."
     }
   },
   "tresorerie_extra": {

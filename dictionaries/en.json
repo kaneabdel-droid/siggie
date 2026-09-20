@@ -636,7 +636,9 @@
       "missing_product_error": "Please specify the nature of the product received (e.g.: Paddy rice, Tomato, Peanut...).",
       "invalid_amount_error": "The amount must be greater than 0",
       "validating": "Validating...",
-      "validate_submit": "Validate the payment"
+      "validate_submit": "Validate the payment",
+      "account": "Treasury account to credit",
+      "no_account": "No treasury account: create one in Treasury before recording a cash payment."
     }
   },
   "tresorerie_extra": {
