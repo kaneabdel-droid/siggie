@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { LayoutDashboard, User, Users, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, User, Users, ClipboardList, Scale } from 'lucide-react'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -40,6 +40,13 @@ export default async function BilansLayout({
         >
           <LayoutDashboard className="w-4 h-4" />
           {dict.bilans.tabs.overview}
+        </Link>
+        <Link
+          href="/bilans/bilan-annuel"
+          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+        >
+          <Scale className="w-4 h-4" />
+          {dict.bilans.tabs.bilan_annuel}
         </Link>
         <Link
           href="/bilans/releve-membre"

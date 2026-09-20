@@ -532,7 +532,17 @@
     "search_placeholder": "Search an input...",
     "buy_btn": "New Purchase",
     "create_btn": "New Input",
-    "type_options": ["Fertilizer", "Seed", "Pesticide", "Fungicide", "Herbicide", "Equipment", "Rebilling", "Water Service", "Cultivation Work"],
+    "type_options": [
+      "Fertilizer",
+      "Seed",
+      "Pesticide",
+      "Fungicide",
+      "Herbicide",
+      "Equipment",
+      "Rebilling",
+      "Water Service",
+      "Cultivation Work"
+    ],
     "modal": {
       "buy_title": "Record an input purchase",
       "buy_submit": "Confirm the purchase",
@@ -690,7 +700,8 @@
       "overview": "Overview",
       "releve_membre": "Member Statement",
       "releve_client": "Customer Statement",
-      "suivi_budgetaire": "Budget Tracking"
+      "suivi_budgetaire": "Budget Tracking",
+      "bilan_annuel": "Annual Balance Sheet"
     },
     "tresorerie_title": "Overall Cash Position",
     "tresorerie": {
@@ -1077,9 +1088,36 @@
     "lower_tier": "Lower tier",
     "pay_prefix": "Pay",
     "plans": {
-      "standard": { "name": "Standard", "features": ["Dashboard", "Member management", "Contributions", "Loans"] },
-      "medium": { "name": "Medium", "features": ["Dashboard", "Member management", "Contributions", "Loans", "Equipment & stock management"] },
-      "premium": { "name": "Premium", "features": ["Dashboard", "Member management", "Contributions", "Loans", "Equipment & stock management", "Advanced budget tracking statements"] }
+      "standard": {
+        "name": "Standard",
+        "features": [
+          "Dashboard",
+          "Member management",
+          "Contributions",
+          "Loans"
+        ]
+      },
+      "medium": {
+        "name": "Medium",
+        "features": [
+          "Dashboard",
+          "Member management",
+          "Contributions",
+          "Loans",
+          "Equipment & stock management"
+        ]
+      },
+      "premium": {
+        "name": "Premium",
+        "features": [
+          "Dashboard",
+          "Member management",
+          "Contributions",
+          "Loans",
+          "Equipment & stock management",
+          "Advanced budget tracking statements"
+        ]
+      }
     }
   },
   "remboursements": {
@@ -1201,5 +1239,73 @@
         "submit": "Record the payment"
       }
     }
+  },
+  "bilan_annuel": {
+    "title": "Annual balance sheet & income statement",
+    "desc": "Financial position at 31 December and the year's result, computed from the group's management data.",
+    "year": "Fiscal year",
+    "saving": "Saving...",
+    "actif_title": "Balance sheet - Assets",
+    "passif_title": "Balance sheet - Liabilities",
+    "resultat_title": "Income statement for the year",
+    "cols": {
+      "rubrique": "Items",
+      "brut": "Gross amount",
+      "amo": "Depr./Prov.",
+      "net": "Net amount",
+      "net_n1": "Net N-1",
+      "montant": "Amount",
+      "montant_n1": "Amount N-1",
+      "calculs": "Calculation"
+    },
+    "rows": {
+      "immobilisations": "Fixed assets",
+      "stocks": "Stocks",
+      "creances": "Receivables",
+      "disponibilites": "Cash & bank",
+      "total_actif": "Total Assets",
+      "capital": "Capital",
+      "resultat": "Year's result",
+      "subventions": "Grants",
+      "emprunts": "Loans",
+      "dettes": "Payables",
+      "credits_tresorerie": "Cash credits",
+      "total_passif": "Total Liabilities",
+      "ventes": "Sales of inputs and services",
+      "gain_remboursement": "Gain on repayment sales",
+      "prestations": "Equipment services",
+      "autres_produits": "Other income",
+      "total_produits": "Total Income",
+      "achats": "Purchases of inputs and services",
+      "variation_stock": "Change in stock",
+      "perte_remboursement": "Loss on repayment sales",
+      "charges_materiel": "Equipment costs",
+      "interets": "Bank interest",
+      "autres_charges": "Other expenses",
+      "total_charges": "Total Expenses"
+    },
+    "notes": {
+      "immobilisations": "Equipment: acquisition cost, cumulative straight-line depreciation",
+      "stocks": "Input stock (latest price) + in-kind stock (collection price)",
+      "creances": "Customer accounts balance: unpaid member invoices + external customers",
+      "disponibilites": "Balance of treasury accounts",
+      "capital": "Balancing figure (assets / liabilities)",
+      "resultat_passif": "See income statement",
+      "a_saisir": "To be entered",
+      "dettes": "Supplier accounts balance: unpaid input purchases",
+      "credits_tresorerie": "Remaining balance of validated campaign credits",
+      "ventes": "Total member invoices (re-invoiced interest included)",
+      "gain_remboursement": "Sale price - collection price (in-kind stock outflows)",
+      "prestations": "Total equipment services",
+      "achats": "Year's purchases",
+      "perte_remboursement": "Sale price - collection price (when negative)",
+      "charges_materiel": "Consumption + the year's depreciation charge",
+      "interets": "Interest on validated credits (rate × duration)",
+      "resultat": "Total income - total expenses",
+      "variation_stock": "Opening stock (end N-1) - closing stock (end N); negative if stock increases"
+    },
+    "footnote": "Amounts \"to be entered\" are recorded per fiscal year; switch year to enter the previous year's. Past-year stock, balances and depreciation are rebuilt from history (stocks at the latest known price).",
+    "read_only": "You are not allowed to edit the entered amounts.",
+    "export_pdf": "Download PDF"
   }
 }

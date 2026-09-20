@@ -532,7 +532,17 @@
     "search_placeholder": "Rechercher un intrant...",
     "buy_btn": "Nouvel Achat",
     "create_btn": "Nouvel Intrant",
-    "type_options": ["Engrais", "Semence", "Pesticide", "Fongicide", "Herbicide", "Matériel", "Refacturation", "Service Hydraulique", "Façon culturale"],
+    "type_options": [
+      "Engrais",
+      "Semence",
+      "Pesticide",
+      "Fongicide",
+      "Herbicide",
+      "Matériel",
+      "Refacturation",
+      "Service Hydraulique",
+      "Façon culturale"
+    ],
     "modal": {
       "buy_title": "Enregistrer un achat d'intrant",
       "buy_submit": "Valider l'achat",
@@ -690,7 +700,8 @@
       "overview": "Vue d'ensemble",
       "releve_membre": "Relevé Membre",
       "releve_client": "Relevé Client",
-      "suivi_budgetaire": "Suivi Budgétaire"
+      "suivi_budgetaire": "Suivi Budgétaire",
+      "bilan_annuel": "Bilan annuel"
     },
     "tresorerie_title": "Trésorerie Globale",
     "tresorerie": {
@@ -1077,9 +1088,36 @@
     "lower_tier": "Niveau inférieur",
     "pay_prefix": "Payer",
     "plans": {
-      "standard": { "name": "Standard", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts"] },
-      "medium": { "name": "Medium", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts", "Gestion du matériel & stocks"] },
-      "premium": { "name": "Premium", "features": ["Tableau de bord", "Gestion des membres", "Cotisations", "Emprunts", "Gestion du matériel & stocks", "États de suivi budgétaire avancés"] }
+      "standard": {
+        "name": "Standard",
+        "features": [
+          "Tableau de bord",
+          "Gestion des membres",
+          "Cotisations",
+          "Emprunts"
+        ]
+      },
+      "medium": {
+        "name": "Medium",
+        "features": [
+          "Tableau de bord",
+          "Gestion des membres",
+          "Cotisations",
+          "Emprunts",
+          "Gestion du matériel & stocks"
+        ]
+      },
+      "premium": {
+        "name": "Premium",
+        "features": [
+          "Tableau de bord",
+          "Gestion des membres",
+          "Cotisations",
+          "Emprunts",
+          "Gestion du matériel & stocks",
+          "États de suivi budgétaire avancés"
+        ]
+      }
     }
   },
   "remboursements": {
@@ -1201,5 +1239,73 @@
         "submit": "Enregistrer le paiement"
       }
     }
+  },
+  "bilan_annuel": {
+    "title": "Bilan annuel & compte de résultat",
+    "desc": "Situation patrimoniale au 31 décembre et résultat de l'exercice, calculés à partir des données de gestion du GIE.",
+    "year": "Exercice",
+    "saving": "Enregistrement...",
+    "actif_title": "Bilan - Actif",
+    "passif_title": "Bilan - Passif",
+    "resultat_title": "Compte de résultat de l'année",
+    "cols": {
+      "rubrique": "Rubriques",
+      "brut": "Montant brut",
+      "amo": "Amo/Prov",
+      "net": "Montant net",
+      "net_n1": "Net N-1",
+      "montant": "Montant",
+      "montant_n1": "Montant N-1",
+      "calculs": "Calculs"
+    },
+    "rows": {
+      "immobilisations": "Immobilisations",
+      "stocks": "Stocks",
+      "creances": "Créances",
+      "disponibilites": "Disponibilités",
+      "total_actif": "Total Actif",
+      "capital": "Capital",
+      "resultat": "Résultat de l'année",
+      "subventions": "Subventions",
+      "emprunts": "Emprunts",
+      "dettes": "Dettes",
+      "credits_tresorerie": "Crédits de trésorerie",
+      "total_passif": "Total Passif",
+      "ventes": "Ventes d'intrants et services",
+      "gain_remboursement": "Gain/vente de remboursement",
+      "prestations": "Prestations du matériel",
+      "autres_produits": "Autres produits",
+      "total_produits": "Total Produits",
+      "achats": "Achats d'intrants et services",
+      "variation_stock": "Variation de stock",
+      "perte_remboursement": "Perte/vente de remboursement",
+      "charges_materiel": "Charges du matériel",
+      "interets": "Intérêts bancaires",
+      "autres_charges": "Autres charges",
+      "total_charges": "Total charges"
+    },
+    "notes": {
+      "immobilisations": "Matériel : valeur d'acquisition, amortissement linéaire cumulé",
+      "stocks": "Stock d'intrants (dernier prix) + stock en nature (prix de collecte)",
+      "creances": "Solde des comptes clients : factures membres non remboursées + clients externes",
+      "disponibilites": "Solde des comptes de trésorerie",
+      "capital": "Solde du bilan (équilibre actif / passif)",
+      "resultat_passif": "Voir compte de résultat",
+      "a_saisir": "À saisir",
+      "dettes": "Solde des comptes fournisseurs : achats d'intrants non réglés",
+      "credits_tresorerie": "Restant dû des crédits de campagne validés",
+      "ventes": "Total des factures membres (intérêts refacturés inclus)",
+      "gain_remboursement": "Prix de vente - prix de collecte (sorties du stock en nature)",
+      "prestations": "Total des prestations du matériel",
+      "achats": "Achats de l'année",
+      "perte_remboursement": "Prix de vente - prix de collecte (si négatif)",
+      "charges_materiel": "Consommations + dotation aux amortissements de l'année",
+      "interets": "Intérêts des crédits validés (taux × durée)",
+      "resultat": "Total produits - total charges",
+      "variation_stock": "Stock initial (fin N-1) - stock final (fin N) ; négatif si le stock augmente"
+    },
+    "footnote": "Les montants « à saisir » se renseignent par exercice ; changez d'exercice pour saisir ceux de l'année précédente. Le stock, les soldes et l'amortissement des exercices passés sont reconstitués à partir de l'historique (au dernier prix connu pour les stocks).",
+    "read_only": "Vous n'avez pas le droit de modifier les montants saisis.",
+    "export_pdf": "Télécharger PDF"
   }
 }
