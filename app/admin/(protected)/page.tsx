@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, Wrench, Package, ArrowUpRight, Clock } from 'lucide-react'
+import { Building2, Wrench, Package, Wheat, ArrowUpRight, Clock } from 'lucide-react'
 
 // Chaque produit DembaSolution a son propre projet Supabase et son propre espace
 // /admin — pas de portail unifié (une seule connexion, une seule session) pour
@@ -30,6 +30,14 @@ const produits = [
     href: 'https://d-intrants.dembasolution.com/admin',
     externe: true,
     icon: Package,
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'D-AGROBUSINESS',
+    description: 'Chaîne de valeur agro-industrielle — financement, production, usine, RH et comptabilité analytique.',
+    href: 'https://d-agro.dembasolution.com/admin',
+    externe: true,
+    icon: Wheat,
     statut: 'en_ligne' as const,
   },
 ]

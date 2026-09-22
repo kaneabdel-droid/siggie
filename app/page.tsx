@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store } from 'lucide-react'
+import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store, Wheat } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -98,6 +98,16 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <p className="text-foreground-muted mb-6">{dict.landing.products.dintrants_desc}</p>
                 <a href="https://d-intrants.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_dintrants} <ArrowRight className="w-4 h-4" /></a>
                 <a href="https://d-intrants.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dintrants} <ArrowRight className="w-4 h-4" /></a>
+              </div>
+
+              {/* Produit 4 : D-AGROBUSINESS */}
+              <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
+                <Wheat className="w-10 h-10 text-primary mb-4" />
+                <h3 className="text-2xl font-bold mb-2">D-AGROBUSINESS</h3>
+                <p className="text-foreground-muted mb-6">{dict.landing.products.dagrobusiness_desc}</p>
+                <a href="https://d-agro.dembasolution.com/decouvrir-dagrobusiness" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_dagrobusiness} <ArrowRight className="w-4 h-4" /></a>
+                <a href="https://d-agro.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dagrobusiness} <ArrowRight className="w-4 h-4" /></a>
               </div>
             </div>
           </div>
