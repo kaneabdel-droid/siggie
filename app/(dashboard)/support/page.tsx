@@ -41,7 +41,7 @@ export default async function SupportPage() {
                   <p className="text-sm font-semibold text-foreground">{dict.support.phone}</p>
                   <p className="mt-1 text-sm text-foreground-muted">{dict.support.phone_hours}</p>
                   <p className="mt-1 font-medium text-foreground">
-                    <a href="tel:+221775390196" className="hover:text-primary transition-colors">+221 77 539 01 96</a>
+                    <a href="tel:+221708484298" className="hover:text-primary transition-colors">+221 70 848 42 98</a>
                   </p>
                 </dd>
               </div>
