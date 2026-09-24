@@ -157,7 +157,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                   <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center"><Mail className="w-5 h-5 text-primary" /></div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{dict.landing.contact.email}</p>
-                    <a href="mailto:support@dembasolution.com" dir="ltr" className="mt-1 block break-all font-medium hover:text-primary transition-colors">support@dembasolution.com</a>
+                    <a href="mailto:support@dembasolution.com" dir="ltr" className="mt-1 block whitespace-nowrap text-sm font-medium hover:text-primary transition-colors">support@dembasolution.com</a>
                   </div>
                 </div>
               </div>
