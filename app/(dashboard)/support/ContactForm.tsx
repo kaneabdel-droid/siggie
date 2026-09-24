@@ -3,8 +3,9 @@
 import { useState, useTransition } from 'react'
 import { sendMessage } from './actions'
 import { Send, CheckCircle2 } from 'lucide-react'
+import type { getDictionary } from '@/dictionaries'
 
-export default function ContactForm({ dict }: { dict: any }) {
+export default function ContactForm({ dict }: { dict: Awaited<ReturnType<typeof getDictionary>> }) {
   const [isPending, startTransition] = useTransition()
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)

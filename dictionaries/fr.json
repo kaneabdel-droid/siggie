@@ -5,7 +5,8 @@
       "pricing": "Tarifs",
       "tips": "Astuces",
       "subscribe": "S'abonner",
-      "login": "Connexion"
+      "login": "Connexion",
+      "contact": "Nous contacter"
     },
     "hero": {
       "title_1": "Simplifiez la gestion de votre",
@@ -63,6 +64,32 @@
     },
     "footer": {
       "desc": "Propulsez la gestion de votre organisation vers l'avenir avec nos solutions logicielles intuitives et performantes."
+    },
+    "contact": {
+      "title": "Nous contacter",
+      "desc": "Une question sur nos solutions, une démo, un devis ? Écrivez-nous : nous vous répondons par email sous 24 h ouvrées.",
+      "phone": "Téléphone / WhatsApp",
+      "email": "Email",
+      "name": "Nom complet",
+      "name_placeholder": "Ex : Awa Diop",
+      "email_label": "Email",
+      "email_placeholder": "vous@exemple.com",
+      "phone_label": "Téléphone (facultatif)",
+      "product": "Solution qui vous intéresse",
+      "product_any": "Je ne sais pas encore",
+      "message": "Votre message",
+      "message_placeholder": "Présentez votre activité et votre besoin...",
+      "send": "Envoyer",
+      "sending": "Envoi en cours...",
+      "sent_title": "Message envoyé !",
+      "sent_desc": "Merci, notre équipe vous répondra par email dans les plus brefs délais.",
+      "send_another": "Envoyer un autre message",
+      "errors": {
+        "required": "Veuillez renseigner votre nom, votre email et votre message.",
+        "email": "Adresse email invalide.",
+        "too_long": "Un des champs est trop long.",
+        "failed": "Le message n'a pas pu être envoyé. Réessayez ou écrivez-nous à support@dembasolution.com."
+      }
     }
   },
   "decouvrir": {
@@ -778,7 +805,13 @@
       "sending": "Envoi en cours...",
       "sent_title": "Message envoyé avec succès !",
       "sent_desc": "Notre équipe de support a bien reçu votre message et vous répondra dans les plus brefs délais.",
-      "send_another": "Envoyer un autre message"
+      "send_another": "Envoyer un autre message",
+      "errors": {
+        "required": "Veuillez remplir tous les champs.",
+        "too_long": "Le sujet (200 caractères max) ou le message (5000 caractères max) est trop long.",
+        "not_authenticated": "Votre session a expiré. Veuillez vous reconnecter.",
+        "failed": "Le message n'a pas pu être envoyé. Réessayez ou écrivez-nous à support@dembasolution.com."
+      }
     }
   },
   "materiel_pages": {

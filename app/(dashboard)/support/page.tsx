@@ -56,7 +56,7 @@ export default async function SupportPage() {
                   <p className="text-sm font-semibold text-foreground">{dict.support.email}</p>
                   <p className="mt-1 text-sm text-foreground-muted">{dict.support.email_desc}</p>
                   <p className="mt-1 font-medium text-foreground">
-                    <a href="mailto:support@siggie.sn" className="hover:text-primary transition-colors">support@siggie.sn</a>
+                    <a href="mailto:support@dembasolution.com" className="hover:text-primary transition-colors">support@dembasolution.com</a>
                   </p>
                 </dd>
               </div>

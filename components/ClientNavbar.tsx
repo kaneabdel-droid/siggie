@@ -38,6 +38,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
               )}
             </div>
             <a href="#astuces" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.tips}</a>
+            <a href="#contact" className="text-sm font-medium text-foreground-muted hover:text-primary transition-colors">{dict.landing.nav.contact}</a>
           </nav>
           <div className="flex gap-2 sm:gap-4 items-center">
             <LanguageSelector currentLang={currentLang} />
@@ -95,6 +96,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
             </div>
           </div>
           <a href="#astuces" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.tips}</a>
+          <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.contact}</a>
           <div>
             <p className="text-base font-medium text-foreground mb-2">{dict.landing.nav.login}</p>
             <div className="pl-4 space-y-2">

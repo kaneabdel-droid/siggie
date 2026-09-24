@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store, Wheat } from 'lucide-react'
+import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store, Wheat, Phone, Mail } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
+import ContactProspectForm from '@/components/ContactProspectForm'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function LandingPage({ searchParams }: { searchParams?: Promise<{ message?: string }> }) {
@@ -132,6 +133,37 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                  <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mb-4"><Users className="w-6 h-6 text-warning" /></div>
                  <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip3}</h4>
                </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Nous contacter (prospects) */}
+        <section id="contact" className="py-24 bg-background border-t border-surface-border scroll-mt-16">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.contact.title}</h2>
+              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">{dict.landing.contact.desc}</p>
+            </div>
+            <div className="grid gap-8 lg:grid-cols-3 max-w-5xl mx-auto">
+              <div className="space-y-4">
+                <div className="flex items-start gap-4 bg-surface p-6 rounded-2xl border border-surface-border">
+                  <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center"><Phone className="w-5 h-5 text-primary" /></div>
+                  <div>
+                    <p className="text-sm font-semibold">{dict.landing.contact.phone}</p>
+                    <a href="tel:+221708484298" dir="ltr" className="mt-1 block font-medium hover:text-primary transition-colors">+221 70 848 42 98</a>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4 bg-surface p-6 rounded-2xl border border-surface-border">
+                  <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center"><Mail className="w-5 h-5 text-primary" /></div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">{dict.landing.contact.email}</p>
+                    <a href="mailto:support@dembasolution.com" dir="ltr" className="mt-1 block break-all font-medium hover:text-primary transition-colors">support@dembasolution.com</a>
+                  </div>
+                </div>
+              </div>
+              <div className="lg:col-span-2 bg-surface p-6 sm:p-8 rounded-2xl border border-surface-border shadow-sm">
+                <ContactProspectForm t={dict.landing.contact} />
+              </div>
             </div>
           </div>
         </section>
