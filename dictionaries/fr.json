@@ -784,16 +784,10 @@
   "support": {
     "title": "Aide & Support",
     "desc": "Besoin d'aide pour utiliser SIGGIE ? Notre équipe est à votre disposition pour vous accompagner.",
-    "contact_title": "Nos coordonnées",
     "phone": "Téléphone",
     "phone_hours": "Lun-Ven de 8h à 18h",
     "email": "Email",
     "email_desc": "Assistance technique",
-    "office": "Bureau",
-    "office_desc": "Dakar, Sénégal",
-    "resources_title": "Ressources utiles",
-    "resources_desc": "Consultez notre guide d'utilisation ou notre FAQ pour trouver rapidement des réponses à vos questions.",
-    "doc_link": "Voir la documentation",
     "form_title": "Envoyez-nous un message",
     "form_desc": "Vous rencontrez un bug ou avez une question spécifique ? Remplissez ce formulaire et nous vous répondrons directement par email.",
     "form": {

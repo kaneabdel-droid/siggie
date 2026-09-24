@@ -144,8 +144,8 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
               <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.contact.title}</h2>
               <p className="text-lg text-foreground-muted max-w-2xl mx-auto">{dict.landing.contact.desc}</p>
             </div>
-            <div className="grid gap-8 lg:grid-cols-3 max-w-5xl mx-auto">
-              <div className="space-y-4">
+            <div className="space-y-6 max-w-4xl mx-auto">
+              <div className="grid gap-6 sm:grid-cols-2">
                 <div className="flex items-start gap-4 bg-surface p-6 rounded-2xl border border-surface-border">
                   <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center"><Phone className="w-5 h-5 text-primary" /></div>
                   <div>
@@ -157,11 +157,11 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                   <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center"><Mail className="w-5 h-5 text-primary" /></div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{dict.landing.contact.email}</p>
-                    <a href="mailto:support@dembasolution.com" dir="ltr" className="mt-1 block whitespace-nowrap text-sm font-medium hover:text-primary transition-colors">support@dembasolution.com</a>
+                    <a href="mailto:support@dembasolution.com" dir="ltr" className="mt-1 block font-medium hover:text-primary transition-colors">support@dembasolution.com</a>
                   </div>
                 </div>
               </div>
-              <div className="lg:col-span-2 bg-surface p-6 sm:p-8 rounded-2xl border border-surface-border shadow-sm">
+              <div className="bg-surface p-6 sm:p-8 rounded-2xl border border-surface-border shadow-sm">
                 <ContactProspectForm t={dict.landing.contact} />
               </div>
             </div>

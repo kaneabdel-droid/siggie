@@ -784,16 +784,10 @@
   "support": {
     "title": "Help & Support",
     "desc": "Need help using SIGGIE? Our team is here to assist you.",
-    "contact_title": "Contact details",
     "phone": "Phone",
     "phone_hours": "Mon-Fri, 8am to 6pm",
     "email": "Email",
     "email_desc": "Technical support",
-    "office": "Office",
-    "office_desc": "Dakar, Senegal",
-    "resources_title": "Useful resources",
-    "resources_desc": "Check our user guide or FAQ to quickly find answers to your questions.",
-    "doc_link": "View documentation",
     "form_title": "Send us a message",
     "form_desc": "Found a bug or have a specific question? Fill out this form and we'll reply directly by email.",
     "form": {
