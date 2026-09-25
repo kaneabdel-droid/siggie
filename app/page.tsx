@@ -132,6 +132,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
                  <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mb-4"><Users className="w-6 h-6 text-warning" /></div>
                  <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip3}</h4>
+                 <p className="text-foreground-muted">{dict.landing.tips.tip3_desc}</p>
                </div>
             </div>
           </div>
