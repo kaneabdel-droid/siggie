@@ -124,6 +124,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
                  <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center mb-4"><Smartphone className="w-6 h-6 text-info" /></div>
                  <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip1}</h4>
+                 <p className="text-foreground-muted">{dict.landing.tips.tip1_desc}</p>
                </div>
                <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
                  <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center mb-4"><TrendingUp className="w-6 h-6 text-success" /></div>
