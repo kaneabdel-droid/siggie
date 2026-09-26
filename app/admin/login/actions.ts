@@ -61,7 +61,16 @@ export async function loginAdmin(formData: FormData) {
 
   if (error) {
     await registerFailedAttempt()
-    redirect(`/admin/login?message=Identifiant ou mot de passe incorrect${nextParam}`)
+    // Seul un refus d'identifiants garde le message générique ; toute autre erreur
+    // (clé/URL ADMIN_IDENTITY_* erronée, email non confirmé, limite atteinte…) est
+    // affichée telle quelle, sinon un problème de configuration se fait passer pour
+    // un mauvais mot de passe. Aucun risque d'énumération : ces erreurs ne disent
+    // rien de l'existence du compte.
+    const message = error.code === 'invalid_credentials'
+      ? 'Identifiant ou mot de passe incorrect'
+      : `Connexion impossible : ${error.message}${error.code ? ` (${error.code})` : ''}`
+    console.error('[admin/login] échec', error.status, error.code, error.message)
+    redirect(`/admin/login?message=${encodeURIComponent(message)}${nextParam}`)
   }
 
   // L'email/mot de passe est valide mais ce n'est pas un compte administrateur :
