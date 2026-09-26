@@ -103,11 +103,16 @@ export async function updateSession(request: NextRequest) {
 
   // Verrouillage après la période d'essai (ou verrouillage manuel admin) : un GIE
   // sans paiement confirmé est redirigé vers son espace abonnement pour régulariser,
-  // sauf sur les pages nécessaires pour payer.
+  // sauf sur les pages nécessaires pour payer — et sur la réinitialisation du mot de
+  // passe : le lien de récupération ouvre une session, qui sans cette exemption serait
+  // aussitôt renvoyée vers /abonnement avant d'avoir pu saisir le nouveau mot de passe
+  // (y compris pour le super-admin dont l'email est aussi membre d'un GIE expiré).
   const exemptFromTrialLock =
     pathname.startsWith('/abonnement') ||
     pathname.startsWith('/checkout') ||
-    pathname.startsWith('/logout')
+    pathname.startsWith('/logout') ||
+    pathname.startsWith('/update-password') ||
+    pathname.startsWith('/auth')
 
   if (user && !exemptFromTrialLock) {
     const { data: userData } = await supabase
