@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {
   ArrowRight, ArrowLeft, UserPlus, LogIn, CreditCard, LayoutDashboard,
   Users, Calendar, Package, Truck, Landmark, Receipt, HandCoins, Wallet,
-  Wrench, FileBarChart, CheckCircle2, Clock, Lock,
+  Wrench, FileBarChart, CheckCircle2, Clock, Lock, BookOpen,
 } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -87,6 +87,24 @@ export default async function DecouvrirSiggiePage({
             <p className="text-lg md:text-xl text-foreground-muted leading-relaxed">
               {d.hero_desc}
             </p>
+          </div>
+        </section>
+
+        {/* Guide de prise en main */}
+        <section className="border-b border-surface-border bg-surface">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-10 flex flex-col items-center gap-5 text-center md:flex-row md:justify-between md:text-start">
+            <div className="flex items-center gap-4">
+              <span className="hidden sm:flex w-12 h-12 shrink-0 rounded-full bg-primary text-white items-center justify-center">
+                <BookOpen className="w-6 h-6" />
+              </span>
+              <div>
+                <h2 className="text-xl font-bold font-heading">{dict.guide.meta.needHelp}</h2>
+                <p className="mt-1 text-sm text-foreground-muted">{dict.guide.meta.needHelpText}</p>
+              </div>
+            </div>
+            <Link href="/guide" className="shrink-0 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
+              {dict.guide.meta.readGuide}
+            </Link>
           </div>
         </section>
 

@@ -788,7 +788,7 @@
     "title": "Help & Support",
     "desc": "Need help using SIGGIE? Our team is here to assist you.",
     "phone": "Phone",
-    "phone_hours": "Mon-Fri, 8am to 6pm",
+    "phone_hours": "Mon-Fri, 9am to 6pm",
     "email": "Email",
     "email_desc": "Technical support",
     "form_title": "Send us a message",
@@ -1373,5 +1373,551 @@
     "delete": "Delete",
     "confirm_delete": "Delete this rebate and its treasury outflow?",
     "nature_hint": "In-kind rebates are recorded in \"In-kind stock\" (outflow of type Rebate); they are included in the surplus above."
+  },
+  "guide": {
+    "meta": {
+      "back": "Back to home",
+      "pageTitle": "Getting-started guide",
+      "toc": "Contents",
+      "menu": "Menu",
+      "important": "Important",
+      "edition": "Related printout:",
+      "editionLink": "See part 3",
+      "needHelp": "Need help getting started?",
+      "needHelpText": "Our getting-started guide explains, in plain words, how to set up SIGGIE and then use it throughout a season.",
+      "readGuide": "Read the guide",
+      "guideNav": "Guide"
+    },
+    "hero": {
+      "eyebrow": "Getting-started guide",
+      "title": "SIGGIE",
+      "subtitle": "The management platform for your grassroots farming organization (GIE, cooperative, SME): members, seasons, inputs, loans, billing, repayments and cash management.",
+      "intro": "This guide explains, in plain words, how to use SIGGIE. It is read in three steps: first the setup, done once to prepare your GIE; then the operations, repeated throughout each season; finally the printouts, statements and reports."
+    },
+    "overview": {
+      "id": "apercu",
+      "title": "SIGGIE in one minute",
+      "lead": "SIGGIE follows a full farming season of your GIE, from the money borrowed from the bank to the last repayment by the members.",
+      "cards": [
+        {
+          "t": "The loan",
+          "x": "The GIE asks the bank for financing and tracks the money released."
+        },
+        {
+          "t": "The inputs",
+          "x": "The GIE buys fertilizer, seeds and other products, and puts them in stock."
+        },
+        {
+          "t": "The distribution",
+          "x": "Inputs are handed to the members enrolled in the season."
+        },
+        {
+          "t": "The billing",
+          "x": "Each member receives an invoice: what they received, their share of the interest, and any unpaid amounts."
+        },
+        {
+          "t": "The repayment",
+          "x": "The member repays in cash or in kind (by bringing their harvest)."
+        },
+        {
+          "t": "The report",
+          "x": "The GIE compares its forecasts with reality and keeps a record of everything."
+        }
+      ]
+    },
+    "parts": [
+      {
+        "id": "partie-config",
+        "label": "Part 1",
+        "title": "Setup",
+        "text": "To be done once, before your first season. You can complete it at any time afterwards.",
+        "sections": [
+          {
+            "id": "c-gie",
+            "title": "The GIE’s details",
+            "menu": "Settings",
+            "blocks": [
+              {
+                "p": "Enter the GIE’s name, address, phone number, email and tax identification (NINEA, RCCM or equivalent). Add your logo (PNG or JPG, 2 MB maximum) and choose the working currency. These details appear on all your printed documents: invoices and receipts."
+              }
+            ]
+          },
+          {
+            "id": "c-membres",
+            "title": "The members",
+            "menu": "Members",
+            "blocks": [
+              {
+                "p": "Click “New Member” and fill in: last name, first name, village, phone, farmed area and status (active or inactive). You can then search for a member by last name, first name or village."
+              }
+            ]
+          },
+          {
+            "id": "c-comptes",
+            "title": "The money accounts",
+            "menu": "Cash Flow",
+            "blocks": [
+              {
+                "p": "Create an account for each place where the GIE keeps money: for example a bank account and a cash box. Enter the opening balance of each one: this way you can properly track your money coming in and going out, with the real balance of each account."
+              }
+            ]
+          },
+          {
+            "id": "c-intrants",
+            "title": "The input catalog",
+            "menu": "Inputs & Stock",
+            "blocks": [
+              {
+                "p": "With “New Input”, create the list of what the GIE distributes: enter the type (fertilizer, seed…), the name, the supplier, the unit price and the opening stock quantity. There are three kinds of inputs:"
+              },
+              {
+                "cards": [
+                  {
+                    "t": "Inputs in stock",
+                    "x": "Fertilizer, seeds, products… Their stock quantity goes down with each distribution."
+                  },
+                  {
+                    "t": "Cultivation work and irrigation service",
+                    "x": "These are services, not bags: no stock to track. They are billed by area (per hectare)."
+                  },
+                  {
+                    "t": "Rebilling",
+                    "x": "A fixed fee that the GIE rebills to its members: you enter the amount in FCFA directly."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "c-materiel",
+            "title": "The equipment",
+            "menu": "Equipment",
+            "note": "Medium and Premium plans",
+            "blocks": [
+              {
+                "p": "If your plan allows it, record the GIE’s equipment (tractors, motor pumps…) and its condition in the inventory."
+              }
+            ]
+          },
+          {
+            "id": "c-campagne",
+            "title": "The season",
+            "menu": "Seasons",
+            "blocks": [
+              {
+                "p": "A season is a farming season. Everything else (distributions, invoices, repayments) is attached to it."
+              },
+              {
+                "ol": [
+                  {
+                    "t": "Create the season",
+                    "x": "with “New Season”: name, start and end dates, repayment method (cash, in kind or mixed), collected product, collection price, standard weight, and status (in progress, finished or cancelled)."
+                  },
+                  {
+                    "t": "Configure it",
+                    "x": "by opening the season: enroll the members taking part (with each member’s area), choose the inputs offered this season, and prepare your forecast budget by line item."
+                  }
+                ]
+              },
+              {
+                "callout": {
+                  "l": "Important",
+                  "x": "Only members enrolled in the season can receive inputs. Enroll them before starting the distributions."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "partie-operations",
+        "label": "Part 2",
+        "title": "Operations",
+        "text": "What you do throughout the season, in the order things happen.",
+        "sections": [
+          {
+            "id": "o-credit",
+            "title": "The bank loan",
+            "menu": "Bank Loans",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Make the request.",
+                    "x": "Enter the season, the bank (for example LB or CMS), the requested amount and the purpose of the loan. The status starts as “Pending”."
+                  },
+                  {
+                    "t": "Record the bank’s answer.",
+                    "x": "The loan becomes “Validated” or “Rejected”. If validated, enter the granted amount, the interest rate and the duration: they are then used to calculate each member’s interest."
+                  },
+                  {
+                    "t": "Track the releases.",
+                    "x": "Each time the bank releases money, record the account concerned, the type of document (payment of a supplier invoice or cash withdrawal), the amount and the reason."
+                  },
+                  {
+                    "t": "Record your repayments to the bank,",
+                    "x": "with the account used and the amount."
+                  }
+                ]
+              },
+              {
+                "edition": "the total requested, the total granted, pending files and the available credit, at the top of the page."
+              }
+            ]
+          },
+          {
+            "id": "o-achats",
+            "title": "Buying inputs",
+            "menu": "Inputs & Stock",
+            "blocks": [
+              {
+                "p": "When the GIE buys inputs, enter the input, the quantity, the price, the supplier, the date and the invoice number: the stock goes up by itself, and its total value is shown at the top of the page."
+              },
+              {
+                "edition": "the total stock value and the remaining quantity of each input."
+              }
+            ]
+          },
+          {
+            "id": "o-distribution",
+            "title": "Distribution to members",
+            "menu": "Distribution",
+            "blocks": [
+              {
+                "p": "Hand inputs to the members enrolled in the season. You can make one distribution at a time, give the same input to several members, or several inputs to the same member. The stock goes down automatically. For cultivation work and irrigation service, the suggested quantity matches the member’s area."
+              },
+              {
+                "edition": "the season report summarizes what was distributed to each member."
+              }
+            ]
+          },
+          {
+            "id": "o-facturation",
+            "title": "Billing",
+            "menu": "Billing",
+            "blocks": [
+              {
+                "ol": [
+                  {
+                    "t": "Generate the season’s invoices.",
+                    "x": "Each member receives an invoice adding up the inputs received, their share of the loan interest and, if any, their unpaid amounts from previous seasons."
+                  },
+                  {
+                    "t": "Calculate the interest.",
+                    "x": "SIGGIE spreads the interest of validated loans across the invoices. For this, the loan’s rate and duration must have been entered."
+                  },
+                  {
+                    "t": "View and print",
+                    "x": "the invoices, member by member."
+                  }
+                ]
+              },
+              {
+                "edition": "each member’s invoice can be printed or downloaded as a PDF."
+              }
+            ]
+          },
+          {
+            "id": "o-remboursements",
+            "title": "Repayments",
+            "menu": "Repayments",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "In cash.",
+                    "x": "Choose the member and their invoice, the account receiving the money and the amount: the money goes into your cash position."
+                  },
+                  {
+                    "t": "In kind.",
+                    "x": "The member brings their harvest: it is weighed and the product and quantity are recorded. It goes into the “In-kind stock”, without touching the cash position."
+                  },
+                  {
+                    "t": "The surplus (rebate).",
+                    "x": "If a member repaid more than their invoice, the difference is given back: in cash (a cash outflow) or in kind (an outflow from the in-kind stock)."
+                  }
+                ]
+              },
+              {
+                "edition": "the rebate history, the in-kind stock and each member’s statement."
+              }
+            ]
+          },
+          {
+            "id": "o-tresorerie",
+            "title": "Cash management",
+            "menu": "Cash Flow",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Accounts.",
+                    "x": "The list of your accounts with their balances."
+                  },
+                  {
+                    "t": "Journals.",
+                    "x": "Choose an account to see all its transactions, with the balance changing line after line. You can enter, correct or delete a transaction."
+                  },
+                  {
+                    "t": "Reconciliation.",
+                    "x": "Check that your season loans and movements match what the bank shows."
+                  }
+                ]
+              },
+              {
+                "edition": "the journal of each account, with the running balance."
+              }
+            ]
+          },
+          {
+            "id": "o-materiel",
+            "title": "Equipment day to day",
+            "menu": "Equipment",
+            "note": "Medium and Premium plans",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Services.",
+                    "x": "The work done with the equipment."
+                  },
+                  {
+                    "t": "Consumption.",
+                    "x": "Fuel, maintenance and the other costs of the equipment."
+                  }
+                ]
+              },
+              {
+                "edition": "the inventory, services, consumption, depreciation and profitability can be printed."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "partie-etats",
+        "label": "Part 3",
+        "title": "Printouts, statements and reports",
+        "text": "Once your operations are recorded, SIGGIE gathers them for you into printable documents and monitoring statements.",
+        "sections": [
+          {
+            "id": "e-imprimer",
+            "title": "Documents to print",
+            "lead": "They carry the name, address, tax identification and logo entered in the Settings.",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Members’ invoices.",
+                    "x": "Billing menu: view each member’s invoice, print it or download it as a PDF."
+                  },
+                  {
+                    "t": "Cash and bank journals.",
+                    "x": "Cash Flow menu: all the transactions of an account with the running balance."
+                  },
+                  {
+                    "t": "Statements and lists.",
+                    "x": "Most statement pages (reports, statements, budget monitoring, equipment inventory and services) have a button to print them."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "e-membres",
+            "title": "Statements",
+            "menu": "Reports & Statements",
+            "note": "Premium plan",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "A member’s statement.",
+                    "x": "Everything a member received, what they owe and what they have already repaid."
+                  },
+                  {
+                    "t": "An outside customer’s statement.",
+                    "x": "The same tracking for a person who is not a member of the GIE."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "e-campagne",
+            "title": "Season monitoring",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "The season report.",
+                    "x": "From a season’s page: a summary of what was distributed, billed and repaid, member by member."
+                  },
+                  {
+                    "t": "Budget monitoring",
+                    "x": "(Reports & Statements menu, Premium plan). Your forecasts compared with what actually happened, line by line, with the balance of income minus expenses."
+                  },
+                  {
+                    "t": "Rebates and in-kind stock",
+                    "x": "(Repayments menu). The history of what was given back to members and the status of the harvest stock received as repayment."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "e-annuel",
+            "title": "The annual report",
+            "menu": "Reports & Statements",
+            "note": "Premium plan",
+            "blocks": [
+              {
+                "p": "SIGGIE presents the GIE’s position at December 31 and the result of the year (income minus expenses), calculated from everything you have recorded. A few amounts cannot be guessed and are entered once a year: subsidies, loans, other income and other expenses. To see a past year, change the fiscal year."
+              }
+            ]
+          },
+          {
+            "id": "e-autres",
+            "title": "Other statements",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "The dashboard.",
+                    "x": "The home page: the GIE’s key figures at a glance."
+                  },
+                  {
+                    "t": "The stock status.",
+                    "x": "Inputs & Stock menu: the total stock value and the remaining quantity of each input."
+                  },
+                  {
+                    "t": "Loans.",
+                    "x": "Bank Loans menu: the total requested, the total granted, pending files and the credit still available."
+                  },
+                  {
+                    "t": "Equipment",
+                    "x": "(Medium and Premium plans). Depreciation, that is the loss of value of each machine over time, and profitability, that is what each machine really earns for the GIE."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "closing": [
+      {
+        "id": "formules",
+        "title": "Plans and subscription",
+        "lead": "You start with a free trial period. At the end, access is blocked until the subscription is paid: pay before the due date so nothing is interrupted.",
+        "blocks": [
+          {
+            "table": {
+              "head": [
+                "Feature",
+                "Standard",
+                "Medium",
+                "Premium"
+              ],
+              "rows": [
+                [
+                  "Members, seasons, inputs, distribution, loans, billing, repayments, cash management",
+                  "✓",
+                  "✓",
+                  "✓"
+                ],
+                [
+                  "Equipment",
+                  "—",
+                  "✓",
+                  "✓"
+                ],
+                [
+                  "Reports & Statements",
+                  "—",
+                  "—",
+                  "✓"
+                ]
+              ]
+            }
+          },
+          {
+            "p": "The subscription is annual and paid in the Subscription menu (Wave, Orange Money, Visa card, bank transfer, ...). To move to a higher plan, you only pay the difference."
+          }
+        ]
+      },
+      {
+        "id": "conseils",
+        "title": "Good habits and help",
+        "blocks": [
+          {
+            "ul": [
+              {
+                "x": "Create your cash accounts before recording a loan release or a cash repayment."
+              },
+              {
+                "x": "Enroll the members in the season before distributing inputs to them."
+              },
+              {
+                "x": "Enter the rate and duration of the validated loan: without them, the interest cannot be calculated."
+              },
+              {
+                "x": "Generate the invoices once the distributions are finished, after calculating the interest."
+              },
+              {
+                "x": "Record each repayment the same day, with the right account: this keeps your cash position accurate."
+              },
+              {
+                "x": "If a menu does not appear for you, your profile does not have access to it: ask the GIE administrator."
+              }
+            ]
+          },
+          {
+            "callout": {
+              "l": "Need help?",
+              "x": "Open the Help & Support menu: you will find the support number (+221 70 848 42 98, Monday to Friday from 9am to 6pm) and a form to write to the team."
+            }
+          }
+        ]
+      },
+      {
+        "id": "mots",
+        "title": "Short glossary",
+        "blocks": [
+          {
+            "dl": [
+              {
+                "t": "Season",
+                "x": "A farming season, with its members, its inputs, its loan and its repayments."
+              },
+              {
+                "t": "Inputs",
+                "x": "Everything used to produce: fertilizer, seeds, treatment products, but also services such as water or plowing."
+              },
+              {
+                "t": "Release (disbursement)",
+                "x": "The moment when the bank makes the money of the granted loan available."
+              },
+              {
+                "t": "Repayment in kind",
+                "x": "Paying back one’s debt with part of one’s harvest instead of money."
+              },
+              {
+                "t": "Rebate",
+                "x": "The part of a repayment that exceeds the invoice, given back to the member."
+              },
+              {
+                "t": "Reconciliation",
+                "x": "Comparing your figures with the bank’s to check that they are identical."
+              },
+              {
+                "t": "Allocation",
+                "x": "Linking a money transaction to its reason (for example a season or a specific expense)."
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

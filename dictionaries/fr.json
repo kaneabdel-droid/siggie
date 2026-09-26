@@ -788,7 +788,7 @@
     "title": "Aide & Support",
     "desc": "Besoin d'aide pour utiliser SIGGIE ? Notre équipe est à votre disposition pour vous accompagner.",
     "phone": "Téléphone",
-    "phone_hours": "Lun-Ven de 8h à 18h",
+    "phone_hours": "Lun-Ven de 9h à 18h",
     "email": "Email",
     "email_desc": "Assistance technique",
     "form_title": "Envoyez-nous un message",
@@ -1373,5 +1373,551 @@
     "delete": "Supprimer",
     "confirm_delete": "Supprimer cette ristourne et sa sortie de trésorerie ?",
     "nature_hint": "Les ristournes en nature s'enregistrent dans « Stock en nature » (sortie de type Ristourne) ; elles sont prises en compte dans le surplus ci-dessus."
+  },
+  "guide": {
+    "meta": {
+      "back": "Retour à l’accueil",
+      "pageTitle": "Guide de prise en main",
+      "toc": "Sommaire",
+      "menu": "Menu",
+      "important": "Important",
+      "edition": "Édition liée :",
+      "editionLink": "Voir la partie 3",
+      "needHelp": "Besoin d’aide pour démarrer ?",
+      "needHelpText": "Notre guide de prise en main explique, avec des mots simples, comment configurer SIGGIE puis l’utiliser au fil d’une campagne.",
+      "readGuide": "Consulter le guide",
+      "guideNav": "Guide"
+    },
+    "hero": {
+      "eyebrow": "Guide de prise en main",
+      "title": "SIGGIE",
+      "subtitle": "La plateforme de gestion de votre organisation agricole de base (GIE, coopérative, PME) : membres, campagnes, intrants, crédits, facturation, remboursements et trésorerie.",
+      "intro": "Ce guide explique, avec des mots simples, comment utiliser SIGGIE. Il se lit en trois temps : d’abord la configuration, à faire une seule fois pour préparer votre GIE ; puis les opérations, que vous répétez au fil de chaque campagne ; enfin les éditions, états et rapports."
+    },
+    "overview": {
+      "id": "apercu",
+      "title": "SIGGIE en une minute",
+      "lead": "SIGGIE suit le déroulement complet d’une campagne agricole de votre GIE, de l’argent emprunté à la banque jusqu’au dernier remboursement des membres.",
+      "cards": [
+        {
+          "t": "Le crédit",
+          "x": "Le GIE demande un financement à la banque et suit l’argent débloqué."
+        },
+        {
+          "t": "Les intrants",
+          "x": "Le GIE achète engrais, semences et autres produits, et les met en stock."
+        },
+        {
+          "t": "La distribution",
+          "x": "Les intrants sont remis aux membres inscrits à la campagne."
+        },
+        {
+          "t": "La facturation",
+          "x": "Chaque membre reçoit une facture : ce qu’il a reçu, sa part des intérêts, et ses impayés éventuels."
+        },
+        {
+          "t": "Le remboursement",
+          "x": "Le membre rembourse en espèces ou en nature (en apportant sa récolte)."
+        },
+        {
+          "t": "Le bilan",
+          "x": "Le GIE compare ses prévisions à la réalité et garde une trace de tout."
+        }
+      ]
+    },
+    "parts": [
+      {
+        "id": "partie-config",
+        "label": "Partie 1",
+        "title": "La configuration",
+        "text": "À faire une seule fois, avant votre première campagne. Vous pourrez ensuite la compléter à tout moment.",
+        "sections": [
+          {
+            "id": "c-gie",
+            "title": "Les informations du GIE",
+            "menu": "Paramètres",
+            "blocks": [
+              {
+                "p": "Renseignez le nom du GIE, son adresse, son téléphone, son e-mail et son identification fiscale (NINEA, RCCM ou équivalent). Ajoutez votre logo (PNG ou JPG, 2 Mo maximum) et choisissez la devise de travail. Ces informations apparaissent sur tous vos documents imprimés : factures et reçus."
+              }
+            ]
+          },
+          {
+            "id": "c-membres",
+            "title": "Les membres",
+            "menu": "Membres",
+            "blocks": [
+              {
+                "p": "Cliquez sur « Nouveau Membre » et remplissez : nom, prénom, village, téléphone, superficie exploitée et statut (actif ou inactif). Vous pouvez ensuite rechercher un membre par son nom, son prénom ou son village."
+              }
+            ]
+          },
+          {
+            "id": "c-comptes",
+            "title": "Les comptes d’argent",
+            "menu": "Trésorerie",
+            "blocks": [
+              {
+                "p": "Créez un compte pour chaque endroit où le GIE garde de l’argent : par exemple un compte en banque et une caisse. Indiquez le solde de départ de chacun : vous pourrez ainsi bien suivre vos opérations d’entrée et de sortie d’argent, avec les soldes réels de chaque compte."
+              }
+            ]
+          },
+          {
+            "id": "c-intrants",
+            "title": "Le catalogue d’intrants",
+            "menu": "Intrants & Stock",
+            "blocks": [
+              {
+                "p": "Avec « Nouvel Intrant », créez la liste de ce que le GIE distribue : indiquez le type (engrais, semence…), le nom, le fournisseur, le prix unitaire et la quantité en stock de départ. Il existe trois sortes d’intrants :"
+              },
+              {
+                "cards": [
+                  {
+                    "t": "Intrants en stock",
+                    "x": "Engrais, semences, produits… Leur quantité en stock baisse à chaque distribution."
+                  },
+                  {
+                    "t": "Façon culturale et service hydraulique",
+                    "x": "Ce sont des services, pas des sacs : pas de stock à suivre. Ils sont facturés à la superficie (à l’hectare)."
+                  },
+                  {
+                    "t": "Refacturation",
+                    "x": "Un frais fixe que le GIE refacture aux membres : on saisit directement le montant en FCFA."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "c-materiel",
+            "title": "Le matériel",
+            "menu": "Matériel",
+            "note": "formules Medium et Premium",
+            "blocks": [
+              {
+                "p": "Si votre formule le permet, enregistrez dans l’inventaire l’équipement du GIE (tracteurs, motopompes…) avec son état."
+              }
+            ]
+          },
+          {
+            "id": "c-campagne",
+            "title": "La campagne",
+            "menu": "Campagnes",
+            "blocks": [
+              {
+                "p": "Une campagne est une saison agricole. Tout le reste (distributions, factures, remboursements) se rattache à elle."
+              },
+              {
+                "ol": [
+                  {
+                    "t": "Créez la campagne",
+                    "x": "avec « Nouvelle Campagne » : nom, dates de début et de fin, mode de remboursement (en espèces, en nature ou mixte), produit collecté, prix de collecte, poids standard, et statut (en cours, terminée ou annulée)."
+                  },
+                  {
+                    "t": "Configurez-la",
+                    "x": "en ouvrant la campagne : inscrivez les membres qui y participent (avec la superficie de chacun), choisissez les intrants proposés cette saison, et préparez votre budget prévisionnel par rubrique."
+                  }
+                ]
+              },
+              {
+                "callout": {
+                  "l": "Important",
+                  "x": "Seuls les membres inscrits à la campagne peuvent recevoir des intrants. Inscrivez-les avant de commencer les distributions."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "partie-operations",
+        "label": "Partie 2",
+        "title": "Les opérations",
+        "text": "Ce que vous faites au fil de la campagne, dans l’ordre où les choses arrivent.",
+        "sections": [
+          {
+            "id": "o-credit",
+            "title": "Le crédit bancaire",
+            "menu": "Crédits Bancaires",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Faire la demande.",
+                    "x": "Indiquez la campagne, la banque (par exemple LB ou CMS), le montant demandé et le but du crédit. Le statut est d’abord « En attente »."
+                  },
+                  {
+                    "t": "Enregistrer la réponse de la banque.",
+                    "x": "Le crédit devient « Validé » ou « Rejeté ». S’il est validé, notez le montant accordé, le taux d’intérêt et la durée : ils servent ensuite à calculer les intérêts de chaque membre."
+                  },
+                  {
+                    "t": "Suivre les déblocages.",
+                    "x": "Chaque fois que la banque débloque de l’argent, enregistrez le compte concerné, le type de pièce (paiement d’une facture fournisseur ou retrait d’espèces), le montant et le motif."
+                  },
+                  {
+                    "t": "Enregistrer vos remboursements à la banque,",
+                    "x": "avec le compte utilisé et le montant."
+                  }
+                ]
+              },
+              {
+                "edition": "le total demandé, le total accordé, les dossiers en attente et le crédit disponible, en haut de la page."
+              }
+            ]
+          },
+          {
+            "id": "o-achats",
+            "title": "Les achats d’intrants",
+            "menu": "Intrants & Stock",
+            "blocks": [
+              {
+                "p": "Quand le GIE achète des intrants, notez l’intrant, la quantité, le prix, le fournisseur, la date et le numéro de facture : le stock augmente tout seul, et sa valeur totale s’affiche en haut de la page."
+              },
+              {
+                "edition": "la valeur totale du stock et les quantités restantes de chaque intrant."
+              }
+            ]
+          },
+          {
+            "id": "o-distribution",
+            "title": "La distribution aux membres",
+            "menu": "Distribution",
+            "blocks": [
+              {
+                "p": "Remettez des intrants aux membres inscrits à la campagne. Vous pouvez faire une distribution à la fois, remettre un même intrant à plusieurs membres, ou plusieurs intrants à un même membre. Le stock diminue automatiquement. Pour la façon culturale et le service hydraulique, la quantité proposée correspond à la superficie du membre."
+              },
+              {
+                "edition": "le bilan de campagne récapitule ce qui a été distribué à chaque membre."
+              }
+            ]
+          },
+          {
+            "id": "o-facturation",
+            "title": "La facturation",
+            "menu": "Facturation",
+            "blocks": [
+              {
+                "ol": [
+                  {
+                    "t": "Générez les factures de la campagne.",
+                    "x": "Chaque membre reçoit une facture qui additionne les intrants reçus, sa part des intérêts du crédit et, s’il y en a, ses impayés des campagnes précédentes."
+                  },
+                  {
+                    "t": "Calculez les intérêts.",
+                    "x": "SIGGIE répartit l’intérêt des crédits validés entre les factures. Pour cela, le taux et la durée du crédit doivent avoir été renseignés."
+                  },
+                  {
+                    "t": "Consultez et imprimez",
+                    "x": "les factures, membre par membre."
+                  }
+                ]
+              },
+              {
+                "edition": "la facture de chaque membre s’imprime ou se télécharge en PDF."
+              }
+            ]
+          },
+          {
+            "id": "o-remboursements",
+            "title": "Les remboursements",
+            "menu": "Remboursements",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "En espèces.",
+                    "x": "Choisissez le membre et sa facture, le compte qui reçoit l’argent et le montant : l’argent entre dans votre trésorerie."
+                  },
+                  {
+                    "t": "En nature.",
+                    "x": "Le membre apporte sa récolte : on la pèse et on note le produit et la quantité. Elle entre dans le « Stock en nature », sans toucher à la trésorerie."
+                  },
+                  {
+                    "t": "Le surplus (ristourne).",
+                    "x": "Si un membre a remboursé plus que sa facture, la différence lui est rendue : en argent (une sortie de trésorerie) ou en nature (une sortie du stock en nature)."
+                  }
+                ]
+              },
+              {
+                "edition": "l’historique des ristournes, le stock en nature et le relevé de chaque membre."
+              }
+            ]
+          },
+          {
+            "id": "o-tresorerie",
+            "title": "La trésorerie",
+            "menu": "Trésorerie",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Comptes.",
+                    "x": "La liste de vos comptes avec leurs soldes."
+                  },
+                  {
+                    "t": "Journaux.",
+                    "x": "Choisissez un compte pour voir toutes ses opérations, avec le solde qui évolue ligne après ligne. Vous pouvez saisir, corriger ou supprimer une opération."
+                  },
+                  {
+                    "t": "Rapprochement.",
+                    "x": "Vérifiez que vos crédits de campagne et vos mouvements correspondent bien à la réalité de la banque."
+                  }
+                ]
+              },
+              {
+                "edition": "le journal de chaque compte, avec le solde progressif."
+              }
+            ]
+          },
+          {
+            "id": "o-materiel",
+            "title": "Le matériel au quotidien",
+            "menu": "Matériel",
+            "note": "formules Medium et Premium",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Prestations.",
+                    "x": "Les travaux réalisés avec le matériel."
+                  },
+                  {
+                    "t": "Consommations.",
+                    "x": "Le carburant, l’entretien et les autres dépenses du matériel."
+                  }
+                ]
+              },
+              {
+                "edition": "l’inventaire, les prestations, les consommations, les amortissements et la rentabilité peuvent s’imprimer."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "partie-etats",
+        "label": "Partie 3",
+        "title": "Les éditions, états et rapports",
+        "text": "Une fois vos opérations enregistrées, SIGGIE les rassemble pour vous dans des documents à imprimer et des états de suivi.",
+        "sections": [
+          {
+            "id": "e-imprimer",
+            "title": "Les documents à imprimer",
+            "lead": "Ils portent le nom, l’adresse, l’identification fiscale et le logo renseignés dans les Paramètres.",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Les factures des membres.",
+                    "x": "Menu Facturation : consultez la facture de chaque membre, imprimez-la ou téléchargez-la en PDF."
+                  },
+                  {
+                    "t": "Les journaux de caisse et de banque.",
+                    "x": "Menu Trésorerie : toutes les opérations d’un compte avec le solde progressif."
+                  },
+                  {
+                    "t": "Les états et les listes.",
+                    "x": "La plupart des pages d’états (bilans, relevés, suivi budgétaire, inventaire et prestations du matériel) ont un bouton pour les imprimer."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "e-membres",
+            "title": "Les relevés",
+            "menu": "Bilans & Relevés",
+            "note": "formule Premium",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Le relevé d’un membre.",
+                    "x": "Tout ce qu’un membre a reçu, ce qu’il doit et ce qu’il a déjà remboursé."
+                  },
+                  {
+                    "t": "Le relevé d’un client extérieur.",
+                    "x": "Le même suivi pour une personne qui n’est pas membre du GIE."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "e-campagne",
+            "title": "Le suivi de la campagne",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Le bilan de campagne.",
+                    "x": "Depuis la page d’une campagne : un récapitulatif de ce qui a été distribué, facturé et remboursé, membre par membre."
+                  },
+                  {
+                    "t": "Le suivi budgétaire",
+                    "x": "(menu Bilans & Relevés, formule Premium). Vos prévisions comparées à ce qui s’est réellement passé, rubrique par rubrique, avec le solde recettes moins dépenses."
+                  },
+                  {
+                    "t": "Les ristournes et le stock en nature",
+                    "x": "(menu Remboursements). L’historique de ce qui a été rendu aux membres et l’état du stock de récolte reçue en remboursement."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "e-annuel",
+            "title": "Le bilan annuel",
+            "menu": "Bilans & Relevés",
+            "note": "formule Premium",
+            "blocks": [
+              {
+                "p": "SIGGIE présente la situation du GIE au 31 décembre et le résultat de l’année (recettes moins dépenses), calculés à partir de tout ce que vous avez enregistré. Quelques montants ne peuvent pas être devinés et se saisissent une fois par an : subventions, emprunts, autres produits et autres charges. Pour consulter une année passée, changez d’exercice."
+              }
+            ]
+          },
+          {
+            "id": "e-autres",
+            "title": "Les autres états",
+            "blocks": [
+              {
+                "ul": [
+                  {
+                    "t": "Le tableau de bord.",
+                    "x": "La page d’accueil : les chiffres importants du GIE en un coup d’œil."
+                  },
+                  {
+                    "t": "L’état des stocks.",
+                    "x": "Menu Intrants & Stock : la valeur totale du stock et les quantités restantes de chaque intrant."
+                  },
+                  {
+                    "t": "Les crédits.",
+                    "x": "Menu Crédits Bancaires : le total demandé, le total accordé, les dossiers en attente et le crédit encore disponible."
+                  },
+                  {
+                    "t": "Le matériel",
+                    "x": "(formules Medium et Premium). Les amortissements, c’est-à-dire la perte de valeur de chaque machine avec le temps, et la rentabilité, c’est-à-dire ce que chaque machine rapporte réellement au GIE."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "closing": [
+      {
+        "id": "formules",
+        "title": "Les formules et l’abonnement",
+        "lead": "Vous démarrez par une période d’essai gratuite. À la fin, l’accès est bloqué tant que l’abonnement n’est pas payé : payez avant l’échéance pour ne rien interrompre.",
+        "blocks": [
+          {
+            "table": {
+              "head": [
+                "Fonction",
+                "Standard",
+                "Medium",
+                "Premium"
+              ],
+              "rows": [
+                [
+                  "Membres, campagnes, intrants, distribution, crédits, facturation, remboursements, trésorerie",
+                  "✓",
+                  "✓",
+                  "✓"
+                ],
+                [
+                  "Matériel",
+                  "—",
+                  "✓",
+                  "✓"
+                ],
+                [
+                  "Bilans & Relevés",
+                  "—",
+                  "—",
+                  "✓"
+                ]
+              ]
+            }
+          },
+          {
+            "p": "L’abonnement est annuel et se paie dans le menu Abonnement (Wave, Orange Money, carte Visa, virement, ...). Pour passer à une formule supérieure, vous ne payez que la différence."
+          }
+        ]
+      },
+      {
+        "id": "conseils",
+        "title": "Bons réflexes et aide",
+        "blocks": [
+          {
+            "ul": [
+              {
+                "x": "Créez vos comptes de trésorerie avant d’enregistrer un déblocage de crédit ou un remboursement en espèces."
+              },
+              {
+                "x": "Inscrivez les membres à la campagne avant de leur distribuer des intrants."
+              },
+              {
+                "x": "Renseignez le taux et la durée du crédit validé : sans eux, les intérêts ne peuvent pas être calculés."
+              },
+              {
+                "x": "Générez les factures une fois les distributions terminées, après avoir calculé les intérêts."
+              },
+              {
+                "x": "Enregistrez chaque remboursement le jour même, avec le bon compte : c’est ce qui garde votre trésorerie exacte."
+              },
+              {
+                "x": "Si un menu n’apparaît pas chez vous, votre profil n’y a pas accès : demandez à l’administrateur du GIE."
+              }
+            ]
+          },
+          {
+            "callout": {
+              "l": "Besoin d’aide ?",
+              "x": "Ouvrez le menu Aide & Support : vous y trouvez le numéro d’assistance (+221 70 848 42 98, du lundi au vendredi de 9h à 18h) et un formulaire pour écrire à l’équipe."
+            }
+          }
+        ]
+      },
+      {
+        "id": "mots",
+        "title": "Petit lexique",
+        "blocks": [
+          {
+            "dl": [
+              {
+                "t": "Campagne",
+                "x": "Une saison agricole, avec ses membres, ses intrants, son crédit et ses remboursements."
+              },
+              {
+                "t": "Intrants",
+                "x": "Tout ce qui sert à produire : engrais, semences, produits de traitement, mais aussi des services comme l’eau ou le labour."
+              },
+              {
+                "t": "Déblocage (décaissement)",
+                "x": "Le moment où la banque met à disposition l’argent du crédit accordé."
+              },
+              {
+                "t": "Remboursement en nature",
+                "x": "Rembourser sa dette avec une partie de sa récolte plutôt qu’avec de l’argent."
+              },
+              {
+                "t": "Ristourne",
+                "x": "La part d’un remboursement qui dépasse la facture, rendue au membre."
+              },
+              {
+                "t": "Rapprochement",
+                "x": "Comparer vos chiffres avec ceux de la banque pour vérifier qu’ils sont identiques."
+              },
+              {
+                "t": "Imputation",
+                "x": "Le rattachement d’une opération d’argent à sa raison (par exemple une campagne ou une dépense précise)."
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
