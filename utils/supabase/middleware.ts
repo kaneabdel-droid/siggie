@@ -72,9 +72,13 @@ export async function updateSession(request: NextRequest) {
       .then(({ data }) => data.user)
       .catch(() => null)
 
+    // Toujours vers /admin/login, même si une session client existe : le même email
+    // peut être membre d'un GIE (éventuellement expiré), et le renvoyer vers /dashboard
+    // l'enverrait sur /abonnement sans jamais lui proposer la connexion admin.
     if (!isAdminEmail(adminUser?.email)) {
       const url = request.nextUrl.clone()
-      url.pathname = user ? '/dashboard' : '/admin/login'
+      url.pathname = '/admin/login'
+      url.search = pathname === '/admin' ? '' : `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`
       return NextResponse.redirect(url)
     }
     return supabaseResponse
