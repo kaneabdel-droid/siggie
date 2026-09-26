@@ -72,6 +72,18 @@ export async function deverrouillerCompte(gieId: string): Promise<ActionResult> 
 // la connexion sans supprimer le compte ni ses données.
 const BAN_DUREE_DESACTIVATION = '87600h'
 
+// Le projet Supabase de SIGGIE est aussi la source d'identité admin partagée
+// (cf. utils/supabase/admin-identity.ts) : bannir un compte listé dans ADMIN_EMAILS
+// depuis la fiche d'un GIE dont il est membre bloquerait l'accès à /admin de tous
+// les produits. Refusé ici plutôt que de compter sur la vigilance de l'opérateur.
+async function refuserSiCompteAdmin(utilisateurId: string): Promise<string | null> {
+  const { data, error } = await createAdminClient().auth.admin.getUserById(utilisateurId)
+  if (error) return error.message
+  return isAdminEmail(data.user?.email)
+    ? "Ce compte est un compte super-admin : il ne peut pas être désactivé ni retiré d'un GIE."
+    : null
+}
+
 export async function changerRoleUtilisateur(gieId: string, utilisateurId: string, role: string): Promise<ActionResult> {
   const authError = await checkAdmin()
   if (authError) return { error: authError }
@@ -148,6 +160,8 @@ export async function changerPermissionsUtilisateur(
 export async function retirerUtilisateurDuGie(gieId: string, utilisateurId: string): Promise<ActionResult> {
   const authError = await checkAdmin()
   if (authError) return { error: authError }
+  const refus = await refuserSiCompteAdmin(utilisateurId)
+  if (refus) return { error: refus }
 
   const supabase = createAdminClient()
 
@@ -167,6 +181,8 @@ export async function retirerUtilisateurDuGie(gieId: string, utilisateurId: stri
 export async function desactiverCompteUtilisateur(gieId: string, utilisateurId: string): Promise<ActionResult> {
   const authError = await checkAdmin()
   if (authError) return { error: authError }
+  const refus = await refuserSiCompteAdmin(utilisateurId)
+  if (refus) return { error: refus }
 
   const supabase = createAdminClient()
   const { error } = await supabase.auth.admin.updateUserById(utilisateurId, { ban_duration: BAN_DUREE_DESACTIVATION })
