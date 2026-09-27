@@ -12,7 +12,7 @@ export default async function AdminPaiementsPage({
 
   let query = supabase
     .from('abonnement_paiements')
-    .select('id, gie_id, niveau, montant, provider, moyen_paiement, statut, created_at, gies(nom)')
+    .select('id, gie_id, niveau, montant, provider, moyen_paiement, statut, doublon, created_at, gies(nom)')
     .order('created_at', { ascending: false })
     .limit(200)
 
@@ -76,6 +76,9 @@ export default async function AdminPaiementsPage({
                     <span className={p.statut === 'completed' ? 'text-success' : p.statut === 'failed' ? 'text-danger' : 'text-primary'}>
                       {p.statut}
                     </span>
+                    {p.doublon && (
+                      <span className="ml-2 rounded bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">Doublon — à rembourser</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {p.provider === 'virement' && p.statut === 'pending' && <ConfirmerVirementButton paymentId={p.id} />}

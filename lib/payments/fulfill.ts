@@ -54,6 +54,27 @@ export async function applyPaymentResult(
   }
 
   if (target === 'completed') {
+    // Filet de sécurité anti double paiement : si le GIE est déjà au forfait payé par un
+    // autre paiement (le client a réglé deux pages de paiement ouvertes en parallèle),
+    // l'argent est bien encaissé mais ne change rien à l'abonnement → doublon à rembourser,
+    // exclu des statistiques de vente.
+    const [{ data: gie }, { count: dejaPaye }] = await Promise.all([
+      supabase.from('gies').select('subscription_tier').eq('id', payment.gie_id).single(),
+      supabase
+        .from('abonnement_paiements')
+        .select('id', { count: 'exact', head: true })
+        .eq('gie_id', payment.gie_id)
+        .eq('niveau', payment.niveau)
+        .eq('statut', 'completed')
+        .eq('doublon', false)
+        .neq('id', payment.id),
+    ])
+    if (gie?.subscription_tier === payment.niveau && dejaPaye) {
+      await supabase.from('abonnement_paiements').update({ doublon: true }).eq('id', payment.id)
+      console.error('[paiement] doublon encaissé — à rembourser', { provider, paymentId: payment.id, gieId: payment.gie_id })
+      return { processed: true, statut: target, doublon: true }
+    }
+
     // Le paiement lève la contrainte d'essai : le GIE n'est plus sur une horloge d'expiration.
     await supabase
       .from('gies')

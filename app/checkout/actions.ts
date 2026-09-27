@@ -81,6 +81,26 @@ export async function initiateSubscriptionPayment(
     chariowProductId = produit.product_id
   }
 
+  // Anti double paiement (1/2) : un forfait déjà réglé ne se paie pas une seconde fois
+  // (SIGGIE n'a pas d'échéance : un paiement vaut pour le forfait tant qu'il est actif).
+  if (planId === currentTier) {
+    const { count } = await supabase
+      .from('abonnement_paiements')
+      .select('id', { count: 'exact', head: true })
+      .eq('gie_id', userData.gie_id)
+      .eq('niveau', planId)
+      .eq('statut', 'completed')
+      .eq('doublon', false)
+    if (count) {
+      return { ok: false, error: `Votre GIE est déjà abonné au forfait ${planId} : aucun nouveau paiement n'est nécessaire.` }
+    }
+  }
+
+  // Anti double paiement (2/2) : relancer la même offre renvoie vers le paiement déjà
+  // ouvert au lieu d'en créer un second (double clic, second onglet, retour arrière).
+  const reutilisable = await paiementEnCoursReutilisable(supabase, userData.gie_id, planId, moyenPaiement, montant)
+  if (reutilisable) return reutilisable
+
   const { data: payment, error: insertError } = await supabase
     .from('abonnement_paiements')
     .insert({
@@ -95,6 +115,13 @@ export async function initiateSubscriptionPayment(
     .single()
 
   if (insertError || !payment) {
+    // 23505 = index unique « un paiement en cours par GIE » : une requête concurrente
+    // (double clic) vient d'en créer un — on renvoie celui-là.
+    if (insertError?.code === '23505') {
+      const concurrent = await paiementEnCoursReutilisable(supabase, userData.gie_id, planId, moyenPaiement, montant)
+      if (concurrent) return concurrent
+      return { ok: false, error: 'Un paiement est déjà en cours pour votre GIE. Patientez quelques secondes puis réessayez.' }
+    }
     console.error('Erreur création paiement abonnement', insertError)
     return { ok: false, error: "Impossible d'initier le paiement" }
   }
@@ -144,8 +171,51 @@ export async function initiateSubscriptionPayment(
 
   await supabase
     .from('abonnement_paiements')
-    .update({ provider_reference: result.providerTransactionId })
+    .update({ provider_reference: result.providerTransactionId, checkout_url: result.checkoutUrl })
     .eq('id', payment.id)
 
   return { ok: true, checkoutUrl: result.checkoutUrl }
+}
+
+// Au-delà, une page de paiement prestataire est considérée expirée : on en ouvre une nouvelle.
+const DUREE_REUTILISATION_MS = 30 * 60 * 1000
+
+/**
+ * Paiement en cours du GIE (au plus un, cf. index unique de la migration 36) :
+ * - même offre (forfait, moyen, montant) et encore récent → on le renvoie tel quel ;
+ * - sinon il est marqué abandonné (il reste 'pending' : s'il est payé plus tard,
+ *   le webhook le traite et le marque doublon si besoin) et on laisse en créer un neuf.
+ */
+async function paiementEnCoursReutilisable(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  gieId: string,
+  niveau: string,
+  moyenPaiement: MoyenPaiement,
+  montant: number
+): Promise<InitiateResult | null> {
+  const { data: enCours } = await supabase
+    .from('abonnement_paiements')
+    .select('id, niveau, moyen_paiement, montant, checkout_url, created_at')
+    .eq('gie_id', gieId)
+    .eq('statut', 'pending')
+    .is('abandonne_le', null)
+    .maybeSingle()
+
+  if (!enCours) return null
+
+  const memeOffre = enCours.niveau === niveau && enCours.moyen_paiement === moyenPaiement && Number(enCours.montant) === montant
+  if (memeOffre && moyenPaiement === 'virement') {
+    // Virement déjà déclaré pour cette offre : il attend la confirmation de réception des fonds.
+    return { ok: true, virement: true, paymentId: enCours.id }
+  }
+  const recent = enCours.created_at && Date.now() - new Date(enCours.created_at).getTime() < DUREE_REUTILISATION_MS
+  if (memeOffre && recent && enCours.checkout_url) {
+    return { ok: true, checkoutUrl: enCours.checkout_url }
+  }
+
+  await supabase
+    .from('abonnement_paiements')
+    .update({ abandonne_le: new Date().toISOString() })
+    .eq('id', enCours.id)
+  return null
 }

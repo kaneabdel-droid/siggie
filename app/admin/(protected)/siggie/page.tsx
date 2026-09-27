@@ -23,6 +23,7 @@ export default async function AdminSiggieDashboardPage() {
     .from('abonnement_paiements')
     .select('montant')
     .eq('statut', 'completed')
+    .eq('doublon', false) // un doublon encaissé est à rembourser : ce n'est pas une vente
     .gte('updated_at', debutMois.toISOString())
 
   const revenuDuMois = (paiementsDuMois ?? []).reduce((sum, p) => sum + Number(p.montant), 0)
