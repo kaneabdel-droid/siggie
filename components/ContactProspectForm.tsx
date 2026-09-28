@@ -7,7 +7,7 @@ import { envoyerContactProspect } from '@/app/actions/contact'
 
 type ContactDict = Awaited<ReturnType<typeof getDictionary>>['landing']['contact']
 
-const PRODUITS = ['SIGGIE', 'D-QUINCA', 'D-INTRANTS', 'D-AGROBUSINESS']
+const PRODUITS = ['SIGGIE', 'D-QUINCA', 'D-INTRANTS', 'D-AGROBUSINESS', 'D-SCHOLAR']
 
 const champ =
   'mt-2 block w-full rounded-lg border border-surface-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50'

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, Wrench, Package, Wheat, ArrowUpRight, Clock } from 'lucide-react'
+import { Building2, Wrench, Package, Wheat, GraduationCap, ArrowUpRight, Clock } from 'lucide-react'
 
 // Chaque produit DembaSolution a son propre projet Supabase et son propre espace
 // /admin — pas de portail unifié (une seule connexion, une seule session) pour
@@ -38,6 +38,14 @@ const produits = [
     href: 'https://d-agro.dembasolution.com/admin',
     externe: true,
     icon: Wheat,
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'D-SCHOLAR',
+    description: 'Gestion scolaire — élèves, classes, enseignants, notes, assiduité, passages et abonnements par tranches.',
+    href: 'https://d-scholar.dembasolution.com/admin',
+    externe: true,
+    icon: GraduationCap,
     statut: 'en_ligne' as const,
   },
 ]

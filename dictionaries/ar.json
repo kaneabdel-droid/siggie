@@ -39,7 +39,10 @@
       "subscribe_link_dintrants": "اشترك في D-INTRANTS",
       "dagrobusiness_desc": "إدارة متكاملة لسلسلة القيمة الزراعية: التمويل والإنتاج ومصنع التحويل والموارد البشرية والمحاسبة التحليلية للشركات الزراعية الصناعية.",
       "discover_link_dagrobusiness": "اكتشف D-AGROBUSINESS",
-      "subscribe_link_dagrobusiness": "اشترك في D-AGROBUSINESS"
+      "subscribe_link_dagrobusiness": "اشترك في D-AGROBUSINESS",
+      "dscholar_desc": "منصة إدارة المدارس: التسجيلات والأقسام والأساتذة وجداول الحصص والنقاط وكشوف النقاط والمواظبة والانتقال وفضاء الأولياء، من التعليم الأولي إلى الثانوي.",
+      "discover_link_dscholar": "اكتشف D-SCHOLAR",
+      "subscribe_link_dscholar": "اشترك في D-SCHOLAR"
     },
     "pricing": {
       "title": "أسعار تناسب نمو شركتك",

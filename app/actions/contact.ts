@@ -7,7 +7,7 @@ import { transfererAuSupport, SUJET_MAX, MESSAGE_MAX } from '@/lib/support/trans
 // pas d'enregistrement en base (aucun tenant auquel rattacher la demande) — uniquement
 // le transfert par email vers support@dembasolution.com, Reply-To = email du prospect.
 
-const PRODUITS = ['SIGGIE', 'D-QUINCA', 'D-INTRANTS', 'D-AGROBUSINESS']
+const PRODUITS = ['SIGGIE', 'D-QUINCA', 'D-INTRANTS', 'D-AGROBUSINESS', 'D-SCHOLAR']
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // Un humain met plus de 3 s à remplir le formulaire ; un robot le soumet aussitôt.
 const DELAI_MIN_MS = 3000
