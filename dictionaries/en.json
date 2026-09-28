@@ -42,7 +42,10 @@
       "subscribe_link_dagrobusiness": "Subscribe to D-AGROBUSINESS",
       "dscholar_desc": "The school management platform: enrolment, classes, teachers, timetables, grades, report cards, attendance, promotions and a parent portal, from pre-school to upper secondary.",
       "discover_link_dscholar": "Discover D-SCHOLAR",
-      "subscribe_link_dscholar": "Subscribe to D-SCHOLAR"
+      "subscribe_link_dscholar": "Subscribe to D-SCHOLAR",
+      "pcas_desc": "The agricultural marketing platform for Senegal: producer offers, supervised orders, bank payment vouchers, deliveries, invoices and QR-verifiable documents.",
+      "discover_link_pcas": "Discover PCAS",
+      "access_link_pcas": "Request access to PCAS"
     },
     "pricing": {
       "title": "Pricing adapted to your growth",

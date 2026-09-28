@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, Wrench, Package, Wheat, GraduationCap, ArrowUpRight, Clock } from 'lucide-react'
+import { Building2, Wrench, Package, Wheat, GraduationCap, Handshake, ArrowUpRight, Clock } from 'lucide-react'
 
 // Chaque produit DembaSolution a son propre projet Supabase et son propre espace
 // /admin — pas de portail unifié (une seule connexion, une seule session) pour
@@ -46,6 +46,14 @@ const produits = [
     href: 'https://d-scholar.dembasolution.com/admin',
     externe: true,
     icon: GraduationCap,
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'PCAS',
+    description: 'Commercialisation agricole — producteurs, clients, banques : offres, commandes supervisées, livraisons, factures.',
+    href: 'https://pcas.dembasolution.com/admin/entreprises',
+    externe: true,
+    icon: Handshake,
     statut: 'en_ligne' as const,
   },
 ]

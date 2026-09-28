@@ -42,7 +42,10 @@
       "subscribe_link_dagrobusiness": "اشترك في D-AGROBUSINESS",
       "dscholar_desc": "منصة إدارة المدارس: التسجيلات والأقسام والأساتذة وجداول الحصص والنقاط وكشوف النقاط والمواظبة والانتقال وفضاء الأولياء، من التعليم الأولي إلى الثانوي.",
       "discover_link_dscholar": "اكتشف D-SCHOLAR",
-      "subscribe_link_dscholar": "اشترك في D-SCHOLAR"
+      "subscribe_link_dscholar": "اشترك في D-SCHOLAR",
+      "pcas_desc": "منصة تسويق المنتجات الزراعية في السنغال: عروض المنتجين، طلبيات تحت الإشراف، الدفع بسندات بنكية، التسليم، الفواتير ووثائق قابلة للتحقق عبر رمز QR.",
+      "discover_link_pcas": "اكتشف PCAS",
+      "access_link_pcas": "اطلب الانضمام إلى PCAS"
     },
     "pricing": {
       "title": "أسعار تناسب نمو شركتك",

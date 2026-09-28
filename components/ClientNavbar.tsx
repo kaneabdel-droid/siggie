@@ -55,6 +55,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
                     <a href="https://d-intrants.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-INTRANTS</a>
                     <a href="https://d-agro.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-AGROBUSINESS</a>
                     <a href="https://d-scholar.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-SCHOLAR</a>
+                    <a href="https://pcas.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">PCAS</a>
                   </div>
                 </div>
               )}
@@ -109,6 +110,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
               <a href="https://d-intrants.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-INTRANTS</a>
               <a href="https://d-agro.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-AGROBUSINESS</a>
               <a href="https://d-scholar.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-SCHOLAR</a>
+              <a href="https://pcas.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">PCAS</a>
             </div>
           </div>
         </div>

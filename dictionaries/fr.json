@@ -42,7 +42,10 @@
       "subscribe_link_dagrobusiness": "S'abonner à D-AGROBUSINESS",
       "dscholar_desc": "La plateforme de gestion scolaire : inscriptions, classes, enseignants, emplois du temps, notes, bulletins, assiduité, passages et portail parents, de la maternelle au lycée.",
       "discover_link_dscholar": "Découvrir D-SCHOLAR",
-      "subscribe_link_dscholar": "S'abonner à D-SCHOLAR"
+      "subscribe_link_dscholar": "S'abonner à D-SCHOLAR",
+      "pcas_desc": "La plateforme de commercialisation agricole du Sénégal : offres des producteurs, commandes supervisées, paiement par bon bancaire, livraisons, factures et documents vérifiables par QR code.",
+      "discover_link_pcas": "Découvrir PCAS",
+      "access_link_pcas": "Demander un accès à PCAS"
     },
     "pricing": {
       "title": "Des tarifs adaptés à votre croissance",
