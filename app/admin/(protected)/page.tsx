@@ -43,7 +43,7 @@ const produits = [
   {
     nom: 'D-SCHOLAR',
     description: 'Gestion scolaire — élèves, classes, enseignants, notes, assiduité, passages et abonnements par tranches.',
-    href: 'https://d-scholar.dembasolution.com/admin',
+    href: 'https://scholar.dembasolution.com/admin',
     externe: true,
     icon: GraduationCap,
     statut: 'en_ligne' as const,
