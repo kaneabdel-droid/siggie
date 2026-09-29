@@ -118,7 +118,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <h3 className="text-2xl font-bold mb-2">D-SCHOLAR</h3>
                 <p className="text-foreground-muted mb-6">{dict.landing.products.dscholar_desc}</p>
                 <a href="https://scholar.dembasolution.com/decouvrir-dscholar" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_dscholar} <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://scholar.dembasolution.com/#tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dscholar} <ArrowRight className="w-4 h-4" /></a>
+                <a href="https://scholar.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dscholar} <ArrowRight className="w-4 h-4" /></a>
               </div>
 
               {/* Produit 6 : PCAS */}
