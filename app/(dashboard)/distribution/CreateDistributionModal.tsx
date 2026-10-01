@@ -1,27 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import { addDistributionsByIntrant, addDistributionsByMembre } from './actions'
 import { isStockableType, isForfaitaireType, isSuperficieBasedType } from '@/lib/intrants/types'
+import { repartirAuProrata } from '@/lib/intrants/repartition'
 
 type Campagne = { id: string; nom: string }
 type Membre = { id: string; prenom: string; nom: string; telephone?: string; code_membre?: string }
 type Intrant = { id: string; nom: string; type_intrant: string; quantite_stock: number; prix_unitaire: number }
 type CampagneMembre = { campagne_id: string; membre: Membre; superficie: number }
-type CampagneIntrant = { campagne_id: string; intrant_id: string; prix_facturation: number }
+type CampagneIntrant = { campagne_id: string; intrant_id: string; prix_facturation: number; quantite_prevue?: number | null }
 
 export default function CreateDistributionModal({
   campagnes,
   campagneMembres,
   intrants,
   campagneIntrants,
+  dejaDistribue,
   dict
 }: {
   campagnes: Campagne[]
   campagneMembres: CampagneMembre[]
   intrants: Intrant[]
   campagneIntrants: CampagneIntrant[]
+  dejaDistribue: Record<string, number>
   dict: any
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -68,37 +71,64 @@ export default function CreateDistributionModal({
   const totalByIntrant = Object.values(quantitiesByMembre).reduce((sum, q) => sum + (q || 0), 0)
   const selectedIntrant = campaignAvailableIntrants.find(i => i.id === selectedIntrantId)
 
-  // Façon culturale / Service Hydraulique sont facturés à l'hectare : préremplir
-  // avec la superficie déclarée par chaque membre pour cette campagne, au lieu de
-  // partir d'une saisie vide (l'utilisateur peut toujours corriger la valeur).
-  useEffect(() => {
-    if (selectedIntrant && isSuperficieBasedType(selectedIntrant.type_intrant)) {
-      setQuantitiesByMembre(() => {
-        const next: Record<string, number> = {}
-        enrolledCampagneMembres.forEach(cm => {
-          next[cm.membre.id] = cm.superficie || 0
-        })
-        return next
-      })
-    }
+  // Quantité par défaut d'un intrant pour un membre :
+  // - Façon culturale / Service Hydraulique sont facturés à l'hectare : la
+  //   superficie déclarée par le membre pour cette campagne ;
+  // - sinon, si une quantité à répartir est définie (page Répartition de la
+  //   campagne), sa part au prorata des superficies, moins ce qui lui a déjà été
+  //   distribué. L'utilisateur peut toujours corriger la valeur.
+  const partsProrata = useMemo(() => {
+    const parts = new Map<string, Record<string, number>>()
+    const superficies = enrolledCampagneMembres.map(cm => ({ membre_id: cm.membre.id, superficie: cm.superficie || 0 }))
+    campagneIntrants
+      .filter(ci => ci.campagne_id === selectedCampagneId && Number(ci.quantite_prevue) > 0)
+      .forEach(ci => parts.set(ci.intrant_id, repartirAuProrata(Number(ci.quantite_prevue), superficies)))
+    return parts
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIntrantId])
+  }, [selectedCampagneId, campagneIntrants, campagneMembres])
 
-  useEffect(() => {
-    if (selectedMembreId) {
-      const superficie = superficieParMembre.get(selectedMembreId) || 0
-      setQuantitiesByIntrant((prev) => {
-        const next = { ...prev }
-        campaignAvailableIntrants.forEach(i => {
-          if (isSuperficieBasedType(i.type_intrant)) {
-            next[i.id] = superficie
-          }
-        })
-        return next
+  function quantiteParDefaut(intrant: Intrant, membreId: string): number | undefined {
+    if (isSuperficieBasedType(intrant.type_intrant)) return superficieParMembre.get(membreId) || 0
+    const part = partsProrata.get(intrant.id)?.[membreId]
+    if (part === undefined) return undefined
+    const deja = dejaDistribue[`${selectedCampagneId}|${membreId}|${intrant.id}`] || 0
+    return Math.max(0, Math.round((part - deja) * 100) / 100)
+  }
+
+  function selectIntrant(intrantId: string) {
+    setSelectedIntrantId(intrantId)
+    const intrant = campaignAvailableIntrants.find(i => i.id === intrantId)
+    const next: Record<string, number> = {}
+    if (intrant) {
+      enrolledCampagneMembres.forEach(cm => {
+        const q = quantiteParDefaut(intrant, cm.membre.id)
+        if (q !== undefined) next[cm.membre.id] = q
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMembreId])
+    setQuantitiesByMembre(next)
+  }
+
+  function selectMembre(membreId: string) {
+    setSelectedMembreId(membreId)
+    const next: Record<string, number> = {}
+    if (membreId) {
+      campaignAvailableIntrants.forEach(i => {
+        const q = quantiteParDefaut(i, membreId)
+        if (q !== undefined) next[i.id] = q
+      })
+    }
+    setQuantitiesByIntrant(next)
+  }
+
+  // Les intrants et membres proposés dépendent de la campagne : changer de
+  // campagne repart d'une sélection vide.
+  function selectCampagne(campagneId: string) {
+    setSelectedCampagneId(campagneId)
+    setSelectedIntrantId('')
+    setSelectedMembreId('')
+    setQuantitiesByMembre({})
+    setQuantitiesByIntrant({})
+  }
 
   async function handleOption1Submit(e: React.FormEvent) {
     e.preventDefault()
@@ -198,7 +228,7 @@ export default function CreateDistributionModal({
                   <label className="block text-sm font-medium text-foreground">{d.campaign}</label>
                   <select
                     value={selectedCampagneId}
-                    onChange={(e) => setSelectedCampagneId(e.target.value)}
+                    onChange={(e) => selectCampagne(e.target.value)}
                     className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                   >
                     <option value="">{d.select_campaign}</option>
@@ -240,7 +270,7 @@ export default function CreateDistributionModal({
                                   <label className="block text-sm font-medium text-foreground">{d.product_to_distribute}</label>
                                   <select
                                     value={selectedIntrantId}
-                                    onChange={(e) => setSelectedIntrantId(e.target.value)}
+                                    onChange={(e) => selectIntrant(e.target.value)}
                                     className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                                   >
                                     <option value="">{d.select_product}</option>
@@ -264,6 +294,9 @@ export default function CreateDistributionModal({
                                         </span>
                                       )}
                                     </div>
+                                    {partsProrata.has(selectedIntrant.id) && (
+                                      <p className="mb-2 text-xs text-foreground-muted">{d.prorata_hint}</p>
+                                    )}
                                     <div className="space-y-2 border border-surface-border rounded-md p-2 bg-background max-h-64 overflow-y-auto">
                                       {enrolledMembres.map(m => (
                                         <div key={m.id} className="flex items-center justify-between gap-4 p-2 hover:bg-surface rounded-md">
@@ -303,7 +336,7 @@ export default function CreateDistributionModal({
                               <label className="block text-sm font-medium text-foreground">{d.beneficiary}</label>
                               <select
                                 value={selectedMembreId}
-                                onChange={(e) => setSelectedMembreId(e.target.value)}
+                                onChange={(e) => selectMembre(e.target.value)}
                                 className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                               >
                                 <option value="">{d.select_member}</option>
@@ -331,6 +364,9 @@ export default function CreateDistributionModal({
                                             <div className="font-medium text-foreground">{i.nom}{forfaitaire ? ` (${d.amount_unit})` : ''}</div>
                                             {stockable && (
                                               <div className={`text-xs ${exceed ? 'text-danger' : 'text-foreground-muted'}`}>{d.stock_colon} {i.quantite_stock}</div>
+                                            )}
+                                            {partsProrata.has(i.id) && (
+                                              <div className="text-xs text-foreground-muted">{d.prorata_short}</div>
                                             )}
                                           </div>
                                           <input

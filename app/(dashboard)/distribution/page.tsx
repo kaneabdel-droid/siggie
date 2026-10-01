@@ -42,10 +42,12 @@ export default async function DistributionPage() {
     membre: cm.membres
   }))
 
-  // 4. Fetch campagne_intrants
+  // 4. Fetch campagne_intrants (`*` : inclut quantite_prevue, la quantité à
+  // répartir au prorata des superficies, sans casser la page si la migration 37
+  // n'est pas encore appliquée)
   const { data: campagneIntrants } = await supabase
     .from('campagne_intrants')
-    .select('campagne_id, intrant_id, prix_facturation')
+    .select('*')
 
   // 5. Fetch distributions history
   const { data: distributions } = await supabase
@@ -62,6 +64,14 @@ export default async function DistributionPage() {
   const membresServis = new Set(distributions?.map(d => d.membre_id))
   const nombreMembresServis = membresServis.size
 
+  // Quantités déjà distribuées par campagne / membre / intrant : la valeur par
+  // défaut proposée à la distribution est la part au prorata restant à servir.
+  const dejaDistribue: Record<string, number> = {}
+  for (const d of distributions || []) {
+    const key = `${d.campagne_id}|${d.membre_id}|${d.intrant_id}`
+    dejaDistribue[key] = (dejaDistribue[key] || 0) + (Number(d.quantite) || 0)
+  }
+
   return (
     <div>
       <div className="sm:flex sm:items-center">
@@ -77,6 +87,7 @@ export default async function DistributionPage() {
             campagneMembres={campagneMembres}
             intrants={intrants || []}
             campagneIntrants={campagneIntrants || []}
+            dejaDistribue={dejaDistribue}
             dict={dict}
           />
         </div>

@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { Calendar, Settings, FileText } from 'lucide-react'
+import { Calendar, Settings, FileText, PieChart } from 'lucide-react'
 import Link from 'next/link'
 import CreateCampagneButton from './CreateCampagneButton'
 import CampagneRowActions from './CampagneRowActions'
@@ -86,6 +86,15 @@ export default async function CampagnesPage({
                     >
                       <Settings className="h-5 w-5 text-foreground-muted" aria-hidden="true" />
                       {dict.campagnes.card.configure}
+                    </Link>
+                  </div>
+                  <div className="-ml-px flex w-0 flex-1">
+                    <Link
+                      href={`/campagnes/${campagne.id}/repartition`}
+                      className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 border border-transparent py-4 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                    >
+                      <PieChart className="h-5 w-5 text-foreground-muted" aria-hidden="true" />
+                      {dict.campagnes.card.repartition}
                     </Link>
                   </div>
                   <div className="-ml-px flex w-0 flex-1">

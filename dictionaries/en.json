@@ -257,7 +257,8 @@
       "to": "to",
       "repayment": "Repayment:",
       "configure": "Configure",
-      "report": "Report"
+      "report": "Report",
+      "repartition": "Allocation"
     },
     "empty": "No seasons found. Click \"New Season\" to get started."
   },
@@ -528,7 +529,9 @@
       "amount_unit": "FCFA",
       "select_campaign_prompt": "Please select a season to continue.",
       "validate_submit": "Validate the distribution",
-      "validating": "Validating..."
+      "validating": "Validating...",
+      "prorata_hint": "Suggested values: each member's share in proportion to their farmed area (campaign Allocation page), minus what has already been distributed to them.",
+      "prorata_short": "Pro-rata share"
     },
     "modal": {
       "edit_title": "Edit distributed quantity",
@@ -1110,6 +1113,32 @@
         "total_global": "Grand Total (FCFA)",
         "grand_total": "GRAND TOTAL",
         "empty": "No delivery recorded for this season."
+      }
+    },
+    "repartition": {
+      "title": "Input allocation:",
+      "desc": "Set the total quantity of each input to allocate: each enrolled member's share is calculated in proportion to the area they farm for the campaign, and suggested by default during distribution.",
+      "enrolled_members": "Enrolled members",
+      "total_area": "Total farmed area",
+      "no_members": "No member is enrolled in this campaign.",
+      "no_area": "No area has been entered for the enrolled members.",
+      "no_intrants": "No input to allocate is configured for this campaign (Cultivation Work and Water Service are already distributed per hectare).",
+      "config_link": "Go to campaign configuration",
+      "quantities_title": "Quantities to allocate",
+      "quantities_desc": "Total quantity of each input to share among enrolled members.",
+      "use_stock": "Use stock",
+      "shares_title": "Each member's share",
+      "shares_desc": "Share = quantity to allocate × member's area ÷ total area. These values are suggested by default during distribution.",
+      "already_distributed": "Already distributed:",
+      "total": "Total",
+      "headers": {
+        "intrant": "Input",
+        "stock": "Stock",
+        "quantity_to_split": "Quantity to allocate",
+        "dose_per_ha": "Rate / ha",
+        "member": "Member",
+        "area": "Area (ha)",
+        "percent": "Share (%)"
       }
     }
   },

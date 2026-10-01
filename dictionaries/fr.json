@@ -257,7 +257,8 @@
       "to": "au",
       "repayment": "Remboursement:",
       "configure": "Configurer",
-      "report": "Bilan"
+      "report": "Bilan",
+      "repartition": "Répartition"
     },
     "empty": "Aucune campagne trouvée. Cliquez sur \"Nouvelle Campagne\" pour commencer."
   },
@@ -528,7 +529,9 @@
       "amount_unit": "FCFA",
       "select_campaign_prompt": "Veuillez sélectionner une campagne pour continuer.",
       "validate_submit": "Valider la distribution",
-      "validating": "Validation..."
+      "validating": "Validation...",
+      "prorata_hint": "Valeurs proposées : part au prorata de la superficie de chaque membre (page Répartition de la campagne), moins ce qui lui a déjà été distribué.",
+      "prorata_short": "Part au prorata"
     },
     "modal": {
       "edit_title": "Modifier la quantité distribuée",
@@ -1110,6 +1113,32 @@
         "total_global": "Total Global (FCFA)",
         "grand_total": "TOTAL GÉNÉRAL",
         "empty": "Aucune livraison enregistrée pour cette campagne."
+      }
+    },
+    "repartition": {
+      "title": "Répartition des intrants :",
+      "desc": "Définissez la quantité totale de chaque intrant à répartir : la part de chaque membre inscrit est calculée au prorata de la superficie qu'il exploite pour la campagne, et proposée par défaut lors de la distribution.",
+      "enrolled_members": "Membres inscrits",
+      "total_area": "Superficie totale exploitée",
+      "no_members": "Aucun membre n'est inscrit à cette campagne.",
+      "no_area": "Aucune superficie n'est renseignée pour les membres inscrits.",
+      "no_intrants": "Aucun intrant à répartir n'est configuré pour cette campagne (Façon culturale et Service Hydraulique sont déjà distribués à l'hectare).",
+      "config_link": "Aller à la configuration de la campagne",
+      "quantities_title": "Quantités à répartir",
+      "quantities_desc": "Quantité totale de chaque intrant à partager entre les membres inscrits.",
+      "use_stock": "Utiliser le stock",
+      "shares_title": "Part de chaque membre",
+      "shares_desc": "Part = quantité à répartir × superficie du membre ÷ superficie totale. Ces valeurs sont proposées par défaut lors de la distribution.",
+      "already_distributed": "Déjà distribué :",
+      "total": "Total",
+      "headers": {
+        "intrant": "Intrant",
+        "stock": "Stock",
+        "quantity_to_split": "Quantité à répartir",
+        "dose_per_ha": "Dose / ha",
+        "member": "Membre",
+        "area": "Superficie (ha)",
+        "percent": "Part (%)"
       }
     }
   },

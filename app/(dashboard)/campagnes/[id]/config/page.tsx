@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, Lock } from 'lucide-react'
+import { ArrowLeft, Users, Lock, PieChart } from 'lucide-react'
 import MembreToggle from './MembreToggle'
 import SuperficieCampagneInput from './SuperficieCampagneInput'
 import CampagneIntrantsManager from './CampagneIntrantsManager'
@@ -95,6 +95,15 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
           <p className="mt-2 text-sm text-foreground-muted">
             {t.desc}
           </p>
+        </div>
+        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+          <Link
+            href={`/campagnes/${id}/repartition`}
+            className="inline-flex items-center gap-2 rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background"
+          >
+            <PieChart className="h-4 w-4" />
+            {dict.campagnes.card.repartition}
+          </Link>
         </div>
       </div>
 
