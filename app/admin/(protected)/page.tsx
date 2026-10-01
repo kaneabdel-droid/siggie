@@ -51,7 +51,8 @@ const produits = [
   {
     nom: 'PCAS',
     description: 'Commercialisation agricole — producteurs, clients, banques : offres, commandes supervisées, livraisons, factures.',
-    href: 'https://pcas.dembasolution.com/admin/entreprises',
+    // Connexion unique : /auth/sso ouvre une session PCAS sur le compte administrateur de même email.
+    href: 'https://pcas.dembasolution.com/auth/sso?next=/admin/entreprises',
     externe: true,
     icon: Handshake,
     statut: 'en_ligne' as const,
