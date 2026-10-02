@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { isAdminEmail } from '@/lib/admin/auth'
+import { pageSuivante } from '@/lib/suite'
 
 export async function login(formData: FormData) {
   const cookieStore = await cookies()
@@ -16,6 +17,7 @@ export async function login(formData: FormData) {
   }
 
   const supabase = await createClient()
+  const suite = pageSuivante(formData.get('next'))
 
   const data = {
     email: formData.get('email') as string,
@@ -35,7 +37,7 @@ export async function login(formData: FormData) {
       return redirect('/?message=Trop de tentatives échouées. Veuillez patienter 1 minute avant de vous reconnecter.')
     } else {
       cookieStore.set('login_attempts', attempts.toString(), { maxAge: 300 }) // Keep for 5 minutes
-      return redirect('/login?message=Identifiant ou mot de passe non conforme veuillez réessayer')
+      return redirect('/login?message=Identifiant ou mot de passe non conforme veuillez réessayer' + (suite ? '&next=' + encodeURIComponent(suite) : ''))
     }
   }
 
@@ -58,5 +60,5 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  redirect(suite ?? '/dashboard')
 }

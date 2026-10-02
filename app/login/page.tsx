@@ -1,10 +1,13 @@
 import LanguageSelector from '@/components/LanguageSelector'
 import ClientLoginForm from './ClientLoginForm'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { pageSuivante } from '@/lib/suite'
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string, next?: string }> }) {
   const params = await searchParams
   const message = params?.message
+  // Page à ouvrir après connexion (paiement du forfait choisi avant l'inscription).
+  const next = pageSuivante(params?.next) ?? undefined
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 
@@ -33,11 +36,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
         )}
 
-        <ClientLoginForm dict={dict} />
+        <ClientLoginForm dict={dict} next={next} />
 
         <p className="mt-10 text-center text-sm text-foreground-muted">
           {dict.auth.login.no_account}{' '}
-          <a href="/signup" className="font-semibold leading-6 text-primary hover:text-primary-hover">
+          <a href={next ? `/signup?next=${encodeURIComponent(next)}` : '/signup'} className="font-semibold leading-6 text-primary hover:text-primary-hover">
             {dict.auth.login.signup}
           </a>
         </p>

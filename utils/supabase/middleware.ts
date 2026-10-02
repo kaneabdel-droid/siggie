@@ -94,11 +94,17 @@ export async function updateSession(request: NextRequest) {
     !pathname.startsWith('/auth') &&
     !pathname.startsWith('/decouvrir-siggie') &&
     !pathname.startsWith('/guide') &&
-    !pathname.startsWith('/tarifs')
+    !pathname.startsWith('/tarifs') &&
+    // Page de paiement d'un forfait : ouverte au visiteur depuis les tarifs ; son bouton
+    // l'envoie créer son compte, puis l'y ramène (paramètre `next`) pour payer.
+    pathname !== '/checkout'
   ) {
-    // no user, potentially respond by redirecting the user to the login page
+    // no user, potentially respond by redirecting the user to the login page,
+    // en gardant la page demandée pour y revenir après connexion.
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.search = ''
+    url.searchParams.set('next', pathname + request.nextUrl.search)
     return NextResponse.redirect(url)
   }
 

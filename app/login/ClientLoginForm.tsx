@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { login } from '@/app/login/actions'
 
-export default function ClientLoginForm({ dict }: { dict: any }) {
+export default function ClientLoginForm({ dict, next }: { dict: any, next?: string }) {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
     <form className="space-y-6" action={login}>
+      {next && <input type="hidden" name="next" value={next} />}
       <div>
         <label
           htmlFor="email"

@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { signup } from '@/app/signup/actions'
 
-export default function ClientSignupForm({ dict, plan }: { dict: any, plan: string }) {
+export default function ClientSignupForm({ dict, plan, next }: { dict: any, plan: string, next?: string }) {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
     <form className="space-y-6" action={signup}>
       <input type="hidden" name="plan" value={plan} />
+      {next && <input type="hidden" name="next" value={next} />}
 
       <div>
         <label htmlFor="gie_nom" className="block text-sm font-medium leading-6 text-foreground">
