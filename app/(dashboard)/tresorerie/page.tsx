@@ -2,8 +2,11 @@ import { getComptes } from './actions'
 import { Landmark, Plus, Wallet } from 'lucide-react'
 import AddCompteModal from './AddCompteModal'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
+import { uniteMontant } from '@/lib/currency'
 
 export default async function TresoreriePage() {
+  const unite = uniteMontant((await getTenantContext())?.devise)
   const { comptes, error } = await getComptes()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
@@ -31,7 +34,7 @@ export default async function TresoreriePage() {
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
         <div className="overflow-hidden rounded-lg bg-primary px-4 py-5 shadow sm:p-6 text-white">
           <dt className="truncate text-sm font-medium text-white/80">{dict.tresorerie.balances.total}</dt>
-          <dd className="mt-1 text-3xl font-semibold tracking-tight">{totalGlobal.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
+          <dd className="mt-1 text-3xl font-semibold tracking-tight">{totalGlobal.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</dd>
         </div>
       </div>
 
@@ -44,7 +47,7 @@ export default async function TresoreriePage() {
           <div className="min-w-0">
             <dt className="truncate text-sm font-medium text-foreground-muted">{compte.nom}</dt>
               <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">
-                {(compte.solde_courant || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
+                {(compte.solde_courant || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">{unite.trim()}</span>
               </dd>
             </div>
           </div>

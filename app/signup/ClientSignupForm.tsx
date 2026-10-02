@@ -3,9 +3,21 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { signup } from '@/app/signup/actions'
+import { AUTRE_PAYS, PAYS, PAYS_PAR_DEFAUT } from '@/lib/pays'
 
-export default function ClientSignupForm({ dict, plan, next }: { dict: any, plan: string, next?: string }) {
+/** Pays triés selon leur nom dans la langue de l'interface (noms français si le navigateur ne sait pas traduire). */
+function paysTries(locale: string) {
+  let noms: Intl.DisplayNames | null = null
+  try {
+    noms = new Intl.DisplayNames([locale], { type: 'region' })
+  } catch {}
+  return PAYS.map((p) => ({ code: p.code, nom: noms?.of(p.code) ?? p.nom })).sort((a, b) => a.nom.localeCompare(b.nom, locale))
+}
+
+export default function ClientSignupForm({ dict, plan, next, locale }: { dict: any, plan: string, next?: string, locale: string }) {
   const [showPassword, setShowPassword] = useState(false)
+  const [pays, setPays] = useState(PAYS_PAR_DEFAUT)
+  const champ = 'block w-full rounded-md border-0 py-1.5 px-3 bg-surface text-foreground shadow-sm ring-1 ring-inset ring-foreground-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6'
 
   return (
     <form className="space-y-6" action={signup}>
@@ -26,6 +38,32 @@ export default function ClientSignupForm({ dict, plan, next }: { dict: any, plan
           />
         </div>
       </div>
+
+      <div>
+        <label htmlFor="pays" className="block text-sm font-medium leading-6 text-foreground">
+          {dict.auth.signup.country}
+        </label>
+        <div className="mt-2">
+          <select id="pays" name="pays" value={pays} onChange={(e) => setPays(e.target.value)} className={champ}>
+            {paysTries(locale).map((p) => (
+              <option key={p.code} value={p.code}>{p.nom}</option>
+            ))}
+            <option value={AUTRE_PAYS}>{dict.auth.signup.other_country}</option>
+          </select>
+        </div>
+      </div>
+
+      {pays === AUTRE_PAYS && (
+        <div>
+          <label htmlFor="pays_nom" className="block text-sm font-medium leading-6 text-foreground">
+            {dict.auth.signup.other_country_name}
+          </label>
+          <div className="mt-2">
+            <input id="pays_nom" name="pays_nom" type="text" required className={champ} />
+          </div>
+          <p className="mt-1 text-xs text-foreground-muted">{dict.auth.signup.usd_note}</p>
+        </div>
+      )}
 
       <div>
         <label htmlFor="email" className="block text-sm font-medium leading-6 text-foreground">

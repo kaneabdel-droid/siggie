@@ -47,7 +47,7 @@ export default function QuantitePrevueInput({
       )}
       <input
         type="number"
-        step="0.01"
+        step="any"
         min="0"
         value={value}
         onChange={(e) => setValue(parseFloat(e.target.value) || 0)}

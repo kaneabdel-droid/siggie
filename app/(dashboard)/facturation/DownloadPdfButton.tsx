@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Download, Printer, Loader2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
+import { useUnite } from '@/components/DeviseProvider'
 
 // Fonction pour formater les montants proprement sans espaces insécables qui posent problème à jsPDF
 const formatAmount = (amount: number | undefined | null) => {
@@ -11,6 +12,7 @@ const formatAmount = (amount: number | undefined | null) => {
 }
 
 export default function DownloadPdfButton({ facture, dict, gieName }: { facture: any; dict: any; gieName: string }) {
+  const unite = useUnite()
   const [loadingAction, setLoadingAction] = useState<'download' | 'print' | null>(null)
 
   const generatePDF = async (action: 'download' | 'print') => {
@@ -178,7 +180,7 @@ export default function DownloadPdfButton({ facture, dict, gieName }: { facture:
 
       autoTable(doc, {
         startY: 70,
-        head: [['Désignation de l\'article', 'Qté', 'Prix Unitaire', 'Montant (FCFA)']],
+        head: [['Désignation de l\'article', 'Qté', 'Prix Unitaire', unite ? `Montant (${unite.trim()})` : 'Montant']],
         body: tableBody,
         theme: 'striped',
         headStyles: {
@@ -257,11 +259,11 @@ export default function DownloadPdfButton({ facture, dict, gieName }: { facture:
       if (resteAPayer < 0) {
         doc.setTextColor(45, 106, 79) // Vert pour le surplus
         doc.text('SURPLUS DE REMB. :', totalBoxX, ty)
-        doc.text(`${formatAmount(Math.abs(resteAPayer))} FCFA`, pageWidth - 14, ty, { align: 'right' })
+        doc.text(`${formatAmount(Math.abs(resteAPayer))}${unite}`, pageWidth - 14, ty, { align: 'right' })
       } else {
         doc.setTextColor(220, 38, 38) // Rouge pour le reste à payer
         doc.text('RESTE À PAYER :', totalBoxX, ty)
-        doc.text(`${formatAmount(resteAPayer)} FCFA`, pageWidth - 14, ty, { align: 'right' })
+        doc.text(`${formatAmount(resteAPayer)}${unite}`, pageWidth - 14, ty, { align: 'right' })
       }
 
       // ==========================================
@@ -279,7 +281,7 @@ export default function DownloadPdfButton({ facture, dict, gieName }: { facture:
 
       if (prixCollecte > 0 && resteAPayer > 0) {
         doc.text(`• Équivalent nature pour solder : ${quantiteNature}`, 14, finalY + 23)
-        doc.text(`  (Calculé sur la base de ${prixCollecte} FCFA / kg)`, 14, finalY + 28)
+        doc.text(`  (Calculé sur la base de ${prixCollecte}${unite} / kg)`, 14, finalY + 28)
       }
 
       // Mentions légales / Signature en bas

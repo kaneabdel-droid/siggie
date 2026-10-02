@@ -70,7 +70,7 @@ export default function CreateIntrantButton({ dict }: { dict: any }) {
                   {stockable && (
                     <div>
                       <label className="block text-sm font-medium text-foreground">{d.modal.initial_stock}</label>
-                      <input type="number" step="0.01" name="quantite_stock" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                      <input type="number" step="any" name="quantite_stock" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                     </div>
                   )}
                   <div>

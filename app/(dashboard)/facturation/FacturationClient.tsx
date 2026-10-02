@@ -6,8 +6,10 @@ import DownloadPdfButton from './DownloadPdfButton'
 
 import GenererFacturesModal from './GenererFacturesModal'
 import CalculInteretModal from './CalculInteretModal'
+import { useUnite } from '@/components/DeviseProvider'
 
 export default function FacturationClient({ factures, campagnes, dict, locale, gieName }: { factures: any[], campagnes: { id: string; nom: string }[], dict: any, locale: string, gieName: string }) {
+  const unite = useUnite()
   const [searchTerm, setSearchTerm] = useState('')
 
   const filteredFactures = factures.filter(f => 
@@ -88,16 +90,16 @@ export default function FacturationClient({ factures, campagnes, dict, locale, g
                           {facture.campagne?.nom}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-foreground-muted">
-                          {montantInteret > 0 ? montantInteret.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 }) + ' FCFA' : '-'}
+                          {montantInteret > 0 ? montantInteret.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 }) + unite : '-'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold text-foreground">
-                          {totalDu.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                          {totalDu.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-success">
-                          {facture.montant_paye?.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                          {facture.montant_paye?.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold text-danger">
-                          {resteAPayer > 0 ? resteAPayer.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 }) + ' FCFA' : '-'}
+                          {resteAPayer > 0 ? resteAPayer.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 }) + unite : '-'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-center text-sm">
                           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${

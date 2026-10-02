@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CreditCard, Smartphone, Banknote, ArrowLeft, Clock } from 'lucide-react'
 import { initiateSubscriptionPayment } from './actions'
+import { montantUsd } from '@/lib/payments/dollars'
 
 type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow'
 
@@ -13,6 +14,7 @@ export default function CheckoutClient({
   isLoggedIn,
   currentTier,
   isUpgrade,
+  enDollars = false,
   hasOnlinePayment,
   dict,
   locale,
@@ -21,6 +23,8 @@ export default function CheckoutClient({
   isLoggedIn: boolean
   currentTier: string
   isUpgrade: boolean
+  /** GIE d'un autre pays (devise « sans unité ») : paiement par carte en dollars US uniquement. */
+  enDollars?: boolean
   hasOnlinePayment: { mobileMoney: boolean; carte: boolean; chariow: boolean }
   dict: any
   locale: string
@@ -30,14 +34,16 @@ export default function CheckoutClient({
 
   // Chariow ne facture que le prix plein d'un forfait (produit préconfiguré dans sa
   // boutique) : jamais disponible pour un montant de proratisation d'upgrade.
-  const chariowDisponible = hasOnlinePayment.chariow && !isUpgrade
+  const chariowDisponible = hasOnlinePayment.chariow && !isUpgrade && !enDollars
 
-  const availableMethods: MoyenPaiement[] = [
-    ...(hasOnlinePayment.mobileMoney ? (['wave', 'orange'] as const) : []),
-    ...(hasOnlinePayment.carte ? (['carte'] as const) : []),
-    ...(chariowDisponible ? (['chariow'] as const) : []),
-    'virement',
-  ]
+  const availableMethods: MoyenPaiement[] = enDollars
+    ? hasOnlinePayment.carte ? ['carte'] : []
+    : [
+        ...(hasOnlinePayment.mobileMoney ? (['wave', 'orange'] as const) : []),
+        ...(hasOnlinePayment.carte ? (['carte'] as const) : []),
+        ...(chariowDisponible ? (['chariow'] as const) : []),
+        'virement',
+      ]
 
   const router = useRouter()
   const [paymentMethod, setPaymentMethod] = useState<MoyenPaiement>(availableMethods[0])
@@ -63,6 +69,7 @@ export default function CheckoutClient({
     if (numericPrice <= 0) numericPrice = selectedPlan.value
     priceToPay = `${numericPrice.toLocaleString(localeCode)} FCFA`
   }
+  if (enDollars) priceToPay = `${montantUsd(numericPrice).toLocaleString('en-US')} $`
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -151,9 +158,15 @@ export default function CheckoutClient({
               <p className="mb-6 text-sm bg-danger/10 text-danger p-3 rounded-md">{error}</p>
             )}
 
+            {enDollars && (
+              <p className="mb-6 text-sm bg-surface border border-surface-border p-3 rounded-md">
+                {availableMethods.length > 0 ? d.usd_card_only : d.card_unavailable}
+              </p>
+            )}
+
             <form onSubmit={handlePayment}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                {hasOnlinePayment.mobileMoney && (
+                {hasOnlinePayment.mobileMoney && !enDollars && (
                   <>
                     <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'wave' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
                       <input type="radio" name="paymentMethod" value="wave" checked={paymentMethod === 'wave'} onChange={() => setPaymentMethod('wave')} className="sr-only" />
@@ -185,11 +198,13 @@ export default function CheckoutClient({
                   </label>
                 )}
 
-                <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'virement' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
-                  <input type="radio" name="paymentMethod" value="virement" checked={paymentMethod === 'virement'} onChange={() => setPaymentMethod('virement')} className="sr-only" />
-                  <Banknote className={`w-8 h-8 mb-2 ${paymentMethod === 'virement' ? 'text-primary' : 'text-foreground-muted'}`} />
-                  <span className={`font-semibold ${paymentMethod === 'virement' ? 'text-primary' : 'text-foreground'}`}>{d.transfer}</span>
-                </label>
+                {!enDollars && (
+                  <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'virement' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
+                    <input type="radio" name="paymentMethod" value="virement" checked={paymentMethod === 'virement'} onChange={() => setPaymentMethod('virement')} className="sr-only" />
+                    <Banknote className={`w-8 h-8 mb-2 ${paymentMethod === 'virement' ? 'text-primary' : 'text-foreground-muted'}`} />
+                    <span className={`font-semibold ${paymentMethod === 'virement' ? 'text-primary' : 'text-foreground'}`}>{d.transfer}</span>
+                  </label>
+                )}
               </div>
 
               {paymentMethod === 'virement' && (
@@ -223,7 +238,7 @@ export default function CheckoutClient({
 
               <button
                 type="submit"
-                disabled={isProcessing}
+                disabled={isProcessing || !paymentMethod}
                 className="w-full bg-primary text-white font-bold py-4 px-8 rounded-xl hover:bg-primary-hover transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
@@ -231,7 +246,7 @@ export default function CheckoutClient({
                 ) : !isLoggedIn ? (
                   <>{d.create_account_btn}</>
                 ) : (
-                  <>{d.pay_prefix} {priceToPay.split(' ')[0]} FCFA</>
+                  <>{d.pay_prefix} {enDollars ? priceToPay : `${priceToPay.split(' ')[0]} FCFA`}</>
                 )}
               </button>
             </form>

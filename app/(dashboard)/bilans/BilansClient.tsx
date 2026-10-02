@@ -9,6 +9,7 @@ import {
   Wallet
 } from 'lucide-react'
 import PrintSectionButton from '@/components/PrintSectionButton'
+import { useUnite } from '@/components/DeviseProvider'
 
 type StatsProps = {
   tresorerie: { soldeActuel: number, totalEntrees: number, totalSorties: number },
@@ -17,6 +18,7 @@ type StatsProps = {
 }
 
 export default function BilansClient({ stats, dict, gieName }: { stats: StatsProps, dict: any, gieName: string }) {
+  const unite = useUnite()
   return (
     <div className="space-y-6" id="bilan-vue-ensemble">
       <div className="hidden print:block mb-4">
@@ -42,7 +44,7 @@ export default function BilansClient({ stats, dict, gieName }: { stats: StatsPro
                     <dt className="text-sm font-medium text-foreground-muted truncate">{dict.bilans.tresorerie.balance}</dt>
                     <dd>
                       <div className="text-2xl font-semibold text-foreground">
-                        {stats.tresorerie.soldeActuel.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                        {stats.tresorerie.soldeActuel.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
                       </div>
                     </dd>
                   </dl>
@@ -62,7 +64,7 @@ export default function BilansClient({ stats, dict, gieName }: { stats: StatsPro
                     <dt className="text-sm font-medium text-foreground-muted truncate">{dict.bilans.tresorerie.inflows}</dt>
                     <dd>
                       <div className="text-2xl font-semibold text-success">
-                        {stats.tresorerie.totalEntrees.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                        {stats.tresorerie.totalEntrees.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
                       </div>
                     </dd>
                   </dl>
@@ -82,7 +84,7 @@ export default function BilansClient({ stats, dict, gieName }: { stats: StatsPro
                     <dt className="text-sm font-medium text-foreground-muted truncate">{dict.bilans.tresorerie.outflows}</dt>
                     <dd>
                       <div className="text-2xl font-semibold text-danger">
-                        {stats.tresorerie.totalSorties.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                        {stats.tresorerie.totalSorties.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
                       </div>
                     </dd>
                   </dl>
@@ -108,7 +110,7 @@ export default function BilansClient({ stats, dict, gieName }: { stats: StatsPro
                     <dt className="text-sm font-medium text-warning truncate">{dict.bilans.creances.unpaid}</dt>
                     <dd>
                       <div className="text-2xl font-semibold text-warning">
-                        {stats.creances.facturesImpayees.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                        {stats.creances.facturesImpayees.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
                       </div>
                     </dd>
                   </dl>
@@ -128,7 +130,7 @@ export default function BilansClient({ stats, dict, gieName }: { stats: StatsPro
                     <dt className="text-sm font-medium text-warning truncate">{dict.bilans.creances.credits}</dt>
                     <dd>
                       <div className="text-2xl font-semibold text-warning">
-                        {stats.creances.creditsEnCours.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+                        {stats.creances.creditsEnCours.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
                       </div>
                     </dd>
                   </dl>
@@ -152,22 +154,22 @@ export default function BilansClient({ stats, dict, gieName }: { stats: StatsPro
               </div>
             </div>
             <div className={`mt-4 sm:mt-0 text-3xl font-bold ${stats.materiel.rentabiliteNette >= 0 ? 'text-success' : 'text-danger'}`}>
-              {stats.materiel.rentabiliteNette.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
+              {stats.materiel.rentabiliteNette.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
             </div>
           </div>
           
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-surface-border pt-6">
             <div>
               <p className="text-sm text-foreground-muted">{dict.bilans.materiel.revenue}</p>
-              <p className="text-lg font-semibold text-success">+{stats.materiel.totalRecettes.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</p>
+              <p className="text-lg font-semibold text-success">+{stats.materiel.totalRecettes.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}</p>
             </div>
             <div>
               <p className="text-sm text-foreground-muted">{dict.bilans.materiel.expenses}</p>
-              <p className="text-lg font-semibold text-danger">-{stats.materiel.totalDepenses.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</p>
+              <p className="text-lg font-semibold text-danger">-{stats.materiel.totalDepenses.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}</p>
             </div>
             <div>
               <p className="text-sm text-foreground-muted">{dict.bilans.materiel.depreciation}</p>
-              <p className="text-lg font-semibold text-danger">-{Math.round(stats.materiel.amortissementCumule).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</p>
+              <p className="text-lg font-semibold text-danger">-{Math.round(stats.materiel.amortissementCumule).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}</p>
             </div>
           </div>
         </div>

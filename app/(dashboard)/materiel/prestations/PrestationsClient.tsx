@@ -6,6 +6,7 @@ import { deletePrestation } from '../actions'
 import EditPrestationModal from './EditPrestationModal'
 import type { ProduitMateriel } from './PrestationFields'
 import type { ContexteBudgetMateriel } from '../BudgetCampagneChamps'
+import { useUnite } from '@/components/DeviseProvider'
 
 export default function PrestationsClient({
   prestations,
@@ -24,6 +25,7 @@ export default function PrestationsClient({
   dict: any
   locale: string
 }) {
+  const uniteDevise = useUnite()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const t = dict.materiel_pages.prestations
   const dateLocale = locale === 'fr' ? 'fr-FR' : locale === 'ar' ? 'ar-SN' : 'en-US'
@@ -60,7 +62,7 @@ export default function PrestationsClient({
       <div className="bg-surface border border-surface-border rounded-lg p-4 flex flex-wrap justify-between items-center gap-4 shadow-sm">
         <div>
           <h3 className="text-sm font-medium text-foreground-muted">{t.total}</h3>
-          <p className="mt-1 text-2xl font-semibold text-success">{total.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA</p>
+          <p className="mt-1 text-2xl font-semibold text-success">{total.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{uniteDevise}</p>
         </div>
         {totauxUnites.size > 0 && (
           <div>

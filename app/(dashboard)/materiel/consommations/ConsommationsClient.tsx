@@ -5,8 +5,10 @@ import { Trash2 } from 'lucide-react'
 import { deleteConsommation } from '../actions'
 import EditConsommationModal from './EditConsommationModal'
 import type { ContexteBudgetMateriel } from '../BudgetCampagneChamps'
+import { useUnite } from '@/components/DeviseProvider'
 
 export default function ConsommationsClient({ consommations, materiels, budget, dict, locale }: { consommations: any[], materiels: any[], budget: ContexteBudgetMateriel, dict: any, locale: string }) {
+  const unite = useUnite()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const t = dict.materiel_pages.consommations
 
@@ -28,7 +30,7 @@ export default function ConsommationsClient({ consommations, materiels, budget, 
       <div className="bg-surface border border-surface-border rounded-lg p-4 flex justify-between items-center shadow-sm">
         <div>
           <h3 className="text-sm font-medium text-foreground-muted">{t.total}</h3>
-          <p className="mt-1 text-2xl font-semibold text-danger">{total.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA</p>
+          <p className="mt-1 text-2xl font-semibold text-danger">{total.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}</p>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase/admin'
 import ConfirmerVirementButton from './ConfirmerVirementButton'
+import { formatPaiement } from '@/lib/payments/dollars'
 
 export default async function AdminPaiementsPage({
   searchParams,
@@ -12,7 +13,7 @@ export default async function AdminPaiementsPage({
 
   let query = supabase
     .from('abonnement_paiements')
-    .select('id, gie_id, niveau, montant, provider, moyen_paiement, statut, doublon, created_at, gies(nom)')
+    .select('id, gie_id, niveau, montant, devise, provider, moyen_paiement, statut, doublon, created_at, gies(nom)')
     .order('created_at', { ascending: false })
     .limit(200)
 
@@ -70,7 +71,7 @@ export default async function AdminPaiementsPage({
                     </Link>
                   </td>
                   <td className="px-4 py-3 capitalize">{p.niveau}</td>
-                  <td className="px-4 py-3">{Number(p.montant).toLocaleString('fr-FR')} FCFA</td>
+                  <td className="px-4 py-3">{formatPaiement(Number(p.montant), p.devise)}</td>
                   <td className="px-4 py-3 capitalize">{p.provider} ({p.moyen_paiement})</td>
                   <td className="px-4 py-3">
                     <span className={p.statut === 'completed' ? 'text-success' : p.statut === 'failed' ? 'text-danger' : 'text-primary'}>

@@ -144,7 +144,7 @@ export default function PrestationFields({
               id="quantite_traitee"
               required
               min="0.01"
-              step="0.01"
+              step="any"
               inputMode="decimal"
               value={quantite}
               onChange={(e) => {
@@ -212,7 +212,7 @@ export default function PrestationFields({
               name="quantite_obtenue"
               id="quantite_obtenue"
               min="0"
-              step="0.01"
+              step="any"
               inputMode="decimal"
               required={mode === 'part_recolte'}
               value={obtenue}
@@ -279,7 +279,7 @@ export default function PrestationFields({
                 required
                 min="0.01"
                 max="100"
-                step="0.01"
+                step="any"
                 inputMode="decimal"
                 value={taux}
                 onChange={(e) => {

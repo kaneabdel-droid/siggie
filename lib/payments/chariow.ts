@@ -17,6 +17,8 @@ type InitiateChariowParams = {
   montantAttendu: number
   reference: string
   phoneLocal: string
+  /** ISO2 du pays du GIE (lib/pays.ts) ; Sénégal par défaut. */
+  countryCode?: string
   customerEmail: string
   customerName?: string
   returnUrl: string
@@ -49,7 +51,7 @@ export async function initiateChariowPayment(params: InitiateChariowParams): Pro
     first_name: first,
     last_name: last,
     // Sénégal uniquement pour l'instant : numéro local sans le 0 initial, pays fixe.
-    phone: { number: params.phoneLocal.replace(/^0/, ''), country_code: 'SN' },
+    phone: { number: params.phoneLocal.replace(/^0/, ''), country_code: params.countryCode ?? 'SN' },
     redirect_url: params.returnUrl,
     custom_metadata: { paymentId: params.reference },
   }

@@ -6,6 +6,7 @@ import { initiateBictorysPayment } from '@/lib/payments/bictorys'
 import { initiateMonerooPayment } from '@/lib/payments/moneroo'
 import { initiateChariowPayment } from '@/lib/payments/chariow'
 import { siteUrl } from '@/lib/payments/config'
+import { montantUsd } from '@/lib/payments/dollars'
 
 type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow'
 
@@ -35,7 +36,7 @@ export async function initiateSubscriptionPayment(
 
   const { data: userData } = await supabase
     .from('utilisateurs')
-    .select('gie_id, gies(subscription_tier)')
+    .select('gie_id, gies(subscription_tier, devise, pays)')
     .eq('id', user.id)
     .single()
 
@@ -45,6 +46,11 @@ export async function initiateSubscriptionPayment(
 
   const gie = Array.isArray(userData.gies) ? userData.gies[0] : userData.gies
   const currentTier = gie?.subscription_tier || 'standard'
+  // GIE d'un autre pays (devise « sans unité ») : abonnement payé par carte, en dollars US.
+  const enDollars = gie?.devise === 'AUCUNE'
+  if (enDollars && moyenPaiement !== 'carte') {
+    return { ok: false, error: 'Depuis votre pays, l’abonnement se paie par carte bancaire en dollars US' }
+  }
 
   // Ne jamais faire confiance au prix envoyé par le client : on relit les tarifs en base.
   const { data: tarifs } = await supabase
@@ -64,6 +70,8 @@ export async function initiateSubscriptionPayment(
     montant = selectedTarif.prix_annuel - currentTarif.prix_annuel
     if (montant <= 0) montant = selectedTarif.prix_annuel
   }
+  const devise = enDollars ? 'USD' : 'XOF'
+  if (enDollars) montant = montantUsd(montant)
 
   const provider = moyenPaiement === 'carte' ? 'moneroo' : moyenPaiement === 'virement' ? 'virement' : moyenPaiement === 'chariow' ? 'chariow' : 'bictorys'
 
@@ -109,6 +117,7 @@ export async function initiateSubscriptionPayment(
       montant,
       provider,
       moyen_paiement: moyenPaiement,
+      devise,
       statut: 'pending',
     })
     .select('id')
@@ -138,7 +147,7 @@ export async function initiateSubscriptionPayment(
     provider === 'moneroo'
       ? await initiateMonerooPayment({
           amount: montant,
-          currency: 'XOF',
+          currency: devise,
           description,
           reference: payment.id,
           returnUrl,
@@ -151,6 +160,7 @@ export async function initiateSubscriptionPayment(
             montantAttendu: montant,
             reference: payment.id,
             phoneLocal: phoneLocal || '',
+            countryCode: gie?.pays && gie.pays !== 'AUTRE' ? gie.pays : 'SN',
             customerEmail: user.email || '',
             returnUrl,
           })

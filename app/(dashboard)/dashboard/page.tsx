@@ -2,8 +2,11 @@ import { Users, Leaf, Banknote, Tractor, ArrowRight } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
+import { uniteMontant } from '@/lib/currency'
 
 export default async function Dashboard() {
+  const unite = uniteMontant((await getTenantContext())?.devise)
   const supabase = await createClient()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
@@ -134,7 +137,7 @@ export default async function Dashboard() {
             <div className="bg-background rounded-lg border border-surface-border p-5 text-center">
               <p className="text-sm font-medium text-foreground-muted mb-1">{dict.dashboard.finance.balance}</p>
               <p className={`text-3xl font-bold ${soldeActuel >= 0 ? 'text-foreground' : 'text-danger'}`}>
-                {soldeActuel.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                {soldeActuel.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
               </p>
             </div>
 

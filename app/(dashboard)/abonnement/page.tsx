@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, CheckCircle2, ArrowRight, Clock, AlertTriangle } from 'lucide-react'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { montantUsd } from '@/lib/payments/dollars'
 
 export default async function AbonnementPage({
   searchParams,
@@ -25,12 +26,15 @@ export default async function AbonnementPage({
 
   const { data: userData } = await supabase
     .from('utilisateurs')
-    .select('gies(nom, subscription_tier, essai_expire_le)')
+    .select('gies(nom, subscription_tier, essai_expire_le, devise)')
     .eq('id', user.id)
     .single()
 
   const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
   const currentTier = gie?.subscription_tier || 'standard'
+  // GIE d'un autre pays (devise « sans unité ») : prix affichés et payés en dollars US
+  const enDollars = gie?.devise === 'AUCUNE'
+  const prix = (fcfa: number) => (enDollars ? `${montantUsd(fcfa).toLocaleString('en-US')} $` : `${fcfa.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} FCFA`)
   const maintenant = new Date()
   const essaiExpireLe = gie?.essai_expire_le ? new Date(gie.essai_expire_le) : null
   const essaiExpire = essaiExpireLe ? essaiExpireLe < maintenant : false
@@ -42,7 +46,7 @@ export default async function AbonnementPage({
     {
       id: 'standard',
       name: t.plans.standard.name,
-      price: '50.000 FCFA / an',
+      price: `${prix(50000)} / an`,
       value: 50000,
       features: t.plans.standard.features,
       color: 'border-surface-border'
@@ -50,7 +54,7 @@ export default async function AbonnementPage({
     {
       id: 'medium',
       name: t.plans.medium.name,
-      price: '75.000 FCFA / an',
+      price: `${prix(75000)} / an`,
       value: 75000,
       features: t.plans.medium.features,
       color: 'border-primary'
@@ -58,7 +62,7 @@ export default async function AbonnementPage({
     {
       id: 'premium',
       name: t.plans.premium.name,
-      price: '100.000 FCFA / an',
+      price: `${prix(100000)} / an`,
       value: 100000,
       features: t.plans.premium.features,
       color: 'border-success'
@@ -132,8 +136,7 @@ export default async function AbonnementPage({
               
               <h3 className="text-xl font-bold font-heading mb-2">{plan.name}</h3>
               <div className="mb-6">
-                <span className="text-3xl font-black">{plan.price.split(' ')[0]}</span>
-                <span className="text-foreground-muted font-medium"> FCFA</span>
+                <span className="text-3xl font-black">{prix(plan.value)}</span>
               </div>
               
               <ul className="space-y-4 mb-8">
@@ -158,7 +161,7 @@ export default async function AbonnementPage({
                   href={`/checkout?plan=${plan.id}&upgrade=true`}
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-white px-4 py-3 font-bold text-center hover:bg-primary-hover transition-colors"
                 >
-                  {t.pay_prefix} {upgradeCost.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} FCFA <ArrowRight className="w-4 h-4" />
+                  {t.pay_prefix} {prix(upgradeCost)} <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
             </div>

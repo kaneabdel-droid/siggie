@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getSuiviBudgetaire } from './actions'
 import PrintSectionButton from '@/components/PrintSectionButton'
+import { useUnite } from '@/components/DeviseProvider'
 
 type Ligne = {
   imputation_id: string
@@ -105,6 +106,7 @@ export default function SuiviBudgetaireClient({
   dict: any
   gieName: string
 }) {
+  const unite = useUnite()
   const [selectedCampagne, setSelectedCampagne] = useState(defaultCampagneId)
   const [activeTab, setActiveTab] = useState<Tab>('exploitation')
   const [data, setData] = useState<SuiviData | null>(null)
@@ -196,15 +198,15 @@ export default function SuiviBudgetaireClient({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-foreground-muted">{t.headers.prevu}</p>
-                  <p className="text-lg font-semibold text-foreground">{formatFCFA(categorieData.solde.prevu)} FCFA</p>
+                  <p className="text-lg font-semibold text-foreground">{formatFCFA(categorieData.solde.prevu)}{unite}</p>
                 </div>
                 <div>
                   <p className="text-xs text-foreground-muted">{t.headers.realise}</p>
-                  <p className="text-lg font-semibold text-foreground">{formatFCFA(categorieData.solde.realise)} FCFA</p>
+                  <p className="text-lg font-semibold text-foreground">{formatFCFA(categorieData.solde.realise)}{unite}</p>
                 </div>
                 <div>
                   <p className="text-xs text-foreground-muted">{t.headers.ecart}</p>
-                  <p className={`text-lg font-semibold ${ecartColor(categorieData.solde.ecart)}`}>{formatFCFA(categorieData.solde.ecart)} FCFA</p>
+                  <p className={`text-lg font-semibold ${ecartColor(categorieData.solde.ecart)}`}>{formatFCFA(categorieData.solde.ecart)}{unite}</p>
                 </div>
               </div>
             </div>

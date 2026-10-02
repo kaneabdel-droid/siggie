@@ -3,8 +3,11 @@ import { Building, DollarSign, Clock, CheckCircle2, Wallet } from 'lucide-react'
 import CreateCreditButton from './CreateCreditButton'
 import CreditRowActions from './CreditRowActions'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
+import { uniteMontant } from '@/lib/currency'
 
 export default async function CreditsPage() {
+  const unite = uniteMontant((await getTenantContext())?.devise)
   const supabase = await createClient()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
@@ -70,7 +73,7 @@ export default async function CreditsPage() {
             </div>
             <dt className="text-sm font-medium text-foreground-muted leading-tight pt-1 flex-1 min-w-0">{dict.credits.kpis.demanded}</dt>
           </div>
-          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{totalDemande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
+          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{totalDemande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</dd>
         </div>
         <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md">
           <div className="flex items-start gap-3 min-w-0">
@@ -79,7 +82,7 @@ export default async function CreditsPage() {
             </div>
             <dt className="text-sm font-medium text-foreground-muted leading-tight pt-1 flex-1 min-w-0">{dict.credits.kpis.granted}</dt>
           </div>
-          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{totalAccorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
+          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{totalAccorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</dd>
         </div>
         <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md">
           <div className="flex items-start gap-3 min-w-0">
@@ -88,7 +91,7 @@ export default async function CreditsPage() {
             </div>
             <dt className="text-sm font-medium text-foreground-muted leading-tight pt-1 flex-1 min-w-0">{dict.credits.kpis.available}</dt>
           </div>
-          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{creditDisponible.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
+          <dd className="mt-4 text-2xl font-bold tracking-tight text-foreground">{creditDisponible.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</dd>
         </div>
         <div className="overflow-hidden rounded-xl bg-surface p-6 shadow-sm border border-surface-border transition-all hover:shadow-md">
           <div className="flex items-start gap-3 min-w-0">
@@ -130,11 +133,11 @@ export default async function CreditsPage() {
                           {credit.banque_nom || <span className="text-foreground-muted italic">{dict.credits.table.unspecified}</span>}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right">
-                          {credit.montant_demande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                          {credit.montant_demande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-right font-medium text-foreground">
                           {credit.statut === 'valide' ? (
-                            <span className="text-success">{credit.montant_accorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</span>
+                            <span className="text-success">{credit.montant_accorde.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</span>
                           ) : '-'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-center">

@@ -1,6 +1,6 @@
 export type InitiatePaymentParams = {
   amount: number
-  currency: 'XOF'
+  currency: 'XOF' | 'USD'
   description: string
   reference: string
   returnUrl: string

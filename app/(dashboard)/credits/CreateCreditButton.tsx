@@ -62,7 +62,7 @@ export default function CreateCreditButton({ campagnes, dict }: { campagnes: Cam
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.amount_requested}</label>
-                    <input type="number" step="0.01" name="montant_demande" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input type="number" step="any" name="montant_demande" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.reason}</label>

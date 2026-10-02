@@ -166,7 +166,11 @@
       "password": "Password",
       "btn": "Register",
       "has_account": "Already have an account?",
-      "login": "Log in"
+      "login": "Log in",
+      "country": "Country",
+      "other_country": "Other country",
+      "other_country_name": "Your country",
+      "usd_note": "Outside the listed countries, the subscription is paid by bank card in US dollars and amounts are shown without a currency."
     },
     "forgot_password": {
       "title": "Forgot password",
@@ -730,7 +734,9 @@
       "retry_link": "Try again",
       "pending_title": "Verifying payment...",
       "pending_desc": "This may take a few moments. Refresh this page or come back later to your subscription page."
-    }
+    },
+    "usd_card_only": "Your country does not use a supported currency: the subscription is paid by bank card in US dollars.",
+    "card_unavailable": "Card payment is not available yet. Contact support to subscribe."
   },
   "update_password": {
     "title": "Update your password",

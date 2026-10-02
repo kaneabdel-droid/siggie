@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Check, X, Trash2, Banknote, Undo2 } from 'lucide-react'
 import { updateCreditStatus, deleteCredit, addDecaissementCredit, addRemboursementCredit } from './actions'
+import { useUnite } from '@/components/DeviseProvider'
 
 type Credit = {
   id: string
@@ -15,6 +16,7 @@ type Credit = {
 }
 
 export default function CreditRowActions({ credit, comptes, dict, locale }: { credit: Credit, comptes?: any[], dict: any, locale?: string }) {
+  const unite = useUnite()
   const [isApproveOpen, setIsApproveOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isDecaissementOpen, setIsDecaissementOpen] = useState(false)
@@ -115,7 +117,7 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                 </h3>
                 <form action={handleDecaissement} id={`decaissement-form-${credit.id}`} className="space-y-4">
                   <p className="text-sm text-foreground-muted mb-4">
-                    {d.modal.credit_granted_label} <strong className="text-foreground">{credit.montant_accorde?.toLocaleString(localeCode, { maximumFractionDigits: 0 })} FCFA</strong>
+                    {d.modal.credit_granted_label} <strong className="text-foreground">{credit.montant_accorde?.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</strong>
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.operation_type}</label>
@@ -135,7 +137,7 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.amount}</label>
-                    <input type="number" step="0.01" name="montant" required max={credit.montant_accorde} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input type="number" step="any" name="montant" required max={credit.montant_accorde} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.reason_ref}</label>
@@ -178,7 +180,7 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                 </h3>
                 <form action={handleRemboursement} id={`remboursement-form-${credit.id}`} className="space-y-4">
                   <p className="text-sm text-foreground-muted mb-4">
-                    {d.modal.credit_granted_label} <strong className="text-foreground">{credit.montant_accorde?.toLocaleString(localeCode, { maximumFractionDigits: 0 })} FCFA</strong>
+                    {d.modal.credit_granted_label} <strong className="text-foreground">{credit.montant_accorde?.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</strong>
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.remboursement_account}</label>
@@ -191,7 +193,7 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.amount}</label>
-                    <input type="number" step="0.01" name="montant" required max={credit.montant_accorde} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input type="number" step="any" name="montant" required max={credit.montant_accorde} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.reason_ref}</label>
@@ -234,17 +236,17 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                 </h3>
                 <form action={handleApprove} id={`approve-form-${credit.id}`} className="space-y-4">
                   <p className="text-sm text-foreground-muted mb-4">
-                    {d.modal.amount_requested_label} <strong className="text-foreground">{credit.montant_demande.toLocaleString(localeCode, { maximumFractionDigits: 0 })} FCFA</strong>
+                    {d.modal.amount_requested_label} <strong className="text-foreground">{credit.montant_demande.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</strong>
                   </p>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.amount_granted}</label>
-                    <input type="number" step="0.01" name="montant_accorde" defaultValue={credit.montant_demande} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input type="number" step="any" name="montant_accorde" defaultValue={credit.montant_demande} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                     <p className="text-xs text-foreground-muted mt-1">{d.modal.amount_granted_note}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-foreground">{d.modal.interest_rate}</label>
-                      <input type="number" step="0.01" min="0" name="taux_interet" defaultValue={credit.taux_interet || 0} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                      <input type="number" step="any" min="0" name="taux_interet" defaultValue={credit.taux_interet || 0} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground">{d.modal.credit_duration}</label>

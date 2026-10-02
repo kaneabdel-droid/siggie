@@ -6,10 +6,12 @@ import { Fragment } from 'react'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getTypeOrderRank } from '@/lib/intrants/types'
+import { uniteMontant } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
 
 export default async function BilanCampagnePage({ params }: { params: Promise<{ id: string }> }) {
+  const unite = uniteMontant((await getTenantContext())?.devise)
   const supabase = await createClient()
   const { id } = await params
   const locale = await getLocale()
@@ -256,7 +258,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
           <div className="w-full mt-1">
             <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">{t.kpis.total_billed}</dt>
             <dd className="mt-1 text-lg font-bold tracking-tight text-foreground">
-              {totalValeurDistribuee.toLocaleString(dateLocale)} <span className="text-xs font-normal text-foreground-muted">FCFA</span>
+              {totalValeurDistribuee.toLocaleString(dateLocale)} <span className="text-xs font-normal text-foreground-muted">{unite.trim()}</span>
             </dd>
           </div>
         </div>
@@ -268,7 +270,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
           <div className="w-full mt-1">
             <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">{t.kpis.net_margin}</dt>
             <dd className={`mt-1 text-lg font-bold tracking-tight ${margeNette >= 0 ? 'text-success' : 'text-danger'}`}>
-              {margeNette > 0 ? '+' : ''}{margeNette.toLocaleString(dateLocale)} <span className="text-xs font-normal text-foreground-muted">FCFA</span>
+              {margeNette > 0 ? '+' : ''}{margeNette.toLocaleString(dateLocale)} <span className="text-xs font-normal text-foreground-muted">{unite.trim()}</span>
             </dd>
           </div>
         </div>
@@ -461,7 +463,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                   {intrantsList.map(i => (
                     <th key={i.id} scope="col" colSpan={2} className="px-3 py-2 text-center font-semibold text-foreground border-r border-surface-border bg-primary/5">
                       {i.nom} <br/>
-                      <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString(dateLocale)} FCFA/u</span>
+                      <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString(dateLocale)}{unite}/u</span>
                     </th>
                   ))}
                   <th scope="col" rowSpan={2} className="px-3 py-2 text-right font-semibold text-foreground align-bottom border-r border-surface-border">

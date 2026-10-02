@@ -169,7 +169,7 @@ export default function AddSortieModal({
                       <label htmlFor="quantite" className="block text-sm font-medium text-foreground">{t.quantity_label}</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="any"
                         name="quantite"
                         id="quantite"
                         required
@@ -183,7 +183,7 @@ export default function AddSortieModal({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="any"
                         name="prix_unitaire"
                         id="prix_unitaire"
                         required

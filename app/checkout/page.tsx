@@ -30,16 +30,19 @@ export default async function CheckoutPage({
   }
 
   let currentTier = 'standard'
+  // GIE d'un autre pays (devise « sans unité ») : abonnement payé par carte en dollars US
+  let enDollars = false
   if (user) {
     const { data: userData } = await supabase
       .from('utilisateurs')
-      .select('gies(subscription_tier)')
+      .select('gies(subscription_tier, devise)')
       .eq('id', user.id)
       .single()
 
     const gie = Array.isArray(userData?.gies) ? userData.gies[0] : userData?.gies
     if (gie) {
       currentTier = gie.subscription_tier || 'standard'
+      enDollars = gie.devise === 'AUCUNE'
     }
   }
 
@@ -49,6 +52,7 @@ export default async function CheckoutPage({
       isLoggedIn={!!user}
       currentTier={currentTier}
       isUpgrade={isUpgrade}
+      enDollars={enDollars}
       hasOnlinePayment={{ mobileMoney: hasBictorysKeys, carte: hasMonerooKeys, chariow: hasChariowKeys }}
       dict={dict}
       locale={locale}

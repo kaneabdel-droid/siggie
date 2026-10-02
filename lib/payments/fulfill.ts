@@ -20,7 +20,7 @@ export async function applyPaymentResult(
 
   const { data: payment } = await supabase
     .from('abonnement_paiements')
-    .select('id, gie_id, niveau, montant, statut')
+    .select('id, gie_id, niveau, montant, devise, statut')
     .eq('provider', provider)
     .eq('provider_reference', event.providerTransactionId)
     .maybeSingle()
@@ -38,6 +38,12 @@ export async function applyPaymentResult(
       recu: event.reportedAmount,
     })
     return { rejected: 'amount_mismatch' }
+  }
+
+  // Paiement demandé en dollars (GIE d'un autre pays) : un même montant confirmé dans une autre devise est refusé.
+  if (event.status === 'completed' && payment.devise === 'USD' && event.reportedCurrency && event.reportedCurrency.toUpperCase() !== 'USD') {
+    console.error('[paiement] devise incohérente — refusé', { provider, paymentId: payment.id, attendu: 'USD', recu: event.reportedCurrency })
+    return { rejected: 'currency_mismatch' }
   }
 
   const target = event.status === 'completed' ? 'completed' : 'failed'

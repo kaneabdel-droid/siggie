@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getReleveMembre } from './actions'
 import PrintSectionButton from '@/components/PrintSectionButton'
+import { useUnite } from '@/components/DeviseProvider'
 
 export default function ReleveMembreClient({
   membres,
@@ -15,6 +16,7 @@ export default function ReleveMembreClient({
   locale: string
   gieName: string
 }) {
+  const unite = useUnite()
   const [selectedMembre, setSelectedMembre] = useState(membres[0]?.id || '')
   const [lignes, setLignes] = useState<any[]>([])
   const [soldeFinal, setSoldeFinal] = useState(0)
@@ -88,7 +90,7 @@ export default function ReleveMembreClient({
           </div>
           <div className={`overflow-hidden rounded-lg px-4 py-5 shadow sm:p-6 max-w-xs ${soldeFinal > 0 ? 'bg-danger' : 'bg-success'} text-white`}>
             <dt className="text-sm font-medium text-white/90">{t.current_balance}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight">{soldeFinal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight">{soldeFinal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}</dd>
           </div>
 
           <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
@@ -110,13 +112,13 @@ export default function ReleveMembreClient({
                       {l.date ? new Date(l.date).toLocaleDateString(dateLocale) : '-'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground">
-                      {l.montant_facture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                      {l.montant_facture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-success">
-                      {l.montant_paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                      {l.montant_paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                     </td>
                     <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-semibold ${l.solde_progressif > 0 ? 'text-danger' : 'text-success'}`}>
-                      {l.solde_progressif.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                      {l.solde_progressif.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                     </td>
                   </tr>
                 ))}

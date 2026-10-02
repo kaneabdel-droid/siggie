@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getStockNature } from './actions'
 import AddSortieModal from './AddSortieModal'
+import { useUnite } from '@/components/DeviseProvider'
 
 export default function StockNatureClient({
   campagnes,
@@ -17,6 +18,7 @@ export default function StockNatureClient({
   dict: any
   locale: string
 }) {
+  const unite = useUnite()
   const [selectedCampagne, setSelectedCampagne] = useState(campagnes[0]?.id || '')
   const [clients, setClients] = useState(initialClients)
   const [journal, setJournal] = useState<any[]>([])
@@ -120,7 +122,7 @@ export default function StockNatureClient({
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">{m.tiers}</td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
-                    {Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                    {Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                   </td>
                   <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-medium ${m.type === 'entree' ? 'text-success' : 'text-danger'}`}>
                     {m.type === 'entree' ? '+' : '-'}{Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}

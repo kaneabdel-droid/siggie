@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Edit2, X, Check } from 'lucide-react'
 import { addRubrique, setBudgetPrevision } from './actions'
+import { useUnite } from '@/components/DeviseProvider'
 
 type Rubrique = {
   id: string
@@ -27,6 +28,7 @@ function RubriqueList({
   emptyLabel: string
   amountPlaceholder: string
 }) {
+  const unite = useUnite()
   const [isPending, startTransition] = useTransition()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -93,7 +95,7 @@ function RubriqueList({
                   disabled={isPending}
                   className="shrink-0 inline-flex items-center gap-2 rounded-full bg-secondary/10 px-2.5 py-0.5 text-sm font-medium text-secondary hover:bg-secondary/20 transition-colors disabled:opacity-50"
                 >
-                  {(previsions[r.id] || 0).toLocaleString('fr-FR')} FCFA
+                  {(previsions[r.id] || 0).toLocaleString('fr-FR')}{unite}
                   <Edit2 className="h-3.5 w-3.5" />
                 </button>
               )}
@@ -107,7 +109,7 @@ function RubriqueList({
       )}
       <div className="border-t border-surface-border px-4 py-2 sm:px-5 flex items-center justify-between">
         <span className="text-xs font-medium text-foreground-muted">{title}</span>
-        <span className="text-sm font-semibold text-foreground">{total.toLocaleString('fr-FR')} FCFA</span>
+        <span className="text-sm font-semibold text-foreground">{total.toLocaleString('fr-FR')}{unite}</span>
       </div>
     </div>
   )
@@ -145,6 +147,7 @@ function RubriqueSection({
   dict: any
   onRubriqueAdded: () => void
 }) {
+  const unite = useUnite()
   const t = dict.campagnes_detail.config.budget
   const tConso = dict.materiel_pages.consommations.form
   const [isPending, startTransition] = useTransition()
@@ -268,7 +271,7 @@ function RubriqueSection({
       <div className="border-t border-surface-border px-4 py-3 sm:px-5 flex items-center justify-between bg-surface">
         <span className="text-sm font-medium text-foreground">{t.solde}</span>
         <span className={`text-sm font-semibold ${solde >= 0 ? 'text-success' : 'text-danger'}`}>
-          {solde.toLocaleString('fr-FR')} FCFA
+          {solde.toLocaleString('fr-FR')}{unite}
         </span>
       </div>
     </div>
@@ -290,6 +293,7 @@ export default function BudgetPrevisionsManager({
   materiels: { id: string; nom: string }[]
   dict: any
 }) {
+  const unite = useUnite()
   const t = dict.campagnes_detail.config.budget
   const router = useRouter()
 
@@ -337,7 +341,7 @@ export default function BudgetPrevisionsManager({
         <div className="mt-6 flex items-center justify-between rounded-lg bg-primary/10 px-4 py-3">
           <span className="text-sm font-semibold text-foreground">{t.grand_total}</span>
           <span className={`text-base font-bold ${grandTotal >= 0 ? 'text-success' : 'text-danger'}`}>
-            {grandTotal.toLocaleString('fr-FR')} FCFA
+            {grandTotal.toLocaleString('fr-FR')}{unite}
           </span>
         </div>
       </div>

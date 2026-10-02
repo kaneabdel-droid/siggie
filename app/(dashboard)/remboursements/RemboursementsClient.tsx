@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { Search, Wallet, Scale } from 'lucide-react'
 import PaiementModal from './PaiementModal'
+import { useUnite } from '@/components/DeviseProvider'
 
 export default function RemboursementsClient({ factures, comptes, dict, locale }: { factures: any[], comptes: { id: string; nom: string }[], dict: any, locale: string }) {
+  const unite = useUnite()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFacture, setSelectedFacture] = useState<any>(null)
   const [paiementType, setPaiementType] = useState<'espece' | 'nature' | null>(null)
@@ -59,7 +61,7 @@ export default function RemboursementsClient({ factures, comptes, dict, locale }
                   </div>
                   <div className={`mt-2 text-sm font-semibold ${reste < 0 ? 'text-primary' : 'text-danger'}`}>
                     {reste < 0 ? dict.remboursements.list.surplus : dict.remboursements.list.reste}
-                    {Math.abs(reste).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                    {Math.abs(reste).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
                   </div>
                 </button>
               )
@@ -84,7 +86,7 @@ export default function RemboursementsClient({ factures, comptes, dict, locale }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 <div className="bg-background rounded-md p-4 border border-surface-border">
                   <div className="text-sm text-foreground-muted">{dict.remboursements.details.total_due}</div>
-                  <div className="text-xl font-bold text-foreground">{(selectedFacture.montant_total + (selectedFacture.montant_interet || 0)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</div>
+                  <div className="text-xl font-bold text-foreground">{(selectedFacture.montant_total + (selectedFacture.montant_interet || 0)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</div>
                 </div>
                 <div className="bg-background rounded-md p-4 border border-surface-border">
                   {(() => {
@@ -93,14 +95,14 @@ export default function RemboursementsClient({ factures, comptes, dict, locale }
                       <>
                         <div className="text-sm text-foreground-muted">{dict.remboursements.details.surplus}</div>
                         <div className="text-xl font-bold text-primary">
-                          {Math.abs(r).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                          {Math.abs(r).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
                         </div>
                       </>
                     ) : (
                       <>
                         <div className="text-sm text-foreground-muted">{dict.remboursements.details.remaining}</div>
                         <div className="text-xl font-bold text-danger">
-                          {r.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA
+                          {r.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
                         </div>
                       </>
                     )

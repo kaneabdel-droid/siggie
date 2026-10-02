@@ -70,7 +70,7 @@ export default function DistributionRowActions({ id, intrantNom, quantite, dict 
                   <label className="block text-sm font-medium text-foreground mb-1">{d.modal.new_quantity}</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     min="0.01"
                     value={newQuantite}
                     onChange={(e) => setNewQuantite(e.target.value)}

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus, Trash2, Edit2, X, Check } from 'lucide-react'
 import { addCampagneIntrant, removeCampagneIntrant, updateCampagneIntrant } from './actions'
 import { isForfaitaireType } from '@/lib/intrants/types'
+import { useUnite } from '@/components/DeviseProvider'
 
 type Intrant = {
   id: string
@@ -33,6 +34,7 @@ export default function CampagneIntrantsManager({
   campagneIntrants: CampagneIntrant[]
   dict: any
 }) {
+  const unite = useUnite()
   const t = dict.campagnes_detail.config
   const [isPending, startTransition] = useTransition()
   const [selectedIntrant, setSelectedIntrant] = useState('')
@@ -129,7 +131,7 @@ export default function CampagneIntrantsManager({
             >
               <option value="">{t.select_intrant}</option>
               {availableIntrants.map(i => (
-                <option key={i.id} value={i.id}>{i.nom} ({i.type_intrant}) - {t.purchase_price}: {i.prix_unitaire} FCFA</option>
+                <option key={i.id} value={i.id}>{i.nom} ({i.type_intrant}) - {t.purchase_price}: {i.prix_unitaire}{unite}</option>
               ))}
             </select>
           </div>
@@ -186,7 +188,7 @@ export default function CampagneIntrantsManager({
                   ) : (
                     <>
                       <span className="inline-flex items-center rounded-full bg-secondary/10 px-2.5 py-0.5 text-sm font-medium text-secondary">
-                        {ci.prix_facturation.toLocaleString('fr-FR')} FCFA
+                        {ci.prix_facturation.toLocaleString('fr-FR')}{unite}
                       </span>
                       <div className="flex items-center gap-2">
                         <button

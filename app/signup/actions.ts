@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { pageSuivante, suitePaiement } from '@/lib/suite'
+import { AUTRE_PAYS, PAYS_PAR_DEFAUT, trouverPays } from '@/lib/pays'
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
@@ -13,6 +14,17 @@ export async function signup(formData: FormData) {
   // s'ouvre juste après (ou après la confirmation de l'adresse email), au lieu du tableau de bord.
   const suite = pageSuivante(formData.get('next')) ?? suitePaiement(formData.get('plan') as string | null)
 
+  // Pays du GIE : sa devise en découle ; « Autre pays » = GIE sans unité, abonnement payé en dollars US.
+  const codePays = (formData.get('pays') as string) || PAYS_PAR_DEFAUT
+  const pays = trouverPays(codePays)
+  const paysNom = ((formData.get('pays_nom') as string) || '').trim()
+  if (!pays && codePays !== AUTRE_PAYS) {
+    return redirect('/signup?message=' + encodeURIComponent('Pays invalide'))
+  }
+  if (codePays === AUTRE_PAYS && !paysNom) {
+    return redirect('/signup?message=' + encodeURIComponent('Indiquez le nom de votre pays') + (suite ? '&next=' + encodeURIComponent(suite) : ''))
+  }
+
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
@@ -20,6 +32,9 @@ export async function signup(formData: FormData) {
       data: {
         gie_nom: formData.get('gie_nom') as string,
         plan,
+        pays: codePays,
+        pays_nom: pays ? pays.nom : paysNom,
+        devise: pays ? pays.devise : 'AUCUNE',
       },
       // Passe par /auth/callback pour échanger le code Supabase contre une session
       // avant d'atterrir sur la page suivante (paiement du forfait, sinon /login) —

@@ -23,6 +23,7 @@ export default async function DashboardLayout({
       role={tenant.role}
       permissions={tenant.permissions}
       gieName={tenant.gieName}
+      devise={tenant.devise}
       dict={dict}
       locale={locale}
     >

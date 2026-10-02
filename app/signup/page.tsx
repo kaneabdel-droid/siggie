@@ -34,7 +34,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           </p>
         )}
 
-        <ClientSignupForm dict={dict} plan={plan} next={next} />
+        <ClientSignupForm dict={dict} plan={plan} next={next} locale={locale} />
 
         <p className="mt-10 text-center text-sm text-foreground-muted">
           {dict.auth.signup.has_account}{' '}

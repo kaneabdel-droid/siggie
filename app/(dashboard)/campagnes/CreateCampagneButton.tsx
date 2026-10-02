@@ -71,11 +71,11 @@ export default function CreateCampagneButton({ dict }: { dict: any }) {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-foreground">{d.modal.price}</label>
-                      <input type="number" step="0.01" name="prix_collecte" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                      <input type="number" step="any" name="prix_collecte" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground">{d.modal.standard_weight}</label>
-                      <input type="number" step="0.01" name="poids_standard" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                      <input type="number" step="any" name="poids_standard" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                     </div>
                   </div>
                   <div>

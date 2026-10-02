@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { getRapprochement } from '../actions'
 import { Building2, Landmark, Wallet, CheckCircle2 } from 'lucide-react'
 import PrintSectionButton from '@/components/PrintSectionButton'
+import { useUnite } from '@/components/DeviseProvider'
 
 export default function RapprochementClient({ campagnes, dict, locale, gieName }: { campagnes: any[], dict: any, locale: string, gieName: string }) {
+  const unite = useUnite()
   const [selectedCampagne, setSelectedCampagne] = useState(campagnes[0]?.id || '')
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -71,7 +73,7 @@ export default function RapprochementClient({ campagnes, dict, locale, gieName }
                 {t.credit_granted}
               </div>
               <div className="text-2xl font-bold text-foreground break-words">
-                {data.bilan.montantAccorde.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
+                {data.bilan.montantAccorde.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">{unite.trim()}</span>
               </div>
               <div className="text-sm text-foreground-muted mt-1 break-words">{data.credit.banque_nom}</div>
             </div>
@@ -82,7 +84,7 @@ export default function RapprochementClient({ campagnes, dict, locale, gieName }
                 {t.supplier_payments}
               </div>
               <div className="text-2xl font-bold text-foreground break-words">
-                {data.bilan.totalPaiementsFournisseurs.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
+                {data.bilan.totalPaiementsFournisseurs.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">{unite.trim()}</span>
               </div>
             </div>
 
@@ -92,7 +94,7 @@ export default function RapprochementClient({ campagnes, dict, locale, gieName }
                 {t.cash_withdrawals}
               </div>
               <div className="text-2xl font-bold text-foreground break-words">
-                {data.bilan.totalRetraits.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">FCFA</span>
+                {data.bilan.totalRetraits.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">{unite.trim()}</span>
               </div>
             </div>
 
@@ -102,7 +104,7 @@ export default function RapprochementClient({ campagnes, dict, locale, gieName }
                 {t.credit_balance}
               </div>
               <div className="text-2xl font-bold text-black break-words">
-                {data.bilan.soldeCredit.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-black">FCFA</span>
+                {data.bilan.soldeCredit.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-black">{unite.trim()}</span>
               </div>
             </div>
           </div>
@@ -120,7 +122,7 @@ export default function RapprochementClient({ campagnes, dict, locale, gieName }
                       <p className="text-sm font-medium text-foreground truncate">{p.motif}</p>
                       <div className="ml-2 flex flex-shrink-0">
                         <p className="inline-flex rounded-full bg-warning/10 px-2 text-xs font-semibold leading-5 text-warning">
-                          {p.montant.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                          {p.montant.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                         </p>
                       </div>
                     </div>
@@ -154,7 +156,7 @@ export default function RapprochementClient({ campagnes, dict, locale, gieName }
                       <p className="text-sm font-medium text-foreground truncate">{r.motif}</p>
                       <div className="ml-2 flex flex-shrink-0">
                         <p className="inline-flex rounded-full bg-danger/10 px-2 text-xs font-semibold leading-5 text-danger">
-                          {r.montant.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                          {r.montant.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                         </p>
                       </div>
                     </div>

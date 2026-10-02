@@ -65,7 +65,7 @@ export default function AddPaiementClientModal({
                     <label className="block text-sm font-medium text-foreground">{t.payment_form.amount}</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       name="montant"
                       required
                       min={0.01}

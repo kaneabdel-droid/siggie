@@ -23,6 +23,7 @@ import {
   Shield,
   Settings
 } from 'lucide-react'
+import { DeviseProvider } from '@/components/DeviseProvider'
 
 export default function ClientLayout({
   children,
@@ -30,6 +31,7 @@ export default function ClientLayout({
   role,
   permissions,
   gieName,
+  devise = 'XOF',
   dict,
   locale
 }: {
@@ -38,6 +40,7 @@ export default function ClientLayout({
   role: string
   permissions: PermissionMap | null
   gieName: string
+  devise?: string
   dict: any
   locale: string
 }) {
@@ -204,7 +207,7 @@ export default function ClientLayout({
 
         <main className="py-10">
           <div className="px-4 sm:px-6 lg:px-8">
-            {children}
+            <DeviseProvider devise={devise}>{children}</DeviseProvider>
           </div>
         </main>
       </div>

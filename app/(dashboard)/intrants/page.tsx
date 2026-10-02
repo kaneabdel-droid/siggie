@@ -5,12 +5,15 @@ import AchatIntrantButton from './AchatIntrantButton'
 import IntrantRowActions from './IntrantRowActions'
 import SearchIntrants from './SearchIntrants'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
+import { uniteMontant } from '@/lib/currency'
 
 export default async function IntrantsPage({
   searchParams,
 }: {
   searchParams?: Promise<{ query?: string }>
 }) {
+  const unite = uniteMontant((await getTenantContext())?.devise)
   const supabase = await createClient()
   const params = await searchParams
   const query = params?.query || ''
@@ -111,7 +114,7 @@ export default async function IntrantsPage({
           </div>
           <div className="min-w-0">
             <dt className="text-sm font-medium text-foreground-muted">{dict.intrants.kpis.value}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalValue.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalValue.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-3">
@@ -120,7 +123,7 @@ export default async function IntrantsPage({
           </div>
           <div className="min-w-0">
             <dt className="text-sm font-medium text-foreground-muted">{dict.intrants.kpis.distributions}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground break-words">{totalDistributions.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</dd>
           </div>
         </div>
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-3">
@@ -169,7 +172,7 @@ export default async function IntrantsPage({
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">{intrant.description || '-'}</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">{intrant.fournisseur || '-'}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right font-medium">{intrant.prix_unitaire.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} FCFA</td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right font-medium">{intrant.prix_unitaire.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
                           <span className={`font-semibold ${intrant.quantite_stock < 100 ? 'text-danger' : 'text-primary'}`}>
                             {intrant.quantite_stock}

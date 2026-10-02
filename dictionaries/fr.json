@@ -166,7 +166,11 @@
       "password": "Mot de passe",
       "btn": "S'inscrire",
       "has_account": "Vous avez déjà un compte ?",
-      "login": "Connectez-vous"
+      "login": "Connectez-vous",
+      "country": "Pays",
+      "other_country": "Autre pays",
+      "other_country_name": "Nom de votre pays",
+      "usd_note": "Hors des pays listés, l’abonnement se paie par carte bancaire en dollars US et les montants s’affichent sans unité."
     },
     "forgot_password": {
       "title": "Mot de passe oublié",
@@ -730,7 +734,9 @@
       "retry_link": "Réessayer",
       "pending_title": "Vérification du paiement...",
       "pending_desc": "Cela peut prendre quelques instants. Actualisez cette page ou revenez plus tard sur votre espace abonnement."
-    }
+    },
+    "usd_card_only": "Votre pays n’utilise pas une devise gérée : l’abonnement se paie par carte bancaire en dollars US.",
+    "card_unavailable": "Le paiement par carte n’est pas encore disponible. Contactez le support pour souscrire."
   },
   "update_password": {
     "title": "Mettre à jour le mot de passe",

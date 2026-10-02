@@ -113,7 +113,7 @@ export default function EditConsommationModal({ consommation, materiels, budget,
                         id="quantite"
                         defaultValue={consommation.quantite || 0}
                         min="0"
-                        step="0.01"
+                        step="any"
                         className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                       />
                     </div>

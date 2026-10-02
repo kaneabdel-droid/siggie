@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/utils/supabase/admin'
 import { Building2, Clock, Wallet, TrendingUp } from 'lucide-react'
+import { equivalentFcfa } from '@/lib/payments/dollars'
 
 export default async function AdminSiggieDashboardPage() {
   const supabase = createAdminClient()
@@ -21,12 +22,13 @@ export default async function AdminSiggieDashboardPage() {
   debutMois.setHours(0, 0, 0, 0)
   const { data: paiementsDuMois } = await supabase
     .from('abonnement_paiements')
-    .select('montant')
+    .select('montant, devise')
     .eq('statut', 'completed')
     .eq('doublon', false) // un doublon encaissé est à rembourser : ce n'est pas une vente
     .gte('updated_at', debutMois.toISOString())
 
-  const revenuDuMois = (paiementsDuMois ?? []).reduce((sum, p) => sum + Number(p.montant), 0)
+  // Paiements en dollars (GIE d'autres pays) ramenés en FCFA au taux de lib/payments/dollars.ts
+  const revenuDuMois = (paiementsDuMois ?? []).reduce((sum, p) => sum + equivalentFcfa(Number(p.montant), p.devise), 0)
 
   const maintenant = new Date()
   const dans48h = new Date(maintenant.getTime() + 48 * 60 * 60 * 1000)

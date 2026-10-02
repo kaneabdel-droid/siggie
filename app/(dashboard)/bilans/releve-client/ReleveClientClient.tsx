@@ -5,6 +5,7 @@ import { getReleveClient } from './actions'
 import AddClientModal from './AddClientModal'
 import AddPaiementClientModal from './AddPaiementClientModal'
 import PrintSectionButton from '@/components/PrintSectionButton'
+import { useUnite } from '@/components/DeviseProvider'
 
 type Client = { id: string; nom: string; telephone: string | null }
 
@@ -19,6 +20,7 @@ export default function ReleveClientClient({
   locale: string
   gieName: string
 }) {
+  const unite = useUnite()
   const [clients, setClients] = useState<Client[]>(initialClients)
   const [selectedClient, setSelectedClient] = useState(initialClients[0]?.id || '')
   const [journal, setJournal] = useState<any[]>([])
@@ -101,7 +103,7 @@ export default function ReleveClientClient({
           </div>
           <div className={`overflow-hidden rounded-lg px-4 py-5 shadow sm:p-6 max-w-xs ${soldeActuel > 0 ? 'bg-danger' : 'bg-success'} text-white`}>
             <dt className="text-sm font-medium text-white/90">{t.current_balance}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight">{soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA</dd>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight">{soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}</dd>
           </div>
 
           <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
@@ -133,13 +135,13 @@ export default function ReleveClientClient({
                       {m.quantite !== null ? Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 }) : '-'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
-                      {m.prix_unitaire !== null ? `${Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA` : '-'}
+                      {m.prix_unitaire !== null ? `${Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}${unite}` : '-'}
                     </td>
                     <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-medium ${m.type === 'vente' ? 'text-danger' : 'text-success'}`}>
-                      {m.type === 'vente' ? '+' : '-'}{Number(m.montant).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                      {m.type === 'vente' ? '+' : '-'}{Number(m.montant).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold bg-background/50">
-                      {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} FCFA
+                      {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
                     </td>
                   </tr>
                 ))}

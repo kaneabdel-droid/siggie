@@ -7,6 +7,7 @@ import UtilisateurRow from './UtilisateurRow'
 import type { PermissionMap } from '@/lib/permissions'
 import AjouterUtilisateurButton from './AjouterUtilisateurButton'
 import SupprimerGieButton from './SupprimerGieButton'
+import { formatPaiement } from '@/lib/payments/dollars'
 
 export default async function AdminGieDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -28,7 +29,7 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
 
   const { data: paiements } = await supabase
     .from('abonnement_paiements')
-    .select('id, niveau, montant, provider, moyen_paiement, statut, created_at')
+    .select('id, niveau, montant, devise, provider, moyen_paiement, statut, created_at')
     .eq('gie_id', id)
     .order('created_at', { ascending: false })
 
@@ -95,7 +96,7 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
               <tr key={p.id}>
                 <td className="px-4 py-3 text-foreground-muted">{p.created_at ? new Date(p.created_at).toLocaleDateString('fr-FR') : '-'}</td>
                 <td className="px-4 py-3 capitalize">{p.niveau}</td>
-                <td className="px-4 py-3">{Number(p.montant).toLocaleString('fr-FR')} FCFA</td>
+                <td className="px-4 py-3">{formatPaiement(Number(p.montant), p.devise)}</td>
                 <td className="px-4 py-3 capitalize">{p.provider} ({p.moyen_paiement})</td>
                 <td className="px-4 py-3">
                   <span className={p.statut === 'completed' ? 'text-success' : p.statut === 'failed' ? 'text-danger' : 'text-primary'}>

@@ -306,7 +306,7 @@ export default function CreateDistributionModal({
                                           </div>
                                           <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
                                             placeholder="0"
                                             value={quantitiesByMembre[m.id] || ''}
@@ -371,7 +371,7 @@ export default function CreateDistributionModal({
                                           </div>
                                           <input
                                             type="number"
-                                            step="0.01"
+                                            step="any"
                                             min="0"
                                             max={stockable ? i.quantite_stock : undefined}
                                             placeholder="0"
