@@ -8,7 +8,7 @@ export type ContexteBudgetMateriel = {
 }
 
 const champ =
-  'mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm'
+  'mt-1 block w-full min-w-0 max-w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm'
 
 /** Campagne à laquelle la prestation ou la consommation est imputée (réalisé du budget Matériel de la campagne). */
 export function CampagneBudgetSelect({ budget, defaultValue, dict }: { budget: ContexteBudgetMateriel; defaultValue?: string | null; dict: any }) {

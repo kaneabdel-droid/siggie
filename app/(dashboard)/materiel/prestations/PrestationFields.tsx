@@ -6,9 +6,9 @@ import { CampagneBudgetSelect, TypesBudgetDatalist, type ContexteBudgetMateriel 
 export type ProduitMateriel = { id: string; nom: string; unite: string; variete_obligatoire: boolean }
 
 const champ =
-  'mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm'
-const etiquette = 'block text-sm font-medium text-foreground'
-const section = 'space-y-4 rounded-md border border-surface-border p-3'
+  'mt-1 block w-full min-w-0 max-w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm'
+const etiquette = 'block break-words text-sm font-medium text-foreground'
+const section = 'min-w-0 space-y-4 rounded-md border border-surface-border p-3'
 const titreSection = 'text-xs font-semibold uppercase tracking-wider text-foreground-muted'
 
 function arrondi(n: number) {
@@ -68,7 +68,7 @@ export default function PrestationFields({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
         <div>
           <label htmlFor="materiel_id" className={etiquette}>{t.equipment_label}</label>
           <select name="materiel_id" id="materiel_id" required defaultValue={p.materiel_id ?? ''} className={champ}>
@@ -89,7 +89,7 @@ export default function PrestationFields({
 
       <fieldset className={section}>
         <legend className={titreSection}>{t.section_client}</legend>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
           <div>
             <label htmlFor="client_nom" className={etiquette}>{t.client_label}</label>
             <input type="text" name="client_nom" id="client_nom" defaultValue={p.client_nom ?? ''} className={champ} />
@@ -121,7 +121,7 @@ export default function PrestationFields({
           <TypesBudgetDatalist id="types-budget-recette" types={budget.typesRecette} />
           <p className="mt-1 text-xs text-foreground-muted">{dict.materiel_pages.budget.type_hint}</p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
           <div>
             <label htmlFor="unite" className={etiquette}>{t.unit_label}</label>
             <select name="unite" id="unite" value={unite} onChange={(e) => setUnite(e.target.value)} className={champ}>
@@ -159,7 +159,7 @@ export default function PrestationFields({
 
       <fieldset className={section}>
         <legend className={titreSection}>{t.section_output}</legend>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
           <div>
             <label htmlFor="produit_id" className={etiquette}>{t.product_label}</label>
             <select
@@ -232,9 +232,9 @@ export default function PrestationFields({
 
       <fieldset className={section}>
         <legend className={titreSection}>{t.section_payment}</legend>
-        <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
           {(['especes', 'part_recolte'] as const).map((m) => (
-            <label key={m} className="inline-flex items-center gap-2 text-sm text-foreground">
+            <label key={m} className="flex items-start gap-2 text-sm text-foreground">
               <input
                 type="radio"
                 name="mode_paiement"
@@ -244,7 +244,7 @@ export default function PrestationFields({
                   setMode(m)
                   proposer({ mode: m })
                 }}
-                className="text-primary focus:ring-primary"
+                className="mt-0.5 shrink-0 text-primary focus:ring-primary"
               />
               {m === 'especes' ? t.payment_cash : t.payment_share}
             </label>
@@ -269,7 +269,7 @@ export default function PrestationFields({
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
             <div>
               <label htmlFor="taux_part" className={etiquette}>{t.share_rate_label} *</label>
               <input

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Sprout, Trash2 } from 'lucide-react'
 import { deleteProduitMateriel, saveProduitMateriel } from '../actions'
 import type { ProduitMateriel } from './PrestationFields'
+import Modal from '../Modal'
 
 const champ =
   'block w-full rounded-md border border-surface-border bg-background px-2 py-1.5 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm'
@@ -13,6 +14,7 @@ export default function ProduitsMaterielModal({ produits, dict }: { produits: Pr
   const [isOpen, setIsOpen] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const t = dict.materiel_pages.prestations.products
+  const fermer = useCallback(() => setIsOpen(false), [])
 
   async function enregistrer(e: React.FormEvent<HTMLFormElement>, cle: string) {
     e.preventDefault()
@@ -35,7 +37,7 @@ export default function ProduitsMaterielModal({ produits, dict }: { produits: Pr
   function ligne(p: ProduitMateriel | null) {
     const cle = p?.id ?? 'nouveau'
     return (
-      <form key={cle} onSubmit={(e) => enregistrer(e, cle)} className="grid grid-cols-[1fr_5.5rem] gap-2 sm:grid-cols-[1fr_6rem_auto_auto] sm:items-center">
+      <form key={cle} onSubmit={(e) => enregistrer(e, cle)} className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto_auto] sm:items-center">
         {p && <input type="hidden" name="id" value={p.id} />}
         <input name="nom" required defaultValue={p?.nom ?? ''} placeholder={t.name_placeholder} aria-label={t.name} className={champ} />
         <input name="unite" required defaultValue={p?.unite ?? 'sac'} aria-label={t.unit} className={champ} />
@@ -72,34 +74,26 @@ export default function ProduitsMaterielModal({ produits, dict }: { produits: Pr
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={() => setIsOpen(false)} />
-
-            <div className="relative transform overflow-hidden rounded-lg bg-surface text-start shadow-xl transition-all w-full sm:my-8 sm:max-w-2xl border border-surface-border">
-              <div className="space-y-4 bg-surface px-4 pb-4 pt-5 sm:p-6">
-                <div>
-                  <h3 className="text-lg font-semibold leading-6 text-foreground">{t.title}</h3>
-                  <p className="mt-1 text-sm text-foreground-muted">{t.desc}</p>
-                </div>
-                <div className="space-y-3">
-                  {produits.length === 0 && <p className="text-sm italic text-foreground-muted">{t.empty}</p>}
-                  {produits.map((p) => ligne(p))}
-                  <div className="border-t border-surface-border pt-3">{ligne(null)}</div>
-                </div>
-              </div>
-              <div className="bg-background/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background sm:w-auto"
-                >
-                  {dict.common.close}
-                </button>
-              </div>
-            </div>
+        <Modal
+          title={t.title}
+          onClose={fermer}
+          footer={
+            <button
+              type="button"
+              onClick={fermer}
+              className="inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background sm:w-auto"
+            >
+              {dict.common.close}
+            </button>
+          }
+        >
+          <p className="mb-4 text-sm text-foreground-muted">{t.desc}</p>
+          <div className="space-y-3">
+            {produits.length === 0 && <p className="text-sm italic text-foreground-muted">{t.empty}</p>}
+            {produits.map((p) => ligne(p))}
+            <div className="border-t border-surface-border pt-3">{ligne(null)}</div>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   )
