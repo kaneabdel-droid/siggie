@@ -140,7 +140,9 @@ export default async function DistributionPage() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-foreground">
                           {dist.membres ? `${dist.membres.prenom} ${dist.membres.nom}` : dict.distribution.table.unknown_member}
-                          <span className="ml-2 text-xs text-foreground-muted font-normal">({dist.membres?.code_membre})</span>
+                          {dist.membres?.code_membre && (
+                            <span className="ml-2 text-xs text-foreground-muted font-normal">({dist.membres.code_membre})</span>
+                          )}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground">
                           {dist.intrants?.nom || dict.distribution.table.deleted_product}
