@@ -882,7 +882,10 @@
         "equipment": "Equipment",
         "type": "Type (Client)",
         "area": "Area",
-        "amount": "Amount (FCFA)"
+        "amount": "Amount (FCFA)",
+        "quantity": "Recorded quantity",
+        "obtained": "Obtained",
+        "client": "Client"
       },
       "for_client": "for",
       "empty": "No service recorded.",
@@ -899,7 +902,73 @@
         "client_label": "Client / Member",
         "area_label": "Area (ha)",
         "amount_label": "Total amount (FCFA)",
-        "date_label": "Completion date"
+        "date_label": "Completion date",
+        "section_client": "Client",
+        "phone_label": "Client phone number",
+        "phone_placeholder": "E.g. 77 123 45 67",
+        "section_work": "Work done",
+        "unit_label": "Recording unit",
+        "unit_options": {
+          "ha": "Hectares (ha)",
+          "h": "Hours (h)",
+          "sac": "Bags",
+          "autre": "Other unit"
+        },
+        "unit_other_label": "Unit (specify)",
+        "unit_other_placeholder": "E.g. km, trips, tonnes",
+        "qty_labels": {
+          "ha": "Area worked (ha)",
+          "h": "Working time (hours)",
+          "sac": "Number of bags processed",
+          "autre": "Quantity processed"
+        },
+        "section_output": "Quantity obtained (harvest)",
+        "product_label": "Product",
+        "no_product": "No product",
+        "variety_label": "Variety",
+        "variety_required_hint": "required for this product",
+        "obtained_label": "Quantity obtained",
+        "obtained_unit_label": "Unit",
+        "section_payment": "Payment",
+        "payment_cash": "In cash (rate or flat fee)",
+        "payment_share": "As a share of the harvest (%)",
+        "rate_label": "Rate per unit (FCFA)",
+        "share_rate_label": "Share taken (%)",
+        "share_qty": "Share due to the GIE",
+        "share_price_label": "Value of one harvest unit (FCFA)",
+        "amount_auto_hint": "Calculated automatically, can be changed."
+      },
+      "products_btn": "Products and varieties",
+      "share": "Share",
+      "units": {
+        "ha": "ha",
+        "h": "h",
+        "sac": "bags",
+        "autre": "other"
+      },
+      "products": {
+        "title": "Products and varieties",
+        "desc": "Products whose obtained quantity is recorded. Tick “Variety required” for those where the recorder must specify the variety.",
+        "name": "Product",
+        "unit": "Unit",
+        "variety_required": "Variety required",
+        "name_placeholder": "E.g. Paddy rice",
+        "empty": "No products. Add for example Paddy rice, Groundnut, Maize.",
+        "delete_confirm": "Delete this product? Services already recorded are kept, without a product."
+      },
+      "errors": {
+        "unit": "Invalid recording unit.",
+        "unit_other": "Please specify the recording unit.",
+        "quantity": "Enter the quantity processed (greater than 0).",
+        "phone": "Enter the client’s phone number (at least 7 digits).",
+        "product": "Product not found.",
+        "variety": "This product requires a variety.",
+        "obtained": "Invalid quantity obtained.",
+        "obtained_required": "Enter the quantity obtained to calculate the harvest share.",
+        "rate": "Enter the share taken, between 0 and 100%.",
+        "amount": "Invalid amount or rate.",
+        "required": "Please fill in the required fields.",
+        "product_exists": "This product already exists."
       }
     },
     "rentabilite": {
@@ -920,6 +989,11 @@
       },
       "acq_value": "Acq. value",
       "empty": "No equipment recorded."
+    },
+    "budget": {
+      "campaign_label": "Season (budget execution)",
+      "no_campaign": "Outside any season",
+      "type_hint": "Preferably choose a type budgeted for this equipment: the amount will count in the season’s budget tracking."
     }
   },
   "tresorerie_pages": {
@@ -1714,7 +1788,7 @@
                 "ul": [
                   {
                     "t": "Services.",
-                    "x": "The work done with the equipment."
+                    "x": "Work done with the equipment, recorded in the field: quantity processed in its unit (hectares for a tractor or combine harvester, hours for a grader or excavator, bags, or another unit), client phone number (required), quantity obtained with the product and, when the product requires it, its variety. When the service is paid as a share of the harvest, enter the percentage: SIGGIE calculates the bags due to the GIE and their value. The “Products and varieties” button sets the recorded products and those whose variety is required. Choose the season and a budgeted type: the amount counts in the season’s budget tracking (consumption too)."
                   },
                   {
                     "t": "Consumption.",

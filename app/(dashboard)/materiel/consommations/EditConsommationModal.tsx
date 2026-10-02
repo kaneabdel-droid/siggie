@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { updateConsommation } from '../actions'
+import { CampagneBudgetSelect, type ContexteBudgetMateriel } from '../BudgetCampagneChamps'
 
-export default function EditConsommationModal({ consommation, materiels, dict }: { consommation: any, materiels: any[], dict: any }) {
+export default function EditConsommationModal({ consommation, materiels, budget, dict }: { consommation: any, materiels: any[], budget: ContexteBudgetMateriel, dict: any }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const t = dict.materiel_pages.consommations.form
@@ -20,6 +21,7 @@ export default function EditConsommationModal({ consommation, materiels, dict }:
     const quantite = Number(formData.get('quantite') || 0)
     const montant_total = Number(formData.get('montant_total') || 0)
     const date_consommation = formData.get('date_consommation') as string
+    const campagne_id = (formData.get('campagne_id') as string) || null
 
     const res = await updateConsommation(
       consommation.id,
@@ -28,7 +30,8 @@ export default function EditConsommationModal({ consommation, materiels, dict }:
       fournisseur,
       quantite,
       montant_total,
-      date_consommation
+      date_consommation,
+      campagne_id
     )
 
     setLoading(false)
@@ -127,6 +130,7 @@ export default function EditConsommationModal({ consommation, materiels, dict }:
                       />
                     </div>
                   </div>
+                  <CampagneBudgetSelect budget={budget} defaultValue={consommation.campagne_id ?? null} dict={dict} />
                   <div>
                     <label htmlFor="date_consommation" className="block text-sm font-medium text-foreground">{t.date_label}</label>
                     <input

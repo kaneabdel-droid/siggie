@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { addConsommation } from '../actions'
+import { CampagneBudgetSelect, type ContexteBudgetMateriel } from '../BudgetCampagneChamps'
 
-export default function AddConsommationModal({ materiels, dict }: { materiels: any[], dict: any }) {
+export default function AddConsommationModal({ materiels, budget, dict }: { materiels: any[], budget: ContexteBudgetMateriel, dict: any }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const t = dict.materiel_pages.consommations.form
@@ -20,6 +21,7 @@ export default function AddConsommationModal({ materiels, dict }: { materiels: a
     const quantite = Number(formData.get('quantite') || 0)
     const montant_total = Number(formData.get('montant_total') || 0)
     const date_consommation = formData.get('date_consommation') as string
+    const campagne_id = (formData.get('campagne_id') as string) || null
 
     const res = await addConsommation(
       materiel_id,
@@ -27,7 +29,8 @@ export default function AddConsommationModal({ materiels, dict }: { materiels: a
       fournisseur,
       quantite,
       montant_total,
-      date_consommation
+      date_consommation,
+      campagne_id
     )
 
     setLoading(false)
@@ -121,6 +124,7 @@ export default function AddConsommationModal({ materiels, dict }: { materiels: a
                       />
                     </div>
                   </div>
+                  <CampagneBudgetSelect budget={budget} dict={dict} />
                   <div>
                     <label htmlFor="date_consommation" className="block text-sm font-medium text-foreground">{t.date_label}</label>
                     <input

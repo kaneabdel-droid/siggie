@@ -40,8 +40,10 @@ function buildSolde(recettes: Totals, depenses: Totals): Totals {
 // (imputations.libelle = materiels.nom) et la sous-rubrique son type de
 // prestation/consommation (imputations.compte = type_prestation /
 // type_consommation) — voir campagnes/[id]/config/BudgetPrevisionsManager.tsx.
+// Insensible à la casse et aux espaces : « Labour » saisi au pointage rejoint la sous-rubrique budgétée « labour ».
 function cleMateriel(nom: string, type: string) {
-  return `${nom}::${type}`
+  const n = (v: string) => (v || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr')
+  return `${n(nom)}::${n(type)}`
 }
 
 export async function getSuiviBudgetaire(campagneId: string) {

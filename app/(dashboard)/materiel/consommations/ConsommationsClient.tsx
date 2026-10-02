@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { deleteConsommation } from '../actions'
 import EditConsommationModal from './EditConsommationModal'
+import type { ContexteBudgetMateriel } from '../BudgetCampagneChamps'
 
-export default function ConsommationsClient({ consommations, materiels, dict, locale }: { consommations: any[], materiels: any[], dict: any, locale: string }) {
+export default function ConsommationsClient({ consommations, materiels, budget, dict, locale }: { consommations: any[], materiels: any[], budget: ContexteBudgetMateriel, dict: any, locale: string }) {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const t = dict.materiel_pages.consommations
 
@@ -64,7 +65,7 @@ export default function ConsommationsClient({ consommations, materiels, dict, lo
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-right print:hidden">
                   <div className="flex items-center justify-end gap-2">
-                    <EditConsommationModal consommation={c} materiels={materiels} dict={dict} />
+                    <EditConsommationModal consommation={c} materiels={materiels} budget={budget} dict={dict} />
                     <button
                       onClick={() => handleDelete(c.id)}
                       disabled={updatingId === c.id}

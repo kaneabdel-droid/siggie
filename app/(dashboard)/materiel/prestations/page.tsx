@@ -1,6 +1,7 @@
-import { getPrestations, getMateriels } from '../actions'
+import { getPrestations, getMateriels, getProduitsMateriel, getVarietesPointees, getContexteBudgetMateriel } from '../actions'
 import AddPrestationModal from './AddPrestationModal'
 import PrestationsClient from './PrestationsClient'
+import ProduitsMaterielModal from './ProduitsMaterielModal'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import PrintSectionButton from '@/components/PrintSectionButton'
@@ -8,6 +9,9 @@ import PrintSectionButton from '@/components/PrintSectionButton'
 export default async function PrestationsPage() {
   const { prestations, error } = await getPrestations()
   const { materiels } = await getMateriels() // Pour le dropdown du formulaire
+  const { produits } = await getProduitsMateriel()
+  const varietes = await getVarietesPointees()
+  const budget = await getContexteBudgetMateriel()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const tenant = await getTenantContext()
@@ -27,7 +31,8 @@ export default async function PrestationsPage() {
         </div>
         <div className="mt-4 sm:mt-0 sm:flex-none flex items-center gap-2">
           <PrintSectionButton sectionId="materiel-prestations-print" label={dict.common.print} />
-          <AddPrestationModal materiels={materiels || []} dict={dict} />
+          <ProduitsMaterielModal produits={produits || []} dict={dict} />
+          <AddPrestationModal materiels={materiels || []} produits={produits || []} varietes={varietes} budget={budget} dict={dict} />
         </div>
       </div>
       <div className="hidden print:block mb-4">
@@ -35,7 +40,7 @@ export default async function PrestationsPage() {
         <p className="text-sm text-foreground-muted">{dict.materiel_pages.prestations.title}</p>
       </div>
 
-      <PrestationsClient prestations={prestations || []} materiels={materiels || []} dict={dict} locale={locale} />
+      <PrestationsClient prestations={prestations || []} materiels={materiels || []} produits={produits || []} varietes={varietes} budget={budget} dict={dict} locale={locale} />
     </div>
   )
 }

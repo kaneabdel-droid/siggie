@@ -1,4 +1,4 @@
-import { getConsommations, getMateriels } from '../actions'
+import { getConsommations, getMateriels, getContexteBudgetMateriel } from '../actions'
 import AddConsommationModal from './AddConsommationModal'
 import ConsommationsClient from './ConsommationsClient'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -8,6 +8,7 @@ import PrintSectionButton from '@/components/PrintSectionButton'
 export default async function ConsommationsPage() {
   const { consommations, error } = await getConsommations()
   const { materiels } = await getMateriels() // Pour le dropdown du formulaire
+  const budget = await getContexteBudgetMateriel()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const tenant = await getTenantContext()
@@ -27,7 +28,7 @@ export default async function ConsommationsPage() {
         </div>
         <div className="mt-4 sm:mt-0 sm:flex-none flex items-center gap-2">
           <PrintSectionButton sectionId="materiel-consommations-print" label={dict.common.print} />
-          <AddConsommationModal materiels={materiels || []} dict={dict} />
+          <AddConsommationModal materiels={materiels || []} budget={budget} dict={dict} />
         </div>
       </div>
       <div className="hidden print:block mb-4">
@@ -35,7 +36,7 @@ export default async function ConsommationsPage() {
         <p className="text-sm text-foreground-muted">{dict.materiel_pages.consommations.title}</p>
       </div>
 
-      <ConsommationsClient consommations={consommations || []} materiels={materiels || []} dict={dict} locale={locale} />
+      <ConsommationsClient consommations={consommations || []} materiels={materiels || []} budget={budget} dict={dict} locale={locale} />
     </div>
   )
 }

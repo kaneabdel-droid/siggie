@@ -882,7 +882,10 @@
         "equipment": "Équipement",
         "type": "Type (Client)",
         "area": "Superficie",
-        "amount": "Montant (FCFA)"
+        "amount": "Montant (FCFA)",
+        "quantity": "Quantité pointée",
+        "obtained": "Obtenu",
+        "client": "Client"
       },
       "for_client": "pour",
       "empty": "Aucune prestation enregistrée.",
@@ -899,7 +902,73 @@
         "client_label": "Client / Membre",
         "area_label": "Superficie (ha)",
         "amount_label": "Montant total (FCFA)",
-        "date_label": "Date de réalisation"
+        "date_label": "Date de réalisation",
+        "section_client": "Client",
+        "phone_label": "Téléphone du client",
+        "phone_placeholder": "Ex : 77 123 45 67",
+        "section_work": "Travail réalisé",
+        "unit_label": "Unité de pointage",
+        "unit_options": {
+          "ha": "Hectares (ha)",
+          "h": "Heures (h)",
+          "sac": "Sacs",
+          "autre": "Autre unité"
+        },
+        "unit_other_label": "Unité (préciser)",
+        "unit_other_placeholder": "Ex : km, voyages, tonnes",
+        "qty_labels": {
+          "ha": "Superficie traitée (ha)",
+          "h": "Durée de travail (heures)",
+          "sac": "Nombre de sacs traités",
+          "autre": "Quantité traitée"
+        },
+        "section_output": "Quantité obtenue (récolte)",
+        "product_label": "Produit",
+        "no_product": "Aucun produit",
+        "variety_label": "Variété",
+        "variety_required_hint": "obligatoire pour ce produit",
+        "obtained_label": "Quantité obtenue",
+        "obtained_unit_label": "Unité",
+        "section_payment": "Paiement",
+        "payment_cash": "En argent (tarif ou forfait)",
+        "payment_share": "En part de la récolte (%)",
+        "rate_label": "Tarif par unité (FCFA)",
+        "share_rate_label": "Part prélevée (%)",
+        "share_qty": "Part revenant au GIE",
+        "share_price_label": "Valeur d’une unité de récolte (FCFA)",
+        "amount_auto_hint": "Calculé automatiquement, modifiable."
+      },
+      "products_btn": "Produits et variétés",
+      "share": "Part",
+      "units": {
+        "ha": "ha",
+        "h": "h",
+        "sac": "sacs",
+        "autre": "autre"
+      },
+      "products": {
+        "title": "Produits et variétés",
+        "desc": "Produits dont on pointe la quantité obtenue. Cochez « Variété obligatoire » pour ceux dont le pointeur doit préciser la variété.",
+        "name": "Produit",
+        "unit": "Unité",
+        "variety_required": "Variété obligatoire",
+        "name_placeholder": "Ex : Riz paddy",
+        "empty": "Aucun produit. Ajoutez par exemple Riz paddy, Arachide, Maïs.",
+        "delete_confirm": "Supprimer ce produit ? Les prestations déjà pointées restent enregistrées, sans produit."
+      },
+      "errors": {
+        "unit": "Unité de pointage invalide.",
+        "unit_other": "Précisez l’unité de pointage.",
+        "quantity": "Indiquez la quantité traitée (supérieure à 0).",
+        "phone": "Indiquez le téléphone du client (au moins 7 chiffres).",
+        "product": "Produit introuvable.",
+        "variety": "Ce produit exige de préciser la variété.",
+        "obtained": "Quantité obtenue invalide.",
+        "obtained_required": "Indiquez la quantité obtenue pour calculer la part de récolte.",
+        "rate": "Indiquez la part prélevée, entre 0 et 100 %.",
+        "amount": "Montant ou tarif invalide.",
+        "required": "Veuillez remplir les champs obligatoires.",
+        "product_exists": "Ce produit existe déjà."
       }
     },
     "rentabilite": {
@@ -920,6 +989,11 @@
       },
       "acq_value": "Valeur acq",
       "empty": "Aucun équipement enregistré."
+    },
+    "budget": {
+      "campaign_label": "Campagne (exécution budgétaire)",
+      "no_campaign": "Hors campagne",
+      "type_hint": "Choisissez de préférence un type budgété pour cet équipement : le montant comptera dans le réalisé du suivi budgétaire de la campagne."
     }
   },
   "tresorerie_pages": {
@@ -1714,7 +1788,7 @@
                 "ul": [
                   {
                     "t": "Prestations.",
-                    "x": "Les travaux réalisés avec le matériel."
+                    "x": "Les travaux réalisés avec le matériel, pointés sur le terrain : quantité traitée dans son unité (hectares pour le tracteur ou la moissonneuse, heures pour la niveleuse ou la pelle, sacs, ou une autre unité), téléphone du client (obligatoire), quantité obtenue avec le produit et, si le produit l’exige, sa variété. Quand la prestation est payée en part de récolte, indiquez le pourcentage : SIGGIE calcule les sacs revenant au GIE et leur valeur. Le bouton « Produits et variétés » définit les produits pointés et ceux dont la variété est obligatoire. Choisissez la campagne et un type budgété : le montant compte dans le réalisé du suivi budgétaire de la campagne (les consommations aussi)."
                   },
                   {
                     "t": "Consommations.",
