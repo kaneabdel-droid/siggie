@@ -22,6 +22,13 @@ export default async function CheckoutPage({
     redirect('/login')
   }
 
+  // Visiteur sans compte : inscription d'abord, sans passer par le formulaire de paiement
+  // (il y saisissait son moyen de paiement et son numéro pour rien, puis à nouveau au retour).
+  // Après l'inscription, il revient ici connecté pour payer le forfait choisi.
+  if (!user) {
+    redirect(`/signup?plan=${encodeURIComponent(plan)}`)
+  }
+
   let currentTier = 'standard'
   if (user) {
     const { data: userData } = await supabase
