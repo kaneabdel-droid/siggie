@@ -61,7 +61,7 @@ export const PAYS: Pays[
   { code: 'BT', nom: 'Bhoutan', indicatif: '975', devise: 'AUCUNE' },
   { code: 'MV', nom: 'Maldives', indicatif: '960', devise: 'AUCUNE' },
   { code: 'AF', nom: 'Afghanistan', indicatif: '93', devise: 'AUCUNE' },
-] = [
+
   // Franc CFA BCEAO (UEMOA)
   { code: 'SN', nom: 'Sénégal', indicatif: '221', devise: 'XOF' },
   { code: 'CI', nom: "Côte d'Ivoire", indicatif: '225', devise: 'XOF' },
