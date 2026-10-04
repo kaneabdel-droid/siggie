@@ -40,7 +40,7 @@ export default function CheckoutClient({
   const availableMethods: MoyenPaiement[] = enDollars
     ? hasOnlinePayment.carte ? ['carte'] : []
     : [
-        ...(hasOnlinePayment.mobileMoney ? (['wave', 'orange'] as const) : []),
+        ...(hasOnlinePayment.mobileMoney ? (['wave'] as const) : []),
         ...(hasOnlinePayment.carte ? (['carte'] as const) : []),
         ...(chariowDisponible ? (['chariow'] as const) : []),
         ...(maketouDisponible ? (['maketou'] as const) : []),
@@ -169,19 +169,11 @@ export default function CheckoutClient({
             <form onSubmit={handlePayment}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 {hasOnlinePayment.mobileMoney && !enDollars && (
-                  <>
-                    <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'wave' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
-                      <input type="radio" name="paymentMethod" value="wave" checked={paymentMethod === 'wave'} onChange={() => setPaymentMethod('wave')} className="sr-only" />
-                      <Smartphone className={`w-8 h-8 mb-2 ${paymentMethod === 'wave' ? 'text-primary' : 'text-foreground-muted'}`} />
-                      <span className={`font-semibold ${paymentMethod === 'wave' ? 'text-primary' : 'text-foreground'}`}>Wave</span>
-                    </label>
-
-                    <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'orange' ? 'border-[#FF7900] bg-[#FF7900]/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
-                      <input type="radio" name="paymentMethod" value="orange" checked={paymentMethod === 'orange'} onChange={() => setPaymentMethod('orange')} className="sr-only" />
-                      <Smartphone className={`w-8 h-8 mb-2 ${paymentMethod === 'orange' ? 'text-[#FF7900]' : 'text-foreground-muted'}`} />
-                      <span className={`font-semibold ${paymentMethod === 'orange' ? 'text-[#FF7900]' : 'text-foreground'}`}>{d.orange_money}</span>
-                    </label>
-                  </>
+                  <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'wave' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
+                    <input type="radio" name="paymentMethod" value="wave" checked={paymentMethod === 'wave'} onChange={() => setPaymentMethod('wave')} className="sr-only" />
+                    <Smartphone className={`w-8 h-8 mb-2 ${paymentMethod === 'wave' ? 'text-primary' : 'text-foreground-muted'}`} />
+                    <span className={`font-semibold ${paymentMethod === 'wave' ? 'text-primary' : 'text-foreground'}`}>Mobile Money</span>
+                  </label>
                 )}
 
                 {hasOnlinePayment.carte && (
@@ -203,7 +195,7 @@ export default function CheckoutClient({
                   <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'maketou' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
                     <input type="radio" name="paymentMethod" value="maketou" checked={paymentMethod === 'maketou'} onChange={() => setPaymentMethod('maketou')} className="sr-only" />
                     <Smartphone className={`w-8 h-8 mb-2 ${paymentMethod === 'maketou' ? 'text-primary' : 'text-foreground-muted'}`} />
-                    <span className={`font-semibold ${paymentMethod === 'maketou' ? 'text-primary' : 'text-foreground'}`}>Maketou</span>
+                    <span className={`font-semibold ${paymentMethod === 'maketou' ? 'text-primary' : 'text-foreground'}`}>Mobile Money (Maketou)</span>
                   </label>
                 )}
 
@@ -239,7 +231,7 @@ export default function CheckoutClient({
                 </div>
               )}
 
-              {(paymentMethod === 'wave' || paymentMethod === 'orange' || paymentMethod === 'carte' || paymentMethod === 'chariow' || paymentMethod === 'maketou') && (
+              {(paymentMethod === 'wave' || paymentMethod === 'carte' || paymentMethod === 'chariow' || paymentMethod === 'maketou') && (
                 <p className="mb-8 text-sm text-foreground-muted">
                   {d.redirect_notice_prefix} {paymentMethod === 'carte' ? d.redirect_notice_card : d.redirect_notice_mobile}.
                 </p>
