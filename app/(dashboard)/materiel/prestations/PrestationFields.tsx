@@ -324,7 +324,8 @@ export default function PrestationFields({
             inputMode="decimal"
             value={montant}
             onChange={(e) => setMontant(e.target.value)}
-            className={champ}
+            className={`${champ} ${mode === 'especes' ? 'opacity-75' : ''}`}
+            readOnly={mode === 'especes'}
           />
           <p className="mt-1 text-xs text-foreground-muted">{t.amount_auto_hint}</p>
         </div>

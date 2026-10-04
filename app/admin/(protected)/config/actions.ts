@@ -39,3 +39,17 @@ export async function supprimerChariowProduit(montant: number) {
   revalidatePath('/admin/config')
   return { success: true }
 }
+
+export async function upsertMaketouProduit(montant: number, product_id: string) {
+  const res = await createAdminClient().from('maketou_produits').upsert({ montant, product_id })
+  if (res.error) return { error: res.error.message }
+  revalidatePath('/admin/config')
+  return { success: true }
+}
+
+export async function supprimerMaketouProduit(montant: number) {
+  const res = await createAdminClient().from('maketou_produits').delete().eq('montant', montant)
+  if (res.error) return { error: res.error.message }
+  revalidatePath('/admin/config')
+  return { success: true }
+}

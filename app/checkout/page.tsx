@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import CheckoutClient from './CheckoutClient'
 import { redirect } from 'next/navigation'
-import { hasBictorysKeys, hasMonerooKeys, hasChariowKeys } from '@/lib/payments/config'
+import { hasBictorysKeys, hasMonerooKeys, hasChariowKeys, hasMaketouKeys } from '@/lib/payments/config'
 import { getDictionary, getLocale } from '@/dictionaries'
 
 export default async function CheckoutPage({
@@ -53,7 +53,7 @@ export default async function CheckoutPage({
       currentTier={currentTier}
       isUpgrade={isUpgrade}
       enDollars={enDollars}
-      hasOnlinePayment={{ mobileMoney: hasBictorysKeys, carte: hasMonerooKeys, chariow: hasChariowKeys }}
+      hasOnlinePayment={{ mobileMoney: hasBictorysKeys, carte: hasMonerooKeys, chariow: hasChariowKeys, maketou: hasMaketouKeys }}
       dict={dict}
       locale={locale}
     />

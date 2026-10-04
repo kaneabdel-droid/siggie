@@ -1,18 +1,21 @@
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { createAdminClient } from '@/utils/supabase/admin'
-import { hasBictorysKeys, hasMonerooKeys, hasChariowKeys } from '@/lib/payments/config'
+import { hasBictorysKeys, hasMonerooKeys, hasChariowKeys, hasMaketouKeys } from '@/lib/payments/config'
 import ChariowProduitsEditor from './ChariowProduitsEditor'
+import MaketouProduitsEditor from './MaketouProduitsEditor'
 
 export default async function AdminConfigPage() {
   const supabase = createAdminClient()
 
   const { data: produits } = await supabase.from('chariow_produits').select('montant, product_id').order('montant')
+  const { data: mProduits } = await supabase.from('maketou_produits').select('montant, product_id').order('montant')
   const { data: tarifs } = await supabase.from('tarif_abonnement').select('niveau, prix_annuel').order('prix_annuel')
 
   const prestataires = [
     { nom: 'Bictorys (Wave, Orange Money)', ok: hasBictorysKeys },
     { nom: 'Moneroo (Carte bancaire)', ok: hasMonerooKeys },
     { nom: 'Chariow (Mobile Money)', ok: hasChariowKeys },
+    { nom: 'Maketou (Mobile Money)', ok: hasMaketouKeys },
   ]
 
   return (
@@ -37,6 +40,11 @@ export default async function AdminConfigPage() {
       <div className="bg-background rounded-xl p-5 border border-surface-border">
         <h2 className="font-semibold mb-4">Produits Chariow</h2>
         <ChariowProduitsEditor produits={produits ?? []} tarifs={tarifs ?? []} />
+      </div>
+
+      <div className="bg-background rounded-xl p-5 border border-surface-border">
+        <h2 className="font-semibold mb-4">Produits Maketou</h2>
+        <MaketouProduitsEditor produits={mProduits ?? []} tarifs={tarifs ?? []} />
       </div>
     </div>
   )

@@ -5,10 +5,11 @@ import { createAdminClient } from '@/utils/supabase/admin'
 import { initiateBictorysPayment } from '@/lib/payments/bictorys'
 import { initiateMonerooPayment } from '@/lib/payments/moneroo'
 import { initiateChariowPayment } from '@/lib/payments/chariow'
+import { initiateMaketouPayment } from '@/lib/payments/maketou'
 import { siteUrl } from '@/lib/payments/config'
 import { montantUsd } from '@/lib/payments/dollars'
 
-type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow'
+type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow' | 'maketou'
 
 type InitiateResult =
   | { ok: true; checkoutUrl: string }
@@ -73,7 +74,7 @@ export async function initiateSubscriptionPayment(
   const devise = enDollars ? 'USD' : 'XOF'
   if (enDollars) montant = montantUsd(montant)
 
-  const provider = moyenPaiement === 'carte' ? 'moneroo' : moyenPaiement === 'virement' ? 'virement' : moyenPaiement === 'chariow' ? 'chariow' : 'bictorys'
+  const provider = moyenPaiement === 'carte' ? 'moneroo' : moyenPaiement === 'virement' ? 'virement' : moyenPaiement === 'chariow' ? 'chariow' : moyenPaiement === 'maketou' ? 'maketou' : 'bictorys'
 
   let chariowProductId: string | null = null
   if (provider === 'chariow') {
@@ -87,6 +88,18 @@ export async function initiateSubscriptionPayment(
       return { ok: false, error: "Chariow n'est pas configuré pour ce montant" }
     }
     chariowProductId = produit.product_id
+  }
+  let maketouProductId: string | null = null
+  if (provider === 'maketou') {
+    const { data: produit } = await createAdminClient()
+      .from('maketou_produits')
+      .select('product_id')
+      .eq('montant', montant)
+      .maybeSingle()
+    maketouProductId = produit?.product_id || process.env.MAKETOU_PRODUCT_ID || null
+    if (!maketouProductId) {
+      return { ok: false, error: "Maketou n'est pas configuré pour ce montant" }
+    }
   }
 
   // Anti double paiement (1/2) : un forfait déjà réglé ne se paie pas une seconde fois
@@ -164,6 +177,16 @@ export async function initiateSubscriptionPayment(
             customerEmail: user.email || '',
             returnUrl,
           })
+        : provider === 'maketou'
+          ? await initiateMaketouPayment({
+              productId: maketouProductId!,
+              reference: payment.id,
+              phoneLocal: phoneLocal || '',
+              countryCode: gie?.pays && gie.pays !== 'AUTRE' ? gie.pays : 'SN',
+              customerEmail: user.email || '',
+              returnUrl,
+              montantAttendu: montant,
+            })
         : await initiateBictorysPayment({
             amount: montant,
             currency: 'XOF',

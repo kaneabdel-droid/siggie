@@ -7,7 +7,7 @@ import { CreditCard, Smartphone, Banknote, ArrowLeft, Clock } from 'lucide-react
 import { initiateSubscriptionPayment } from './actions'
 import { montantUsd } from '@/lib/payments/dollars'
 
-type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow'
+type MoyenPaiement = 'wave' | 'orange' | 'carte' | 'virement' | 'chariow' | 'maketou'
 
 export default function CheckoutClient({
   initialPlan,
@@ -25,7 +25,7 @@ export default function CheckoutClient({
   isUpgrade: boolean
   /** GIE d'un autre pays (devise « sans unité ») : paiement par carte en dollars US uniquement. */
   enDollars?: boolean
-  hasOnlinePayment: { mobileMoney: boolean; carte: boolean; chariow: boolean }
+  hasOnlinePayment: { mobileMoney: boolean; carte: boolean; chariow: boolean; maketou: boolean }
   dict: any
   locale: string
 }) {
@@ -35,6 +35,7 @@ export default function CheckoutClient({
   // Chariow ne facture que le prix plein d'un forfait (produit préconfiguré dans sa
   // boutique) : jamais disponible pour un montant de proratisation d'upgrade.
   const chariowDisponible = hasOnlinePayment.chariow && !isUpgrade && !enDollars
+  const maketouDisponible = hasOnlinePayment.maketou && !isUpgrade && !enDollars
 
   const availableMethods: MoyenPaiement[] = enDollars
     ? hasOnlinePayment.carte ? ['carte'] : []
@@ -42,6 +43,7 @@ export default function CheckoutClient({
         ...(hasOnlinePayment.mobileMoney ? (['wave', 'orange'] as const) : []),
         ...(hasOnlinePayment.carte ? (['carte'] as const) : []),
         ...(chariowDisponible ? (['chariow'] as const) : []),
+        ...(maketouDisponible ? (['maketou'] as const) : []),
         'virement',
       ]
 
@@ -84,7 +86,7 @@ export default function CheckoutClient({
     setError(null)
     setIsProcessing(true)
 
-    if (paymentMethod === 'chariow' && !phoneLocal.trim()) {
+    if ((paymentMethod === 'chariow' || paymentMethod === 'maketou') && !phoneLocal.trim()) {
       setError(d.phone_required_error)
       setIsProcessing(false)
       return
@@ -197,6 +199,13 @@ export default function CheckoutClient({
                     <span className={`font-semibold ${paymentMethod === 'chariow' ? 'text-primary' : 'text-foreground'}`}>{d.mobile_money_chariow}</span>
                   </label>
                 )}
+                {maketouDisponible && (
+                  <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'maketou' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
+                    <input type="radio" name="paymentMethod" value="maketou" checked={paymentMethod === 'maketou'} onChange={() => setPaymentMethod('maketou')} className="sr-only" />
+                    <Smartphone className={`w-8 h-8 mb-2 ${paymentMethod === 'maketou' ? 'text-primary' : 'text-foreground-muted'}`} />
+                    <span className={`font-semibold ${paymentMethod === 'maketou' ? 'text-primary' : 'text-foreground'}`}>Maketou</span>
+                  </label>
+                )}
 
                 {!enDollars && (
                   <label className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === 'virement' ? 'border-primary bg-primary/5' : 'border-surface-border bg-surface hover:bg-black/5'}`}>
@@ -215,7 +224,7 @@ export default function CheckoutClient({
                 </div>
               )}
 
-              {paymentMethod === 'chariow' && (
+              {(paymentMethod === 'chariow' || paymentMethod === 'maketou') && (
                 <div className="mb-8">
                   <label htmlFor="phoneLocal" className="block text-sm font-medium text-foreground mb-2">{d.phone_label}</label>
                   <input
@@ -230,7 +239,7 @@ export default function CheckoutClient({
                 </div>
               )}
 
-              {(paymentMethod === 'wave' || paymentMethod === 'orange' || paymentMethod === 'carte' || paymentMethod === 'chariow') && (
+              {(paymentMethod === 'wave' || paymentMethod === 'orange' || paymentMethod === 'carte' || paymentMethod === 'chariow' || paymentMethod === 'maketou') && (
                 <p className="mb-8 text-sm text-foreground-muted">
                   {d.redirect_notice_prefix} {paymentMethod === 'carte' ? d.redirect_notice_card : d.redirect_notice_mobile}.
                 </p>
