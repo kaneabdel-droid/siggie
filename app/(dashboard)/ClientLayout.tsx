@@ -21,7 +21,9 @@ import {
   PackageOpen,
   LifeBuoy,
   Shield,
-  Settings
+  Settings,
+  Activity,
+  Truck
 } from 'lucide-react'
 import { DeviseProvider } from '@/components/DeviseProvider'
 
@@ -49,6 +51,9 @@ export default function ClientLayout({
 
   const navigation = [
     { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { key: 'pos_pharma', href: '/pharmacie/pos', icon: Activity },
+    { key: 'stock_pharma', href: '/pharmacie/stocks', icon: PackageOpen },
+    { key: 'commandes_pharma', href: '/pharmacie/commandes', icon: Truck },
     { key: 'membres', href: '/membres', icon: Users },
     { key: 'campagnes', href: '/campagnes', icon: Leaf },
     { key: 'intrants', href: '/intrants', icon: Tractor },

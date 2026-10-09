@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import { createAdminClient } from '@/utils/supabase/admin'
 import type { NormalizedWebhookEvent } from './types'
 
-export type PaymentProvider = 'bictorys' | 'moneroo' | 'chariow' | 'maketou'
+export type PaymentProvider = 'bictorys' | 'moneroo' | 'chariow' | 'maketou' | 'maketou'
 
 /**
  * Cœur idempotent du crédit d'abonnement : vérifie le montant, fait transitionner le

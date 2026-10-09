@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store, Wheat, Phone, Mail, GraduationCap, Handshake } from 'lucide-react'
+import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store, Wheat, Phone, Mail, GraduationCap, Handshake, Activity } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
 import ContactProspectForm from '@/components/ContactProspectForm'
@@ -25,9 +25,9 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
         {/* Hero Section */}
         <section className="relative overflow-hidden py-20 lg:py-32 bg-gradient-to-br from-surface to-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center max-w-4xl mx-auto">
+            <div className="text-center max-w-4xl mx-auto animate-float">
               <h1 className="text-5xl md:text-7xl font-bold font-heading tracking-tight text-foreground mb-6">
-                {dict.landing.hero.title_1} <span className="text-primary">{dict.landing.hero.title_2}</span>
+                {dict.landing.hero.title_1} <span className="text-primary inline-block animate-pulse-slow">{dict.landing.hero.title_2}</span>
               </h1>
               <p className="mt-4 text-xl md:text-2xl text-foreground-muted mb-10 leading-relaxed">
                 {dict.landing.hero.desc}
@@ -35,7 +35,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
             </div>
           </div>
           {/* Background decorative elements */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl -z-10"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-3xl -z-10 animate-pulse-slow"></div>
         </section>
 
         {/* Pourquoi choisir Demba Solution */}
@@ -131,6 +131,17 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <a href="https://pcas.dembasolution.com/demande-acces" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.access_link_pcas} <ArrowRight className="w-4 h-4" /></a>
               </div>
               */}
+
+              {/* Produit 7 : D-PHARMA */}
+              <div className="relative overflow-hidden rounded-2xl bg-primary/5 border border-primary/20 shadow-lg p-8 animate-float hover:shadow-primary/30 transition-shadow">
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">Nouveau</div>
+                <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+                <Activity className="w-10 h-10 text-primary mb-4 animate-pulse-slow" />
+                <h3 className="text-2xl font-bold mb-2 text-primary">D-PHARMA</h3>
+                <p className="text-foreground-muted mb-6">Solution complète pour pharmacies : scan code-barres, stocks, facturation et interface labo/client.</p>
+                <a href="https://pharma.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir D-Pharma <ArrowRight className="w-4 h-4" /></a>
+                <a href="https://pharma.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">Voir nos offres <ArrowRight className="w-4 h-4" /></a>
+              </div>
             </div>
           </div>
         </section>

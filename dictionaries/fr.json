@@ -195,7 +195,10 @@
     "abonnement": "Abonnement",
     "parametres": "Paramètres",
     "support": "Aide & Support",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "pos_pharma": "Point de Vente",
+    "stock_pharma": "Stocks (Pharma)",
+    "commandes_pharma": "Commandes Labo"
   },
   "header": {
     "admin": "Admin",

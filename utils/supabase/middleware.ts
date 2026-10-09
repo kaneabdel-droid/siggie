@@ -95,6 +95,7 @@ export async function updateSession(request: NextRequest) {
     !pathname.startsWith('/decouvrir-siggie') &&
     !pathname.startsWith('/guide') &&
     !pathname.startsWith('/tarifs') &&
+    !pathname.startsWith('/recherche-medicament') &&
     // Page de paiement d'un forfait : ouverte au visiteur depuis les tarifs ; son bouton
     // l'envoie créer son compte, puis l'y ramène (paramètre `next`) pour payer.
     pathname !== '/checkout'
