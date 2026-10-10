@@ -71,7 +71,7 @@ export async function updateSession(request: NextRequest) {
     try {
       adminUser = await createAdminIdentityMiddlewareClient(request, supabaseResponse)
         .auth.getUser()
-        .then(({ data }) => data.user)
+        .then(({ data }: any) => data.user)
     } catch (e) {
       adminUser = null;
     }
