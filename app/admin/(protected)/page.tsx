@@ -65,14 +65,6 @@ const produits = [
     icon: Handshake,
     statut: 'en_ligne' as const,
   },
-  {
-    nom: 'MAKETOU',
-    description: 'Solution pour grossistes — facturation, reçus, bons de livraison et gestion de caisse.',
-    href: 'https://maketou.dembasolution.com/admin',
-    externe: true,
-    icon: Package, // On peut utiliser Store ou Package
-    statut: 'en_ligne' as const,
-  },
 ]
 
 export default function AdminHomePage() {
