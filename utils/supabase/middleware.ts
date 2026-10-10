@@ -67,10 +67,14 @@ export async function updateSession(request: NextRequest) {
     // Un pépin réseau transitoire sur le projet Supabase partagé ne doit pas faire
     // planter la requête — on le traite comme "pas de session admin" plutôt que
     // de laisser l'exception remonter.
-    const adminUser = await createAdminIdentityMiddlewareClient(request, supabaseResponse)
-      .auth.getUser()
-      .then(({ data }) => data.user)
-      .catch(() => null)
+    let adminUser = null;
+    try {
+      adminUser = await createAdminIdentityMiddlewareClient(request, supabaseResponse)
+        .auth.getUser()
+        .then(({ data }) => data.user)
+    } catch (e) {
+      adminUser = null;
+    }
 
     // Toujours vers /admin/login, même si une session client existe : le même email
     // peut être membre d'un GIE (éventuellement expiré), et le renvoyer vers /dashboard
