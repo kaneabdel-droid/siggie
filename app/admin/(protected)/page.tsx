@@ -17,6 +17,14 @@ const produits = [
     statut: 'en_ligne' as const,
   },
   {
+    nom: 'D-PHARMA',
+    description: 'Gestion des pharmacies — ventes (POS), stocks, commandes, assurances.',
+    href: 'https://d-pharma.dembasolution.com/admin',
+    externe: true,
+    icon: Package, // On peut utiliser Store ou Package
+    statut: 'en_ligne' as const,
+  },
+  {
     nom: 'D-QUINCA',
     description: 'Gestion de quincailleries — stock, ventes, trésorerie multi-magasins.',
     href: 'https://d-quinca.dembasolution.com/admin',

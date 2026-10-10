@@ -38,6 +38,16 @@ export default async function AdminSiggieDashboardPage() {
     return d > maintenant && d < dans48h
   }).length
 
+  const { data: paiementsMaketouMois } = await supabase
+    .from('abonnement_paiements')
+    .select('montant, devise')
+    .eq('statut', 'completed')
+    .eq('doublon', false)
+    .eq('provider', 'maketou')
+    .gte('updated_at', debutMois.toISOString())
+
+  const revenuMaketouDuMois = (paiementsMaketouMois ?? []).reduce((sum, p) => sum + equivalentFcfa(Number(p.montant), p.devise), 0)
+
   const parForfait = ['standard', 'medium', 'premium'].map((niveau) => ({
     niveau,
     count: (gies ?? []).filter((g) => g.subscription_tier === niveau).length,
@@ -47,7 +57,8 @@ export default async function AdminSiggieDashboardPage() {
     { label: 'GIE au total', value: gies?.length ?? 0, icon: Building2 },
     { label: 'Virements en attente de confirmation', value: virementsEnAttente?.length ?? 0, icon: Clock },
     { label: 'Autres paiements en attente', value: paiementsEnAttente?.length ?? 0, icon: Wallet },
-    { label: 'Revenu du mois (FCFA)', value: revenuDuMois.toLocaleString('fr-FR'), icon: TrendingUp },
+    { label: 'Revenu global du mois (FCFA)', value: revenuDuMois.toLocaleString('fr-FR'), icon: TrendingUp },
+    { label: 'Revenu Maketou (FCFA)', value: revenuMaketouDuMois.toLocaleString('fr-FR'), icon: Wallet },
   ]
 
   return (
