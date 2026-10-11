@@ -142,6 +142,17 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <a href="https://d-pharma.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir D-Pharma <ArrowRight className="w-4 h-4" /></a>
                 <a href="https://d-pharma.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">Voir nos offres <ArrowRight className="w-4 h-4" /></a>
               </div>
+
+              {/* Produit 8 : D-ÉLEVAGE */}
+              <div className="relative overflow-hidden rounded-2xl bg-primary/5 border border-primary/20 shadow-lg p-8 animate-float hover:shadow-primary/30 transition-shadow">
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">Nouveau</div>
+                <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 font-bold text-xl">🐄</div>
+                <h3 className="text-2xl font-bold mb-2 text-primary">D-ÉLEVAGE</h3>
+                <p className="text-foreground-muted mb-6">Solution multi-espèces (volailles, bovins, ruminants, porcins) : suivi des bandes, traçabilité par boucle, sécurité sanitaire et marges.</p>
+                <a href="https://d-elevage.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir D-Élevage <ArrowRight className="w-4 h-4" /></a>
+                <a href="https://d-elevage.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">Voir nos offres <ArrowRight className="w-4 h-4" /></a>
+              </div>
             </div>
           </div>
         </section>
