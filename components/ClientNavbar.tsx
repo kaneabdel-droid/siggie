@@ -34,6 +34,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
                     <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-INTRANTS</a>
                     <a href="https://d-agro.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-AGROBUSINESS</a>
                     <a href="https://scholar.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-SCHOLAR</a>
+                    <a href="https://d-pharma.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-PHARMA</a>
                   </div>
                 </div>
               )}
@@ -56,6 +57,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
                     <a href="https://d-agro.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-AGROBUSINESS</a>
                     <a href="https://scholar.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-SCHOLAR</a>
                     <a href="https://pcas.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">PCAS</a>
+                    <a href="https://d-pharma.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-PHARMA</a>
                   </div>
                 </div>
               )}
@@ -72,6 +74,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
                     <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-INTRANTS</a>
                     <a href="https://d-agro.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-AGROBUSINESS</a>
                     <a href="https://scholar.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-SCHOLAR</a>
+                    <a href="https://d-pharma.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-PHARMA</a>
                   </div>
                 </div>
               )}
@@ -98,6 +101,18 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
               <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-INTRANTS</a>
               <a href="https://d-agro.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-AGROBUSINESS</a>
               <a href="https://scholar.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-SCHOLAR</a>
+              <a href="https://d-pharma.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-PHARMA</a>
+            </div>
+          </div>
+          <div>
+            <p className="text-base font-medium text-foreground mb-2">{dict.landing.nav.subscribe}</p>
+            <div className="pl-4 space-y-2">
+              <Link href="/tarifs" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-medium text-foreground-muted hover:text-primary">SIGGIE</Link>
+              <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-QUINCA</a>
+              <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-INTRANTS</a>
+              <a href="https://d-agro.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-AGROBUSINESS</a>
+              <a href="https://scholar.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-SCHOLAR</a>
+              <a href="https://d-pharma.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-PHARMA</a>
             </div>
           </div>
           <a href="#astuces" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.tips}</a>
@@ -111,6 +126,7 @@ export default function ClientNavbar({ dict, currentLang }: { dict: any, current
               <a href="https://d-agro.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-AGROBUSINESS</a>
               <a href="https://scholar.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-SCHOLAR</a>
               <a href="https://pcas.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">PCAS</a>
+              <a href="https://d-pharma.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-PHARMA</a>
             </div>
           </div>
         </div>

@@ -139,8 +139,8 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <Activity className="w-10 h-10 text-primary mb-4 animate-pulse-slow" />
                 <h3 className="text-2xl font-bold mb-2 text-primary">D-PHARMA</h3>
                 <p className="text-foreground-muted mb-6">Solution complète pour pharmacies : scan code-barres, stocks, facturation et interface labo/client.</p>
-                <a href="https://pharma.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir D-Pharma <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://pharma.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">Voir nos offres <ArrowRight className="w-4 h-4" /></a>
+                <a href="https://d-pharma.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir D-Pharma <ArrowRight className="w-4 h-4" /></a>
+                <a href="https://d-pharma.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">Voir nos offres <ArrowRight className="w-4 h-4" /></a>
               </div>
             </div>
           </div>
