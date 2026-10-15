@@ -19,7 +19,7 @@ const produits = [
   {
     nom: 'D-PHARMA',
     description: 'Gestion des pharmacies — ventes (POS), stocks, commandes, assurances.',
-    href: 'https://d-pharma.dembasolution.com/admin',
+    href: 'https://d-pharma.dembasolution.com/admin/pharmacie',
     externe: true,
     icon: Package, // On peut utiliser Store ou Package
     statut: 'en_ligne' as const,
@@ -27,7 +27,7 @@ const produits = [
   {
     nom: 'D-ÉLEVAGE',
     description: "Gestion d'élevage multi-espèces — volailles, bovins, ovins, prophylaxie, stocks & alimentation.",
-    href: 'https://d-elevage.dembasolution.com/admin',
+    href: 'https://d-elevage.dembasolution.com/admin/elevage',
     externe: true,
     icon: Bird,
     statut: 'en_ligne' as const,
