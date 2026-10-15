@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, Wrench, Package, Wheat, GraduationCap, Handshake, ArrowUpRight, Clock } from 'lucide-react'
+import { Building2, Wrench, Package, Wheat, GraduationCap, Handshake, ArrowUpRight, Clock, Bird } from 'lucide-react'
 
 // Chaque produit DembaSolution a son propre projet Supabase et son propre espace
 // /admin — pas de portail unifié (une seule connexion, une seule session) pour
@@ -22,6 +22,14 @@ const produits = [
     href: 'https://d-pharma.dembasolution.com/admin',
     externe: true,
     icon: Package, // On peut utiliser Store ou Package
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'D-ÉLEVAGE',
+    description: "Gestion d'élevage multi-espèces — volailles, bovins, ovins, prophylaxie, stocks & alimentation.",
+    href: 'https://d-elevage.dembasolution.com/admin',
+    externe: true,
+    icon: Bird,
     statut: 'en_ligne' as const,
   },
   {
