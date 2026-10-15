@@ -21,7 +21,10 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
 
   if (!gie) notFound()
 
-  const { data: utilisateurs } = await supabase.from('utilisateurs').select('id, role, permissions').eq('gie_id', id)
+  const { data: utilisateurs } = await supabase
+    .from('utilisateurs')
+    .select('id, role, permissions, identifiant, telephone, nom_complet')
+    .eq('gie_id', id)
 
   // Les emails (et le statut désactivé) vivent dans auth.users, pas dans public.utilisateurs.
   const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 })
@@ -66,6 +69,9 @@ export default async function AdminGieDetailPage({ params }: { params: Promise<{
                   gieId={gie.id}
                   utilisateurId={u.id}
                   email={authUser?.email || u.id}
+                  identifiant={u.identifiant}
+                  nomComplet={u.nom_complet}
+                  telephone={u.telephone}
                   roleActuel={u.role || ''}
                   permissionsActuelles={(u.permissions as PermissionMap | null) ?? null}
                   banni={Boolean(authUser?.banned_until && new Date(authUser.banned_until) > new Date())}

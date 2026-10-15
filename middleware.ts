@@ -1,8 +1,28 @@
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
+import { inspectSecurityThreat, applySecurityHeaders } from '@/lib/security'
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  // 1. Bouclier de sécurité actif : détection de probing d'intrusion et scrapers
+  const threat = inspectSecurityThreat(request)
+  if (threat.blocked) {
+    const blockedResponse = new NextResponse(
+      JSON.stringify({ error: threat.reason || 'Accès refusé' }),
+      {
+        status: threat.status || 403,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+    return applySecurityHeaders(blockedResponse, request.nextUrl.pathname)
+  }
+
+  // 2. Gestion de la session Supabase, des accès et des redirections
+  const response = await updateSession(request)
+
+  // 3. Application des en-têtes de sécurité et X-Robots-Tag sur toute réponse
+  return applySecurityHeaders(response, request.nextUrl.pathname)
 }
 
 export const config = {

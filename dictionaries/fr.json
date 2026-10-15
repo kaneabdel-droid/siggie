@@ -151,7 +151,7 @@
     "login": {
       "title": "Connexion à SIGGIE",
       "desc": "Système Intégré de Gestion des GIE Agricoles",
-      "email": "Adresse e-mail",
+      "email": "Identifiant, téléphone ou e-mail",
       "password": "Mot de passe",
       "forgot": "Mot de passe oublié ?",
       "btn": "Se connecter",
@@ -174,9 +174,9 @@
     },
     "forgot_password": {
       "title": "Mot de passe oublié",
-      "desc": "Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
-      "email": "Adresse e-mail",
-      "submit": "Envoyer le lien",
+      "desc": "Entrez votre identifiant, téléphone ou adresse e-mail pour réinitialiser votre mot de passe.",
+      "email": "Identifiant, téléphone ou e-mail",
+      "submit": "Valider",
       "back_to_login": "Retour à la connexion"
     }
   },

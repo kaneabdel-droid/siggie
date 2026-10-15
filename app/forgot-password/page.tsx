@@ -35,8 +35,9 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
               <input
                 id="email"
                 name="email"
-                type="email"
-                autoComplete="email"
+                type="text"
+                autoComplete="username"
+                placeholder="ex: amadou_caisse, 771234567 ou email@domaine.com"
                 required
                 className="block w-full rounded-md border-0 py-1.5 px-3 bg-surface text-foreground shadow-sm ring-1 ring-inset ring-foreground-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
               />

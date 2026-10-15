@@ -151,7 +151,7 @@
     "login": {
       "title": "Login to SIGGIE",
       "desc": "Integrated Management System for Agricultural Groups",
-      "email": "Email Address",
+      "email": "Identifier, phone or email",
       "password": "Password",
       "forgot": "Forgot password?",
       "btn": "Log in",
@@ -174,9 +174,9 @@
     },
     "forgot_password": {
       "title": "Forgot password",
-      "desc": "Enter your email address and we'll send you a link to reset your password.",
-      "email": "Email address",
-      "submit": "Send the link",
+      "desc": "Enter your identifier, phone or email address to reset your password.",
+      "email": "Identifier, phone or email",
+      "submit": "Submit",
       "back_to_login": "Back to login"
     }
   },

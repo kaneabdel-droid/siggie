@@ -5,6 +5,14 @@ import LanguageSelector from '@/components/LanguageSelector'
 import ContactProspectForm from '@/components/ContactProspectForm'
 import { getDictionary, getLocale } from '@/dictionaries'
 
+function FacebookIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
+  )
+}
+
 export default async function LandingPage({ searchParams }: { searchParams?: Promise<{ message?: string }> }) {
   const params = await searchParams
   const message = params?.message
@@ -214,6 +222,51 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
           </div>
         </section>
 
+        {/* Section Communauté & Page Facebook */}
+        <section id="facebook-communaute" className="py-20 bg-surface border-t border-surface-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mx-auto text-center mb-10">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+                <FacebookIcon className="w-4 h-4" />
+                Actualités & Réseau
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-3">Rejoignez-nous sur Facebook</h2>
+              <p className="text-foreground-muted text-base">
+                Suivez en direct le déploiement de nos solutions au Sénégal et en Afrique de l&apos;Ouest, nos conseils de gestion et les retours d&apos;expérience de nos utilisateurs.
+              </p>
+            </div>
+
+            <div className="w-full flex justify-center">
+              <div className="w-full max-w-[540px] bg-background rounded-2xl p-4 sm:p-6 border border-surface-border shadow-sm flex flex-col items-center">
+                <div className="w-full overflow-hidden rounded-xl flex justify-center bg-surface border border-surface-border/50">
+                  <iframe
+                    src="https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fweb.facebook.com%2Fpermalink.php%3Fstory_fbid%3Dpfbid02QKYcQXXdsajv3Wv1wZTpgsyTeXkJVGgW6QTjJeW14K4UcxcELpZ3tDSY1WpPsEmnl%26id%3D61594849708479&show_text=true&width=500"
+                    width="100%"
+                    height="304"
+                    style={{ border: 'none', overflow: 'hidden' }}
+                    scrolling="no"
+                    frameBorder="0"
+                    allowFullScreen={true}
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    title="Publication Facebook DembaSolution"
+                    className="max-w-[500px]"
+                  />
+                </div>
+                <a
+                  href="https://web.facebook.com/permalink.php?story_fbid=pfbid02QKYcQXXdsajv3Wv1wZTpgsyTeXkJVGgW6QTjJeW14K4UcxcELpZ3tDSY1WpPsEmnl&id=61594849708479"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline group"
+                >
+                  <FacebookIcon className="w-4 h-4" />
+                  <span>Consulter notre page Facebook officielle</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       {/* Footer */}
@@ -221,8 +274,18 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="text-2xl font-bold font-heading text-background mb-4 block">DEMBA SOLUTION</span>
           <p className="text-background/70 mb-8 max-w-md mx-auto">{dict.landing.footer.desc}</p>
-          <div className="flex justify-center gap-6 mb-8">
+          <div className="flex justify-center items-center gap-6 mb-8">
             <LanguageSelector currentLang={locale} />
+            <a
+              href="https://web.facebook.com/permalink.php?story_fbid=pfbid02QKYcQXXdsajv3Wv1wZTpgsyTeXkJVGgW6QTjJeW14K4UcxcELpZ3tDSY1WpPsEmnl&id=61594849708479"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Page Facebook DembaSolution"
+              className="inline-flex items-center gap-2 text-sm text-background/80 hover:text-white transition-colors"
+            >
+              <FacebookIcon className="w-5 h-5" />
+              <span>Facebook</span>
+            </a>
           </div>
           <p className="text-background/50 text-sm">© {new Date().getFullYear()} Demba Solution.</p>
           <Link

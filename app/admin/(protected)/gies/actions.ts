@@ -97,39 +97,71 @@ export async function changerRoleUtilisateur(gieId: string, utilisateurId: strin
   return { success: true }
 }
 
+import { genererEmailSynthetique } from '@/lib/auth-identifier'
+
 export async function creerUtilisateurPourGie(
   gieId: string,
-  email: string,
+  identifiantOuEmail: string,
   password: string,
   role: string,
-  permissions: PermissionMap | null = null
+  permissions: PermissionMap | null = null,
+  options?: {
+    email?: string
+    telephone?: string
+    nomComplet?: string
+  }
 ): Promise<ActionResult> {
   const authError = await checkAdmin()
   if (authError) return { error: authError }
-  if (!email.trim()) return { error: "L'email est requis" }
+  const identifiant = identifiantOuEmail.trim()
+  if (!identifiant) return { error: "L'identifiant est requis" }
   if (!password || password.length < 6) return { error: 'Le mot de passe doit contenir au moins 6 caractères' }
 
   const supabase = createAdminClient()
 
-  // `existing_gie_id` dans les métadonnées indique au trigger handle_new_user()
-  // de rattacher ce compte au GIE existant plutôt que d'en créer un nouveau
-  // (comportement par défaut de toute création dans auth.users).
+  // Déterminer l'e-mail d'authentification pour Supabase Auth
+  let authEmail = options?.email?.trim() || ''
+  if (!authEmail) {
+    if (identifiant.includes('@')) {
+      authEmail = identifiant.toLowerCase()
+    } else {
+      authEmail = genererEmailSynthetique(identifiant)
+    }
+  }
+
   const { data: created, error } = await supabase.auth.admin.createUser({
-    email: email.trim(),
+    email: authEmail,
     password,
     email_confirm: true,
-    user_metadata: { existing_gie_id: gieId, role: role.trim() || 'employe' },
+    user_metadata: {
+      existing_gie_id: gieId,
+      role: role.trim() || 'employe',
+      identifiant: !identifiant.includes('@') ? identifiant : null,
+      telephone: options?.telephone?.trim() || null,
+      nom_complet: options?.nomComplet?.trim() || null,
+    },
   })
   if (error) return { error: error.message }
 
-  // Le trigger handle_new_user() a déjà créé la ligne utilisateurs : on y ajoute les droits.
-  // Sans droits fournis (null), le compte garde l'accès complet.
-  if (permissions && created.user) {
-    const { error: permError } = await supabase
-      .from('utilisateurs')
-      .update({ permissions: sanitizePermissions(permissions) })
-      .eq('id', created.user.id)
-    if (permError) return { error: `Compte créé, mais les permissions n'ont pas pu être enregistrées (${permError.message}). Réessayez depuis la liste des utilisateurs.` }
+  // Le trigger handle_new_user() a créé la ligne : mise à jour des droits et données complémentaires
+  if (created.user) {
+    const updatePayload: Record<string, any> = {}
+    if (permissions) updatePayload.permissions = sanitizePermissions(permissions)
+    if (!identifiant.includes('@')) updatePayload.identifiant = identifiant
+    if (options?.telephone?.trim()) updatePayload.telephone = options.telephone.trim()
+    if (options?.nomComplet?.trim()) updatePayload.nom_complet = options.nomComplet.trim()
+
+    if (Object.keys(updatePayload).length > 0) {
+      const { error: permError } = await supabase
+        .from('utilisateurs')
+        .update(updatePayload)
+        .eq('id', created.user.id)
+      if (permError) {
+        return {
+          error: `Compte créé, mais certaines métadonnées n'ont pas pu être enregistrées (${permError.message}).`,
+        }
+      }
+    }
   }
 
   revalidatePath(`/admin/gies/${gieId}`)

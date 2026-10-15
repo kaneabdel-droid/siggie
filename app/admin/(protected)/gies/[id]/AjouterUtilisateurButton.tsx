@@ -15,6 +15,9 @@ function genererMotDePasse(): string {
 
 export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [identifiant, setIdentifiant] = useState('')
+  const [nomComplet, setNomComplet] = useState('')
+  const [telephone, setTelephone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('employe')
@@ -26,6 +29,9 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
 
   const close = () => {
     setIsOpen(false)
+    setIdentifiant('')
+    setNomComplet('')
+    setTelephone('')
     setEmail('')
     setPassword('')
     setRole('employe')
@@ -41,11 +47,31 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
     setSuccess(null)
     startTransition(async () => {
       try {
-        const result = await creerUtilisateurPourGie(gieId, email, password, role, custom && role.trim() !== 'admin' ? sanitizePermissions(perms) : null)
+        const idPrincipal = identifiant.trim() || email.trim()
+        if (!idPrincipal) {
+          setMessage("L'identifiant est obligatoire.")
+          return
+        }
+
+        const result = await creerUtilisateurPourGie(
+          gieId,
+          idPrincipal,
+          password,
+          role,
+          custom && role.trim() !== 'admin' ? sanitizePermissions(perms) : null,
+          {
+            email: email.trim() || undefined,
+            telephone: telephone.trim() || undefined,
+            nomComplet: nomComplet.trim() || undefined,
+          }
+        )
         if (result.error) {
           setMessage(`Erreur : ${result.error}`)
         } else {
-          setSuccess(`Compte créé pour ${email}. Mot de passe : ${password} (à transmettre à l'utilisateur, il ne sera plus affiché).`)
+          setSuccess(`Compte créé pour ${nomComplet || idPrincipal}. Identifiant : ${idPrincipal} — Mot de passe : ${password} (à transmettre à l'utilisateur, il ne sera plus affiché).`)
+          setIdentifiant('')
+          setNomComplet('')
+          setTelephone('')
           setEmail('')
           setPassword('')
         }
@@ -81,16 +107,64 @@ export default function AjouterUtilisateurButton({ gieId }: { gieId: string }) {
                 ) : (
                   <form id="add-user-form" onSubmit={handleSubmit} className="space-y-4">
                     {message && <p className="text-xs text-danger">{message}</p>}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground">Email</label>
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={isPending}
-                        className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
-                      />
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground">
+                          Identifiant de connexion <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="ex: moussa_caisse ou 771234567"
+                          value={identifiant}
+                          onChange={(e) => setIdentifiant(e.target.value)}
+                          disabled={isPending}
+                          className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm"
+                        />
+                        <p className="mt-1 text-xs text-foreground-muted">Sert à se connecter (sans besoin d&apos;email).</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-foreground">Nom & Prénom</label>
+                        <input
+                          type="text"
+                          placeholder="ex: Moussa Diop"
+                          value={nomComplet}
+                          onChange={(e) => setNomComplet(e.target.value)}
+                          disabled={isPending}
+                          className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground">Numéro de téléphone</label>
+                        <input
+                          type="text"
+                          placeholder="ex: +221 77 123 45 67"
+                          value={telephone}
+                          onChange={(e) => setTelephone(e.target.value)}
+                          disabled={isPending}
+                          className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm"
+                        />
+                        <p className="mt-1 text-xs text-foreground-muted">Peut servir d&apos;identifiant et pour le mot de passe.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-foreground">
+                          Email <span className="text-xs text-foreground-muted">(facultatif pour les employés)</span>
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="facultatif"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={isPending}
+                          className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground">Mot de passe temporaire</label>

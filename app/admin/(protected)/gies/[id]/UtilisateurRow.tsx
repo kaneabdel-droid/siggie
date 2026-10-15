@@ -9,6 +9,9 @@ export default function UtilisateurRow({
   gieId,
   utilisateurId,
   email,
+  identifiant,
+  nomComplet,
+  telephone,
   roleActuel,
   permissionsActuelles,
   banni,
@@ -16,6 +19,9 @@ export default function UtilisateurRow({
   gieId: string
   utilisateurId: string
   email: string
+  identifiant?: string | null
+  nomComplet?: string | null
+  telephone?: string | null
   roleActuel: string
   permissionsActuelles: PermissionMap | null
   banni: boolean
@@ -26,6 +32,9 @@ export default function UtilisateurRow({
   const [perms, setPerms] = useState<PermissionMap>(permissionsActuelles ?? fullPermissions())
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
+
+  const isSynthetic = email.endsWith('@auth.dembasolution.internal')
+  const displayName = nomComplet || identifiant || (isSynthetic ? email.replace('@auth.dembasolution.internal', '') : email)
 
   const run = (action: () => Promise<{ success?: boolean; error?: string }>) => {
     setMessage(null)
@@ -40,14 +49,31 @@ export default function UtilisateurRow({
   }
 
   const handleRetirer = () => {
-    if (!confirm(`Retirer ${email} de ce GIE et désactiver son compte ? Cette action est difficile à annuler.`)) return
+    if (!confirm(`Retirer ${displayName} de ce GIE et désactiver son compte ? Cette action est difficile à annuler.`)) return
     run(() => retirerUtilisateurDuGie(gieId, utilisateurId))
   }
 
   return (
     <li className="py-3 space-y-2">
-      <div className="flex justify-between items-center gap-2">
-        <span className="truncate">{email}</span>
+      <div className="flex justify-between items-start gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-foreground">{displayName}</span>
+            {identifiant && (
+              <span className="text-xs bg-surface-border text-foreground-muted px-1.5 py-0.5 rounded font-mono">
+                @{identifiant}
+              </span>
+            )}
+            {telephone && (
+              <span className="text-xs text-foreground-muted font-mono">
+                📞 {telephone}
+              </span>
+            )}
+          </div>
+          {!isSynthetic && (
+            <p className="text-xs text-foreground-muted truncate">{email}</p>
+          )}
+        </div>
         {banni && <span className="text-xs text-danger font-medium shrink-0">Désactivé</span>}
       </div>
 

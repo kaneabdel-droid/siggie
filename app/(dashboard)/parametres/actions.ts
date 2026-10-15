@@ -71,3 +71,224 @@ export async function uploadLogo(formData: FormData): Promise<ActionResult> {
   revalidatePath('/parametres')
   return { success: true, logoUrl }
 }
+
+import { createAdminClient } from '@/utils/supabase/admin'
+import { genererEmailSynthetique, normaliserIdentifiant } from '@/lib/auth-identifier'
+import { sanitizePermissions, type PermissionMap } from '@/lib/permissions'
+
+export async function creerCollaborateur(formData: FormData): Promise<{ success?: boolean; error?: string }> {
+  const tenant = await getTenantContext()
+  if (!tenant || tenant.role !== 'admin') {
+    return { error: "Seul l'administrateur du GIE peut ajouter des collaborateurs." }
+  }
+
+  const rawIdentifiant = (formData.get('identifiant') as string)?.trim()
+  const nomComplet = (formData.get('nom_complet') as string)?.trim() || null
+  const telephone = (formData.get('telephone') as string)?.trim() || null
+  const emailInput = (formData.get('email') as string)?.trim() || ''
+  const password = (formData.get('password') as string) || ''
+  const role = ((formData.get('role') as string)?.trim()) || 'collaborateur'
+  const rawPerms = formData.get('permissions') as string | null
+
+  if (!rawIdentifiant) {
+    return { error: "L'identifiant ou numéro de téléphone est obligatoire." }
+  }
+
+  const identifiant = normaliserIdentifiant(rawIdentifiant)
+  if (identifiant.length < 3) {
+    return { error: "L'identifiant doit comporter au moins 3 caractères." }
+  }
+
+  if (!password || password.length < 6) {
+    return { error: 'Le mot de passe doit comporter au moins 6 caractères.' }
+  }
+
+  let permissions: PermissionMap | null = null
+  if (rawPerms) {
+    try {
+      permissions = sanitizePermissions(JSON.parse(rawPerms))
+    } catch {
+      // Ignorer si invalide
+    }
+  }
+
+  // Détermination de l'e-mail auth : soit réel si fourni par l'utilisateur, soit alias synthétique interne
+  const authEmail = emailInput ? emailInput.toLowerCase() : genererEmailSynthetique(identifiant)
+
+  const adminSupabase = createAdminClient()
+
+  // 1. Vérification unicité identifiant / téléphone dans le GIE
+  const { data: existant } = await adminSupabase
+    .from('utilisateurs')
+    .select('id')
+    .or(`identifiant.ilike.${identifiant}${telephone ? `,telephone.eq.${telephone}` : ''}`)
+    .maybeSingle()
+
+  if (existant) {
+    return { error: 'Cet identifiant ou numéro de téléphone est déjà utilisé par un autre collaborateur.' }
+  }
+
+  // 2. Création auth.users
+  const { data: authCreated, error: authError } = await adminSupabase.auth.admin.createUser({
+    email: authEmail,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      existing_gie_id: tenant.gieId,
+      role,
+      identifiant,
+      telephone,
+      nom_complet: nomComplet,
+    },
+  })
+
+  if (authError) {
+    return { error: `Échec de création du compte : ${authError.message}` }
+  }
+
+  // 3. Mise à jour de public.utilisateurs
+  if (authCreated.user) {
+    const { error: userError } = await adminSupabase
+      .from('utilisateurs')
+      .update({
+        identifiant,
+        telephone,
+        nom_complet: nomComplet,
+        role,
+        permissions,
+      })
+      .eq('id', authCreated.user.id)
+
+    if (userError) {
+      return { error: `Compte créé, mais métadonnées partielles : ${userError.message}` }
+    }
+  }
+
+  revalidatePath('/parametres')
+  return { success: true }
+}
+
+export async function supprimerCollaborateur(collaborateurId: string): Promise<{ success?: boolean; error?: string }> {
+  const tenant = await getTenantContext()
+  if (!tenant || tenant.role !== 'admin') {
+    return { error: 'Action réservée aux administrateurs.' }
+  }
+
+  if (collaborateurId === tenant.userId) {
+    return { error: 'Vous ne pouvez pas supprimer votre propre compte administrateur.' }
+  }
+
+  const adminSupabase = createAdminClient()
+
+  // Vérifier appartenance au même GIE
+  const { data: cible } = await adminSupabase
+    .from('utilisateurs')
+    .select('id, role')
+    .eq('id', collaborateurId)
+    .eq('gie_id', tenant.gieId)
+    .maybeSingle()
+
+  if (!cible) {
+    return { error: 'Collaborateur introuvable dans votre GIE.' }
+  }
+
+  // Supprimer profil utilisateur
+  const { error: delProfileError } = await adminSupabase
+    .from('utilisateurs')
+    .delete()
+    .eq('id', collaborateurId)
+    .eq('gie_id', tenant.gieId)
+
+  if (delProfileError) {
+    return { error: delProfileError.message }
+  }
+
+  // Supprimer du service Auth Supabase
+  await adminSupabase.auth.admin.deleteUser(collaborateurId)
+
+  revalidatePath('/parametres')
+  return { success: true }
+}
+
+export async function genererLienResetCollaborateur(collaborateurId: string): Promise<{
+  success?: boolean
+  error?: string
+  link?: string
+  telephone?: string | null
+  identifiant?: string | null
+  nomComplet?: string | null
+}> {
+  const tenant = await getTenantContext()
+  if (!tenant || tenant.role !== 'admin') {
+    return { error: 'Action réservée aux administrateurs.' }
+  }
+
+  const adminSupabase = createAdminClient()
+
+  const { data: cible } = await adminSupabase
+    .from('utilisateurs')
+    .select('id, identifiant, telephone, nom_complet')
+    .eq('id', collaborateurId)
+    .eq('gie_id', tenant.gieId)
+    .maybeSingle()
+
+  if (!cible) {
+    return { error: 'Collaborateur introuvable.' }
+  }
+
+  const { data: authUser, error: authErr } = await adminSupabase.auth.admin.getUserById(collaborateurId)
+  if (authErr || !authUser?.user?.email) {
+    return { error: 'Compte d’authentification introuvable.' }
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const redirectTo = `${siteUrl}/auth/callback?next=/update-password`
+
+  const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
+    type: 'recovery',
+    email: authUser.user.email,
+    options: { redirectTo },
+  })
+
+  if (linkError || !linkData?.properties?.action_link) {
+    return { error: linkError?.message || 'Impossible de générer le lien de récupération.' }
+  }
+
+  return {
+    success: true,
+    link: linkData.properties.action_link,
+    telephone: cible.telephone,
+    identifiant: cible.identifiant,
+    nomComplet: cible.nom_complet,
+  }
+}
+
+export async function modifierRoleEtPermissionsCollaborateur(
+  collaborateurId: string,
+  role: string,
+  permissions: PermissionMap | null
+): Promise<{ success?: boolean; error?: string }> {
+  const tenant = await getTenantContext()
+  if (!tenant || tenant.role !== 'admin') {
+    return { error: 'Action réservée aux administrateurs.' }
+  }
+
+  const adminSupabase = createAdminClient()
+
+  const { error } = await adminSupabase
+    .from('utilisateurs')
+    .update({
+      role: role.trim() || 'collaborateur',
+      permissions: permissions ? sanitizePermissions(permissions) : null,
+    })
+    .eq('id', collaborateurId)
+    .eq('gie_id', tenant.gieId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/parametres')
+  return { success: true }
+}
+

@@ -1,5 +1,5 @@
 {
-  "regions": ["lhr1"],
+  "regions": ["dub1"],
   "crons": [
     {
       "path": "/api/cron/reconcile-chariow",
