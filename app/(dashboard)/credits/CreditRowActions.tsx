@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, Trash2, Banknote, Undo2 } from 'lucide-react'
+import Link from 'next/link'
+import { Check, X, Trash2, Banknote, Undo2, Layers } from 'lucide-react'
 import { updateCreditStatus, deleteCredit, addDecaissementCredit, addRemboursementCredit } from './actions'
 import { useUnite } from '@/components/DeviseProvider'
 
@@ -13,6 +14,7 @@ type Credit = {
   banque_nom: string | null
   taux_interet?: number | null
   duree_credit?: number | null
+  type_financement?: string | null
 }
 
 export default function CreditRowActions({ credit, comptes, dict, locale }: { credit: Credit, comptes?: any[], dict: any, locale?: string }) {
@@ -30,7 +32,8 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
     const montant = parseFloat(formData.get('montant_accorde') as string)
     const taux = parseFloat(formData.get('taux_interet') as string) || 0
     const duree = parseInt(formData.get('duree_credit') as string, 10) || 0
-    const res = await updateCreditStatus(credit.id, 'valide', montant, taux, duree)
+    const typeFinancement = (formData.get('type_financement') as string) || 'global'
+    const res = await updateCreditStatus(credit.id, 'valide', montant, taux, duree, typeFinancement)
     setLoading(false)
     if (res?.error) {
       alert(res.error)
@@ -78,7 +81,14 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
 
   return (
     <>
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end items-center gap-2">
+        <Link
+          href={`/credits/${credit.id}`}
+          className="text-primary hover:text-primary-hover p-1 rounded hover:bg-primary/10 transition-colors"
+          title="Déclinaison par intrant & service (Banque Agricole)"
+        >
+          <Layers className="h-5 w-5" />
+        </Link>
         {credit.statut === 'en_attente' && (
           <>
             <button onClick={() => setIsApproveOpen(true)} className="text-success hover:text-success/80 p-1" title={d.approve_tooltip}>
@@ -242,6 +252,13 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                     <label className="block text-sm font-medium text-foreground">{d.modal.amount_granted}</label>
                     <input type="number" step="any" name="montant_accorde" defaultValue={credit.montant_demande} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                     <p className="text-xs text-foreground-muted mt-1">{d.modal.amount_granted_note}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Mode de financement</label>
+                    <select name="type_financement" defaultValue={credit.type_financement || 'global'} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
+                      <option value="global">Financement Global (Enveloppe unique)</option>
+                      <option value="par_intrant">Décliné par intrant ou service (Banque Agricole / CNCAS)</option>
+                    </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

@@ -1,5 +1,6 @@
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
-import { Building, DollarSign, Clock, CheckCircle2, Wallet } from 'lucide-react'
+import { Building, DollarSign, Clock, CheckCircle2, Wallet, Layers } from 'lucide-react'
 import CreateCreditButton from './CreateCreditButton'
 import CreditRowActions from './CreditRowActions'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -113,6 +114,7 @@ export default async function CreditsPage() {
                   <tr>
                     <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">{dict.credits.table.season}</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">{dict.credits.table.bank}</th>
+                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-foreground">Financement</th>
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.credits.table.demanded}</th>
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">{dict.credits.table.granted}</th>
                     <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-foreground">{dict.credits.table.status}</th>
@@ -131,6 +133,26 @@ export default async function CreditsPage() {
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground flex items-center gap-2">
                           <Building className="h-4 w-4 text-foreground-muted" />
                           {credit.banque_nom || <span className="text-foreground-muted italic">{dict.credits.table.unspecified}</span>}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-center">
+                          {credit.type_financement === 'par_intrant' ? (
+                            <Link
+                              href={`/credits/${credit.id}`}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+                              title="Consulter et gérer la ventilation par intrant & service"
+                            >
+                              <Layers className="h-3.5 w-3.5" />
+                              Par intrant
+                            </Link>
+                          ) : (
+                            <Link
+                              href={`/credits/${credit.id}`}
+                              className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-0.5 text-xs text-foreground-muted border border-surface-border hover:text-foreground transition-colors"
+                              title="Consulter le crédit ou le ventiler par intrant"
+                            >
+                              Global
+                            </Link>
+                          )}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right">
                           {credit.montant_demande.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
@@ -156,7 +178,7 @@ export default async function CreditsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
+                      <td colSpan={7} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
                         {dict.credits.table.empty}
                       </td>
                     </tr>

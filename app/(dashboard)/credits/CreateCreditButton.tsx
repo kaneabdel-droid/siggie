@@ -61,6 +61,16 @@ export default function CreateCreditButton({ campagnes, dict }: { campagnes: Cam
                     <input type="text" name="banque_nom" placeholder="Ex: CNCAS, CMS..." className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-foreground">Mode de financement</label>
+                    <select name="type_financement" defaultValue="global" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
+                      <option value="global">Financement Global (Enveloppe unique)</option>
+                      <option value="par_intrant">Décliné par intrant ou service (Banque Agricole / CNCAS)</option>
+                    </select>
+                    <p className="mt-1 text-xs text-foreground-muted">
+                      Permet de ventiler le financement accordé par poste (semences, urée, labour...) et de suivre les paiements fournisseurs.
+                    </p>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.amount_requested}</label>
                     <input type="number" step="any" name="montant_demande" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
