@@ -10,7 +10,7 @@ export async function getReleveMembre(membreId: string) {
 
   const { data: membre } = await supabase
     .from('membres')
-    .select('prenom, nom, code_membre')
+    .select('prenom, nom, code_membre, solde_initial, created_at')
     .eq('id', membreId)
     .single()
 
@@ -24,22 +24,36 @@ export async function getReleveMembre(membreId: string) {
 
   if (error) return { error: error.message }
 
-  let solde = 0
-  const lignes = (factures || []).map((f) => {
+  const soldeInitial = Number(membre.solde_initial || 0)
+  let solde = soldeInitial
+  const lignes: any[] = []
+
+  if (soldeInitial !== 0) {
+    lignes.push({
+      id: 'solde-initial',
+      campagne: 'Solde initial (Report)',
+      date: membre.created_at || null,
+      montant_facture: soldeInitial > 0 ? soldeInitial : 0,
+      montant_paye: soldeInitial < 0 ? Math.abs(soldeInitial) : 0,
+      solde_progressif: soldeInitial,
+    })
+  }
+
+  (factures || []).forEach((f) => {
     const campagne = Array.isArray(f.campagnes) ? f.campagnes[0] : f.campagnes
     // Le montant facturé inclut l'intérêt réparti sur cette facture (voir calculerInteret).
     const facture = Number(f.montant_total || 0) + Number(f.montant_interet || 0)
     const paye = Number(f.montant_paye || 0)
     solde += facture - paye
-    return {
+    lignes.push({
       id: f.id,
       campagne: campagne?.nom || '-',
       date: f.date_emission || f.created_at,
       montant_facture: facture,
       montant_paye: paye,
       solde_progressif: solde,
-    }
+    })
   })
 
-  return { membre, lignes, soldeFinal: solde }
+  return { membre, lignes, soldeFinal: solde, soldeInitial }
 }

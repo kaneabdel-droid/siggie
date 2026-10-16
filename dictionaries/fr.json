@@ -144,7 +144,7 @@
     "plans": {
       "standard_resume": "L'essentiel pour gérer un GIE : membres, campagnes, stock et trésorerie.",
       "medium_resume": "Tout Standard, plus le suivi complet du matériel agricole.",
-      "premium_resume": "Tout Medium, plus les bilans et états de suivi budgétaire complets du GIE."
+      "premium_resume": "Tout Medium, plus les bilans, états budgétaires et le tour de casier (validation des superficies)."
     }
   },
   "auth": {
@@ -184,6 +184,7 @@
     "dashboard": "Tableau de bord",
     "membres": "Membres",
     "campagnes": "Campagnes",
+    "superficies": "Validation superficies",
     "intrants": "Intrants & Stock",
     "distribution": "Distribution",
     "credits": "Crédits Bancaires",
@@ -194,6 +195,7 @@
     "bilans": "Bilans & Relevés",
     "abonnement": "Abonnement",
     "parametres": "Paramètres",
+    "importDonnees": "Importer des données",
     "support": "Aide & Support",
     "logout": "Déconnexion",
     "pos_pharma": "Point de Vente",
@@ -242,6 +244,7 @@
       "village": "Village",
       "phone": "Téléphone",
       "superficie": "Superficie (ha)",
+      "solde_initial": "Solde initial",
       "status": "Statut",
       "actions": "Actions"
     },
@@ -556,6 +559,21 @@
     "generate_btn": "Facturation Groupée",
     "print_tooltip": "Imprimer la facture",
     "download_tooltip": "Télécharger PDF",
+    "whatsapp_tooltip": "Envoyer la facture par WhatsApp",
+    "whatsapp_modal": {
+      "title": "Envoyer la facture par WhatsApp",
+      "phone_label": "Numéro WhatsApp du destinataire",
+      "phone_placeholder": "Ex : 77 123 45 67 ou +221 77 123 45 67",
+      "phone_hint": "Pour le Sénégal, tapez simplement les 9 chiffres (ex: 77...)",
+      "save_phone_checkbox": "Enregistrer sur la fiche membre",
+      "preview_title": "Message qui sera transmis",
+      "copy_btn": "Copier le texte",
+      "copied": "Copié !",
+      "send_btn": "Ouvrir WhatsApp",
+      "share_pdf_btn": "Partager le PDF",
+      "download_pdf_btn": "Facture PDF",
+      "error_no_phone": "Veuillez renseigner un numéro de téléphone valide (ex: 77 123 45 67 ou +221...)."
+    },
     "interest_col": "Intérêt",
     "interet": {
       "btn": "Calcul de l'intérêt",
@@ -661,6 +679,7 @@
       "village": "Village",
       "phone": "Téléphone",
       "superficie": "Superficie (ha)",
+      "solde_initial": "Solde initial (reprise)",
       "status": "Statut",
       "status_active": "Actif",
       "status_inactive": "Inactif",

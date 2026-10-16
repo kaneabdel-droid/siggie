@@ -28,6 +28,7 @@ export async function addMembre(formData: FormData) {
     village: formData.get('village'),
     telephone: formData.get('telephone'),
     superficie: parseFloat(formData.get('superficie') as string) || 0,
+    solde_initial: parseFloat(formData.get('solde_initial') as string) || 0,
     statut: formData.get('statut') || 'actif'
   }
 
@@ -53,6 +54,7 @@ export async function updateMembre(id: string, formData: FormData) {
     village: formData.get('village'),
     telephone: formData.get('telephone'),
     superficie: parseFloat(formData.get('superficie') as string) || 0,
+    solde_initial: parseFloat(formData.get('solde_initial') as string) || 0,
     statut: formData.get('statut')
   }
 

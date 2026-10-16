@@ -14,13 +14,31 @@ export async function getFactures() {
     .from('factures')
     .select(`
       *,
-      membre:membre_id (nom, prenom, code_membre),
-      campagne:campagne_id (nom, produit_collecte, prix_collecte)
+      membre:membre_id (id, nom, prenom, code_membre, telephone, village),
+      campagne:campagne_id (id, nom, produit_collecte, prix_collecte)
     `)
     .order('date_emission', { ascending: false })
 
   if (error) return { error: error.message }
   return { factures }
+}
+
+export async function updateMembreTelephone(membreId: string, telephone: string) {
+  const denied = await requirePermission('membres', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const clean = telephone.trim()
+  const { error } = await supabase
+    .from('membres')
+    .update({ telephone: clean })
+    .eq('id', membreId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/facturation')
+  revalidatePath('/membres')
+  revalidatePath('/remboursements')
+  return { success: true }
 }
 
 // Répartit l'intérêt du/des crédit(s) validé(s) d'une campagne entre les factures

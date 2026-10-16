@@ -22,6 +22,8 @@ import {
   LifeBuoy,
   Shield,
   Settings,
+  UploadCloud,
+  CheckSquare,
   Activity,
   Truck
 } from 'lucide-react'
@@ -53,6 +55,7 @@ export default function ClientLayout({
     { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
     { key: 'membres', href: '/membres', icon: Users },
     { key: 'campagnes', href: '/campagnes', icon: Leaf },
+    { key: 'superficies', href: '/superficies', icon: CheckSquare },
     { key: 'intrants', href: '/intrants', icon: Tractor },
     { key: 'distribution', href: '/distribution', icon: PackageOpen },
     { key: 'credits', href: '/credits', icon: Landmark },
@@ -63,6 +66,7 @@ export default function ClientLayout({
     { key: 'bilans', href: '/bilans', icon: FileSpreadsheet },
     { key: 'abonnement', href: '/abonnement', icon: Shield },
     { key: 'parametres', href: '/parametres', icon: Settings },
+    { key: 'importDonnees', href: '/parametres/import', icon: UploadCloud },
     { key: 'support', href: '/support', icon: LifeBuoy },
   ]
 
@@ -72,10 +76,10 @@ export default function ClientLayout({
 
   const filteredNavigation = navigation.filter(item => {
     if (subscriptionTier === 'standard') {
-      if (item.href === '/materiel' || item.href === '/bilans') return false
+      if (item.href === '/materiel' || item.href === '/bilans' || item.href === '/superficies') return false
     }
     if (subscriptionTier === 'medium') {
-      if (item.href === '/bilans') return false
+      if (item.href === '/bilans' || item.href === '/superficies') return false
     }
     const moduleKey = moduleForPath(item.href)
     if (moduleKey && !hasPermission(role, permissions, moduleKey, 'read')) return false

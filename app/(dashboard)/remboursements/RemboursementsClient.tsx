@@ -4,8 +4,22 @@ import { useState } from 'react'
 import { Search, Wallet, Scale } from 'lucide-react'
 import PaiementModal from './PaiementModal'
 import { useUnite } from '@/components/DeviseProvider'
+import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
+import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
 
-export default function RemboursementsClient({ factures, comptes, dict, locale }: { factures: any[], comptes: { id: string; nom: string }[], dict: any, locale: string }) {
+export default function RemboursementsClient({ 
+  factures, 
+  comptes, 
+  dict, 
+  locale,
+  gieName = 'Mon GIE'
+}: { 
+  factures: any[], 
+  comptes: { id: string; nom: string }[], 
+  dict: any, 
+  locale: string,
+  gieName?: string
+}) {
   const unite = useUnite()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFacture, setSelectedFacture] = useState<any>(null)
@@ -79,9 +93,20 @@ export default function RemboursementsClient({ factures, comptes, dict, locale }
         <div className="md:col-span-2">
           {selectedFacture ? (
             <div className="bg-surface border border-surface-border rounded-lg shadow-sm p-6 h-full">
-              <h3 className="text-xl font-bold text-foreground mb-6 break-words">
-                {dict.remboursements.details.title} {selectedFacture.membre?.prenom} {selectedFacture.membre?.nom}
-              </h3>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                <h3 className="text-xl font-bold text-foreground break-words">
+                  {dict.remboursements.details.title} {selectedFacture.membre?.prenom} {selectedFacture.membre?.nom}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <FactureWhatsAppModal 
+                    facture={selectedFacture} 
+                    gieName={gieName} 
+                    dict={dict} 
+                    buttonVariant="button" 
+                  />
+                  <DownloadPdfButton facture={selectedFacture} dict={dict} gieName={gieName} />
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 <div className="bg-background rounded-md p-4 border border-surface-border">

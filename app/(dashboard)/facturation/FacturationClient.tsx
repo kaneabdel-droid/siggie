@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus, Search, ReceiptText, Printer } from 'lucide-react'
 import DownloadPdfButton from './DownloadPdfButton'
+import FactureWhatsAppModal from './FactureWhatsAppModal'
 
 import GenererFacturesModal from './GenererFacturesModal'
 import CalculInteretModal from './CalculInteretModal'
@@ -112,7 +113,8 @@ export default function FacturationClient({ factures, campagnes, dict, locale, g
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end items-center gap-1.5">
+                            <FactureWhatsAppModal facture={facture} gieName={gieName} dict={dict} />
                             <DownloadPdfButton facture={facture} dict={dict} gieName={gieName} />
                           </div>
                         </td>

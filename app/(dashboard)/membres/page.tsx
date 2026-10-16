@@ -67,6 +67,9 @@ export default async function MembresPage({
                     <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">
                       {dict.membres.table.superficie}
                     </th>
+                    <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-foreground">
+                      {dict.membres?.table?.solde_initial || 'Solde initial'}
+                    </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                       {dict.membres.table.status}
                     </th>
@@ -91,6 +94,15 @@ export default async function MembresPage({
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted text-right">
                           {membre.superficie ? Number(membre.superficie).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 }) : '-'}
                         </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
+                          {membre.solde_initial ? (
+                            <span className={Number(membre.solde_initial) > 0 ? 'text-danger font-medium' : Number(membre.solde_initial) < 0 ? 'text-success font-medium' : 'text-foreground-muted'}>
+                              {Number(membre.solde_initial).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} F
+                            </span>
+                          ) : (
+                            <span className="text-foreground-muted">0 F</span>
+                          )}
+                        </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">
                           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
                             membre.statut === 'actif' ? 'bg-primary/10 text-primary ring-primary/20' : 'bg-foreground-muted/10 text-foreground-muted ring-foreground-muted/20'
@@ -105,7 +117,7 @@ export default async function MembresPage({
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
+                      <td colSpan={7} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
                         {dict.membres.empty}
                       </td>
                     </tr>

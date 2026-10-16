@@ -63,6 +63,10 @@ export default function CreateMembreButton({ dict }: { dict: any }) {
                     <input type="number" step="any" min="0" name="superficie" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-foreground">{d.modal.solde_initial || 'Solde initial'}</label>
+                    <input type="number" step="any" name="solde_initial" defaultValue={0} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" placeholder="0 (négatif si dette, positif si avance)" />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.status}</label>
                     <select name="statut" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
                       <option value="actif">{d.modal.status_active}</option>

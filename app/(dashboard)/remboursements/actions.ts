@@ -14,7 +14,7 @@ export async function getFacturesPourRemboursement() {
     .from('factures')
     .select(`
       *,
-      membre:membre_id (id, nom, prenom, code_membre),
+      membre:membre_id (id, nom, prenom, code_membre, telephone, village),
       campagne:campagne_id (id, nom, produit_collecte, prix_collecte)
     `)
     .in('statut', ['impayee', 'partiellement_paye']) // Only show unpaid or partially paid

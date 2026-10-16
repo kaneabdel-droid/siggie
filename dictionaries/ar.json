@@ -144,7 +144,7 @@
     "plans": {
       "standard_resume": "الأساسيات لإدارة تعاونية: الأعضاء، المواسم، المخزون والخزينة.",
       "medium_resume": "كل ما في Standard، بالإضافة إلى المتابعة الكاملة للمعدات الزراعية.",
-      "premium_resume": "كل ما في Medium، بالإضافة إلى الميزانيات وتقارير المتابعة المالية الكاملة للتعاونية."
+      "premium_resume": "كل ما في Medium، بالإضافة إلى الميزانيات، تقارير المتابعة المالية واعتماد المساحات (tour de casier)."
     }
   },
   "auth": {
@@ -184,6 +184,7 @@
     "dashboard": "لوحة القيادة",
     "membres": "الأعضاء",
     "campagnes": "المواسم",
+    "superficies": "اعتماد المساحات",
     "intrants": "المدخلات والمخزون",
     "distribution": "التوزيع",
     "credits": "القروض البنكية",
@@ -194,6 +195,7 @@
     "bilans": "الميزانيات والكشوفات",
     "abonnement": "الاشتراك",
     "parametres": "الإعدادات",
+    "importDonnees": "استيراد البيانات",
     "support": "المساعدة والدعم",
     "logout": "تسجيل الخروج"
   },
@@ -239,6 +241,7 @@
       "village": "القرية",
       "phone": "الهاتف",
       "superficie": "المساحة (هكتار)",
+      "solde_initial": "الرصيد الافتتاحي",
       "status": "الحالة",
       "actions": "إجراءات"
     },
@@ -553,6 +556,21 @@
     "generate_btn": "فوترة جماعية",
     "print_tooltip": "طباعة الفاتورة",
     "download_tooltip": "تحميل PDF",
+    "whatsapp_tooltip": "إرسال الفاتورة عبر واتساب",
+    "whatsapp_modal": {
+      "title": "إرسال الفاتورة عبر واتساب",
+      "phone_label": "رقم واتساب المستلم",
+      "phone_placeholder": "مثال: 77 123 45 67 أو +221 77 123 45 67",
+      "phone_hint": "للسنغال، أدخل ببساطة 9 أرقام (مثال: 77...)",
+      "save_phone_checkbox": "حفظ في ملف العضو",
+      "preview_title": "الرسالة التي سيتم إرسالها",
+      "copy_btn": "نسخ النص",
+      "copied": "تم النسخ!",
+      "send_btn": "فتح واتساب",
+      "share_pdf_btn": "مشاركة PDF",
+      "download_pdf_btn": "فاتورة PDF",
+      "error_no_phone": "يرجى إدخال رقم هاتف صالح (مثال: 77 123 45 67 أو +221...)."
+    },
     "interest_col": "الفائدة",
     "interet": {
       "btn": "حساب الفائدة",
@@ -658,6 +676,7 @@
       "village": "القرية",
       "phone": "الهاتف",
       "superficie": "المساحة (هكتار)",
+      "solde_initial": "الرصيد الافتتاحي",
       "status": "الحالة",
       "status_active": "نشط",
       "status_inactive": "غير نشط",

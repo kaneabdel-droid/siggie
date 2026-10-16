@@ -29,7 +29,7 @@ export type PermissionModule = {
 export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'dashboard', label: 'Tableau de bord', group: 'Général', paths: ['/dashboard'], actions: ['read'] },
   { key: 'membres', label: 'Membres', group: 'Gestion', paths: ['/membres'], actions: CRUD },
-  { key: 'campagnes', label: 'Campagnes', group: 'Gestion', paths: ['/campagnes'], actions: CRUD, hint: 'Modification : inclut la configuration (membres, intrants, budget)' },
+  { key: 'campagnes', label: 'Campagnes & Superficies', group: 'Gestion', paths: ['/campagnes', '/superficies'], actions: CRUD, hint: 'Modification : inclut la configuration (membres, intrants, budget) et le tour de casier (superficies)' },
   { key: 'intrants', label: 'Intrants & Stock', group: 'Gestion', paths: ['/intrants'], actions: CRUD, hint: 'Création : inclut les achats de stock' },
   { key: 'distribution', label: 'Distribution', group: 'Gestion', paths: ['/distribution'], actions: CRUD },
   { key: 'credits', label: 'Crédits bancaires', group: 'Finance', paths: ['/credits'], actions: CRUD, hint: 'Modification : statut, décaissements, remboursements' },

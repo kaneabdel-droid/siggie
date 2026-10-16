@@ -144,7 +144,7 @@
     "plans": {
       "standard_resume": "The essentials to manage a group: members, seasons, stock and treasury.",
       "medium_resume": "Everything in Standard, plus full tracking of agricultural equipment.",
-      "premium_resume": "Everything in Medium, plus the group's complete budget tracking statements."
+      "premium_resume": "Everything in Medium, plus statements, budget tracking and acreage validation (tour de casier)."
     }
   },
   "auth": {
@@ -184,6 +184,7 @@
     "dashboard": "Dashboard",
     "membres": "Members",
     "campagnes": "Seasons",
+    "superficies": "Acreage Validation",
     "intrants": "Inputs & Stock",
     "distribution": "Distribution",
     "credits": "Bank Loans",
@@ -194,6 +195,7 @@
     "bilans": "Reports & Statements",
     "abonnement": "Subscription",
     "parametres": "Settings",
+    "importDonnees": "Import Data",
     "support": "Help & Support",
     "logout": "Log out"
   },
@@ -239,6 +241,7 @@
       "village": "Village",
       "phone": "Phone",
       "superficie": "Area (ha)",
+      "solde_initial": "Initial balance",
       "status": "Status",
       "actions": "Actions"
     },
@@ -553,6 +556,21 @@
     "generate_btn": "Bulk Invoicing",
     "print_tooltip": "Print the invoice",
     "download_tooltip": "Download PDF",
+    "whatsapp_tooltip": "Send invoice via WhatsApp",
+    "whatsapp_modal": {
+      "title": "Send invoice via WhatsApp",
+      "phone_label": "Recipient's WhatsApp number",
+      "phone_placeholder": "E.g.: 77 123 45 67 or +221 77 123 45 67",
+      "phone_hint": "For Senegal, simply enter 9 digits (e.g.: 77...)",
+      "save_phone_checkbox": "Save to member profile",
+      "preview_title": "Message to be sent",
+      "copy_btn": "Copy text",
+      "copied": "Copied!",
+      "send_btn": "Open WhatsApp",
+      "share_pdf_btn": "Share PDF",
+      "download_pdf_btn": "Invoice PDF",
+      "error_no_phone": "Please enter a valid phone number (e.g.: 77 123 45 67 or +221...)."
+    },
     "interest_col": "Interest",
     "interet": {
       "btn": "Calculate Interest",
@@ -658,6 +676,7 @@
       "village": "Village",
       "phone": "Phone",
       "superficie": "Area (ha)",
+      "solde_initial": "Initial balance",
       "status": "Status",
       "status_active": "Active",
       "status_inactive": "Inactive",
