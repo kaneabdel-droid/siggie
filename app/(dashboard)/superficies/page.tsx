@@ -71,7 +71,7 @@ export default async function SuperficiesValidationPage({ searchParams }: PagePr
   // Fetch campaigns
   const { data: campagnes } = await supabase
     .from('campagnes')
-    .select('id, nom, statut, saison, annee, date_debut, date_fin')
+    .select('id, nom, statut, date_debut, date_fin')
     .order('created_at', { ascending: false })
 
   if (!campagnes || campagnes.length === 0) {

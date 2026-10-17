@@ -143,6 +143,9 @@ export async function creerCollaborateur(formData: FormData): Promise<{ success?
   })
 
   if (authError) {
+    if (authError.message.toLowerCase().includes('already') || authError.message.toLowerCase().includes('registered')) {
+      return { error: `L'identifiant "${rawIdentifiant}" ou cet e-mail est déjà utilisé. Veuillez choisir un identifiant différent (ou utiliser le numéro de téléphone).` }
+    }
     return { error: `Échec de création du compte : ${authError.message}` }
   }
 

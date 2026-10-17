@@ -341,6 +341,12 @@ export default function CollaborateursSection({
             </p>
 
             <form onSubmit={handleAddCollaborateur} className="space-y-4 text-sm">
+              {errorMsg && (
+                <div className="rounded-lg bg-danger/10 border border-danger/20 p-3 text-xs text-danger flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
                   Identifiant de connexion *
