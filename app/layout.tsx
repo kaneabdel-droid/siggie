@@ -3,6 +3,7 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { getLocale } from "@/dictionaries";
 import ClientSecurityShield from "@/components/ClientSecurityShield";
+import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,7 +17,8 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "SIGGIE - Gestion des GIE Agricoles",
-  description: "SaaS de gestion des GIE agricoles au Sénégal",
+  description: "SaaS de gestion des GIE agricoles au Sénégal avec mode hors-ligne",
+  manifest: "/manifest.json"
 };
 
 export default async function RootLayout({
@@ -30,6 +32,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
       <body className={`min-h-full flex flex-col`}>
+        <RegisterServiceWorker />
         <ClientSecurityShield />
         {children}
       </body>

@@ -25,9 +25,9 @@ const produits = [
     statut: 'en_ligne' as const,
   },
   {
-    nom: 'D-ÉLEVAGE',
+    nom: 'D-FERME',
     description: "Gestion d'élevage multi-espèces — volailles, bovins, ovins, prophylaxie, stocks & alimentation.",
-    href: 'https://d-elevage.dembasolution.com/admin/elevage',
+    href: 'https://d-ferme.dembasolution.com/admin/elevage',
     externe: true,
     icon: Bird,
     statut: 'en_ligne' as const,

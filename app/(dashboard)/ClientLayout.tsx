@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import LanguageSelector from '@/components/LanguageSelector'
+import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar'
 import { hasPermission, moduleForPath, type PermissionMap } from '@/lib/permissions'
 import { 
   LayoutDashboard, 
@@ -201,6 +202,7 @@ export default function ClientLayout({
           <div className="flex flex-1 min-w-0 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1"></div>
             <div className="flex min-w-0 items-center gap-x-3 sm:gap-x-4 lg:gap-x-6">
+              <OfflineSyncBar />
               <LanguageSelector currentLang={locale} />
               <ThemeSwitcher />
               {/* Profile dropdown or simple user info could go here */}
