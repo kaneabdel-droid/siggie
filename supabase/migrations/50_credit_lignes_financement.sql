@@ -1,5 +1,5 @@
 -- Migration 50: Financement par intrant / service pour les crédits bancaires
--- Permet de décliner le financement du GIE par intrant ou service comme pratiqué par les banques agricoles (ex: La Banque Agricole / CNCAS).
+-- Permet de décliner le financement du GIE par intrant ou service comme pratiqué par les banques agricoles (ex: La Banque Agricole).
 
 -- 1. Ajout de la colonne type_financement sur la table credits
 ALTER TABLE public.credits

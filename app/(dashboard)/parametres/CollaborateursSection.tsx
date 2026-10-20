@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Key, Trash2, Copy, Check, MessageSquare, Shield, AlertCircle, Settings2 } from 'lucide-react'
+import { UserPlus, Key, Trash2, Copy, Check, MessageSquare, Shield, AlertCircle, Settings2, Phone } from 'lucide-react'
 import {
   creerCollaborateur,
   supprimerCollaborateur,
@@ -259,25 +259,40 @@ export default function CollaborateursSection({
             {collaborateurs.map((collab) => {
               const isCurrentUser = collab.id === currentUserId
               const isSynthetic = collab.email?.endsWith('@auth.dembasolution.internal')
-              const displayName = collab.nom_complet || collab.identifiant || (isSynthetic ? 'Collaborateur' : collab.email)
+              const hasName = Boolean(collab.nom_complet && collab.nom_complet.trim())
+              const titleName = hasName
+                ? collab.nom_complet
+                : (collab.identifiant && !collab.identifiant.includes('@')
+                    ? collab.identifiant
+                    : (collab.email && !isSynthetic ? collab.email.split('@')[0] : 'Collaborateur'))
               const roleDisplay = collab.role || 'collaborateur'
 
               return (
                 <tr key={collab.id} className="hover:bg-background/40 transition-colors">
                   <td className="px-5 py-4">
-                    <div className="font-medium text-foreground">{displayName}</div>
+                    <div className="font-semibold text-foreground capitalize flex items-center gap-2">
+                      <span>{titleName}</span>
+                      {isCurrentUser && (
+                        <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                          Vous
+                        </span>
+                      )}
+                    </div>
                     {!isSynthetic && collab.email && (
                       <div className="text-xs text-foreground-muted">{collab.email}</div>
                     )}
                   </td>
                   <td className="px-5 py-4 text-xs space-y-0.5">
-                    {collab.identifiant && (
+                    {collab.identifiant && collab.identifiant !== collab.email && (
                       <div className="font-mono text-foreground font-semibold">@{collab.identifiant}</div>
                     )}
                     {collab.telephone ? (
-                      <div className="text-foreground-muted font-mono">📞 {collab.telephone}</div>
+                      <div className="text-foreground-muted font-mono flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
+                        <span>{collab.telephone}</span>
+                      </div>
                     ) : (
-                      <div className="text-foreground-muted italic">Sans téléphone</div>
+                      <div className="text-foreground-muted italic text-[11px]">Sans téléphone</div>
                     )}
                   </td>
                   <td className="px-5 py-4 text-xs">

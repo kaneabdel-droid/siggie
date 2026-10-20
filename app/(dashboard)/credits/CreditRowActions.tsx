@@ -116,7 +116,7 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
           <Link
             href={`/credits/${credit.id}`}
             className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 p-1 rounded hover:bg-emerald-500/10 transition-colors"
-            title="Consulter et ventiler par intrant & service (Banque Agricole / CNCAS)"
+            title="Consulter et ventiler par intrant & service (Banque Agricole)"
           >
             <Layers className="h-5 w-5" />
           </Link>
@@ -330,7 +330,7 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                         <label className="block text-sm font-medium text-foreground">Mode de financement</label>
                         <select name="type_financement" defaultValue={credit.type_financement || 'global'} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm">
                           <option value="global">Financement Global (Enveloppe unique)</option>
-                          <option value="par_intrant">Décliné par intrant ou service (Banque Agricole / CNCAS)</option>
+                          <option value="par_intrant">Décliné par intrant ou service (Banque Agricole)</option>
                         </select>
                       </div>
                       <div className="grid grid-cols-2 gap-4">

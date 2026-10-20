@@ -80,50 +80,48 @@ export default async function CampagnesPage({
                   </div>
                 </div>
               </div>
-              <div>
-                <div className="-mt-px flex divide-x divide-surface-border">
-                  <div className="flex w-0 flex-1">
-                    <Link
-                      href={`/campagnes/${campagne.id}/config`}
-                      className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-2 rounded-bl-lg border border-transparent py-4 text-xs font-semibold text-foreground hover:text-primary transition-colors"
-                    >
-                      <Settings className="h-4 w-4 text-foreground-muted" aria-hidden="true" />
-                      <span className="hidden sm:inline">{dict.campagnes.card.configure}</span>
-                    </Link>
-                  </div>
-                  <div className="-ml-px flex w-0 flex-1">
-                    <Link
-                      href={isPremium ? `/superficies?campagne_id=${campagne.id}` : `/superficies`}
-                      className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-1.5 border border-transparent py-4 text-xs font-semibold text-foreground hover:text-emerald-400 transition-colors"
-                      title={isPremium ? "Validation des superficies après tour de casier" : "Module Tour de casier réservé à la formule Premium"}
-                    >
-                      <CheckSquare className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-                      <span>Tour de casier</span>
-                      {!isPremium && (
-                        <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-primary/10 text-primary">
-                          Premium
-                        </span>
-                      )}
-                    </Link>
-                  </div>
-                  <div className="-ml-px flex w-0 flex-1">
-                    <Link
-                      href={`/campagnes/${campagne.id}/repartition`}
-                      className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-2 border border-transparent py-4 text-xs font-semibold text-foreground hover:text-primary transition-colors"
-                    >
-                      <PieChart className="h-4 w-4 text-foreground-muted" aria-hidden="true" />
-                      <span className="hidden sm:inline">{dict.campagnes.card.repartition}</span>
-                    </Link>
-                  </div>
-                  <div className="-ml-px flex w-0 flex-1">
-                    <Link
-                      href={`/campagnes/${campagne.id}/bilan`}
-                      className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-2 rounded-br-lg border border-transparent py-4 text-xs font-semibold text-foreground hover:text-primary transition-colors"
-                    >
-                      <FileText className="h-4 w-4 text-foreground-muted" aria-hidden="true" />
-                      <span className="hidden sm:inline">{dict.campagnes.card.report}</span>
-                    </Link>
-                  </div>
+              <div className="p-3 bg-surface/40 border-t border-surface-border">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Link
+                    href={`/campagnes/${campagne.id}/config`}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
+                    title={dict.campagnes.card.configure}
+                  >
+                    <Settings className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
+                    <span className="truncate">{dict.campagnes.card.configure}</span>
+                  </Link>
+
+                  <Link
+                    href={isPremium ? `/superficies?campagne_id=${campagne.id}` : `/superficies`}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-emerald-500/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-emerald-500 transition-all text-center"
+                    title={isPremium ? "Validation des superficies après tour de casier" : "Module Tour de casier réservé à la formule Premium"}
+                  >
+                    <CheckSquare className="h-4 w-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                    <span className="truncate">Tour de casier</span>
+                    {!isPremium && (
+                      <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-primary/10 text-primary shrink-0">
+                        Pro
+                      </span>
+                    )}
+                  </Link>
+
+                  <Link
+                    href={`/campagnes/${campagne.id}/repartition`}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
+                    title={dict.campagnes.card.repartition}
+                  >
+                    <PieChart className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
+                    <span className="truncate">{dict.campagnes.card.repartition}</span>
+                  </Link>
+
+                  <Link
+                    href={`/campagnes/${campagne.id}/bilan`}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
+                    title={dict.campagnes.card.report}
+                  >
+                    <FileText className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
+                    <span className="truncate">{dict.campagnes.card.report}</span>
+                  </Link>
                 </div>
               </div>
             </div>

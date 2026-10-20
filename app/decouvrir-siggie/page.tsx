@@ -72,7 +72,7 @@ export default async function DecouvrirSiggiePage({
 
   return (
     <div className="bg-background min-h-screen font-sans text-foreground">
-      <ClientNavbar dict={dict} currentLang={locale} />
+      <ClientNavbar dict={dict} currentLang={locale} isSiggieOnly={true} />
 
       <main>
         {/* Hero */}

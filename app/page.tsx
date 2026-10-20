@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store, Wheat, Phone, Mail, GraduationCap, Handshake, Activity } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
@@ -14,6 +16,12 @@ function FacebookIcon({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 export default async function LandingPage({ searchParams }: { searchParams?: Promise<{ message?: string }> }) {
+  const headerList = await headers()
+  const host = headerList.get('host') || ''
+  if (host.startsWith('siggie.') || host === 'siggie.dembasolution.com') {
+    redirect('/decouvrir-siggie')
+  }
+
   const params = await searchParams
   const message = params?.message
   const locale = await getLocale()

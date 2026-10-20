@@ -84,6 +84,15 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Redirection dédiée pour le sous-domaine siggie.dembasolution.com :
+  // Accéder à la racine mène directement sur la page d'accueil de SIGGIE (/decouvrir-siggie)
+  const host = request.headers.get('host') || ''
+  if (pathname === '/' && (host.startsWith('siggie.') || host === 'siggie.dembasolution.com')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/decouvrir-siggie'
+    return NextResponse.redirect(url)
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()

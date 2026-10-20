@@ -263,7 +263,7 @@ export default function CreateCreditButton({ campagnes, dict }: { campagnes: Cam
                         <label className="block text-xs font-medium text-foreground mb-1">Mode de financement</label>
                         <select name="type_financement" defaultValue="global" className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-primary focus:outline-none">
                           <option value="global">Financement Global (Enveloppe unique de trésorerie)</option>
-                          <option value="par_intrant">Décliné par intrant ou service (Banque Agricole / CNCAS)</option>
+                          <option value="par_intrant">Décliné par intrant ou service (Banque Agricole)</option>
                         </select>
                         <p className="mt-1 text-[11px] text-foreground-muted">
                           Permet de ventiler le crédit par ligne (semences, urée, labour...) et de suivre les décaissements directs fournisseurs.
