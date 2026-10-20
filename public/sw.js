@@ -1,17 +1,9 @@
-const CACHE_NAME = 'demba-offline-siggie-v2'
+const CACHE_NAME = 'demba-offline-siggie-v3'
 const STATIC_ASSETS = [
   '/',
   '/login',
   '/manifest.json',
-  '/dashboard',
-  '/campagnes',
-  '/credits',
-  '/intrants',
-  '/distribution',
-  '/facturation',
-  '/remboursements',
-  '/tresorerie',
-  '/materiel'
+  '/logo-icon.png'
 ]
 
 self.addEventListener('install', (event) => {
@@ -40,6 +32,7 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return
 
+  // Ne pas intercepter les API serveur
   if (url.pathname.startsWith('/api/')) return
 
   // 1. Navigation requests (HTML pages) : Network-First with Cache Fallback
@@ -49,27 +42,75 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response && response.status === 200) {
             const clone = response.clone()
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, clone)
+              // Mémoriser automatiquement les pages internes comme repli du shell de dashboard
+              if (url.pathname.startsWith('/dashboard') || (!STATIC_ASSETS.includes(url.pathname) && url.pathname !== '/login')) {
+                cache.put('/dashboard', response.clone())
+              }
+            })
           }
           return response
         })
         .catch(async () => {
-          const cachedResponse = await caches.match(request)
-          if (cachedResponse) return cachedResponse
+          const cookieHeader = request.headers.get('cookie') || ''
+          const isOfflineActive = cookieHeader.includes('demba_offline_active=1')
+          const isDashboardTarget = url.pathname.startsWith('/dashboard') || (url.pathname !== '/' && url.pathname !== '/login')
 
-          const fallbackDashboard = await caches.match('/dashboard')
-          if (fallbackDashboard) return fallbackDashboard
+          // A. Si la page demandée est exactement en cache sans être une redirection
+          const cached = await caches.match(request)
+          if (cached && (!cached.redirected || isDashboardTarget)) {
+            return cached
+          }
 
+          // B. Si l'utilisateur vise le dashboard ou possède une session hors-ligne active
+          if (isDashboardTarget || isOfflineActive) {
+            const fallbackDashboard = await caches.match('/dashboard')
+            if (fallbackDashboard && !fallbackDashboard.redirected) {
+              return fallbackDashboard
+            }
+
+            const fallbackLogin = await caches.match('/login')
+            if (fallbackLogin) return fallbackLogin
+          }
+
+          // C. Si l'utilisateur est sur '/' sans cookie de session
+          if (url.pathname === '/') {
+            const cachedRoot = await caches.match('/')
+            if (cachedRoot) return cachedRoot
+          }
+
+          // D. Replis de sécurité finaux
           const fallbackLogin = await caches.match('/login')
           if (fallbackLogin) return fallbackLogin
 
-          return (await caches.match('/')) || new Response('Application SIGGIE hors-ligne', { status: 503 })
+          const fallbackRoot = await caches.match('/')
+          if (fallbackRoot) return fallbackRoot
+
+          return new Response('Application SIGGIE hors-ligne', {
+            status: 503,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' }
+          })
         })
     )
     return
   }
 
-  // 2. Static build assets (_next/static, fonts, images) : Cache-First
+  // 2. Next.js RSC Prefetch & Data requests (_rsc query param)
+  if (url.searchParams.has('_rsc')) {
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const cached = await caches.match(request)
+        if (cached) return cached
+        // Retourne 503 pour forcer Next.js à déclencher une navigation HTML complète
+        // qui sera immédiatement interceptée par request.mode === 'navigate' ci-dessus.
+        return new Response('', { status: 503, statusText: 'Offline RSC' })
+      })
+    )
+    return
+  }
+
+  // 3. Static build assets (_next/static, fonts, images) : Cache-First
   if (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.endsWith('.svg') ||
@@ -94,7 +135,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // 3. Autres requêtes : Network-first
+  // 4. Autres requêtes : Network avec Cache Fallback
   event.respondWith(
     fetch(request).catch(() => caches.match(request))
   )

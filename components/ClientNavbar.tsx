@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X, ChevronDown, LogIn } from 'lucide-react'
-import { useState } from 'react'
+import { Menu, X, ChevronDown, LogIn, WifiOff } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import LanguageSelector from '@/components/LanguageSelector'
+import OfflineLandingBanner from './offline/OfflineLandingBanner'
 
 export default function ClientNavbar({
   dict,
@@ -19,9 +20,28 @@ export default function ClientNavbar({
   const [pricingMenuOpen, setPricingMenuOpen] = useState(false)
   const [subscribeMenuOpen, setSubscribeMenuOpen] = useState(false)
   const [loginMenuOpen, setLoginMenuOpen] = useState(false)
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  )
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-surface-border bg-background/80 backdrop-blur-md">
+      {/* 1. Bandeau Hors-Ligne automatique avec détection et redirection de session */}
+      <OfflineLandingBanner appName={isSiggieOnly ? 'SIGGIE' : 'DEMBA SOLUTION'} />
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href={isSiggieOnly ? "/decouvrir-siggie" : "/"} className="flex items-center gap-2 shrink-0">
@@ -77,8 +97,17 @@ export default function ClientNavbar({
           <div className="flex gap-2 sm:gap-3 items-center">
             <LanguageSelector currentLang={currentLang} />
 
-            {isSiggieOnly ? (
-              /* Mode SIGGIE DIRECT : Bouton Connexion directe sans voir les autres applications */
+            {!isOnline ? (
+              /* En mode hors-ligne : CTA direct vers la connexion locale sans menus complexes */
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-amber-700 transition-all"
+              >
+                <WifiOff className="w-4 h-4 shrink-0" />
+                <span>Connexion Hors-Ligne</span>
+              </Link>
+            ) : isSiggieOnly ? (
+              /* Mode SIGGIE DIRECT : Bouton Connexion directe */
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
@@ -150,7 +179,25 @@ export default function ClientNavbar({
       {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-surface-border bg-background/95 backdrop-blur-md px-4 py-4 space-y-4">
-          {isSiggieOnly ? (
+          {!isOnline ? (
+            <div className="space-y-3">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 w-full text-center rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-sm"
+              >
+                <WifiOff className="w-4 h-4" />
+                <span>Connexion Hors-Ligne</span>
+              </Link>
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full text-center rounded-xl border border-surface-border py-2.5 text-sm font-semibold text-foreground hover:bg-surface"
+              >
+                Accéder au Tableau de Bord
+              </Link>
+            </div>
+          ) : isSiggieOnly ? (
             <>
               <Link href="/decouvrir-siggie" onClick={() => setMobileMenuOpen(false)} className="block text-base font-semibold text-primary">
                 Découvrir SIGGIE
@@ -193,4 +240,3 @@ export default function ClientNavbar({
     </header>
   )
 }
-

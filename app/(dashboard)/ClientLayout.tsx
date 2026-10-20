@@ -75,6 +75,20 @@ export default function ClientLayout({
     setSidebarOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    // S'assurer que le cookie hors-ligne est actif pour le Service Worker
+    document.cookie = 'demba_offline_active=1; path=/; max-age=2592000; SameSite=Lax'
+
+    // Si en ligne, rafraîchir en tâche de fond le shell du dashboard
+    if (typeof navigator !== 'undefined' && navigator.onLine && 'caches' in window) {
+      caches.open('demba-offline-siggie-v3').then((cache) => {
+        fetch('/dashboard').then((res) => {
+          if (res && res.ok) cache.put('/dashboard', res)
+        }).catch(() => {})
+      }).catch(() => {})
+    }
+  }, [])
+
   const filteredNavigation = navigation.filter(item => {
     if (subscriptionTier === 'standard') {
       if (item.href === '/materiel' || item.href === '/bilans' || item.href === '/superficies') return false
