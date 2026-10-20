@@ -24,13 +24,15 @@ export default async function ParametresPage() {
   let collaborateurs: CollaborateurItem[] = []
 
   if (tenant.role === 'admin') {
-    const { data: usersData } = await supabase
-      .from('utilisateurs')
-      .select('id, role, permissions, identifiant, telephone, nom_complet')
-      .eq('gie_id', tenant.gieId)
-
     const adminSupabase = createAdminClient()
-    const { data: authUsers } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 })
+    const [{ data: usersData }, { data: authUsers }] = await Promise.all([
+      adminSupabase
+        .from('utilisateurs')
+        .select('id, role, permissions, identifiant, telephone, nom_complet')
+        .eq('gie_id', tenant.gieId)
+        .order('created_at', { ascending: true }),
+      adminSupabase.auth.admin.listUsers({ perPage: 1000 }),
+    ])
     const emailById = new Map(authUsers?.users.map((u) => [u.id, u.email ?? null]) ?? [])
 
     collaborateurs = (usersData ?? []).map((u) => ({

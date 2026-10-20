@@ -87,7 +87,9 @@ export async function creerCollaborateur(formData: FormData): Promise<{ success?
   const telephone = (formData.get('telephone') as string)?.trim() || null
   const emailInput = (formData.get('email') as string)?.trim() || ''
   const password = (formData.get('password') as string) || ''
-  const role = ((formData.get('role') as string)?.trim()) || 'collaborateur'
+  const roleInput = ((formData.get('role') as string)?.trim()) || 'collaborateur'
+  const customRole = ((formData.get('role_custom') as string)?.trim()) || ''
+  const role = roleInput === 'autre' && customRole ? customRole : roleInput
   const rawPerms = formData.get('permissions') as string | null
 
   if (!rawIdentifiant) {

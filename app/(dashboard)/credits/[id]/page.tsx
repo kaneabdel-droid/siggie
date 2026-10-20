@@ -3,6 +3,8 @@ import { getTenantContext } from '@/utils/supabase/tenant'
 import { getLocale } from '@/dictionaries'
 import { notFound } from 'next/navigation'
 import FinancementIntrantsManager from './FinancementIntrantsManager'
+import CreditEquipementDetail from './CreditEquipementDetail'
+import { getCreditType } from '@/lib/credits-types'
 
 export default async function CreditDetailPage({
   params,
@@ -45,6 +47,18 @@ export default async function CreditDetailPage({
 
   if (!credit) {
     notFound()
+  }
+
+  const isEquipement = getCreditType(credit) === 'equipement'
+
+  if (isEquipement) {
+    return (
+      <CreditEquipementDetail
+        credit={credit}
+        gieNom={tenant?.gieName}
+        locale={locale}
+      />
+    )
   }
 
   return (

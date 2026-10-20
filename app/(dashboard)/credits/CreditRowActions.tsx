@@ -1,10 +1,9 @@
-'use client'
-
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check, X, Trash2, Banknote, Undo2, Layers } from 'lucide-react'
+import { Check, X, Trash2, Banknote, Undo2, Layers, Tractor } from 'lucide-react'
 import { updateCreditStatus, deleteCredit, addDecaissementCredit, addRemboursementCredit } from './actions'
 import { useUnite } from '@/components/DeviseProvider'
+import { getCreditType, getCreditEquipementNom, getCreditPeriodicite, calculerEcheanceEstimee } from '@/lib/credits-types'
 
 type Credit = {
   id: string
@@ -12,9 +11,15 @@ type Credit = {
   montant_accorde: number
   statut: string
   banque_nom: string | null
+  but_credit?: string | null
   taux_interet?: number | null
   duree_credit?: number | null
   type_financement?: string | null
+  type_credit?: string | null
+  equipement_nom?: string | null
+  periodicite_remboursement?: string | null
+  nombre_echeances?: number | null
+  montant_echeance?: number | null
 }
 
 export default function CreditRowActions({ credit, comptes, dict, locale }: { credit: Credit, comptes?: any[], dict: any, locale?: string }) {
@@ -27,13 +32,30 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
   const d = dict.credits_extra
   const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
 
+  const isTypeEquipement = getCreditType(credit) === 'equipement'
+  const equipementNom = getCreditEquipementNom(credit)
+
   async function handleApprove(formData: FormData) {
     setLoading(true)
     const montant = parseFloat(formData.get('montant_accorde') as string)
     const taux = parseFloat(formData.get('taux_interet') as string) || 0
-    const duree = parseInt(formData.get('duree_credit') as string, 10) || 0
+    const duree = parseInt(formData.get('duree_credit') as string, 10) || (isTypeEquipement ? 36 : 12)
     const typeFinancement = (formData.get('type_financement') as string) || 'global'
-    const res = await updateCreditStatus(credit.id, 'valide', montant, taux, duree, typeFinancement)
+
+    let extra: any = undefined
+    if (isTypeEquipement) {
+      const periodicite = (formData.get('periodicite_remboursement') as string) || getCreditPeriodicite(credit)
+      const sim = calculerEcheanceEstimee(montant, taux, duree, periodicite as any)
+      extra = {
+        type_credit: 'equipement',
+        equipement_nom: equipementNom,
+        periodicite_remboursement: periodicite,
+        nombre_echeances: sim.nombreEcheances,
+        montant_echeance: sim.montantEcheance,
+      }
+    }
+
+    const res = await updateCreditStatus(credit.id, 'valide', montant, taux, duree, typeFinancement, extra)
     setLoading(false)
     if (res?.error) {
       alert(res.error)
@@ -82,13 +104,23 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
   return (
     <>
       <div className="flex justify-end items-center gap-2">
-        <Link
-          href={`/credits/${credit.id}`}
-          className="text-primary hover:text-primary-hover p-1 rounded hover:bg-primary/10 transition-colors"
-          title="Déclinaison par intrant & service (Banque Agricole)"
-        >
-          <Layers className="h-5 w-5" />
-        </Link>
+        {isTypeEquipement ? (
+          <Link
+            href={`/credits/${credit.id}`}
+            className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 p-1 rounded hover:bg-indigo-500/10 transition-colors"
+            title={`Consulter le crédit équipement (${equipementNom || 'Matériel'}) & échéancier`}
+          >
+            <Tractor className="h-5 w-5" />
+          </Link>
+        ) : (
+          <Link
+            href={`/credits/${credit.id}`}
+            className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 p-1 rounded hover:bg-emerald-500/10 transition-colors"
+            title="Consulter et ventiler par intrant & service (Banque Agricole / CNCAS)"
+          >
+            <Layers className="h-5 w-5" />
+          </Link>
+        )}
         {credit.statut === 'en_attente' && (
           <>
             <button onClick={() => setIsApproveOpen(true)} className="text-success hover:text-success/80 p-1" title={d.approve_tooltip}>
@@ -245,31 +277,74 @@ export default function CreditRowActions({ credit, comptes, dict, locale }: { cr
                   {d.modal.approve_title_prefix} ({credit.banque_nom || d.modal.bank_unspecified})
                 </h3>
                 <form action={handleApprove} id={`approve-form-${credit.id}`} className="space-y-4">
-                  <p className="text-sm text-foreground-muted mb-4">
-                    {d.modal.amount_requested_label} <strong className="text-foreground">{credit.montant_demande.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</strong>
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-foreground-muted">
+                      {d.modal.amount_requested_label} <strong className="text-foreground">{credit.montant_demande.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</strong>
+                    </p>
+                    {isTypeEquipement ? (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold border border-indigo-500/20">
+                        🚜 Équipement ({equipementNom || 'Moyen terme'})
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                        🌾 Campagne (Trésorerie)
+                      </span>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.amount_granted}</label>
-                    <input type="number" step="any" name="montant_accorde" defaultValue={credit.montant_demande} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input type="number" step="any" name="montant_accorde" defaultValue={credit.montant_demande} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm font-semibold" />
                     <p className="text-xs text-foreground-muted mt-1">{d.modal.amount_granted_note}</p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground">Mode de financement</label>
-                    <select name="type_financement" defaultValue={credit.type_financement || 'global'} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
-                      <option value="global">Financement Global (Enveloppe unique)</option>
-                      <option value="par_intrant">Décliné par intrant ou service (Banque Agricole / CNCAS)</option>
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground">{d.modal.interest_rate}</label>
-                      <input type="number" step="any" min="0" name="taux_interet" defaultValue={credit.taux_interet || 0} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+
+                  {isTypeEquipement ? (
+                    <div className="space-y-3 p-3 rounded-lg border border-indigo-500/20 bg-indigo-500/5">
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground mb-1">Périodicité de remboursement</label>
+                        <select
+                          name="periodicite_remboursement"
+                          defaultValue={getCreditPeriodicite(credit)}
+                          className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-xs"
+                        >
+                          <option value="annuelle">Annuelle (1 fois par an après récolte)</option>
+                          <option value="semestrielle">Semestrielle (2 fois par an)</option>
+                          <option value="trimestrielle">Trimestrielle (4 fois par an)</option>
+                          <option value="mensuelle">Mensuelle (12 fois par an)</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-foreground mb-1">{d.modal.interest_rate}</label>
+                          <input type="number" step="any" min="0" name="taux_interet" defaultValue={credit.taux_interet || 7.5} className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-xs" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-foreground mb-1">{d.modal.credit_duration} (mois)</label>
+                          <input type="number" step="1" min="6" name="duree_credit" defaultValue={credit.duree_credit || 36} className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-xs" />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground">{d.modal.credit_duration}</label>
-                      <input type="number" step="1" min="0" name="duree_credit" defaultValue={credit.duree_credit || 0} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground">Mode de financement</label>
+                        <select name="type_financement" defaultValue={credit.type_financement || 'global'} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm">
+                          <option value="global">Financement Global (Enveloppe unique)</option>
+                          <option value="par_intrant">Décliné par intrant ou service (Banque Agricole / CNCAS)</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-foreground">{d.modal.interest_rate}</label>
+                          <input type="number" step="any" min="0" name="taux_interet" defaultValue={credit.taux_interet || 7.5} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground">{d.modal.credit_duration} (mois)</label>
+                          <input type="number" step="1" min="0" name="duree_credit" defaultValue={credit.duree_credit || 12} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm" />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </form>
               </div>
               <div className="bg-background/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">

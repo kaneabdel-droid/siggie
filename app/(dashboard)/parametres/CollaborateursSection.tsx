@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { UserPlus, Key, Trash2, Copy, Check, MessageSquare, Shield, AlertCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { UserPlus, Key, Trash2, Copy, Check, MessageSquare, Shield, AlertCircle, Settings2 } from 'lucide-react'
 import {
   creerCollaborateur,
   supprimerCollaborateur,
@@ -21,6 +22,40 @@ export type CollaborateurItem = {
   permissions: PermissionMap | null
 }
 
+export const ROLES_STANDARDS = [
+  { value: 'collaborateur', label: 'Collaborateur standard' },
+  { value: 'admin', label: 'Co-administrateur (accès complet)' },
+  { value: 'president', label: 'Président du GIE' },
+  { value: 'tresorier', label: 'Trésorier / Comptable' },
+  { value: 'secretaire', label: 'Secrétaire général / Opérateur' },
+  { value: 'magasinier', label: 'Magasinier (Stock & Intrants)' },
+  { value: 'gestionnaire', label: 'Gestionnaire de campagne' },
+  { value: 'autre', label: 'Autre rôle personnalisé...' },
+]
+
+function getRoleBadge(role: string | null) {
+  const r = (role || 'collaborateur').toLowerCase()
+  if (r === 'admin') {
+    return 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30'
+  }
+  if (r === 'president') {
+    return 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30'
+  }
+  if (r === 'tresorier' || r === 'comptable') {
+    return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+  }
+  if (r === 'magasinier') {
+    return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+  }
+  if (r === 'gestionnaire') {
+    return 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
+  }
+  if (r === 'secretaire') {
+    return 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30'
+  }
+  return 'bg-surface-border/50 text-foreground border-surface-border'
+}
+
 export default function CollaborateursSection({
   collaborateurs,
   currentUserId,
@@ -28,8 +63,16 @@ export default function CollaborateursSection({
   collaborateurs: CollaborateurItem[]
   currentUserId: string
 }) {
+  const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
+  const [addRole, setAddRole] = useState('collaborateur')
+  const [addRoleCustom, setAddRoleCustom] = useState('')
+  const [addRestrictPerms, setAddRestrictPerms] = useState(false)
+  const [addCustomPerms, setAddCustomPerms] = useState<PermissionMap>(fullPermissions())
+
   const [selectedCollabPerms, setSelectedCollabPerms] = useState<CollaborateurItem | null>(null)
+  const [editRole, setEditRole] = useState('collaborateur')
+  const [editRoleCustom, setEditRoleCustom] = useState('')
   const [customPerms, setCustomPerms] = useState<PermissionMap>(fullPermissions())
   const [restrictPerms, setRestrictPerms] = useState(false)
 
@@ -54,6 +97,10 @@ export default function CollaborateursSection({
     const form = e.currentTarget
     const formData = new FormData(form)
 
+    if (addRestrictPerms) {
+      formData.set('permissions', JSON.stringify(addCustomPerms))
+    }
+
     startTransition(async () => {
       const res = await creerCollaborateur(formData)
       if (res.error) {
@@ -62,6 +109,11 @@ export default function CollaborateursSection({
         setSuccessMsg('Collaborateur ajouté avec succès !')
         setShowAddModal(false)
         form.reset()
+        setAddRole('collaborateur')
+        setAddRoleCustom('')
+        setAddRestrictPerms(false)
+        setAddCustomPerms(fullPermissions())
+        router.refresh()
         setTimeout(() => setSuccessMsg(null), 4000)
       }
     })
@@ -78,6 +130,7 @@ export default function CollaborateursSection({
       if (res.error) setErrorMsg(res.error)
       else {
         setSuccessMsg(`Accès de ${nom} révoqué.`)
+        router.refresh()
         setTimeout(() => setSuccessMsg(null), 3000)
       }
     })
@@ -109,20 +162,39 @@ export default function CollaborateursSection({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Sauvegarder les permissions
+  // Ouvrir la modal d'édition
+  function openEditModal(collab: CollaborateurItem) {
+    setSelectedCollabPerms(collab)
+    const isStandard = ROLES_STANDARDS.some(r => r.value === collab.role && r.value !== 'autre')
+    if (isStandard && collab.role) {
+      setEditRole(collab.role)
+      setEditRoleCustom('')
+    } else {
+      setEditRole('autre')
+      setEditRoleCustom(collab.role || '')
+    }
+    setCustomPerms(collab.permissions ?? fullPermissions())
+    setRestrictPerms(collab.permissions !== null)
+  }
+
+  // Sauvegarder les permissions et le rôle
   function handleSavePermissions() {
     if (!selectedCollabPerms) return
     setErrorMsg(null)
+    const finalRole = editRole === 'autre' ? (editRoleCustom.trim() || 'collaborateur') : editRole
+
     startTransition(async () => {
       const res = await modifierRoleEtPermissionsCollaborateur(
         selectedCollabPerms.id,
-        selectedCollabPerms.role || 'collaborateur',
+        finalRole,
         restrictPerms ? sanitizePermissions(customPerms) : null
       )
-      if (res.error) setErrorMsg(res.error)
-      else {
-        setSuccessMsg('Permissions mises à jour.')
+      if (res.error) {
+        setErrorMsg(res.error)
+      } else {
+        setSuccessMsg('Rôle et permissions mis à jour.')
         setSelectedCollabPerms(null)
+        router.refresh()
         setTimeout(() => setSuccessMsg(null), 3000)
       }
     })
@@ -134,7 +206,7 @@ export default function CollaborateursSection({
         <div>
           <h2 className="text-xl font-bold font-heading text-foreground">Équipe & Collaborateurs</h2>
           <p className="text-sm text-foreground-muted">
-            Gérez les comptes des collaborateurs de votre organisation. L&apos;e-mail n&apos;est pas requis pour les collaborateurs.
+            Gérez les comptes et les profils d&apos;accès de votre organisation. L&apos;e-mail n&apos;est pas obligatoire pour les collaborateurs.
           </p>
         </div>
         <button
@@ -168,7 +240,7 @@ export default function CollaborateursSection({
           <Shield className="h-4 w-4 text-primary" /> Authentification simplifiée & sécurisée
         </p>
         <p>
-          Vos employés peuvent se connecter avec leur identifiant (ex: <code className="font-mono text-primary">amadou_ba</code>) ou leur numéro de téléphone (ex: <code className="font-mono text-primary">+221 77 123 45 67</code>). En cas d&apos;oubli de mot de passe, vous pouvez générer ci-dessous un lien magique sécurisé à leur transmettre par WhatsApp ou SMS.
+          Vos collaborateurs peuvent se connecter avec leur identifiant (ex: <code className="font-mono text-primary">amadou_ba</code>) ou leur numéro de téléphone (ex: <code className="font-mono text-primary">+221 77 123 45 67</code>). En cas d&apos;oubli de mot de passe, vous pouvez générer ci-dessous un lien magique sécurisé à leur transmettre par WhatsApp ou SMS.
         </p>
       </div>
 
@@ -188,6 +260,7 @@ export default function CollaborateursSection({
               const isCurrentUser = collab.id === currentUserId
               const isSynthetic = collab.email?.endsWith('@auth.dembasolution.internal')
               const displayName = collab.nom_complet || collab.identifiant || (isSynthetic ? 'Collaborateur' : collab.email)
+              const roleDisplay = collab.role || 'collaborateur'
 
               return (
                 <tr key={collab.id} className="hover:bg-background/40 transition-colors">
@@ -208,12 +281,12 @@ export default function CollaborateursSection({
                     )}
                   </td>
                   <td className="px-5 py-4 text-xs">
-                    <div className="inline-flex items-center gap-1.5">
-                      <span className="rounded-full bg-surface-border px-2.5 py-0.5 font-medium capitalize text-foreground">
-                        {collab.role || 'collaborateur'}
+                    <div className="inline-flex items-center gap-1.5 flex-wrap">
+                      <span className={`rounded-full px-2.5 py-0.5 font-medium capitalize border text-[11px] ${getRoleBadge(collab.role)}`}>
+                        {roleDisplay}
                       </span>
                       {collab.permissions ? (
-                        <span className="text-[11px] text-primary">(droits restreints)</span>
+                        <span className="text-[11px] text-primary font-medium">(droits restreints)</span>
                       ) : (
                         <span className="text-[11px] text-foreground-muted">(accès complet)</span>
                       )}
@@ -235,14 +308,10 @@ export default function CollaborateursSection({
                         <button
                           type="button"
                           disabled={isPending}
-                          onClick={() => {
-                            setSelectedCollabPerms(collab)
-                            setCustomPerms(collab.permissions ?? fullPermissions())
-                            setRestrictPerms(collab.permissions !== null)
-                          }}
+                          onClick={() => openEditModal(collab)}
                           className="inline-flex items-center gap-1 rounded-md border border-surface-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-surface transition-colors disabled:opacity-50"
                         >
-                          Permissions
+                          <Settings2 className="h-3.5 w-3.5 text-foreground-muted" /> Rôle & Droits
                         </button>
 
                         <button
@@ -332,7 +401,7 @@ export default function CollaborateursSection({
       {/* Modal : Ajouter un collaborateur */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="my-8 w-full max-w-lg rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4">
+          <div className="my-8 w-full max-w-xl rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4">
             <h3 className="text-lg font-bold font-heading text-foreground">
               Ajouter un collaborateur
             </h3>
@@ -412,20 +481,58 @@ export default function CollaborateursSection({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Rôle dans le GIE
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-foreground">
+                  Rôle & Titre dans le GIE
                 </label>
                 <select
                   name="role"
-                  defaultValue="collaborateur"
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
                   className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
                 >
-                  <option value="collaborateur">Collaborateur standard</option>
-                  <option value="tresorier">Trésorier / Comptable</option>
-                  <option value="magasinier">Magasinier (Stock & Intrants)</option>
-                  <option value="gestionnaire">Gestionnaire de campagne</option>
+                  {ROLES_STANDARDS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
                 </select>
+
+                {addRole === 'autre' && (
+                  <div className="mt-2">
+                    <input
+                      name="role_custom"
+                      required
+                      value={addRoleCustom}
+                      onChange={(e) => setAddRoleCustom(e.target.value)}
+                      placeholder="Précisez le rôle (ex: Responsable aménagement, Agent de collecte...)"
+                      className="w-full rounded-md border border-primary bg-background px-3 py-2 text-foreground text-sm focus:outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Option personnalisation immédiate des permissions */}
+              <div className="pt-2 border-t border-surface-border/50">
+                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={addRestrictPerms}
+                    onChange={(e) => setAddRestrictPerms(e.target.checked)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Personnaliser / Restreindre les permissions d&apos;accès aux modules dès la création
+                </label>
+
+                {addRestrictPerms && (
+                  <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-surface-border p-3 bg-background/50">
+                    <PermissionsMatrix
+                      value={addCustomPerms}
+                      onChange={setAddCustomPerms}
+                      disabled={isPending}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-surface-border">
@@ -449,33 +556,65 @@ export default function CollaborateursSection({
         </div>
       )}
 
-      {/* Modal : Modification des permissions */}
+      {/* Modal : Modification du rôle et des permissions */}
       {selectedCollabPerms && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="my-8 w-full max-w-2xl rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4">
             <h3 className="text-lg font-bold font-heading text-foreground">
-              Permissions de {selectedCollabPerms.nom_complet || selectedCollabPerms.identifiant}
+              Rôle et permissions de {selectedCollabPerms.nom_complet || selectedCollabPerms.identifiant}
             </h3>
 
-            <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                checked={restrictPerms}
-                onChange={(e) => setRestrictPerms(e.target.checked)}
-                className="h-4 w-4 accent-primary"
-              />
-              Restreindre l&apos;accès à certains modules (sinon accès complet à l&apos;application)
-            </label>
+            {/* Modifier le rôle */}
+            <div className="space-y-2 p-3 rounded-lg border border-surface-border bg-background/50">
+              <label className="block text-xs font-semibold text-foreground">
+                Rôle attribué dans le GIE
+              </label>
+              <select
+                value={editRole}
+                onChange={(e) => setEditRole(e.target.value)}
+                className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
+              >
+                {ROLES_STANDARDS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
 
-            {restrictPerms && (
-              <div className="max-h-96 overflow-y-auto rounded-lg border border-surface-border p-3">
-                <PermissionsMatrix
-                  value={customPerms}
-                  onChange={setCustomPerms}
-                  disabled={isPending}
+              {editRole === 'autre' && (
+                <div className="mt-2">
+                  <input
+                    value={editRoleCustom}
+                    onChange={(e) => setEditRoleCustom(e.target.value)}
+                    placeholder="Précisez le rôle personnalisé (ex: Responsable technique...)"
+                    className="w-full rounded-md border border-primary bg-background px-3 py-2 text-foreground text-sm focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Permissions */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={restrictPerms}
+                  onChange={(e) => setRestrictPerms(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
                 />
-              </div>
-            )}
+                Restreindre l&apos;accès à certains modules (sinon accès complet à l&apos;application)
+              </label>
+
+              {restrictPerms && (
+                <div className="max-h-96 overflow-y-auto rounded-lg border border-surface-border p-3">
+                  <PermissionsMatrix
+                    value={customPerms}
+                    onChange={setCustomPerms}
+                    disabled={isPending}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end gap-3 pt-3 border-t border-surface-border">
               <button
@@ -491,7 +630,7 @@ export default function CollaborateursSection({
                 onClick={handleSavePermissions}
                 className="rounded-md bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
               >
-                {isPending ? 'Enregistrement...' : 'Enregistrer les permissions'}
+                {isPending ? 'Enregistrement...' : 'Enregistrer le rôle et les permissions'}
               </button>
             </div>
           </div>
