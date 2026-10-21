@@ -4,9 +4,13 @@ export const DOMAINE_AUTH_INTERNE = 'auth.dembasolution.internal'
 
 /**
  * Nettoie et normalise un identifiant ou un numéro de téléphone.
+ * Convertit les espaces en tirets bas pour former un identifiant valide.
  */
 export function normaliserIdentifiant(input: string): string {
-  return input.trim().toLowerCase()
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
 }
 
 /**
@@ -45,13 +49,17 @@ export async function resoudreAuthEmail(
   }
 
   const cleanIdentifiant = normaliserIdentifiant(rawInput)
+  const cleanPhone = rawInput.replace(/[^0-9+]/g, '')
 
   // 2. Recherche par identifiant ou par numéro de téléphone dans public.utilisateurs
-  const { data: userRow } = await supabaseAdmin
-    .from('utilisateurs')
-    .select('id, identifiant, telephone')
-    .or(`identifiant.ilike.${cleanIdentifiant},telephone.eq.${cleanIdentifiant}`)
-    .maybeSingle()
+  let query = supabaseAdmin.from('utilisateurs').select('id, identifiant, telephone')
+  if (cleanPhone && cleanPhone.length >= 6) {
+    query = query.or(`identifiant.ilike.${cleanIdentifiant},telephone.ilike.%${cleanPhone}%`)
+  } else {
+    query = query.ilike('identifiant', cleanIdentifiant)
+  }
+
+  const { data: userRow } = await query.limit(1).maybeSingle()
 
   if (userRow?.id) {
     // Récupérer le compte auth associé
@@ -71,3 +79,4 @@ export async function resoudreAuthEmail(
     isSynthetic: true,
   }
 }
+

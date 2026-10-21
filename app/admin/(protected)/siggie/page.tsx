@@ -2,6 +2,8 @@ import { createAdminClient } from '@/utils/supabase/admin'
 import { Building2, Clock, Wallet, TrendingUp } from 'lucide-react'
 import { equivalentFcfa } from '@/lib/payments/dollars'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminSiggieDashboardPage() {
   const supabase = createAdminClient()
 

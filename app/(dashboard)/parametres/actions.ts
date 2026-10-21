@@ -133,7 +133,7 @@ export async function creerCollaborateur(formData: FormData): Promise<{
     // 1. Vérification unicité identifiant / téléphone
     const cleanPhone = telephone ? telephone.replace(/[^0-9+]/g, '') : null
     let existantQuery = adminSupabase.from('utilisateurs').select('id')
-    if (cleanPhone) {
+    if (cleanPhone && cleanPhone.length >= 6) {
       existantQuery = existantQuery.or(`identifiant.ilike.${identifiant},telephone.ilike.%${cleanPhone}%`)
     } else {
       existantQuery = existantQuery.ilike('identifiant', identifiant)
@@ -142,10 +142,19 @@ export async function creerCollaborateur(formData: FormData): Promise<{
     const { data: existant } = await existantQuery.limit(1).maybeSingle()
 
     if (existant) {
-      return { error: 'Cet identifiant ou numéro de téléphone est déjà utilisé par un autre collaborateur.' }
+      // Vérifier si le compte d'authentification existe réellement dans auth.users
+      const { data: authCheck } = await adminSupabase.auth.admin.getUserById(existant.id)
+      if (!authCheck?.user) {
+        // Enregistrement orphelin (suppression antérieure incomplète ou résidu de test)
+        // On supprime la ligne orpheline pour ne pas bloquer l'administrateur
+        await adminSupabase.from('utilisateurs').delete().eq('id', existant.id)
+      } else {
+        return { error: 'Cet identifiant ou numéro de téléphone est déjà utilisé par un autre collaborateur.' }
+      }
     }
 
     // 2. Création auth.users
+    let authCreatedUser: { id: string } | null = null
     const { data: authCreated, error: authError } = await adminSupabase.auth.admin.createUser({
       email: authEmail,
       password,
@@ -161,13 +170,70 @@ export async function creerCollaborateur(formData: FormData): Promise<{
 
     if (authError) {
       if (authError.message.toLowerCase().includes('already') || authError.message.toLowerCase().includes('registered')) {
-        return { error: `L'identifiant "${rawIdentifiant}" ou cet e-mail est déjà utilisé. Veuillez choisir un identifiant différent.` }
+        // Vérifier si un compte auth existe sans fiche utilisateur publique (orphelin)
+        const { data: authList } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 })
+        const existingAuth = authList?.users.find((u) => u.email?.toLowerCase() === authEmail.toLowerCase())
+        if (existingAuth) {
+          const { data: pubRow } = await adminSupabase.from('utilisateurs').select('id').eq('id', existingAuth.id).maybeSingle()
+          if (!pubRow) {
+            // Utilisateur auth orphelin sans profil : nettoyer et retenter la création
+            await adminSupabase.auth.admin.deleteUser(existingAuth.id)
+            const retryRes = await adminSupabase.auth.admin.createUser({
+              email: authEmail,
+              password,
+              email_confirm: true,
+              user_metadata: {
+                existing_gie_id: tenant.gieId,
+                role,
+                identifiant,
+                telephone,
+                nom_complet: nomComplet,
+              },
+            })
+            if (retryRes.data?.user) {
+              authCreatedUser = retryRes.data.user
+            } else if (retryRes.error) {
+              return { error: `Échec de création du compte : ${retryRes.error.message}` }
+            }
+          } else {
+            return { error: `L'identifiant "${rawIdentifiant}" ou cet e-mail est déjà utilisé. Veuillez choisir un identifiant différent.` }
+          }
+        } else {
+          return { error: `L'identifiant "${rawIdentifiant}" ou cet e-mail est déjà utilisé. Veuillez choisir un identifiant différent.` }
+        }
+      } else {
+        return { error: `Échec de création du compte : ${authError.message}` }
       }
-      return { error: `Échec de création du compte : ${authError.message}` }
+    } else if (authCreated?.user) {
+      authCreatedUser = authCreated.user
     }
 
-    // 3. Mise à jour de public.utilisateurs
-    if (authCreated.user) {
+    if (!authCreatedUser) {
+      return { error: 'Impossible de finaliser la création du compte utilisateur.' }
+    }
+
+    // 3. Mise à jour ou insertion garantie dans public.utilisateurs
+    const { data: existingProfile } = await adminSupabase
+      .from('utilisateurs')
+      .select('id')
+      .eq('id', authCreatedUser.id)
+      .maybeSingle()
+
+    if (!existingProfile) {
+      // Secours si le trigger handle_new_user n'a pas inséré
+      const { error: insErr } = await adminSupabase.from('utilisateurs').insert({
+        id: authCreatedUser.id,
+        gie_id: tenant.gieId,
+        role,
+        identifiant,
+        telephone,
+        nom_complet: nomComplet,
+        permissions,
+      })
+      if (insErr) {
+        return { error: `Profil collaborateur non enregistré : ${insErr.message}` }
+      }
+    } else {
       const { error: userError } = await adminSupabase
         .from('utilisateurs')
         .update({
@@ -177,7 +243,7 @@ export async function creerCollaborateur(formData: FormData): Promise<{
           role,
           permissions,
         })
-        .eq('id', authCreated.user.id)
+        .eq('id', authCreatedUser.id)
 
       if (userError) {
         return { error: `Compte créé, mais métadonnées partielles : ${userError.message}` }
@@ -188,7 +254,7 @@ export async function creerCollaborateur(formData: FormData): Promise<{
     return {
       success: true,
       collaborateur: {
-        id: authCreated.user.id,
+        id: authCreatedUser.id,
         identifiant,
         nom_complet: nomComplet,
         telephone,
@@ -203,46 +269,56 @@ export async function creerCollaborateur(formData: FormData): Promise<{
 }
 
 export async function supprimerCollaborateur(collaborateurId: string): Promise<{ success?: boolean; error?: string }> {
-  const tenant = await getTenantContext()
-  if (!tenant || tenant.role !== 'admin') {
-    return { error: 'Action réservée aux administrateurs.' }
+  try {
+    const tenant = await getTenantContext()
+    if (!tenant || tenant.role !== 'admin') {
+      return { error: 'Action réservée aux administrateurs.' }
+    }
+
+    if (collaborateurId === tenant.userId) {
+      return { error: 'Vous ne pouvez pas supprimer votre propre compte administrateur.' }
+    }
+
+    const adminSupabase = createAdminClient()
+
+    // Vérifier appartenance au même GIE
+    const { data: cible } = await adminSupabase
+      .from('utilisateurs')
+      .select('id, role')
+      .eq('id', collaborateurId)
+      .eq('gie_id', tenant.gieId)
+      .maybeSingle()
+
+    if (!cible) {
+      return { error: 'Collaborateur introuvable dans votre GIE.' }
+    }
+
+    // Supprimer d'abord le profil utilisateur pour libérer la référence de clé étrangère
+    const { error: delProfileError } = await adminSupabase
+      .from('utilisateurs')
+      .delete()
+      .eq('id', collaborateurId)
+      .eq('gie_id', tenant.gieId)
+
+    if (delProfileError) {
+      return { error: delProfileError.message }
+    }
+
+    // Supprimer ensuite du service Auth Supabase
+    const { error: authDelError } = await adminSupabase.auth.admin.deleteUser(collaborateurId)
+    if (authDelError) {
+      console.warn('Avertissement suppression auth:', authDelError.message)
+    }
+
+    revalidatePath('/parametres')
+    return { success: true }
+  } catch (err: unknown) {
+    console.error('Erreur inattendue dans supprimerCollaborateur:', err)
+    const message = err instanceof Error ? err.message : 'Erreur inattendue lors de la suppression.'
+    return { error: message }
   }
-
-  if (collaborateurId === tenant.userId) {
-    return { error: 'Vous ne pouvez pas supprimer votre propre compte administrateur.' }
-  }
-
-  const adminSupabase = createAdminClient()
-
-  // Vérifier appartenance au même GIE
-  const { data: cible } = await adminSupabase
-    .from('utilisateurs')
-    .select('id, role')
-    .eq('id', collaborateurId)
-    .eq('gie_id', tenant.gieId)
-    .maybeSingle()
-
-  if (!cible) {
-    return { error: 'Collaborateur introuvable dans votre GIE.' }
-  }
-
-  // Supprimer profil utilisateur
-  const { error: delProfileError } = await adminSupabase
-    .from('utilisateurs')
-    .delete()
-    .eq('id', collaborateurId)
-    .eq('gie_id', tenant.gieId)
-
-  if (delProfileError) {
-    return { error: delProfileError.message }
-  }
-
-  // Supprimer du service Auth Supabase
-  await adminSupabase.auth.admin.deleteUser(collaborateurId)
-
-  revalidatePath('/parametres')
-  return { success: true }
 }
+
 
 export async function genererLienResetCollaborateur(collaborateurId: string): Promise<{
   success?: boolean

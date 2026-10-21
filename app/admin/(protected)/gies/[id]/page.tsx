@@ -9,6 +9,8 @@ import AjouterUtilisateurButton from './AjouterUtilisateurButton'
 import SupprimerGieButton from './SupprimerGieButton'
 import { formatPaiement } from '@/lib/payments/dollars'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminGieDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = createAdminClient()

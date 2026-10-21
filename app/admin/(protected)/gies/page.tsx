@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase/admin'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminGiesPage() {
   const supabase = createAdminClient()
 

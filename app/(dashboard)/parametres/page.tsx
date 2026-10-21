@@ -7,6 +7,8 @@ import ParametresForm from './ParametresForm'
 import CollaborateursSection, { type CollaborateurItem } from './CollaborateursSection'
 import type { PermissionMap } from '@/lib/permissions'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ParametresPage() {
   const tenant = await getTenantContext()
   if (!tenant) redirect('/login')
