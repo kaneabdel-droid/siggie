@@ -1,8 +1,24 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Key, Trash2, Copy, Check, MessageSquare, Shield, AlertCircle, Settings2, Phone } from 'lucide-react'
+import {
+  UserPlus,
+  Key,
+  Trash2,
+  Copy,
+  Check,
+  MessageSquare,
+  Shield,
+  AlertCircle,
+  Settings2,
+  Phone,
+  X,
+  Loader2,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+} from 'lucide-react'
 import {
   creerCollaborateur,
   supprimerCollaborateur,
@@ -69,6 +85,17 @@ export default function CollaborateursSection({
   const [addRoleCustom, setAddRoleCustom] = useState('')
   const [addRestrictPerms, setAddRestrictPerms] = useState(false)
   const [addCustomPerms, setAddCustomPerms] = useState<PermissionMap>(fullPermissions())
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false)
+  const [createdSuccessInfo, setCreatedSuccessInfo] = useState<{
+    nom: string
+    identifiant: string
+    telephone?: string | null
+    email?: string | null
+    role: string
+    password?: string
+  } | null>(null)
+  const [copiedSuccess, setCopiedSuccess] = useState(false)
+  const [showCreatedPassword, setShowCreatedPassword] = useState(false)
 
   const [selectedCollabPerms, setSelectedCollabPerms] = useState<CollaborateurItem | null>(null)
   const [editRole, setEditRole] = useState('collaborateur')
@@ -88,6 +115,42 @@ export default function CollaborateursSection({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
+  function closeAddModal() {
+    setShowAddModal(false)
+    setCreatedSuccessInfo(null)
+    setErrorMsg(null)
+    setAddRole('collaborateur')
+    setAddRoleCustom('')
+    setAddRestrictPerms(false)
+    setAddCustomPerms(fullPermissions())
+    setCopiedSuccess(false)
+    setShowCreatedPassword(false)
+  }
+
+  function handleResetAddForm() {
+    setCreatedSuccessInfo(null)
+    setErrorMsg(null)
+    setAddRole('collaborateur')
+    setAddRoleCustom('')
+    setAddRestrictPerms(false)
+    setAddCustomPerms(fullPermissions())
+    setCopiedSuccess(false)
+    setShowCreatedPassword(false)
+  }
+
+  // Fermeture des modales avec la touche Echap
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (showAddModal) closeAddModal()
+        if (selectedCollabPerms) setSelectedCollabPerms(null)
+        if (activeResetLink) setActiveResetLink(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showAddModal, selectedCollabPerms, activeResetLink])
+
   // Gestion de la création d'un collaborateur
   async function handleAddCollaborateur(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -101,22 +164,42 @@ export default function CollaborateursSection({
       formData.set('permissions', JSON.stringify(addCustomPerms))
     }
 
-    startTransition(async () => {
+    const rawIdent = (formData.get('identifiant') as string)?.trim() || ''
+    const rawNom = (formData.get('nom_complet') as string)?.trim() || rawIdent
+    const rawTel = (formData.get('telephone') as string)?.trim() || null
+    const rawEmail = (formData.get('email') as string)?.trim() || null
+    const rawRole = (formData.get('role') as string)?.trim() || 'collaborateur'
+    const customRole = (formData.get('role_custom') as string)?.trim() || ''
+    const finalRole = rawRole === 'autre' && customRole ? customRole : rawRole
+    const rawPassword = (formData.get('password') as string) || ''
+
+    setIsSubmittingAdd(true)
+    try {
       const res = await creerCollaborateur(formData)
-      if (res.error) {
+      if (res?.error) {
         setErrorMsg(res.error)
       } else {
-        setSuccessMsg('Collaborateur ajouté avec succès !')
-        setShowAddModal(false)
+        // Succès : proposer la fermeture avec récapitulatif clair
+        setCreatedSuccessInfo({
+          nom: rawNom,
+          identifiant: rawIdent,
+          telephone: rawTel,
+          email: rawEmail,
+          role: finalRole,
+          password: rawPassword,
+        })
+        setSuccessMsg(`Collaborateur "${rawNom}" créé avec succès !`)
         form.reset()
-        setAddRole('collaborateur')
-        setAddRoleCustom('')
-        setAddRestrictPerms(false)
-        setAddCustomPerms(fullPermissions())
         router.refresh()
-        setTimeout(() => setSuccessMsg(null), 4000)
+        setTimeout(() => setSuccessMsg(null), 5000)
       }
-    })
+    } catch (err: unknown) {
+      console.error('Erreur handleAddCollaborateur:', err)
+      const message = err instanceof Error ? err.message : 'Erreur lors de la création du compte.'
+      setErrorMsg(message)
+    } finally {
+      setIsSubmittingAdd(false)
+    }
   }
 
   // Suppression
@@ -357,11 +440,25 @@ export default function CollaborateursSection({
 
       {/* Modal : Lien de réinitialisation généré */}
       {activeResetLink && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold font-heading text-foreground">
-              Lien de réinitialisation de mot de passe
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setActiveResetLink(null)}
+          />
+          <div className="relative my-8 w-full max-w-lg rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4 z-10">
+            <div className="flex items-start justify-between gap-4">
+              <h3 className="text-lg font-bold font-heading text-foreground">
+                Lien de réinitialisation de mot de passe
+              </h3>
+              <button
+                type="button"
+                onClick={() => setActiveResetLink(null)}
+                aria-label="Fermer"
+                className="rounded-lg p-1 text-foreground-muted hover:bg-background hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
             <p className="text-sm text-foreground-muted">
               Transmettez ce lien magique sécurisé à <strong>{activeResetLink.nom}</strong>. Ce lien lui permettra de définir son nouveau mot de passe directement sans passer par un e-mail.
             </p>
@@ -415,169 +512,311 @@ export default function CollaborateursSection({
 
       {/* Modal : Ajouter un collaborateur */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="my-8 w-full max-w-xl rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold font-heading text-foreground">
-              Ajouter un collaborateur
-            </h3>
-            <p className="text-xs text-foreground-muted">
-              L&apos;adresse e-mail est facultative pour les collaborateurs. Seul l&apos;identifiant ou téléphone est requis.
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          {/* Fond sombre cliquable pour fermer */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={closeAddModal}
+          />
 
-            <form onSubmit={handleAddCollaborateur} className="space-y-4 text-sm">
-              {errorMsg && (
-                <div className="rounded-lg bg-danger/10 border border-danger/20 p-3 text-xs text-danger flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
+          <div className="relative my-8 w-full max-w-xl rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4 z-10">
+            {/* En-tête avec bouton de fermeture croix */}
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Identifiant de connexion *
-                </label>
-                <input
-                  name="identifiant"
-                  required
-                  placeholder="ex: amadou_ba ou 771234567"
-                  className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm font-mono focus:border-primary focus:outline-none"
-                />
-                <p className="mt-1 text-[11px] text-foreground-muted">
-                  Sera utilisé pour la connexion à la place de l&apos;e-mail.
+                <h3 className="text-lg font-bold font-heading text-foreground">
+                  {createdSuccessInfo ? 'Collaborateur créé avec succès' : 'Ajouter un collaborateur'}
+                </h3>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  {createdSuccessInfo
+                    ? 'Le compte d\'accès a été créé et activé dans votre organisation.'
+                    : 'L\'adresse e-mail est facultative pour les collaborateurs. Seul l\'identifiant ou téléphone est requis.'}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={closeAddModal}
+                aria-label="Fermer"
+                className="rounded-lg p-1 text-foreground-muted hover:bg-background hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Nom complet
-                </label>
-                <input
-                  name="nom_complet"
-                  placeholder="ex: Amadou Bâ"
-                  className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
-                />
+            {/* CAS A : Collaborateur créé -> Écran de confirmation & proposition de fermeture */}
+            {createdSuccessInfo ? (
+              <div className="space-y-4 pt-1">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3">
+                  <div className="flex items-center gap-2.5 text-emerald-700 dark:text-emerald-300 font-semibold text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>Compte opérationnel pour {createdSuccessInfo.nom}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs pt-1">
+                    <div className="rounded-lg bg-surface/80 p-2.5 border border-surface-border/50">
+                      <span className="text-foreground-muted block text-[11px] mb-0.5">Identifiant de connexion :</span>
+                      <code className="font-mono font-semibold text-primary text-sm select-all">
+                        {createdSuccessInfo.identifiant}
+                      </code>
+                    </div>
+
+                    <div className="rounded-lg bg-surface/80 p-2.5 border border-surface-border/50">
+                      <span className="text-foreground-muted block text-[11px] mb-0.5">Rôle attribué :</span>
+                      <span className={`inline-block rounded-md px-2 py-0.5 font-medium border text-[11px] ${getRoleBadge(createdSuccessInfo.role)}`}>
+                        {createdSuccessInfo.role}
+                      </span>
+                    </div>
+
+                    {createdSuccessInfo.telephone && (
+                      <div className="rounded-lg bg-surface/80 p-2.5 border border-surface-border/50">
+                        <span className="text-foreground-muted block text-[11px] mb-0.5">Téléphone :</span>
+                        <span className="font-mono text-foreground font-medium">
+                          {createdSuccessInfo.telephone}
+                        </span>
+                      </div>
+                    )}
+
+                    {createdSuccessInfo.password && (
+                      <div className="rounded-lg bg-surface/80 p-2.5 border border-surface-border/50">
+                        <div className="flex items-center justify-between">
+                          <span className="text-foreground-muted block text-[11px] mb-0.5">Mot de passe temporaire :</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowCreatedPassword(!showCreatedPassword)}
+                            className="text-foreground-muted hover:text-foreground text-[10px] inline-flex items-center gap-1"
+                          >
+                            {showCreatedPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            {showCreatedPassword ? 'Masquer' : 'Afficher'}
+                          </button>
+                        </div>
+                        <code className="font-mono font-semibold text-foreground text-sm select-all">
+                          {showCreatedPassword ? createdSuccessInfo.password : '••••••••'}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions de partage des accès */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const txt = `Vos identifiants d'accès SIGGIE :\n- Nom : ${createdSuccessInfo.nom}\n- Identifiant : ${createdSuccessInfo.identifiant}\n- Mot de passe : ${createdSuccessInfo.password || '(défini par l\'administrateur)'}\n- Rôle : ${createdSuccessInfo.role}`
+                      navigator.clipboard.writeText(txt)
+                      setCopiedSuccess(true)
+                      setTimeout(() => setCopiedSuccess(false), 2000)
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-surface transition-colors"
+                  >
+                    {copiedSuccess ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedSuccess ? 'Identifiants copiés !' : 'Copier les accès'}
+                  </button>
+
+                  {createdSuccessInfo.telephone && (
+                    <a
+                      href={`https://wa.me/${createdSuccessInfo.telephone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        `Bonjour ${createdSuccessInfo.nom}, votre compte d'accès SIGGIE est prêt.\n\nIdentifiant de connexion : ${createdSuccessInfo.identifiant}\nMot de passe : ${createdSuccessInfo.password || ''}\n\nVous pouvez vous connecter dès maintenant sur l'application.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366] text-white px-3 py-2 text-xs font-semibold hover:opacity-95 transition-opacity"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> Envoyer par WhatsApp
+                    </a>
+                  )}
+                </div>
+
+                {/* Boutons pour proposer la fermeture ou ajouter un autre collaborateur */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-surface-border">
+                  <button
+                    type="button"
+                    onClick={handleResetAddForm}
+                    className="rounded-lg border border-surface-border px-3.5 py-2 text-xs font-medium text-foreground hover:bg-background transition-colors"
+                  >
+                    + Ajouter un autre collaborateur
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeAddModal}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition-colors"
+                  >
+                    <Check className="h-4 w-4" /> Fermer
+                  </button>
+                </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            ) : (
+              /* CAS B : Formulaire de saisie */
+              <form onSubmit={handleAddCollaborateur} className="space-y-4 text-sm">
+                {errorMsg && (
+                  <div className="rounded-lg bg-danger/10 border border-danger/20 p-3 text-xs text-danger flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    Téléphone (recommandé)
+                    Identifiant de connexion *
                   </label>
                   <input
-                    name="telephone"
-                    type="tel"
-                    placeholder="ex: +221 77 123 45 67"
+                    name="identifiant"
+                    required
+                    placeholder="ex: amadou_ba ou 771234567"
                     className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm font-mono focus:border-primary focus:outline-none"
                   />
+                  <p className="mt-1 text-[11px] text-foreground-muted">
+                    Sera utilisé pour la connexion à la place de l&apos;e-mail.
+                  </p>
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium text-foreground mb-1">
-                    E-mail (facultatif)
+                    Nom complet
                   </label>
                   <input
-                    name="email"
-                    type="email"
-                    placeholder="Optionnel"
+                    name="nom_complet"
+                    placeholder="ex: Amadou Bâ"
                     className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Mot de passe temporaire initial *
-                </label>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="Au moins 6 caractères"
-                  className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-foreground">
-                  Rôle & Titre dans le GIE
-                </label>
-                <select
-                  name="role"
-                  value={addRole}
-                  onChange={(e) => setAddRole(e.target.value)}
-                  className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
-                >
-                  {ROLES_STANDARDS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-
-                {addRole === 'autre' && (
-                  <div className="mt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Téléphone (recommandé)
+                    </label>
                     <input
-                      name="role_custom"
-                      required
-                      value={addRoleCustom}
-                      onChange={(e) => setAddRoleCustom(e.target.value)}
-                      placeholder="Précisez le rôle (ex: Responsable aménagement, Agent de collecte...)"
-                      className="w-full rounded-md border border-primary bg-background px-3 py-2 text-foreground text-sm focus:outline-none"
+                      name="telephone"
+                      type="tel"
+                      placeholder="ex: +221 77 123 45 67"
+                      className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm font-mono focus:border-primary focus:outline-none"
                     />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      E-mail (facultatif)
+                    </label>
+                    <input
+                      name="email"
+                      type="email"
+                      placeholder="Optionnel"
+                      className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
 
-              {/* Option personnalisation immédiate des permissions */}
-              <div className="pt-2 border-t border-surface-border/50">
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Mot de passe temporaire initial *
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={addRestrictPerms}
-                    onChange={(e) => setAddRestrictPerms(e.target.checked)}
-                    className="h-4 w-4 accent-primary"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Au moins 6 caractères"
+                    className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
                   />
-                  Personnaliser / Restreindre les permissions d&apos;accès aux modules dès la création
-                </label>
+                </div>
 
-                {addRestrictPerms && (
-                  <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-surface-border p-3 bg-background/50">
-                    <PermissionsMatrix
-                      value={addCustomPerms}
-                      onChange={setAddCustomPerms}
-                      disabled={isPending}
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-foreground">
+                    Rôle & Titre dans le GIE
+                  </label>
+                  <select
+                    name="role"
+                    value={addRole}
+                    onChange={(e) => setAddRole(e.target.value)}
+                    className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
+                  >
+                    {ROLES_STANDARDS.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {addRole === 'autre' && (
+                    <div className="mt-2">
+                      <input
+                        name="role_custom"
+                        required
+                        value={addRoleCustom}
+                        onChange={(e) => setAddRoleCustom(e.target.value)}
+                        placeholder="Précisez le rôle (ex: Responsable aménagement, Agent de collecte...)"
+                        className="w-full rounded-md border border-primary bg-background px-3 py-2 text-foreground text-sm focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Option personnalisation immédiate des permissions */}
+                <div className="pt-2 border-t border-surface-border/50">
+                  <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addRestrictPerms}
+                      onChange={(e) => setAddRestrictPerms(e.target.checked)}
+                      className="h-4 w-4 accent-primary"
                     />
-                  </div>
-                )}
-              </div>
+                    Personnaliser / Restreindre les permissions d&apos;accès aux modules dès la création
+                  </label>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-surface-border">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="rounded-md border border-surface-border px-4 py-2 text-xs font-medium text-foreground hover:bg-background transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="rounded-md bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
-                >
-                  {isPending ? 'Création en cours...' : 'Créer le collaborateur'}
-                </button>
-              </div>
-            </form>
+                  {addRestrictPerms && (
+                    <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-surface-border p-3 bg-background/50">
+                      <PermissionsMatrix
+                        value={addCustomPerms}
+                        onChange={setAddCustomPerms}
+                        disabled={isSubmittingAdd}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-surface-border">
+                  <button
+                    type="button"
+                    onClick={closeAddModal}
+                    className="rounded-md border border-surface-border px-4 py-2 text-xs font-medium text-foreground hover:bg-background transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAdd}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
+                  >
+                    {isSubmittingAdd && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {isSubmittingAdd ? 'Création en cours...' : 'Créer le collaborateur'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
 
       {/* Modal : Modification du rôle et des permissions */}
       {selectedCollabPerms && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="my-8 w-full max-w-2xl rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold font-heading text-foreground">
-              Rôle et permissions de {selectedCollabPerms.nom_complet || selectedCollabPerms.identifiant}
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setSelectedCollabPerms(null)}
+          />
+          <div className="relative my-8 w-full max-w-2xl rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4 z-10">
+            <div className="flex items-start justify-between gap-4">
+              <h3 className="text-lg font-bold font-heading text-foreground">
+                Rôle et permissions de {selectedCollabPerms.nom_complet || selectedCollabPerms.identifiant}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedCollabPerms(null)}
+                aria-label="Fermer"
+                className="rounded-lg p-1 text-foreground-muted hover:bg-background hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
             {/* Modifier le rôle */}
             <div className="space-y-2 p-3 rounded-lg border border-surface-border bg-background/50">

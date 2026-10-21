@@ -76,101 +76,130 @@ import { createAdminClient } from '@/utils/supabase/admin'
 import { genererEmailSynthetique, normaliserIdentifiant } from '@/lib/auth-identifier'
 import { sanitizePermissions, type PermissionMap } from '@/lib/permissions'
 
-export async function creerCollaborateur(formData: FormData): Promise<{ success?: boolean; error?: string }> {
-  const tenant = await getTenantContext()
-  if (!tenant || tenant.role !== 'admin') {
-    return { error: "Seul l'administrateur du GIE peut ajouter des collaborateurs." }
+export async function creerCollaborateur(formData: FormData): Promise<{
+  success?: boolean
+  error?: string
+  collaborateur?: {
+    id: string
+    identifiant: string
+    nom_complet: string | null
+    telephone: string | null
+    role: string
   }
-
-  const rawIdentifiant = (formData.get('identifiant') as string)?.trim()
-  const nomComplet = (formData.get('nom_complet') as string)?.trim() || null
-  const telephone = (formData.get('telephone') as string)?.trim() || null
-  const emailInput = (formData.get('email') as string)?.trim() || ''
-  const password = (formData.get('password') as string) || ''
-  const roleInput = ((formData.get('role') as string)?.trim()) || 'collaborateur'
-  const customRole = ((formData.get('role_custom') as string)?.trim()) || ''
-  const role = roleInput === 'autre' && customRole ? customRole : roleInput
-  const rawPerms = formData.get('permissions') as string | null
-
-  if (!rawIdentifiant) {
-    return { error: "L'identifiant ou numéro de téléphone est obligatoire." }
-  }
-
-  const identifiant = normaliserIdentifiant(rawIdentifiant)
-  if (identifiant.length < 3) {
-    return { error: "L'identifiant doit comporter au moins 3 caractères." }
-  }
-
-  if (!password || password.length < 6) {
-    return { error: 'Le mot de passe doit comporter au moins 6 caractères.' }
-  }
-
-  let permissions: PermissionMap | null = null
-  if (rawPerms) {
-    try {
-      permissions = sanitizePermissions(JSON.parse(rawPerms))
-    } catch {
-      // Ignorer si invalide
+}> {
+  try {
+    const tenant = await getTenantContext()
+    if (!tenant || tenant.role !== 'admin') {
+      return { error: "Seul l'administrateur du GIE peut ajouter des collaborateurs." }
     }
-  }
 
-  // Détermination de l'e-mail auth : soit réel si fourni par l'utilisateur, soit alias synthétique interne
-  const authEmail = emailInput ? emailInput.toLowerCase() : genererEmailSynthetique(identifiant)
+    const rawIdentifiant = (formData.get('identifiant') as string)?.trim()
+    const nomComplet = (formData.get('nom_complet') as string)?.trim() || null
+    const telephone = (formData.get('telephone') as string)?.trim() || null
+    const emailInput = (formData.get('email') as string)?.trim() || ''
+    const password = (formData.get('password') as string) || ''
+    const roleInput = ((formData.get('role') as string)?.trim()) || 'collaborateur'
+    const customRole = ((formData.get('role_custom') as string)?.trim()) || ''
+    const role = roleInput === 'autre' && customRole ? customRole : roleInput
+    const rawPerms = formData.get('permissions') as string | null
 
-  const adminSupabase = createAdminClient()
-
-  // 1. Vérification unicité identifiant / téléphone dans le GIE
-  const { data: existant } = await adminSupabase
-    .from('utilisateurs')
-    .select('id')
-    .or(`identifiant.ilike.${identifiant}${telephone ? `,telephone.eq.${telephone}` : ''}`)
-    .maybeSingle()
-
-  if (existant) {
-    return { error: 'Cet identifiant ou numéro de téléphone est déjà utilisé par un autre collaborateur.' }
-  }
-
-  // 2. Création auth.users
-  const { data: authCreated, error: authError } = await adminSupabase.auth.admin.createUser({
-    email: authEmail,
-    password,
-    email_confirm: true,
-    user_metadata: {
-      existing_gie_id: tenant.gieId,
-      role,
-      identifiant,
-      telephone,
-      nom_complet: nomComplet,
-    },
-  })
-
-  if (authError) {
-    if (authError.message.toLowerCase().includes('already') || authError.message.toLowerCase().includes('registered')) {
-      return { error: `L'identifiant "${rawIdentifiant}" ou cet e-mail est déjà utilisé. Veuillez choisir un identifiant différent (ou utiliser le numéro de téléphone).` }
+    if (!rawIdentifiant) {
+      return { error: "L'identifiant ou numéro de téléphone est obligatoire." }
     }
-    return { error: `Échec de création du compte : ${authError.message}` }
-  }
 
-  // 3. Mise à jour de public.utilisateurs
-  if (authCreated.user) {
-    const { error: userError } = await adminSupabase
-      .from('utilisateurs')
-      .update({
+    const identifiant = normaliserIdentifiant(rawIdentifiant)
+    if (identifiant.length < 3) {
+      return { error: "L'identifiant doit comporter au moins 3 caractères." }
+    }
+
+    if (!password || password.length < 6) {
+      return { error: 'Le mot de passe doit comporter au moins 6 caractères.' }
+    }
+
+    let permissions: PermissionMap | null = null
+    if (rawPerms) {
+      try {
+        permissions = sanitizePermissions(JSON.parse(rawPerms))
+      } catch {
+        // Ignorer si invalide
+      }
+    }
+
+    // Détermination de l'e-mail auth : soit réel si fourni par l'utilisateur, soit alias synthétique interne
+    const authEmail = emailInput ? emailInput.toLowerCase() : genererEmailSynthetique(identifiant)
+
+    const adminSupabase = createAdminClient()
+
+    // 1. Vérification unicité identifiant / téléphone
+    const cleanPhone = telephone ? telephone.replace(/[^0-9+]/g, '') : null
+    let existantQuery = adminSupabase.from('utilisateurs').select('id')
+    if (cleanPhone) {
+      existantQuery = existantQuery.or(`identifiant.ilike.${identifiant},telephone.ilike.%${cleanPhone}%`)
+    } else {
+      existantQuery = existantQuery.ilike('identifiant', identifiant)
+    }
+
+    const { data: existant } = await existantQuery.limit(1).maybeSingle()
+
+    if (existant) {
+      return { error: 'Cet identifiant ou numéro de téléphone est déjà utilisé par un autre collaborateur.' }
+    }
+
+    // 2. Création auth.users
+    const { data: authCreated, error: authError } = await adminSupabase.auth.admin.createUser({
+      email: authEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        existing_gie_id: tenant.gieId,
+        role,
         identifiant,
         telephone,
         nom_complet: nomComplet,
-        role,
-        permissions,
-      })
-      .eq('id', authCreated.user.id)
+      },
+    })
 
-    if (userError) {
-      return { error: `Compte créé, mais métadonnées partielles : ${userError.message}` }
+    if (authError) {
+      if (authError.message.toLowerCase().includes('already') || authError.message.toLowerCase().includes('registered')) {
+        return { error: `L'identifiant "${rawIdentifiant}" ou cet e-mail est déjà utilisé. Veuillez choisir un identifiant différent.` }
+      }
+      return { error: `Échec de création du compte : ${authError.message}` }
     }
-  }
 
-  revalidatePath('/parametres')
-  return { success: true }
+    // 3. Mise à jour de public.utilisateurs
+    if (authCreated.user) {
+      const { error: userError } = await adminSupabase
+        .from('utilisateurs')
+        .update({
+          identifiant,
+          telephone,
+          nom_complet: nomComplet,
+          role,
+          permissions,
+        })
+        .eq('id', authCreated.user.id)
+
+      if (userError) {
+        return { error: `Compte créé, mais métadonnées partielles : ${userError.message}` }
+      }
+    }
+
+    revalidatePath('/parametres')
+    return {
+      success: true,
+      collaborateur: {
+        id: authCreated.user.id,
+        identifiant,
+        nom_complet: nomComplet,
+        telephone,
+        role,
+      },
+    }
+  } catch (err: unknown) {
+    console.error('Erreur inattendue dans creerCollaborateur:', err)
+    const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue lors de la création du collaborateur.'
+    return { error: message }
+  }
 }
 
 export async function supprimerCollaborateur(collaborateurId: string): Promise<{ success?: boolean; error?: string }> {
