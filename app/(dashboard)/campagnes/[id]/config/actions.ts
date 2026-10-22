@@ -137,7 +137,13 @@ export async function updateCampagneIntrant(campagne_intrant_id: string, campagn
   return { success: true }
 }
 
-export async function addRubrique(categorie: string, nature: string, libelle: string, compte: string) {
+export async function addRubrique(
+  categorie: string,
+  nature: string,
+  libelle: string,
+  compte: string,
+  campagne_id?: string
+) {
   const denied = await requirePermission('campagnes', 'update')
   if (denied) return denied as never
   const supabase = await createClient()
@@ -147,31 +153,184 @@ export async function addRubrique(categorie: string, nature: string, libelle: st
 
   const { data: userData } = await supabase
     .from('utilisateurs')
-    .select('gie_id, role')
+    .select('gie_id')
     .eq('id', user.id)
     .single()
 
   if (!userData) return { error: "Utilisateur introuvable" }
-  if (userData.role !== 'admin') return { error: "Réservé à l'administrateur du GIE" }
   if (!libelle.trim() || !compte.trim()) return { error: "Rubrique et sous-rubrique requises" }
 
   const categorieValide = categorie === 'materiel' ? 'materiel' : 'exploitation'
   const natureValide = nature === 'recette' ? 'recette' : 'depense'
 
-  const { error } = await supabase.from('imputations').insert({
+  const { data, error } = await supabase.from('imputations').insert({
     gie_id: userData.gie_id,
     libelle: libelle.trim(),
     compte: compte.trim(),
     categorie: categorieValide,
     nature: natureValide,
-  })
+  }).select().single()
 
   if (error) return { error: error.message }
 
-  // Cette action ne reçoit pas de campagne_id (une rubrique n'appartient pas à
-  // une campagne), donc pas de revalidatePath ciblé ici : l'appelant
-  // (BudgetPrevisionsManager) déclenche un router.refresh() pour recharger la
-  // liste des rubriques du GIE.
+  if (campagne_id) {
+    revalidatePath(`/campagnes/${campagne_id}/config`)
+  }
+  revalidatePath('/tresorerie/imputations')
+  return { success: true, imputation: data }
+}
+
+export async function renameRubriqueGroupe(
+  oldLibelle: string,
+  newLibelle: string,
+  categorie: string,
+  nature: string,
+  campagne_id?: string
+) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+  if (!newLibelle.trim()) return { error: "Le nom de la rubrique ne peut pas être vide" }
+
+  const categorieValide = categorie === 'materiel' ? 'materiel' : 'exploitation'
+  const natureValide = nature === 'recette' ? 'recette' : 'depense'
+
+  const { error } = await supabase
+    .from('imputations')
+    .update({ libelle: newLibelle.trim() })
+    .eq('gie_id', userData.gie_id)
+    .eq('categorie', categorieValide)
+    .eq('nature', natureValide)
+    .eq('libelle', oldLibelle.trim())
+
+  if (error) return { error: error.message }
+
+  if (campagne_id) {
+    revalidatePath(`/campagnes/${campagne_id}/config`)
+  }
+  revalidatePath('/tresorerie/imputations')
+  return { success: true }
+}
+
+export async function deleteRubriqueGroupe(
+  libelle: string,
+  categorie: string,
+  nature: string,
+  campagne_id?: string
+) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+
+  const categorieValide = categorie === 'materiel' ? 'materiel' : 'exploitation'
+  const natureValide = nature === 'recette' ? 'recette' : 'depense'
+
+  const { error } = await supabase
+    .from('imputations')
+    .delete()
+    .eq('gie_id', userData.gie_id)
+    .eq('categorie', categorieValide)
+    .eq('nature', natureValide)
+    .eq('libelle', libelle.trim())
+
+  if (error) return { error: error.message }
+
+  if (campagne_id) {
+    revalidatePath(`/campagnes/${campagne_id}/config`)
+  }
+  revalidatePath('/tresorerie/imputations')
+  return { success: true }
+}
+
+export async function updatePoste(
+  imputationId: string,
+  nouveauCompte: string,
+  campagne_id?: string
+) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+  if (!nouveauCompte.trim()) return { error: "Le nom du poste ne peut pas être vide" }
+
+  const { error } = await supabase
+    .from('imputations')
+    .update({ compte: nouveauCompte.trim() })
+    .eq('id', imputationId)
+    .eq('gie_id', userData.gie_id)
+
+  if (error) return { error: error.message }
+
+  if (campagne_id) {
+    revalidatePath(`/campagnes/${campagne_id}/config`)
+  }
+  revalidatePath('/tresorerie/imputations')
+  return { success: true }
+}
+
+export async function deletePoste(
+  imputationId: string,
+  campagne_id?: string
+) {
+  const denied = await requirePermission('campagnes', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+
+  const { error } = await supabase
+    .from('imputations')
+    .delete()
+    .eq('id', imputationId)
+    .eq('gie_id', userData.gie_id)
+
+  if (error) return { error: error.message }
+
+  if (campagne_id) {
+    revalidatePath(`/campagnes/${campagne_id}/config`)
+  }
+  revalidatePath('/tresorerie/imputations')
   return { success: true }
 }
 

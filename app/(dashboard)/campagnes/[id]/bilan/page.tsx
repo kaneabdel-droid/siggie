@@ -440,118 +440,129 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
       </div>
 
       {/* Table État des Livraisons (Matrix) */}
-      <div className="flow-root mt-12" id="section-livraisons">
-        <div className="hidden print:block mb-4">
-          <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
-          <p className="text-sm text-foreground-muted">{t.deliveries_section.title} — {campagne.nom}</p>
-        </div>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h3 className="text-lg font-semibold leading-6 text-foreground">{t.deliveries_section.title}</h3>
-            <p className="mt-1 text-sm text-foreground-muted">{t.deliveries_section.desc}</p>
-          </div>
-          <PrintSectionButton sectionId="section-livraisons" label={t.print} />
-        </div>
-        <div className="overflow-hidden shadow-sm ring-1 ring-surface-border sm:rounded-lg bg-surface">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-surface-border text-sm">
-              <thead className="bg-background/50">
-                <tr>
-                  <th scope="col" rowSpan={2} className="py-3 pl-4 pr-3 text-left font-semibold text-foreground border-r border-surface-border align-bottom">
-                    {t.deliveries_section.beneficiary}
-                  </th>
-                  {intrantsList.map(i => (
-                    <th key={i.id} scope="col" colSpan={2} className="px-3 py-2 text-center font-semibold text-foreground border-r border-surface-border bg-primary/5">
-                      {i.nom} <br/>
-                      <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString(dateLocale)}{unite}/u</span>
-                    </th>
-                  ))}
-                  <th scope="col" rowSpan={2} className="px-3 py-2 text-right font-semibold text-foreground align-bottom border-r border-surface-border">
-                    {t.deliveries_section.interest}
-                  </th>
-                  <th scope="col" rowSpan={2} className="px-3 py-3 text-right font-bold text-foreground align-bottom bg-background/80">
-                    {t.deliveries_section.total_global}
-                  </th>
-                </tr>
-                <tr>
-                  {intrantsList.map(i => (
-                    <Fragment key={i.id}>
-                      <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-surface-border">{t.deliveries_section.quantity}</th>
-                      <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-r border-surface-border">{t.deliveries_section.amount}</th>
-                    </Fragment>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-border bg-surface">
-                {memberList.length > 0 ? (
-                  memberList.map((row) => (
-                    <tr key={row.id} className="hover:bg-background/50 transition-colors">
-                      <td className="whitespace-nowrap py-3 pl-4 pr-3 font-medium text-foreground border-r border-surface-border">
-                        {row.info?.prenom} {row.info?.nom}
-                        <div className="text-xs text-foreground-muted">{row.info?.code_membre}</div>
-                      </td>
-                      {intrantsList.map(i => {
-                        const cell = row.intrants[i.id]
-                        return (
-                          <Fragment key={i.id}>
-                            <td className="whitespace-nowrap px-2 py-3 text-right text-foreground">
-                              {cell?.quantite ? cell.quantite.toLocaleString(dateLocale) : '-'}
-                            </td>
-                            <td className="whitespace-nowrap px-2 py-3 text-right text-foreground border-r border-surface-border">
-                              {cell?.montant ? cell.montant.toLocaleString(dateLocale) : '-'}
-                            </td>
-                          </Fragment>
-                        )
-                      })}
-                      <td className="whitespace-nowrap px-3 py-3 text-right text-foreground border-r border-surface-border">
-                        {row.interet ? row.interet.toLocaleString(dateLocale) : '-'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right font-bold text-danger bg-background/30">
-                        {row.totalDette.toLocaleString(dateLocale)}
-                      </td>
+      {(() => {
+        const hasInteret = memberList.some((row) => (row.interet || 0) > 0)
+        return (
+          <div className="flow-root mt-12" id="section-livraisons">
+            <div className="hidden print:block mb-4">
+              <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
+              <p className="text-sm text-foreground-muted">{t.deliveries_section.title} — {campagne.nom}</p>
+            </div>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold leading-6 text-foreground">{t.deliveries_section.title}</h3>
+                <p className="mt-1 text-sm text-foreground-muted">{t.deliveries_section.desc}</p>
+              </div>
+              <PrintSectionButton sectionId="section-livraisons" label={t.print} />
+            </div>
+            <div className="overflow-hidden shadow-sm ring-1 ring-surface-border sm:rounded-lg bg-surface">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-surface-border text-sm">
+                  <thead className="bg-background/50">
+                    <tr>
+                      <th scope="col" rowSpan={2} className="py-3 pl-4 pr-3 text-left font-semibold text-foreground border-r border-surface-border align-bottom">
+                        {t.deliveries_section.beneficiary}
+                      </th>
+                      {intrantsList.map(i => (
+                        <th key={i.id} scope="col" colSpan={2} className="px-3 py-2 text-center font-semibold text-foreground border-r border-surface-border bg-primary/5">
+                          {i.nom} <br/>
+                          <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString(dateLocale)}{unite}/u</span>
+                        </th>
+                      ))}
+                      {hasInteret && (
+                        <th scope="col" rowSpan={2} className="px-3 py-2 text-right font-semibold text-foreground align-bottom border-r border-surface-border">
+                          {t.deliveries_section.interest}
+                        </th>
+                      )}
+                      <th scope="col" rowSpan={2} className="px-3 py-3 text-right font-bold text-foreground align-bottom bg-background/80">
+                        {t.deliveries_section.total_global}
+                      </th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={intrantsList.length * 2 + 3} className="whitespace-nowrap py-8 text-center text-foreground-muted">
-                      {t.deliveries_section.empty}
-                    </td>
-                  </tr>
-                )}
-                
-                {/* Total Row */}
-                {memberList.length > 0 && (
-                  <tr className="bg-background/80 font-bold border-t-2 border-surface-border">
-                    <td className="whitespace-nowrap py-3 pl-4 pr-3 text-right text-foreground border-r border-surface-border">
-                      {t.deliveries_section.grand_total}
-                    </td>
-                    {intrantsList.map(i => {
-                      const totalQte = memberList.reduce((sum, row) => sum + (row.intrants[i.id]?.quantite || 0), 0)
-                      const totalMnt = memberList.reduce((sum, row) => sum + (row.intrants[i.id]?.montant || 0), 0)
-                      return (
+                    <tr>
+                      {intrantsList.map(i => (
                         <Fragment key={i.id}>
-                          <td className="whitespace-nowrap px-2 py-3 text-right text-foreground">
-                            {totalQte.toLocaleString(dateLocale)}
-                          </td>
-                          <td className="whitespace-nowrap px-2 py-3 text-right text-foreground border-r border-surface-border text-success">
-                            {totalMnt.toLocaleString(dateLocale)}
-                          </td>
+                          <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-surface-border">{t.deliveries_section.quantity}</th>
+                          <th scope="col" className="px-2 py-2 text-right font-medium text-foreground-muted border-t border-r border-surface-border">{t.deliveries_section.amount}</th>
                         </Fragment>
-                      )
-                    })}
-                    <td className="whitespace-nowrap px-3 py-3 text-right text-foreground border-r border-surface-border">
-                      {memberList.reduce((sum, row) => sum + row.interet, 0).toLocaleString(dateLocale)}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right text-primary font-bold">
-                      {memberList.reduce((sum, row) => sum + row.totalDette, 0).toLocaleString(dateLocale)}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-border bg-surface">
+                    {memberList.length > 0 ? (
+                      memberList.map((row) => (
+                        <tr key={row.id} className="hover:bg-background/50 transition-colors">
+                          <td className="whitespace-nowrap py-3 pl-4 pr-3 font-medium text-foreground border-r border-surface-border">
+                            {row.info?.prenom} {row.info?.nom}
+                            <div className="text-xs text-foreground-muted">{row.info?.code_membre}</div>
+                          </td>
+                          {intrantsList.map(i => {
+                            const cell = row.intrants[i.id]
+                            return (
+                              <Fragment key={i.id}>
+                                <td className="whitespace-nowrap px-2 py-3 text-right text-foreground">
+                                  {cell?.quantite ? cell.quantite.toLocaleString(dateLocale) : '-'}
+                                </td>
+                                <td className="whitespace-nowrap px-2 py-3 text-right text-foreground border-r border-surface-border">
+                                  {cell?.montant ? cell.montant.toLocaleString(dateLocale) : '-'}
+                                </td>
+                              </Fragment>
+                            )
+                          })}
+                          {hasInteret && (
+                            <td className="whitespace-nowrap px-3 py-3 text-right text-foreground border-r border-surface-border">
+                              {row.interet ? row.interet.toLocaleString(dateLocale) : '-'}
+                            </td>
+                          )}
+                          <td className="whitespace-nowrap px-3 py-3 text-right font-bold text-danger bg-background/30">
+                            {row.totalDette.toLocaleString(dateLocale)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={intrantsList.length * 2 + (hasInteret ? 3 : 2)} className="whitespace-nowrap py-8 text-center text-foreground-muted">
+                          {t.deliveries_section.empty}
+                        </td>
+                      </tr>
+                    )}
+                    
+                    {/* Total Row */}
+                    {memberList.length > 0 && (
+                      <tr className="bg-background/80 font-bold border-t-2 border-surface-border">
+                        <td className="whitespace-nowrap py-3 pl-4 pr-3 text-right text-foreground border-r border-surface-border">
+                          {t.deliveries_section.grand_total}
+                        </td>
+                        {intrantsList.map(i => {
+                          const totalQte = memberList.reduce((sum, row) => sum + (row.intrants[i.id]?.quantite || 0), 0)
+                          const totalMnt = memberList.reduce((sum, row) => sum + (row.intrants[i.id]?.montant || 0), 0)
+                          return (
+                            <Fragment key={i.id}>
+                              <td className="whitespace-nowrap px-2 py-3 text-right text-foreground">
+                                {totalQte.toLocaleString(dateLocale)}
+                              </td>
+                              <td className="whitespace-nowrap px-2 py-3 text-right text-foreground border-r border-surface-border text-success">
+                                {totalMnt.toLocaleString(dateLocale)}
+                              </td>
+                            </Fragment>
+                          )
+                        })}
+                        {hasInteret && (
+                          <td className="whitespace-nowrap px-3 py-3 text-right text-foreground border-r border-surface-border">
+                            {memberList.reduce((sum, row) => sum + row.interet, 0).toLocaleString(dateLocale)}
+                          </td>
+                        )}
+                        <td className="whitespace-nowrap px-3 py-3 text-right text-primary font-bold">
+                          {memberList.reduce((sum, row) => sum + row.totalDette, 0).toLocaleString(dateLocale)}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        )
+      })()}
     </div>
   )
 }

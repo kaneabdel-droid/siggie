@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Wallet, Scale } from 'lucide-react'
+import { Search, Wallet, Scale, CreditCard, FileCheck } from 'lucide-react'
 import PaiementModal from './PaiementModal'
 import { useUnite } from '@/components/DeviseProvider'
 import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
@@ -23,7 +23,7 @@ export default function RemboursementsClient({
   const unite = useUnite()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFacture, setSelectedFacture] = useState<any>(null)
-  const [paiementType, setPaiementType] = useState<'espece' | 'nature' | null>(null)
+  const [paiementType, setPaiementType] = useState<'espece' | 'nature' | 'bon' | 'cheque' | null>(null)
 
   const filteredFactures = factures.filter(f => 
     f.membre?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -137,20 +137,34 @@ export default function RemboursementsClient({
 
               <div className="space-y-4">
                 <h4 className="font-medium text-foreground">{dict.remboursements.details.record_payment}</h4>
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <button
                     onClick={() => setPaiementType('espece')}
-                    className="flex-1 p-4 rounded-lg border-2 border-dashed border-secondary/50 hover:bg-secondary/5 hover:border-secondary flex flex-col items-center justify-center gap-2 transition-colors"
+                    className="p-4 rounded-lg border-2 border-dashed border-secondary/50 hover:bg-secondary/5 hover:border-secondary flex flex-col items-center justify-center gap-2 transition-colors text-center"
                   >
-                    <Wallet className="h-8 w-8 text-secondary" />
-                    <span className="font-semibold text-foreground">{dict.remboursements.details.cash}</span>
+                    <Wallet className="h-7 w-7 text-secondary" />
+                    <span className="font-semibold text-foreground text-sm">{dict.remboursements.details.cash || 'Espèces'}</span>
+                  </button>
+                  <button 
+                    onClick={() => setPaiementType('cheque')}
+                    className="p-4 rounded-lg border-2 border-dashed border-info/50 hover:bg-info/5 hover:border-info flex flex-col items-center justify-center gap-2 transition-colors text-center"
+                  >
+                    <CreditCard className="h-7 w-7 text-info" />
+                    <span className="font-semibold text-foreground text-sm">Chèque / Banque</span>
+                  </button>
+                  <button 
+                    onClick={() => setPaiementType('bon')}
+                    className="p-4 rounded-lg border-2 border-dashed border-warning/50 hover:bg-warning/5 hover:border-warning flex flex-col items-center justify-center gap-2 transition-colors text-center"
+                  >
+                    <FileCheck className="h-7 w-7 text-warning" />
+                    <span className="font-semibold text-foreground text-sm">Par Bon</span>
                   </button>
                   <button 
                     onClick={() => setPaiementType('nature')}
-                    className="flex-1 p-4 rounded-lg border-2 border-dashed border-primary/50 hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-2 transition-colors"
+                    className="p-4 rounded-lg border-2 border-dashed border-primary/50 hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-2 transition-colors text-center"
                   >
-                    <Scale className="h-8 w-8 text-primary" />
-                    <span className="font-semibold text-foreground">{dict.remboursements.details.nature}</span>
+                    <Scale className="h-7 w-7 text-primary" />
+                    <span className="font-semibold text-foreground text-sm">{dict.remboursements.details.nature || 'En Nature'}</span>
                   </button>
                 </div>
               </div>

@@ -1,9 +1,16 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Edit2, X, Check } from 'lucide-react'
-import { addRubrique, setBudgetPrevision } from './actions'
+import { Plus, Edit2, Edit3, X, Check, Trash2, Folder, CornerDownRight, PlusCircle } from 'lucide-react'
+import { 
+  addRubrique, 
+  renameRubriqueGroupe, 
+  deleteRubriqueGroupe, 
+  updatePoste, 
+  deletePoste, 
+  setBudgetPrevision 
+} from './actions'
 import { useUnite } from '@/components/DeviseProvider'
 
 type Rubrique = {
@@ -15,31 +22,59 @@ type Rubrique = {
 
 function RubriqueList({
   campagneId,
+  categorie,
+  nature,
   rubriques,
   previsions,
   title,
   emptyLabel,
   amountPlaceholder,
+  onSelectRubrique,
+  onRefresh,
 }: {
   campagneId: string
+  categorie: 'exploitation' | 'materiel'
+  nature: string
   rubriques: Rubrique[]
   previsions: Record<string, number>
   title: string
   emptyLabel: string
   amountPlaceholder: string
+  onSelectRubrique: (libelle: string) => void
+  onRefresh: () => void
 }) {
   const unite = useUnite()
   const [isPending, startTransition] = useTransition()
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editValue, setEditValue] = useState('')
+  
+  // Édition montant prévision
+  const [editingPrevisionId, setEditingPrevisionId] = useState<string | null>(null)
+  const [editPrevisionValue, setEditPrevisionValue] = useState('')
 
-  const handleEditStart = (r: Rubrique) => {
-    setEditingId(r.id)
-    setEditValue(String(previsions[r.id] || 0))
-  }
+  // Renommage rubrique (groupe de postes)
+  const [renamingRubrique, setRenamingRubrique] = useState<string | null>(null)
+  const [newRubriqueName, setNewRubriqueName] = useState('')
 
-  const handleEditSave = (imputationId: string) => {
-    const montant = parseFloat(editValue)
+  // Renommage poste individuel
+  const [editingPosteId, setEditingPosteId] = useState<string | null>(null)
+  const [newPosteName, setNewPosteName] = useState('')
+
+  // Regroupement par Rubrique (libelle)
+  const rubriquesGroupes = useMemo(() => {
+    const groups: { libelle: string; postes: Rubrique[] }[] = []
+    const map = new Map<string, Rubrique[]>()
+    for (const r of rubriques) {
+      if (!map.has(r.libelle)) {
+        const arr: Rubrique[] = []
+        map.set(r.libelle, arr)
+        groups.push({ libelle: r.libelle, postes: arr })
+      }
+      map.get(r.libelle)!.push(r)
+    }
+    return groups
+  }, [rubriques])
+
+  const handlePrevisionSave = (imputationId: string) => {
+    const montant = parseFloat(editPrevisionValue)
     if (isNaN(montant)) return
 
     startTransition(async () => {
@@ -47,78 +82,326 @@ function RubriqueList({
       if (res?.error) {
         alert(res.error)
       } else {
-        setEditingId(null)
+        setEditingPrevisionId(null)
       }
     })
   }
 
-  const handleEditCancel = () => {
-    setEditingId(null)
-    setEditValue('')
+  const handleRenameRubrique = (oldLibelle: string) => {
+    const trimmed = newRubriqueName.trim()
+    if (!trimmed || trimmed === oldLibelle) {
+      setRenamingRubrique(null)
+      return
+    }
+
+    startTransition(async () => {
+      const res = await renameRubriqueGroupe(oldLibelle, trimmed, categorie, nature, campagneId)
+      if (res?.error) {
+        alert(res.error)
+      } else {
+        setRenamingRubrique(null)
+        onRefresh()
+      }
+    })
+  }
+
+  const handleDeleteRubrique = (libelle: string, count: number) => {
+    if (!window.confirm(`Supprimer la rubrique "${libelle}" ainsi que ses ${count} sous-rubrique(s) / poste(s) ?`)) {
+      return
+    }
+
+    startTransition(async () => {
+      const res = await deleteRubriqueGroupe(libelle, categorie, nature, campagneId)
+      if (res?.error) {
+        alert(res.error)
+      } else {
+        onRefresh()
+      }
+    })
+  }
+
+  const handleRenamePoste = (imputationId: string) => {
+    const trimmed = newPosteName.trim()
+    if (!trimmed) {
+      setEditingPosteId(null)
+      return
+    }
+
+    startTransition(async () => {
+      const res = await updatePoste(imputationId, trimmed, campagneId)
+      if (res?.error) {
+        alert(res.error)
+      } else {
+        setEditingPosteId(null)
+        onRefresh()
+      }
+    })
+  }
+
+  const handleDeletePoste = (p: Rubrique) => {
+    if (!window.confirm(`Supprimer le poste "${p.compte}" de la rubrique "${p.libelle}" ?`)) {
+      return
+    }
+
+    startTransition(async () => {
+      const res = await deletePoste(p.id, campagneId)
+      if (res?.error) {
+        alert(res.error)
+      } else {
+        onRefresh()
+      }
+    })
   }
 
   const total = rubriques.reduce((sum, r) => sum + (previsions[r.id] || 0), 0)
 
   return (
     <div>
-      <h5 className="px-4 pt-3 sm:px-5 text-xs font-semibold uppercase tracking-wider text-foreground-muted">{title}</h5>
-      {rubriques.length > 0 ? (
-        <ul role="list" className="divide-y divide-surface-border">
-          {rubriques.map((r) => (
-            <li key={r.id} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5 hover:bg-background/50 transition-colors">
-              <div className="min-w-0">
-                <span className="text-sm font-medium text-foreground truncate block">{r.libelle}</span>
-                <span className="text-xs text-foreground-muted truncate block">{r.compte}</span>
-              </div>
+      <h5 className="px-4 pt-3 sm:px-5 text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+        {title}
+      </h5>
 
-              {editingId === r.id ? (
-                <div className="flex items-center gap-2 shrink-0">
-                  <input
-                    type="number"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    placeholder={amountPlaceholder}
-                    className="w-28 rounded-md border-0 py-1 px-2 text-sm text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary"
-                    autoFocus
-                  />
-                  <button onClick={() => handleEditSave(r.id)} disabled={isPending} className="text-success hover:text-success/80">
-                    <Check className="h-5 w-5" />
-                  </button>
-                  <button onClick={handleEditCancel} disabled={isPending} className="text-foreground-muted hover:text-foreground">
-                    <X className="h-5 w-5" />
-                  </button>
+      {rubriquesGroupes.length > 0 ? (
+        <div className="divide-y divide-surface-border">
+          {rubriquesGroupes.map((group) => {
+            const subtotal = group.postes.reduce((s, p) => s + (previsions[p.id] || 0), 0)
+            const isRenaming = renamingRubrique === group.libelle
+
+            return (
+              <div key={group.libelle} className="bg-surface">
+                {/* En-tête de la Rubrique */}
+                <div className="flex items-center justify-between gap-2 px-4 py-2.5 sm:px-5 bg-background/50 border-b border-surface-border/50">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Folder className="h-4 w-4 text-primary shrink-0" />
+                    {isRenaming ? (
+                      <div className="flex items-center gap-1.5 flex-1 max-w-sm">
+                        <input
+                          type="text"
+                          value={newRubriqueName}
+                          onChange={(e) => setNewRubriqueName(e.target.value)}
+                          className="w-full rounded-md border-0 py-1 px-2 text-xs font-semibold text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-primary"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRenameRubrique(group.libelle)
+                            if (e.key === 'Escape') setRenamingRubrique(null)
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRenameRubrique(group.libelle)}
+                          disabled={isPending}
+                          className="text-success hover:text-success/80 p-1"
+                          title="Valider le renommage"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRenamingRubrique(null)}
+                          disabled={isPending}
+                          className="text-foreground-muted hover:text-foreground p-1"
+                          title="Annuler"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-xs font-bold uppercase tracking-wider text-foreground truncate">
+                          {group.libelle}
+                        </span>
+                        <span className="text-[11px] text-foreground-muted bg-surface px-1.5 py-0.5 rounded border border-surface-border shrink-0">
+                          {group.postes.length} {group.postes.length > 1 ? 'postes' : 'poste'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-semibold text-foreground">
+                      {subtotal.toLocaleString('fr-FR')}{unite}
+                    </span>
+
+                    {!isRenaming && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onSelectRubrique(group.libelle)}
+                          className="p-1 rounded text-primary hover:bg-primary/10 transition-colors"
+                          title={`Ajouter un poste à "${group.libelle}"`}
+                        >
+                          <PlusCircle className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRenamingRubrique(group.libelle)
+                            setNewRubriqueName(group.libelle)
+                          }}
+                          className="p-1 rounded text-foreground-muted hover:text-foreground hover:bg-surface transition-colors"
+                          title="Renommer la rubrique"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRubrique(group.libelle, group.postes.length)}
+                          className="p-1 rounded text-danger/70 hover:text-danger hover:bg-danger/10 transition-colors"
+                          title="Supprimer la rubrique et ses postes"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleEditStart(r)}
-                  disabled={isPending}
-                  className="shrink-0 inline-flex items-center gap-2 rounded-full bg-secondary/10 px-2.5 py-0.5 text-sm font-medium text-secondary hover:bg-secondary/20 transition-colors disabled:opacity-50"
-                >
-                  {(previsions[r.id] || 0).toLocaleString('fr-FR')}{unite}
-                  <Edit2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+
+                {/* Liste des postes / sous-rubriques */}
+                <ul role="list" className="divide-y divide-surface-border/40">
+                  {group.postes.map((p) => {
+                    const isEditingPoste = editingPosteId === p.id
+                    const isEditingPrevision = editingPrevisionId === p.id
+
+                    return (
+                      <li
+                        key={p.id}
+                        className="flex items-center justify-between gap-3 px-4 py-2 sm:px-6 hover:bg-background/40 transition-colors pl-8 sm:pl-10"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <CornerDownRight className="h-3.5 w-3.5 text-foreground-muted/60 shrink-0" />
+                          {isEditingPoste ? (
+                            <div className="flex items-center gap-1.5 flex-1 max-w-xs">
+                              <input
+                                type="text"
+                                value={newPosteName}
+                                onChange={(e) => setNewPosteName(e.target.value)}
+                                className="w-full rounded-md border-0 py-0.5 px-2 text-xs text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-primary"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRenamePoste(p.id)
+                                  if (e.key === 'Escape') setEditingPosteId(null)
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRenamePoste(p.id)}
+                                disabled={isPending}
+                                className="text-success hover:text-success/80 p-0.5"
+                                title="Enregistrer le nom du poste"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingPosteId(null)}
+                                disabled={isPending}
+                                className="text-foreground-muted hover:text-foreground p-0.5"
+                                title="Annuler"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 group/poste min-w-0">
+                              <span className="text-xs text-foreground font-medium truncate">{p.compte}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingPosteId(p.id)
+                                  setNewPosteName(p.compte)
+                                }}
+                                className="opacity-0 group-hover/poste:opacity-100 text-foreground-muted hover:text-foreground p-0.5 transition-opacity"
+                                title="Modifier le nom du poste"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Montant prévision & Suppression du poste */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isEditingPrevision ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                value={editPrevisionValue}
+                                onChange={(e) => setEditPrevisionValue(e.target.value)}
+                                placeholder={amountPlaceholder}
+                                className="w-24 rounded-md border-0 py-0.5 px-2 text-xs text-foreground bg-background shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-primary"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handlePrevisionSave(p.id)
+                                  if (e.key === 'Escape') setEditingPrevisionId(null)
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handlePrevisionSave(p.id)}
+                                disabled={isPending}
+                                className="text-success hover:text-success/80 p-0.5"
+                                title="Valider"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingPrevisionId(null)}
+                                disabled={isPending}
+                                className="text-foreground-muted hover:text-foreground p-0.5"
+                                title="Annuler"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingPrevisionId(p.id)
+                                setEditPrevisionValue(String(previsions[p.id] || 0))
+                              }}
+                              disabled={isPending}
+                              className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary hover:bg-secondary/20 transition-colors disabled:opacity-50"
+                              title="Cliquer pour modifier le montant prévu"
+                            >
+                              {(previsions[p.id] || 0).toLocaleString('fr-FR')}{unite}
+                              <Edit2 className="h-3 w-3" />
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePoste(p)}
+                            disabled={isPending}
+                            className="p-1 rounded text-foreground-muted/60 hover:text-danger hover:bg-danger/10 transition-colors"
+                            title="Supprimer ce poste"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )
+          })}
+        </div>
       ) : (
         <div className="px-4 py-4 text-center text-sm text-foreground-muted">
           {emptyLabel}
         </div>
       )}
-      <div className="border-t border-surface-border px-4 py-2 sm:px-5 flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground-muted">{title}</span>
+
+      <div className="border-t border-surface-border px-4 py-2 sm:px-5 flex items-center justify-between bg-surface">
+        <span className="text-xs font-medium text-foreground-muted">{title} (Total)</span>
         <span className="text-sm font-semibold text-foreground">{total.toLocaleString('fr-FR')}{unite}</span>
       </div>
     </div>
   )
 }
 
-// Types de consommation matériel, alignés sur les valeurs stockées par
-// materiel_consommations (voir AddConsommationModal.tsx) : la sous-rubrique
-// d'une dépense Matériel doit reprendre exactement ces valeurs pour que le
-// suivi budgétaire puisse rapprocher prévision et réalisation.
 const TYPES_CONSOMMATION = ['Carburant', 'Huile', 'Piece', 'Reparation', 'Autre'] as const
 const TYPE_CONSOMMATION_LABEL_KEY: Record<string, string> = {
   Carburant: 'type_fuel',
@@ -149,24 +432,39 @@ function RubriqueSection({
 }) {
   const unite = useUnite()
   const t = dict.campagnes_detail.config.budget
-  const tConso = dict.materiel_pages.consommations.form
+  const tConso = dict.materiel_pages?.consommations?.form || {}
   const [isPending, startTransition] = useTransition()
   const [libelle, setLibelle] = useState('')
   const [compte, setCompte] = useState('')
   const [nature, setNature] = useState('depense')
   const isMateriel = categorie === 'materiel'
+  const compteInputRef = useRef<HTMLInputElement>(null)
+
+  // Liste des rubriques existantes sous cette catégorie et nature pour autocomplétion
+  const existingRubriques = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of rubriques) {
+      if (r.nature === nature && r.libelle) {
+        set.add(r.libelle)
+      }
+    }
+    return Array.from(set)
+  }, [rubriques, nature])
 
   const handleAdd = () => {
     if (!libelle.trim() || !compte.trim()) return
 
     startTransition(async () => {
-      const res = await addRubrique(categorie, nature, libelle, compte)
+      const res = await addRubrique(categorie, nature, libelle, compte, campagneId)
       if (res?.error) {
         alert(res.error)
       } else {
-        setLibelle('')
+        // CONSERVER la rubrique (libelle) active pour enchaîner les postes sans ressaisir
         setCompte('')
         onRubriqueAdded()
+        setTimeout(() => {
+          compteInputRef.current?.focus()
+        }, 50)
       }
     })
   }
@@ -178,10 +476,29 @@ function RubriqueSection({
   const solde = totalRecettes - totalDepenses
 
   return (
-    <div className="bg-background/50 border border-surface-border rounded-lg overflow-hidden">
+    <div className="bg-background/50 border border-surface-border rounded-lg overflow-hidden flex flex-col justify-between">
       <div className="px-4 py-4 sm:px-5">
-        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+          {libelle.trim() && (
+            <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+              <span>Rubrique active : <strong>{libelle}</strong></span>
+              <button
+                type="button"
+                onClick={() => {
+                  setLibelle('')
+                  setCompte('')
+                }}
+                className="text-foreground-muted hover:text-foreground ml-1"
+                title="Changer de rubrique"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+        </div>
 
+        {/* Formulaire d'ajout rapide en chaîne */}
         <div className="mt-3 sm:flex sm:flex-wrap sm:items-center gap-2">
           <select
             value={nature}
@@ -192,6 +509,7 @@ function RubriqueSection({
             <option value="depense">{t.nature_depense}</option>
             <option value="recette">{t.nature_recette}</option>
           </select>
+
           {isMateriel ? (
             <select
               value={libelle}
@@ -205,15 +523,24 @@ function RubriqueSection({
               ))}
             </select>
           ) : (
-            <input
-              type="text"
-              placeholder={t.add_rubrique_placeholder_libelle}
-              value={libelle}
-              onChange={(e) => setLibelle(e.target.value)}
-              disabled={isPending}
-              className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-            />
+            <>
+              <input
+                type="text"
+                list={`suggestions-${categorie}-${nature}`}
+                placeholder={t.add_rubrique_placeholder_libelle || 'Rubrique (ex: Engrais, Semences...)'}
+                value={libelle}
+                onChange={(e) => setLibelle(e.target.value)}
+                disabled={isPending}
+                className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+              />
+              <datalist id={`suggestions-${categorie}-${nature}`}>
+                {existingRubriques.map((rub) => (
+                  <option key={rub} value={rub} />
+                ))}
+              </datalist>
+            </>
           )}
+
           {isMateriel && nature === 'depense' ? (
             <select
               value={compte}
@@ -223,28 +550,38 @@ function RubriqueSection({
             >
               <option value="">{t.select_type}</option>
               {TYPES_CONSOMMATION.map((type) => (
-                <option key={type} value={type}>{TYPE_CONSOMMATION_LABEL_KEY[type]
-                  ? tConso[TYPE_CONSOMMATION_LABEL_KEY[type]]
-                  : type}</option>
+                <option key={type} value={type}>
+                  {TYPE_CONSOMMATION_LABEL_KEY[type] ? tConso[TYPE_CONSOMMATION_LABEL_KEY[type]] : type}
+                </option>
               ))}
             </select>
           ) : (
             <input
+              ref={compteInputRef}
               type="text"
-              placeholder={isMateriel ? t.add_rubrique_placeholder_type_prestation : t.add_rubrique_placeholder_compte}
+              placeholder={isMateriel ? (t.add_rubrique_placeholder_type_prestation || 'Type de prestation') : (t.add_rubrique_placeholder_compte || 'Sous-rubrique / Poste (ex: Urée, DAP...)')}
               value={compte}
               onChange={(e) => setCompte(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleAdd()
+                }
+              }}
               disabled={isPending}
               className="mt-2 sm:mt-0 block w-full sm:w-auto sm:flex-1 rounded-md border-0 py-1.5 px-3 text-foreground bg-surface shadow-sm ring-1 ring-inset ring-surface-border focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
             />
           )}
+
           <button
             type="button"
             onClick={handleAdd}
             disabled={isPending || !libelle.trim() || !compte.trim()}
             className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
+            title="Ajouter ce poste à la rubrique"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
+            <span className="ml-1 sm:hidden">Ajouter</span>
           </button>
         </div>
       </div>
@@ -252,19 +589,35 @@ function RubriqueSection({
       <div className="border-t border-surface-border bg-surface divide-y divide-surface-border">
         <RubriqueList
           campagneId={campagneId}
+          categorie={categorie}
+          nature="recette"
           rubriques={recettes}
           previsions={previsions}
           title={t.recettes_title}
           emptyLabel={t.empty}
           amountPlaceholder={t.amount_placeholder}
+          onSelectRubrique={(rLibelle) => {
+            setLibelle(rLibelle)
+            setNature('recette')
+            setTimeout(() => compteInputRef.current?.focus(), 50)
+          }}
+          onRefresh={onRubriqueAdded}
         />
         <RubriqueList
           campagneId={campagneId}
+          categorie={categorie}
+          nature="depense"
           rubriques={depenses}
           previsions={previsions}
           title={t.depenses_title}
           emptyLabel={t.empty}
           amountPlaceholder={t.amount_placeholder}
+          onSelectRubrique={(rLibelle) => {
+            setLibelle(rLibelle)
+            setNature('depense')
+            setTimeout(() => compteInputRef.current?.focus(), 50)
+          }}
+          onRefresh={onRubriqueAdded}
         />
       </div>
 

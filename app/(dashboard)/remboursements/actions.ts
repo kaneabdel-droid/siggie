@@ -27,11 +27,12 @@ export async function getFacturesPourRemboursement() {
 export async function enregistrerRemboursement(
   factureId: string,
   membreId: string,
-  type: 'espece' | 'nature',
+  type: 'espece' | 'nature' | 'bon' | 'cheque',
   montantFcfa: number,
   quantiteNature?: number | null,
   produitNature?: string | null,
-  compteId?: string | null
+  compteId?: string | null,
+  referencePiece?: string | null
 ) {
   const denied = await requirePermission('remboursements', 'create')
   if (denied) return denied as never
@@ -48,9 +49,10 @@ export async function enregistrerRemboursement(
 
   if (!userData) return { error: "Utilisateur introuvable" }
 
-  // Un remboursement en espèces entre en trésorerie : le compte à créditer est obligatoire.
-  // En nature, il alimente le stock en nature et ne touche pas à la trésorerie.
-  if (type === 'espece' && !compteId) return { error: "Sélectionnez le compte de trésorerie à créditer" }
+  // Vérifications selon le moyen de paiement
+  if ((type === 'espece' || type === 'cheque') && !compteId) {
+    return { error: type === 'cheque' ? "Sélectionnez le compte bancaire de dépôt" : "Sélectionnez le compte de trésorerie à créditer" }
+  }
 
   // 1. Enregistrer dans la table remboursements
   const { data: remboursement, error: rembError } = await supabase
@@ -62,24 +64,38 @@ export async function enregistrerRemboursement(
       type_remboursement: type,
       montant_fcfa: montantFcfa,
       quantite_nature: type === 'nature' ? quantiteNature : null,
-      produit_nature: type === 'nature' ? produitNature : null
+      produit_nature: type === 'nature' ? produitNature : null,
+      compte_id: compteId || null,
+      reference_piece: referencePiece?.trim() || null,
     })
     .select('id')
     .single()
 
   if (rembError || !remboursement) return { error: rembError?.message || "Échec de l'enregistrement du remboursement" }
 
-  // 2. Entrée de trésorerie sur le compte choisi (espèces uniquement). En cas d'échec on annule
-  // le remboursement pour ne pas laisser un paiement sans écriture de trésorerie.
-  if (type === 'espece') {
+  // 2. Entrée de trésorerie sur le compte choisi (espèces, chèques, ou bons reliés à un compte).
+  if (compteId && (type === 'espece' || type === 'cheque' || type === 'bon')) {
     const { data: membre } = await supabase.from('membres').select('prenom, nom').eq('id', membreId).single()
+    const nomMembre = membre ? `${membre.prenom} ${membre.nom}` : 'membre'
+    
+    let motif = `Remboursement - ${nomMembre}`
+    let typePiece = 'remboursement_membre'
+
+    if (type === 'cheque') {
+      motif = `Remboursement par chèque ${referencePiece ? `N° ${referencePiece}` : ''} - ${nomMembre}`
+      typePiece = 'remboursement_cheque'
+    } else if (type === 'bon') {
+      motif = `Remboursement par bon ${referencePiece ? `N° ${referencePiece}` : ''} - ${nomMembre}`
+      typePiece = 'remboursement_bon'
+    }
+
     const { error: txError } = await supabase.from('transactions').insert({
       gie_id: userData.gie_id,
       compte_id: compteId,
       type_transaction: 'entree',
       montant: montantFcfa,
-      motif: `Remboursement - ${membre ? `${membre.prenom} ${membre.nom}` : 'membre'}`,
-      type_piece: 'remboursement_membre',
+      motif,
+      type_piece: typePiece,
     })
     if (txError) {
       await supabase.from('remboursements').delete().eq('id', remboursement.id)

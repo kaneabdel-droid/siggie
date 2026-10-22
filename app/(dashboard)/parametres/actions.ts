@@ -125,14 +125,14 @@ export async function creerCollaborateur(formData: FormData): Promise<{
       }
     }
 
-    // Détermination de l'e-mail auth : soit réel si fourni par l'utilisateur, soit alias synthétique interne
-    const authEmail = emailInput ? emailInput.toLowerCase() : genererEmailSynthetique(identifiant)
+    // Détermination de l'e-mail auth : soit réel si fourni par l'utilisateur, soit alias synthétique interne scopé au GIE
+    const authEmail = emailInput ? emailInput.toLowerCase() : genererEmailSynthetique(identifiant, tenant.gieId)
 
     const adminSupabase = createAdminClient()
 
-    // 1. Vérification unicité identifiant / téléphone
+    // 1. Vérification unicité identifiant / téléphone AU SEIN DU GIE
     const cleanPhone = telephone ? telephone.replace(/[^0-9+]/g, '') : null
-    let existantQuery = adminSupabase.from('utilisateurs').select('id')
+    let existantQuery = adminSupabase.from('utilisateurs').select('id').eq('gie_id', tenant.gieId)
     if (cleanPhone && cleanPhone.length >= 6) {
       existantQuery = existantQuery.or(`identifiant.ilike.${identifiant},telephone.ilike.%${cleanPhone}%`)
     } else {

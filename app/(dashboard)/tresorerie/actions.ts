@@ -68,6 +68,7 @@ export async function addCompte(nom: string, type_compte: string, solde_initial:
   if (error) return { error: error.message }
 
   revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
   return { success: true }
 }
 

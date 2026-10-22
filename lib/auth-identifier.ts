@@ -17,9 +17,10 @@ export function normaliserIdentifiant(input: string): string {
  * Génère un e-mail synthétique sécurisé pour Supabase Auth à partir d'un identifiant ou téléphone.
  * Cet e-mail est purement technique et n'est jamais affiché aux utilisateurs finaux.
  */
-export function genererEmailSynthetique(identifiantOuTelephone: string): string {
+export function genererEmailSynthetique(identifiantOuTelephone: string, gieId?: string): string {
   const clean = normaliserIdentifiant(identifiantOuTelephone).replace(/[^a-z0-9_.-]/g, '_')
-  return `${clean}@${DOMAINE_AUTH_INTERNE}`
+  const suffix = gieId ? `.${gieId.slice(0, 8)}` : ''
+  return `${clean}${suffix}@${DOMAINE_AUTH_INTERNE}`
 }
 
 /**

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { uniteMontant } from '@/lib/currency'
+import CampagneComparatifSection, { type CampagneStatData } from './CampagneComparatifSection'
 
 export default async function Dashboard() {
   const unite = uniteMontant((await getTenantContext())?.devise)
@@ -11,25 +12,113 @@ export default async function Dashboard() {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 
-  // Ces 5 requêtes sont indépendantes les unes des autres : les lancer en
-  // parallèle évite de cumuler leurs latences réseau sur la page la plus
-  // visitée de l'app. Seule la requête "factures" plus bas dépend du
-  // résultat de campagneData, elle reste donc séquentielle après ce bloc.
+  // Requêtes parallèles pour le tableau de bord et le comparatif inter-campagnes
   const [
     { count: membresCount },
     { data: campagneData },
     { data: recentsMembres },
     { data: comptes },
     { data: transactions },
+    { data: allCampagnes },
+    { data: allCampagneMembres },
+    { data: allFactures },
+    { data: allRemboursements },
   ] = await Promise.all([
     supabase.from('membres').select('*', { count: 'exact', head: true }),
-    supabase.from('campagnes').select('id, nom, statut').eq('statut', 'en_cours').order('created_at', { ascending: false }).limit(1).single(),
+    supabase.from('campagnes').select('id, nom, statut').eq('statut', 'en_cours').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     // Activités récentes (Derniers membres inscrits)
     supabase.from('membres').select('prenom, nom, created_at').order('created_at', { ascending: false }).limit(3),
     // Aperçu financier (Trésorerie)
     supabase.from('comptes').select('solde_initial'),
     supabase.from('transactions').select('type_transaction, montant'),
+    // Campagnes pour le comparatif inter-saisons
+    supabase.from('campagnes').select('id, nom, statut, date_debut, date_fin, produit_collecte, prix_collecte, created_at').order('created_at', { ascending: false }),
+    supabase.from('campagne_membres').select('campagne_id, superficie, superficie_validee'),
+    supabase.from('factures').select('id, campagne_id, montant_total, montant_interet, montant_paye'),
+    supabase.from('remboursements').select('facture_id, montant_fcfa, quantite_nature'),
   ])
+
+  // Indexation des factures et remboursements par campagne
+  const facturesByCampagne = new Map<string, any[]>()
+  const factureIdToCampagneId = new Map<string, string>()
+  for (const f of allFactures || []) {
+    if (f.campagne_id) {
+      if (!facturesByCampagne.has(f.campagne_id)) facturesByCampagne.set(f.campagne_id, [])
+      facturesByCampagne.get(f.campagne_id)!.push(f)
+      factureIdToCampagneId.set(f.id, f.campagne_id)
+    }
+  }
+
+  const remboursementsByCampagne = new Map<string, any[]>()
+  for (const r of allRemboursements || []) {
+    const campId = factureIdToCampagneId.get(r.facture_id)
+    if (campId) {
+      if (!remboursementsByCampagne.has(campId)) remboursementsByCampagne.set(campId, [])
+      remboursementsByCampagne.get(campId)!.push(r)
+    }
+  }
+
+  const membresByCampagne = new Map<string, any[]>()
+  for (const cm of allCampagneMembres || []) {
+    if (cm.campagne_id) {
+      if (!membresByCampagne.has(cm.campagne_id)) membresByCampagne.set(cm.campagne_id, [])
+      membresByCampagne.get(cm.campagne_id)!.push(cm)
+    }
+  }
+
+  // Construction des statistiques par campagne
+  const campagnesStats: CampagneStatData[] = (allCampagnes || []).map((c) => {
+    const fList = facturesByCampagne.get(c.id) || []
+    const rList = remboursementsByCampagne.get(c.id) || []
+    const mList = membresByCampagne.get(c.id) || []
+
+    const superficieTotal = mList.reduce((sum, m) => sum + (Number(m.superficie_validee) || Number(m.superficie) || 0), 0)
+    const countMembres = mList.length
+
+    const totalFacture = fList.reduce((sum, f) => sum + (Number(f.montant_total) || 0) + (Number(f.montant_interet) || 0), 0)
+    const totalPaye = fList.reduce((sum, f) => sum + (Number(f.montant_paye) || 0), 0)
+    const tauxRecouvrement = totalFacture > 0 ? Math.round((totalPaye / totalFacture) * 100) : 0
+    const totalCollecte = rList.reduce((sum, r) => sum + (Number(r.quantite_nature) || 0), 0)
+
+    const lower = c.nom.toLowerCase()
+    let typeDetecte = 'Hivernale'
+    if (lower.includes('csf') || lower.includes('froide')) {
+      if (lower.includes('oignon')) typeDetecte = 'CSF Oignon'
+      else if (lower.includes('tomate')) typeDetecte = 'CSF Tomate'
+      else if (lower.includes('pomme')) typeDetecte = 'CSF Pomme de terre'
+      else typeDetecte = 'CSF (Contre-Saison Froide)'
+    } else if (lower.includes('csc') || lower.includes('chaude')) {
+      if (lower.includes('riz')) typeDetecte = 'CSC Riz'
+      else if (lower.includes('mais') || lower.includes('maïs')) typeDetecte = 'CSC Maïs'
+      else typeDetecte = 'CSC (Contre-Saison Chaude)'
+    } else if (lower.includes('hiv') || lower.includes('hivernale') || lower.includes('hivernage')) {
+      typeDetecte = 'Hivernale'
+    } else {
+      const cleaned = c.nom.replace(/\b(19|20)\d{2}(-\d{2,4})?\b/g, '').replace(/[-_]/g, ' ').trim()
+      typeDetecte = cleaned || 'Générale'
+    }
+
+    const yearMatch = c.nom.match(/\b(19|20\d{2}(-\d{2,4})?)\b/)
+    const anneeDetectee = yearMatch ? yearMatch[0] : (c.date_debut ? new Date(c.date_debut).getFullYear().toString() : '')
+
+    return {
+      id: c.id,
+      nom: c.nom,
+      statut: c.statut,
+      date_debut: c.date_debut,
+      date_fin: c.date_fin,
+      produit_collecte: c.produit_collecte,
+      prix_collecte: c.prix_collecte ? Number(c.prix_collecte) : null,
+      typeDetecte,
+      anneeDetectee,
+      superficieTotal,
+      membresCount: countMembres,
+      totalFacture,
+      totalPaye,
+      tauxRecouvrement,
+      totalCollecte,
+    }
+  })
 
   const nomCampagne = campagneData?.nom || dict.dashboard.stats.season_none
 
@@ -123,6 +212,13 @@ export default async function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* Comparatif Inter-Campagnes (ex: Hivernale N vs N-1, CSF N vs N-1) */}
+      <CampagneComparatifSection 
+        campagnes={campagnesStats} 
+        unite={unite} 
+        dict={dict} 
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl bg-surface border border-surface-border shadow-sm overflow-hidden flex flex-col">
