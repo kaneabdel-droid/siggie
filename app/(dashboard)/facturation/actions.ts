@@ -148,7 +148,8 @@ export async function genererFacturesCampagne(campagneId: string) {
     .select(`
       membre_id,
       quantite,
-      intrant_id
+      intrant_id,
+      intrants ( prix_unitaire )
     `)
     .eq('campagne_id', campagneId)
 
@@ -177,7 +178,11 @@ export async function genererFacturesCampagne(campagneId: string) {
 
   if (distributions) {
     distributions.forEach(d => {
-      const prixFacturation = prixFacturationMap[d.intrant_id] || 0
+      const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
+      // Prix de facturation configuré pour la campagne (campagne_intrants.prix_facturation)
+      const prixFacturation = prixFacturationMap[d.intrant_id] !== undefined
+        ? prixFacturationMap[d.intrant_id]
+        : Number(intrant?.prix_unitaire || 0)
       const cout = Number(d.quantite) * prixFacturation
       montantsParMembre[d.membre_id] = (montantsParMembre[d.membre_id] || 0) + cout
     })

@@ -81,8 +81,12 @@ export function buildFactureWhatsAppText({
       const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
       if (intrant?.nom) {
         const key = `${intrant.nom}_${intrant.type_intrant || ''}`
+        // Priorité absolue au prix facturé de campagne (prix_facturation) plutôt qu'au prix d'achat
+        const prix = Number(
+          d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0)
+        )
         if (!grouped.has(key)) {
-          grouped.set(key, { nom: intrant.nom, qte: 0, prix: Number(intrant.prix_unitaire || 0) })
+          grouped.set(key, { nom: intrant.nom, qte: 0, prix })
         }
         grouped.get(key)!.qte += Number(d.quantite || 0)
       }
@@ -188,10 +192,11 @@ export async function generateFacturePdf({
       if (mData) membreDetails = mData
     }
 
-    const [distRes, credRes] = await Promise.all([
+    const [distRes, credRes, ciRes] = await Promise.all([
       supabase
         .from('distribution_intrants')
         .select(`
+          intrant_id,
           quantite,
           intrants (nom, type_intrant, prix_unitaire)
         `)
@@ -203,10 +208,40 @@ export async function generateFacturePdf({
         .eq('membre_id', membreId)
         .eq('campagne_id', campagneId)
         .eq('statut', 'valide'),
+      supabase
+        .from('campagne_intrants')
+        .select('intrant_id, prix_facturation')
+        .eq('campagne_id', campagneId),
     ])
 
-    if (distRes.data) distributions = distRes.data
-    if (credRes.data) credits = credRes.data
+    const prixFacturationMap = new Map<string, number>()
+    if (ciRes?.data) {
+      ciRes.data.forEach((ci: any) => {
+        prixFacturationMap.set(ci.intrant_id, Number(ci.prix_facturation) || 0)
+      })
+    }
+
+    if (distRes?.data) {
+      distributions = distRes.data.map((d: any) => {
+        const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
+        // Prix de facturation de la campagne (et non le prix d'achat catalogue)
+        const prixFacturation = prixFacturationMap.has(d.intrant_id)
+          ? prixFacturationMap.get(d.intrant_id)!
+          : Number(intrant?.prix_unitaire || 0)
+
+        return {
+          ...d,
+          prix_facturation: prixFacturation,
+          intrants: intrant
+            ? {
+                ...intrant,
+                prix_facturation: prixFacturation,
+              }
+            : intrant,
+        }
+      })
+    }
+    if (credRes?.data) credits = credRes.data
   }
 
   const doc = new jsPDF()
@@ -280,15 +315,18 @@ export async function generateFacturePdf({
       const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
       if (intrant && intrant.nom) {
         const key = `${intrant.nom}_${intrant.type_intrant || ''}`
+        const prixFact = Number(
+          d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0)
+        )
         if (!groupedDist.has(key)) {
-          groupedDist.set(key, { ...intrant, quantite_total: 0 })
+          groupedDist.set(key, { ...intrant, quantite_total: 0, prix_facturation: prixFact })
         }
         groupedDist.get(key).quantite_total += Number(d.quantite || 0)
       }
     })
 
     groupedDist.forEach((item) => {
-      const prix = item.prix_unitaire || 0
+      const prix = item.prix_facturation ?? item.prix_unitaire ?? 0
       const total = item.quantite_total * prix
       tableBody.push([
         `${item.nom} (${item.type_intrant || 'Intrant'})`,
