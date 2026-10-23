@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trash2, Edit } from 'lucide-react'
 import { deleteDistribution, updateDistribution } from './actions'
 
 export default function DistributionRowActions({ id, intrantNom, quantite, dict }: { id: string, intrantNom: string, quantite: number, dict: any }) {
+  const router = useRouter()
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [newQuantite, setNewQuantite] = useState(quantite.toString())
@@ -19,6 +21,7 @@ export default function DistributionRowActions({ id, intrantNom, quantite, dict 
       alert(res.error)
     } else {
       setIsDeleteOpen(false)
+      router.refresh()
     }
   }
 
@@ -38,6 +41,7 @@ export default function DistributionRowActions({ id, intrantNom, quantite, dict 
       alert(res.error)
     } else {
       setIsEditOpen(false)
+      router.refresh()
     }
   }
 

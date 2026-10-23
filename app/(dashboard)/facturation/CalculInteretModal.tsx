@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Percent } from 'lucide-react'
 import { calculerInteret } from './actions'
 
@@ -11,6 +12,7 @@ export default function CalculInteretModal({
   campagnes: { id: string; nom: string }[]
   dict: any
 }) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const t = dict.facturation_extra.interet
@@ -28,6 +30,7 @@ export default function CalculInteretModal({
       alert(res.error)
     } else {
       setIsOpen(false)
+      router.refresh()
     }
   }
 

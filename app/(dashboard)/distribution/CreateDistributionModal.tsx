@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { addDistributionsByIntrant, addDistributionsByMembre } from './actions'
 import { isStockableType, isForfaitaireType, isSuperficieBasedType } from '@/lib/intrants/types'
@@ -27,6 +28,7 @@ export default function CreateDistributionModal({
   dejaDistribue: Record<string, number>
   dict: any
 }) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<'intrant' | 'membre'>('intrant')
@@ -54,6 +56,7 @@ export default function CreateDistributionModal({
   const closeAndReset = () => {
     setIsOpen(false)
     resetForm()
+    router.refresh()
   }
 
   // Derived data
