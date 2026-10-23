@@ -21,8 +21,21 @@ export async function addMembre(formData: FormData) {
     
   if (!userData) throw new Error("Utilisateur introuvable")
 
+  // Auto-génération séquentielle du code membre s'il n'est pas spécifié
+  let codeMembre = (formData.get('code_membre') as string)?.trim()
+  if (!codeMembre) {
+    const { count } = await supabase
+      .from('membres')
+      .select('id', { count: 'exact', head: true })
+      .eq('gie_id', userData.gie_id)
+
+    const nextIndex = (count || 0) + 1
+    codeMembre = `M-${String(nextIndex).padStart(3, '0')}`
+  }
+
   const data = {
     gie_id: userData.gie_id,
+    code_membre: codeMembre,
     nom: formData.get('nom'),
     prenom: formData.get('prenom'),
     village: formData.get('village'),
@@ -48,7 +61,7 @@ export async function updateMembre(id: string, formData: FormData) {
   if (denied) return denied as never
   const supabase = await createClient()
 
-  const data = {
+  const data: Record<string, any> = {
     nom: formData.get('nom'),
     prenom: formData.get('prenom'),
     village: formData.get('village'),
@@ -56,6 +69,11 @@ export async function updateMembre(id: string, formData: FormData) {
     superficie: parseFloat(formData.get('superficie') as string) || 0,
     solde_initial: parseFloat(formData.get('solde_initial') as string) || 0,
     statut: formData.get('statut')
+  }
+
+  const codeMembre = (formData.get('code_membre') as string)?.trim()
+  if (codeMembre !== undefined) {
+    data.code_membre = codeMembre || null
   }
 
   const { error } = await supabase

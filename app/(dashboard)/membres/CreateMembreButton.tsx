@@ -43,6 +43,12 @@ export default function CreateMembreButton({ dict }: { dict: any }) {
                 </h3>
                 <form action={handleSubmit} id="add-membre-form" className="space-y-4">
                   <div>
+                    <label className="block text-sm font-medium text-foreground">
+                      Code membre <span className="text-xs text-foreground-muted font-normal">(optionnel - généré auto ex: M-001)</span>
+                    </label>
+                    <input type="text" name="code_membre" placeholder="Laisser vide pour attribution auto" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.last_name}</label>
                     <input type="text" name="nom" required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
                   </div>

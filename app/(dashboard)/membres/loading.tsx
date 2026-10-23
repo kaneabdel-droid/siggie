@@ -26,7 +26,8 @@ export default function MembresLoading() {
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left sm:pl-6"><Skeleton className="h-4 w-24" /></th>
+                    <th scope="col" className="py-3.5 pl-4 pr-2 text-left sm:pl-6 w-14"><Skeleton className="h-4 w-6" /></th>
+                    <th scope="col" className="py-3.5 pl-3 pr-3 text-left"><Skeleton className="h-4 w-24" /></th>
                     <th scope="col" className="px-3 py-3.5 text-left"><Skeleton className="h-4 w-20" /></th>
                     <th scope="col" className="px-3 py-3.5 text-left"><Skeleton className="h-4 w-24" /></th>
                     <th scope="col" className="px-3 py-3.5 text-left"><Skeleton className="h-4 w-16" /></th>
@@ -38,7 +39,8 @@ export default function MembresLoading() {
                 <tbody className="divide-y divide-surface-border bg-surface">
                   {[...Array(5)].map((_, i) => (
                     <tr key={i}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-6"><Skeleton className="h-4 w-32" /></td>
+                      <td className="whitespace-nowrap py-4 pl-4 pr-2 sm:pl-6"><Skeleton className="h-4 w-6" /></td>
+                      <td className="whitespace-nowrap py-4 pl-3 pr-3"><Skeleton className="h-4 w-32" /></td>
                       <td className="whitespace-nowrap px-3 py-4"><Skeleton className="h-4 w-24" /></td>
                       <td className="whitespace-nowrap px-3 py-4"><Skeleton className="h-4 w-32" /></td>
                       <td className="whitespace-nowrap px-3 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>

@@ -589,7 +589,7 @@
     },
     "modal": {
       "title": "Générer les factures de la campagne",
-      "desc": "Cette action va additionner les intrants reçus et les crédits validés pour chaque membre, et générer ou mettre à jour les factures.",
+      "desc": "Cette action va additionner les intrants distribués à chaque membre, et générer ou mettre à jour les factures en temps réel.",
       "campaign": "Campagne",
       "select_campaign": "Sélectionnez une campagne",
       "generating": "Génération...",

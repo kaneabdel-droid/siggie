@@ -187,17 +187,7 @@ export async function genererFacturesCampagne(campagneId: string) {
     })
   }
 
-  // 2. Récupérer tous les crédits validés pour cette campagne et ce GIE
-  const { data: credits, error: credError } = await supabase
-    .from('credits')
-    .select('membre_id, montant_demande, montant_accorde')
-    .eq('campagne_id', campagneId)
-    .eq('gie_id', userData.gie_id)
-    .eq('statut', 'valide')
-
-  if (credError) return { error: credError.message }
-
-  // 3. Agréger par membre
+  // 2. Agréger par membre les coûts des intrants distribués
   const montantsParMembre: Record<string, number> = {}
 
   if (distributions) {
@@ -208,13 +198,6 @@ export async function genererFacturesCampagne(campagneId: string) {
         : Number(intrant?.prix_unitaire || 0)
       const cout = Number(d.quantite || 0) * prixFacturation
       montantsParMembre[d.membre_id] = (montantsParMembre[d.membre_id] || 0) + cout
-    })
-  }
-
-  if (credits) {
-    credits.forEach(c => {
-      const montantCredit = Number(c.montant_accorde) > 0 ? Number(c.montant_accorde) : Number(c.montant_demande || 0)
-      montantsParMembre[c.membre_id] = (montantsParMembre[c.membre_id] || 0) + montantCredit
     })
   }
 

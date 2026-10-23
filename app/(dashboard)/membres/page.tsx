@@ -32,7 +32,12 @@ export default async function MembresPage({
     <div>
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto min-w-0">
-          <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.membres.title}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.membres.title}</h2>
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              {membres?.length || 0} membre{(membres?.length || 0) > 1 ? 's' : ''}
+            </span>
+          </div>
           <p className="mt-2 text-sm text-foreground-muted">
             {dict.membres.desc}
           </p>
@@ -55,7 +60,10 @@ export default async function MembresPage({
               <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">
+                    <th scope="col" className="py-3.5 pl-4 pr-2 text-left text-xs font-semibold text-foreground-muted sm:pl-6 w-14">
+                      N°
+                    </th>
+                    <th scope="col" className="py-3.5 pl-3 pr-3 text-left text-sm font-semibold text-foreground">
                       {dict.membres.table.name}
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
@@ -80,10 +88,20 @@ export default async function MembresPage({
                 </thead>
                 <tbody className="divide-y divide-surface-border bg-surface">
                   {membres && membres.length > 0 ? (
-                    membres.map((membre) => (
+                    membres.map((membre, index) => (
                       <tr key={membre.id} className="hover:bg-background/50 transition-colors">
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-foreground sm:pl-6">
-                          {membre.nom} {membre.prenom}
+                        <td className="whitespace-nowrap py-4 pl-4 pr-2 text-xs font-mono font-semibold text-foreground-muted sm:pl-6">
+                          {String(index + 1).padStart(2, '0')}
+                        </td>
+                        <td className="whitespace-nowrap py-4 pl-3 pr-3 text-sm font-medium text-foreground">
+                          <div className="flex items-center gap-2">
+                            <span>{membre.nom} {membre.prenom}</span>
+                            {membre.code_membre && (
+                              <span className="inline-flex items-center rounded bg-background px-1.5 py-0.5 text-[11px] font-mono font-medium text-foreground-muted border border-surface-border">
+                                {membre.code_membre}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">
                           {membre.village || '-'}
@@ -117,7 +135,7 @@ export default async function MembresPage({
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
+                      <td colSpan={8} className="whitespace-nowrap py-8 text-center text-sm text-foreground-muted">
                         {dict.membres.empty}
                       </td>
                     </tr>

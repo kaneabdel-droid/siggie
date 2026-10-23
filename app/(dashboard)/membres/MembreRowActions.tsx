@@ -6,6 +6,7 @@ import { updateMembre, deleteMembre } from './actions'
 
 type Membre = {
   id: string
+  code_membre?: string | null
   nom: string
   prenom: string
   village: string | null
@@ -66,6 +67,10 @@ export default function MembreRowActions({ membre, dict }: { membre: Membre; dic
                   {d.modal.edit_title}
                 </h3>
                 <form action={handleEdit} id={`edit-form-${membre.id}`} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Code membre</label>
+                    <input type="text" name="code_membre" defaultValue={membre.code_membre || ''} placeholder="Ex: M-001" className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{d.modal.last_name}</label>
                     <input type="text" name="nom" defaultValue={membre.nom} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />

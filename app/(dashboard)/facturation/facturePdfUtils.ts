@@ -192,7 +192,7 @@ export async function generateFacturePdf({
       if (mData) membreDetails = mData
     }
 
-    const [distRes, credRes, ciRes] = await Promise.all([
+    const [distRes, ciRes] = await Promise.all([
       supabase
         .from('distribution_intrants')
         .select(`
@@ -202,12 +202,6 @@ export async function generateFacturePdf({
         `)
         .eq('membre_id', membreId)
         .eq('campagne_id', campagneId),
-      supabase
-        .from('credits')
-        .select('montant_demande, but_credit')
-        .eq('membre_id', membreId)
-        .eq('campagne_id', campagneId)
-        .eq('statut', 'valide'),
       supabase
         .from('campagne_intrants')
         .select('intrant_id, prix_facturation')
@@ -224,7 +218,6 @@ export async function generateFacturePdf({
     if (distRes?.data) {
       distributions = distRes.data.map((d: any) => {
         const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
-        // Prix de facturation de la campagne (et non le prix d'achat catalogue)
         const prixFacturation = prixFacturationMap.has(d.intrant_id)
           ? prixFacturationMap.get(d.intrant_id)!
           : Number(intrant?.prix_unitaire || 0)
@@ -241,7 +234,6 @@ export async function generateFacturePdf({
         }
       })
     }
-    if (credRes?.data) credits = credRes.data
   }
 
   const doc = new jsPDF()
