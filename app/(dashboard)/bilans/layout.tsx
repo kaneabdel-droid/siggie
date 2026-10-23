@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { LayoutDashboard, User, Users, ClipboardList, Scale } from 'lucide-react'
+import { LayoutDashboard, User, Users, ClipboardList, Scale, GitCompare } from 'lucide-react'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -68,6 +68,13 @@ export default async function BilansLayout({
         >
           <ClipboardList className="w-4 h-4" />
           {dict.bilans.tabs.suivi_budgetaire}
+        </Link>
+        <Link
+          href="/dashboard#comparatif-campagnes"
+          className="bg-surface text-foreground-muted hover:text-primary rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+        >
+          <GitCompare className="w-4 h-4 text-primary" />
+          Comparatif Campagnes (N vs N-1)
         </Link>
       </nav>
 

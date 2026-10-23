@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -16,7 +17,9 @@ import {
   Sparkles,
   BarChart3,
   Percent,
-  HelpCircle
+  HelpCircle,
+  Lock,
+  ArrowRight
 } from 'lucide-react'
 
 export type CampagneStatData = {
@@ -41,12 +44,14 @@ interface CampagneComparatifProps {
   campagnes: CampagneStatData[]
   unite?: string
   dict?: any
+  isPremium?: boolean
 }
 
 export default function CampagneComparatifSection({
   campagnes,
   unite = 'FCFA',
-  dict
+  dict,
+  isPremium = false,
 }: CampagneComparatifProps) {
   // Types disponibles parmi les campagnes
   const typesDisponibles = useMemo(() => {
@@ -157,12 +162,173 @@ export default function CampagneComparatifSection({
     }
   }, [campN, campN1, unite])
 
+  if (!isPremium) {
+    return (
+      <div id="comparatif-campagnes" className="bg-surface border border-surface-border rounded-xl shadow-sm overflow-hidden transition-all relative">
+        {/* Accent top gradient line */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-emerald-500 to-indigo-500" />
+
+        {/* Header */}
+        <div className="p-6 border-b border-surface-border bg-gradient-to-r from-background via-surface to-background flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                <GitCompare className="h-5 w-5" />
+              </span>
+              <h3 className="text-lg font-bold font-heading text-foreground">
+                Comparatif Inter-Campagnes (N vs N-1)
+              </h3>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                <Sparkles className="h-3 w-3" />
+                Module Réservé Premium
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-foreground-muted max-w-2xl">
+              Comparez les campagnes de même saisonnalité (Hivernale N vs N-1, CSF N vs N-1) pour évaluer la croissance des superficies, des crédits d&apos;intrants et du taux de recouvrement.
+            </p>
+          </div>
+
+          <Link
+            href="/abonnement"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold text-xs shadow-sm hover:bg-primary/90 transition shrink-0"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Passer à la formule Premium
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {/* Teaser area with decorative background mockup and central upgrade card */}
+        <div className="relative p-6 sm:p-10 bg-background/50 overflow-hidden">
+          {/* Blurred decorative preview mockup in background */}
+          <div className="select-none pointer-events-none opacity-40 blur-[2px] transition-all" aria-hidden="true">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-surface rounded-xl p-4 border border-surface-border">
+                <div className="flex items-center justify-between text-xs text-foreground-muted">
+                  <span>Superficie Emblavée</span>
+                  <Layers className="h-4 w-4 text-emerald-500" />
+                </div>
+                <div className="mt-2 text-2xl font-bold text-foreground">148.5 ha</div>
+                <div className="mt-2 text-xs text-success font-semibold flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5" /> +22.4 ha (+17.8%)
+                </div>
+              </div>
+
+              <div className="bg-surface rounded-xl p-4 border border-surface-border">
+                <div className="flex items-center justify-between text-xs text-foreground-muted">
+                  <span>Producteurs Engagés</span>
+                  <Users className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="mt-2 text-2xl font-bold text-foreground">86 membres</div>
+                <div className="mt-2 text-xs text-success font-semibold flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5" /> +14 membres (+19.4%)
+                </div>
+              </div>
+
+              <div className="bg-surface rounded-xl p-4 border border-surface-border">
+                <div className="flex items-center justify-between text-xs text-foreground-muted">
+                  <span>Crédit Intrants Engagé</span>
+                  <Banknote className="h-4 w-4 text-amber-500" />
+                </div>
+                <div className="mt-2 text-2xl font-bold text-foreground">34.8 M FCFA</div>
+                <div className="mt-2 text-xs text-primary font-semibold flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5" /> +4.2 M (+13.7%)
+                </div>
+              </div>
+
+              <div className="bg-surface rounded-xl p-4 border border-surface-border">
+                <div className="flex items-center justify-between text-xs text-foreground-muted">
+                  <span>Taux de Recouvrement</span>
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                </div>
+                <div className="mt-2 text-2xl font-bold text-foreground">96%</div>
+                <div className="mt-2 text-xs text-success font-semibold flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5" /> +8 pts vs N-1
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-surface rounded-xl p-5 border border-surface-border h-48 flex items-center justify-center">
+                <div className="flex items-end gap-6 h-32 w-full max-w-md justify-around">
+                  <div className="w-12 bg-emerald-500 rounded-t h-28" />
+                  <div className="w-12 bg-indigo-500 rounded-t h-20" />
+                  <div className="w-12 bg-emerald-500 rounded-t h-24" />
+                  <div className="w-12 bg-indigo-500 rounded-t h-16" />
+                </div>
+              </div>
+              <div className="bg-surface rounded-xl p-5 border border-surface-border h-48" />
+            </div>
+          </div>
+
+          {/* Foreground Glassmorphic Locked Card */}
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="relative max-w-xl w-full bg-surface/90 backdrop-blur-md rounded-2xl border border-surface-border shadow-xl p-6 sm:p-8 text-center ring-1 ring-primary/10">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-emerald-600 text-white shadow-md shadow-primary/25 mb-4">
+                <Lock className="h-6 w-6" />
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary uppercase tracking-wider mb-2">
+                <Sparkles className="h-3 w-3" /> Fonctionnalité Premium
+              </span>
+
+              <h4 className="text-xl sm:text-2xl font-bold font-heading text-foreground">
+                Débloquez le Comparatif Inter-Campagnes
+              </h4>
+
+              <p className="mt-2 text-sm text-foreground-muted leading-relaxed max-w-md mx-auto">
+                Pilotez la performance de votre coopérative d&apos;une saison à l&apos;autre avec des analyses détaillées, graphiques comparatifs et diagnostics d&apos;aide à la décision.
+              </p>
+
+              {/* Avantages clés */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left text-xs text-foreground bg-background/60 p-4 rounded-xl border border-surface-border">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Comparaison automatique saison par saison (Hivernale N vs N-1, CSF)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Évolution des superficies emblavées et productivité</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Analyse des crédits engagés et indicateurs de solvabilité</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Graphiques doubles barres & diagnostics analytiques</span>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  href="/abonnement"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm shadow hover:bg-primary/90 transition"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Passer à la formule Premium
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/campagnes"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-surface-border bg-surface text-foreground font-semibold text-sm hover:bg-background transition"
+                >
+                  Voir mes campagnes
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (campagnes.length === 0) {
     return null
   }
 
   return (
-    <div className="bg-surface border border-surface-border rounded-xl shadow-sm overflow-hidden transition-all">
+    <div id="comparatif-campagnes" className="bg-surface border border-surface-border rounded-xl shadow-sm overflow-hidden transition-all">
       {/* Header */}
       <div className="p-6 border-b border-surface-border bg-gradient-to-r from-background via-surface to-background flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -173,8 +339,9 @@ export default function CampagneComparatifSection({
             <h3 className="text-lg font-bold font-heading text-foreground">
               Comparatif Inter-Campagnes (N vs N-1)
             </h3>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/20">
-              Analyse de performance
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Formule Premium
             </span>
           </div>
           <p className="mt-1 text-sm text-foreground-muted">

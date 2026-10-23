@@ -144,7 +144,7 @@
     "plans": {
       "standard_resume": "L'essentiel pour gérer un GIE : membres, campagnes, stock et trésorerie.",
       "medium_resume": "Tout Standard, plus le suivi complet du matériel agricole.",
-      "premium_resume": "Tout Medium, plus les bilans, états budgétaires et le tour de casier (validation des superficies)."
+      "premium_resume": "Tout Medium, plus les bilans, états budgétaires, le tour de casier et le comparatif inter-campagnes."
     }
   },
   "auth": {
@@ -1288,7 +1288,9 @@
           "Cotisations",
           "Emprunts",
           "Gestion du matériel & stocks",
-          "États de suivi budgétaire avancés"
+          "États de suivi budgétaire avancés",
+          "Tour de casier (validation des superficies)",
+          "Comparatif inter-campagnes (N vs N-1)"
         ]
       }
     }
@@ -1971,6 +1973,12 @@
                 ],
                 [
                   "Bilans & Relevés",
+                  "—",
+                  "—",
+                  "✓"
+                ],
+                [
+                  "Comparatif inter-campagnes (N vs N-1)",
                   "—",
                   "—",
                   "✓"

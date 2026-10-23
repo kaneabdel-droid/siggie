@@ -7,7 +7,9 @@ import { uniteMontant } from '@/lib/currency'
 import CampagneComparatifSection, { type CampagneStatData } from './CampagneComparatifSection'
 
 export default async function Dashboard() {
-  const unite = uniteMontant((await getTenantContext())?.devise)
+  const tenant = await getTenantContext()
+  const isPremium = tenant?.subscriptionTier === 'premium'
+  const unite = uniteMontant(tenant?.devise)
   const supabase = await createClient()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
@@ -19,10 +21,10 @@ export default async function Dashboard() {
     { data: recentsMembres },
     { data: comptes },
     { data: transactions },
-    { data: allCampagnes },
-    { data: allCampagneMembres },
-    { data: allFactures },
-    { data: allRemboursements },
+    campagnesRes,
+    campagneMembresRes,
+    facturesRes,
+    remboursementsRes,
   ] = await Promise.all([
     supabase.from('membres').select('*', { count: 'exact', head: true }),
     supabase.from('campagnes').select('id, nom, statut').eq('statut', 'en_cours').order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -31,12 +33,25 @@ export default async function Dashboard() {
     // Aperçu financier (Trésorerie)
     supabase.from('comptes').select('solde_initial'),
     supabase.from('transactions').select('type_transaction, montant'),
-    // Campagnes pour le comparatif inter-saisons
-    supabase.from('campagnes').select('id, nom, statut, date_debut, date_fin, produit_collecte, prix_collecte, created_at').order('created_at', { ascending: false }),
-    supabase.from('campagne_membres').select('campagne_id, superficie, superficie_validee'),
-    supabase.from('factures').select('id, campagne_id, montant_total, montant_interet, montant_paye'),
-    supabase.from('remboursements').select('facture_id, montant_fcfa, quantite_nature'),
+    // Campagnes pour le comparatif inter-saisons (disponible uniquement pour l'abonnement Premium)
+    isPremium
+      ? supabase.from('campagnes').select('id, nom, statut, date_debut, date_fin, produit_collecte, prix_collecte, created_at').order('created_at', { ascending: false })
+      : Promise.resolve({ data: null }),
+    isPremium
+      ? supabase.from('campagne_membres').select('campagne_id, superficie, superficie_validee')
+      : Promise.resolve({ data: null }),
+    isPremium
+      ? supabase.from('factures').select('id, campagne_id, montant_total, montant_interet, montant_paye')
+      : Promise.resolve({ data: null }),
+    isPremium
+      ? supabase.from('remboursements').select('facture_id, montant_fcfa, quantite_nature')
+      : Promise.resolve({ data: null }),
   ])
+
+  const allCampagnes = campagnesRes?.data
+  const allCampagneMembres = campagneMembresRes?.data
+  const allFactures = facturesRes?.data
+  const allRemboursements = remboursementsRes?.data
 
   // Indexation des factures et remboursements par campagne
   const facturesByCampagne = new Map<string, any[]>()
@@ -218,6 +233,7 @@ export default async function Dashboard() {
         campagnes={campagnesStats} 
         unite={unite} 
         dict={dict} 
+        isPremium={isPremium}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

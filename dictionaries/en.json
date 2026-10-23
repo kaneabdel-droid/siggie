@@ -144,7 +144,7 @@
     "plans": {
       "standard_resume": "The essentials to manage a group: members, seasons, stock and treasury.",
       "medium_resume": "Everything in Standard, plus full tracking of agricultural equipment.",
-      "premium_resume": "Everything in Medium, plus statements, budget tracking and acreage validation (tour de casier)."
+      "premium_resume": "Everything in Medium, plus statements, budget tracking, acreage validation and comparative campaign analysis (N vs N-1)."
     }
   },
   "auth": {
@@ -1285,7 +1285,9 @@
           "Contributions",
           "Loans",
           "Equipment & stock management",
-          "Advanced budget tracking statements"
+          "Advanced budget tracking statements",
+          "Acreage validation (tour de casier)",
+          "Comparative campaign analysis (N vs N-1)"
         ]
       }
     }

@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { Calendar, Settings, FileText, PieChart, CheckSquare } from 'lucide-react'
+import { Calendar, Settings, FileText, PieChart, CheckSquare, GitCompare } from 'lucide-react'
 import Link from 'next/link'
 import CreateCampagneButton from './CreateCampagneButton'
 import CampagneRowActions from './CampagneRowActions'
@@ -41,7 +41,20 @@ export default async function CampagnesPage({
             {dict.campagnes.desc}
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex sm:items-center sm:gap-3">
+          <Link
+            href="/dashboard#comparatif-campagnes"
+            className="inline-flex items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background hover:border-primary/40 transition shadow-xs"
+            title={isPremium ? "Accéder au comparatif des campagnes N vs N-1" : "Comparatif inter-campagnes réservé à la formule Premium"}
+          >
+            <GitCompare className="h-4 w-4 text-primary shrink-0" />
+            <span>Comparatif inter-campagnes</span>
+            {!isPremium && (
+              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
+                Premium
+              </span>
+            )}
+          </Link>
           <CreateCampagneButton dict={dict} />
         </div>
       </div>
