@@ -94,6 +94,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
                 <h3 className="text-2xl font-bold mb-2">SIGGIE</h3>
                 <p className="text-foreground-muted mb-6">{dict.landing.products.siggie_desc}</p>
                 <Link href="/decouvrir-siggie" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link} <ArrowRight className="w-4 h-4" /></Link>
+                <Link href="/decouvrir-siggie#video" className="text-secondary font-semibold hover:underline flex items-center gap-1 mb-2">Vidéo de présentation (29 min) <ArrowRight className="w-4 h-4" /></Link>
                 <Link href="/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link} <ArrowRight className="w-4 h-4" /></Link>
               </div>
 

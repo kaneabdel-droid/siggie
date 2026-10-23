@@ -32,8 +32,8 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return
 
-  // Ne pas intercepter les API serveur
-  if (url.pathname.startsWith('/api/')) return
+  // Ne pas intercepter les API serveur ni les fichiers multimédias volumineux (streaming vidéo direct)
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/videos/') || url.pathname.endsWith('.mp4')) return
 
   // 1. Navigation requests (HTML pages) : Network-First with Cache Fallback
   if (request.mode === 'navigate') {

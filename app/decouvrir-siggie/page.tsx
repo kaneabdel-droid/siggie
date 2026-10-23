@@ -5,6 +5,7 @@ import {
   Wrench, FileBarChart, CheckCircle2, Clock, Lock, BookOpen,
 } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
+import SiggieVideoPlayer from '@/components/SiggieVideoPlayer'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { loginDemo } from './actions'
 
@@ -87,6 +88,18 @@ export default async function DecouvrirSiggiePage({
             <p className="text-lg md:text-xl text-foreground-muted leading-relaxed">
               {d.hero_desc}
             </p>
+          </div>
+        </section>
+
+        {/* Présentation Vidéo de SIGGIE */}
+        <section id="video" className="py-12 bg-background border-b border-surface-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+            <SiggieVideoPlayer
+              title="Présentation vidéo de SIGGIE"
+              subtitle="Visite guidée et démonstration complète de la gestion des campagnes, membres, intrants, crédits, facturation et trésorerie."
+              badge="Démonstration complète • 29 min"
+              variant="hero"
+            />
           </div>
         </section>
 
