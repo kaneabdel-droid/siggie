@@ -337,8 +337,16 @@ export default function FacturationClient({
                             <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-success">
                               {formatAmount(facture.montant_paye || 0)} {unite}
                             </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold text-danger">
-                              {resteAPayer > 0 ? formatAmount(resteAPayer) + ' ' + unite : '-'}
+                            <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold">
+                              {resteAPayer > 0 ? (
+                                <span className="text-danger">{formatAmount(resteAPayer)} {unite}</span>
+                              ) : resteAPayer < 0 ? (
+                                <span className="text-primary" title="Surplus de remboursement (ristourne)">
+                                  Surplus : +{formatAmount(Math.abs(resteAPayer))} {unite}
+                                </span>
+                              ) : (
+                                <span className="text-foreground-muted">-</span>
+                              )}
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-center text-sm">
                               <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${

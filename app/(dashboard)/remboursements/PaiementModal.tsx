@@ -16,39 +16,53 @@ type PaiementModalProps = {
 export default function PaiementModal({ facture, type, onClose, dict, locale, comptes }: PaiementModalProps) {
   const unite = useUnite()
   const [loading, setLoading] = useState(false)
-  const [quantiteNature, setQuantiteNature] = useState<number | ''>('')
+  const [quantiteNature, setQuantiteNature] = useState<string>('')
   const [produitNature, setProduitNature] = useState<string>('')
-  const [montantSaisi, setMontantSaisi] = useState<number | ''>('')
+  const [montantSaisi, setMontantSaisi] = useState<string>('')
   const [referencePiece, setReferencePiece] = useState<string>('')
   const [compteId, setCompteId] = useState<string>(comptes[0]?.id ?? '')
   const d = dict?.remboursements_extra?.modal || {}
   const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
 
-  const resteAPayer = facture.montant_total + (facture.montant_interet || 0) - (facture.montant_paye || 0)
-  const prixCollecte = facture.campagne?.prix_collecte || 0
+  const resteAPayer = Number(facture.montant_total || 0) + Number(facture.montant_interet || 0) - Number(facture.montant_paye || 0)
+  const resteArrondi = Math.max(0, Math.round(resteAPayer))
+  const prixCollecte = Number(facture.campagne?.prix_collecte || 0)
 
   // Calculate equivalent in FCFA when typing nature quantity
-  const equivalentFcfa = type === 'nature' && quantiteNature ? (quantiteNature as number) * prixCollecte : 0
+  const qteNum = parseFloat(quantiteNature)
+  const equivalentFcfa = type === 'nature' && Number.isFinite(qteNum) && qteNum > 0 ? qteNum * prixCollecte : 0
 
-  // Set default max amount for espece, cheque, bon
+  // Montant effectif saisi (numéraire ou équivalent nature)
+  const montantNum = parseFloat(montantSaisi)
+  const montantEffectif =
+    type === 'nature'
+      ? equivalentFcfa
+      : Number.isFinite(montantNum) && montantNum > 0
+      ? montantNum
+      : 0
+
+  const nouveauReste = resteAPayer - montantEffectif
+
+  // Pre-fill default amount when opening modal for a specific facture/type
   useEffect(() => {
     if (type === 'espece' || type === 'cheque' || type === 'bon') {
-      setMontantSaisi(resteAPayer > 0 ? resteAPayer : 0)
+      setMontantSaisi(resteArrondi > 0 ? String(resteArrondi) : '')
     }
     if (type === 'nature') {
       setProduitNature(facture.campagne?.produit_collecte || '')
+      setQuantiteNature('')
     }
-  }, [type, resteAPayer, facture])
+  }, [type, facture.id, resteArrondi, facture.campagne?.produit_collecte])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
 
     let montantFcfa = 0
-    let qte = null
+    let qte: number | null = null
 
     if (type === 'espece' || type === 'cheque' || type === 'bon') {
-      montantFcfa = Number(montantSaisi)
+      montantFcfa = parseFloat(montantSaisi)
       if (type === 'cheque' && !referencePiece.trim()) {
         alert("Veuillez renseigner le numéro de chèque ou la référence bancaire.")
         setLoading(false)
@@ -60,7 +74,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
         return
       }
     } else {
-      qte = Number(quantiteNature)
+      qte = parseFloat(quantiteNature)
       montantFcfa = qte * prixCollecte
       if (!produitNature.trim()) {
         alert(d.missing_product_error || "Veuillez préciser la nature du produit reçu.")
@@ -69,7 +83,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
       }
     }
 
-    if (montantFcfa <= 0) {
+    if (!Number.isFinite(montantFcfa) || montantFcfa <= 0) {
       alert(d.invalid_amount_error || "Le montant doit être supérieur à 0")
       setLoading(false)
       return
@@ -100,6 +114,21 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
     type === 'bon' ? "Enregistrer un paiement par bon / compensation" :
     (d.title_nature || "Enregistrer un paiement en nature")
 
+  const renderAmountInputHeader = (label: string) => (
+    <div className="flex items-center justify-between gap-2">
+      <label className="block text-sm font-medium text-foreground">{label}</label>
+      {resteArrondi > 0 && montantSaisi !== String(resteArrondi) && (
+        <button
+          type="button"
+          onClick={() => setMontantSaisi(String(resteArrondi))}
+          className="text-xs text-primary hover:underline font-medium"
+        >
+          Mettre le reste exact ({resteArrondi.toLocaleString(localeCode)}{unite})
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
@@ -112,23 +141,26 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
             </h3>
 
             <div className={`mb-4 p-3 rounded-md text-sm border ${resteAPayer < 0 ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-danger/10 border-danger/20 text-danger'}`}>
-              <span className="font-semibold">{resteAPayer < 0 ? (d.surplus_label || 'Surplus :') : (d.remaining_label || 'Reste à payer :')}</span> {Math.abs(resteAPayer).toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}
+              <span className="font-semibold">{resteAPayer < 0 ? (d.surplus_label || 'Surplus actuel :') : (d.remaining_label || 'Reste à payer :')}</span> {Math.abs(resteAPayer).toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}
             </div>
 
             <form id="paiement-form" onSubmit={handleSubmit} className="space-y-4">
               {type === 'espece' && (
                 <div>
-                  <label className="block text-sm font-medium text-foreground">{d.amount_paid || 'Montant versé (FCFA)'}</label>
+                  {renderAmountInputHeader(d.amount_paid || 'Montant versé (FCFA)')}
                   <input
                     type="number"
                     required
-                    min="1"
-                    max={resteAPayer > 0 ? resteAPayer : undefined}
+                    min="0.01"
+                    step="any"
+                    placeholder="Saisissez le montant versé (partiel, exact ou supérieur)"
                     value={montantSaisi}
-                    onChange={(e) => setMontantSaisi(Number(e.target.value) || '')}
+                    onChange={(e) => setMontantSaisi(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
-                  <p className="mt-1 text-xs text-foreground-muted">{d.amount_paid_note || 'Le montant sera crédité à la Caisse.'}</p>
+                  <p className="mt-1 text-xs text-foreground-muted">
+                    Vous pouvez saisir un montant inférieur (paiement partiel) ou supérieur (surplus / ristourne) au restant à payer.
+                  </p>
                   <label className="mt-4 block text-sm font-medium text-foreground">{d.account || 'Compte de caisse à créditer'}</label>
                   <select
                     required
@@ -146,16 +178,20 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
 
               {type === 'cheque' && (
                 <div>
-                  <label className="block text-sm font-medium text-foreground">Montant du chèque / virement (FCFA)</label>
+                  {renderAmountInputHeader('Montant du chèque / virement (FCFA)')}
                   <input
                     type="number"
                     required
-                    min="1"
-                    max={resteAPayer > 0 ? resteAPayer : undefined}
+                    min="0.01"
+                    step="any"
+                    placeholder="Saisissez le montant (partiel, exact ou supérieur)"
                     value={montantSaisi}
-                    onChange={(e) => setMontantSaisi(Number(e.target.value) || '')}
+                    onChange={(e) => setMontantSaisi(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
+                  <p className="mt-1 text-xs text-foreground-muted">
+                    Vous pouvez saisir un montant inférieur (paiement partiel) ou supérieur (surplus / ristourne) au restant à payer.
+                  </p>
                   
                   <label className="mt-3 block text-sm font-medium text-foreground">N° de chèque ou Référence bancaire *</label>
                   <input
@@ -184,16 +220,20 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
 
               {type === 'bon' && (
                 <div>
-                  <label className="block text-sm font-medium text-foreground">Montant imputé par bon (FCFA)</label>
+                  {renderAmountInputHeader('Montant imputé par bon (FCFA)')}
                   <input
                     type="number"
                     required
-                    min="1"
-                    max={resteAPayer > 0 ? resteAPayer : undefined}
+                    min="0.01"
+                    step="any"
+                    placeholder="Saisissez le montant du bon (partiel, exact ou supérieur)"
                     value={montantSaisi}
-                    onChange={(e) => setMontantSaisi(Number(e.target.value) || '')}
+                    onChange={(e) => setMontantSaisi(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
+                  <p className="mt-1 text-xs text-foreground-muted">
+                    Vous pouvez saisir un montant inférieur (paiement partiel) ou supérieur (surplus / ristourne) au restant à payer.
+                  </p>
 
                   <label className="mt-3 block text-sm font-medium text-foreground">N° / Référence du bon *</label>
                   <input
@@ -245,10 +285,10 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
                     <input
                       type="number"
                       required
-                      min="1"
+                      min="0.01"
                       step="any"
                       value={quantiteNature}
-                      onChange={(e) => setQuantiteNature(Number(e.target.value) || '')}
+                      onChange={(e) => setQuantiteNature(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
@@ -258,6 +298,40 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
                   </div>
                 </>
               )}
+
+              {/* Aperçu en direct du solde après ce paiement */}
+              {montantEffectif > 0 && (
+                <div
+                  className={`p-3 rounded-md text-xs border ${
+                    nouveauReste > 0.5
+                      ? 'bg-warning/10 border-warning/30 text-foreground'
+                      : nouveauReste < -0.5
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-success/10 border-success/30 text-success'
+                  }`}
+                >
+                  {nouveauReste > 0.5 ? (
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Paiement partiel — Nouveau reste à payer :</span>
+                      <span className="font-bold text-sm text-danger">
+                        {Math.round(nouveauReste).toLocaleString(localeCode)}{unite}
+                      </span>
+                    </div>
+                  ) : nouveauReste < -0.5 ? (
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Paiement supérieur au dû — Surplus (ristourne) :</span>
+                      <span className="font-bold text-sm text-primary">
+                        +{Math.round(Math.abs(nouveauReste)).toLocaleString(localeCode)}{unite}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Facture intégralement soldée après ce paiement</span>
+                      <span className="font-bold text-sm">0{unite}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </form>
           </div>
           <div className="bg-background/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
@@ -266,10 +340,10 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
               form="paiement-form"
               disabled={
                 loading || 
-                (type === 'espece' && (!montantSaisi || !compteId)) ||
-                (type === 'cheque' && (!montantSaisi || !compteId || !referencePiece.trim())) ||
-                (type === 'bon' && (!montantSaisi || !referencePiece.trim())) ||
-                (type === 'nature' && (!quantiteNature || !produitNature.trim()))
+                (type === 'espece' && (montantEffectif <= 0 || !compteId)) ||
+                (type === 'cheque' && (montantEffectif <= 0 || !compteId || !referencePiece.trim())) ||
+                (type === 'bon' && (montantEffectif <= 0 || !referencePiece.trim())) ||
+                (type === 'nature' && (montantEffectif <= 0 || !produitNature.trim()))
               }
               className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto disabled:opacity-50"
             >

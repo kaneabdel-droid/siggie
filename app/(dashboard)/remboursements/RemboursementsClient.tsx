@@ -22,22 +22,38 @@ export default function RemboursementsClient({
 }) {
   const unite = useUnite()
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedFacture, setSelectedFacture] = useState<any>(null)
+  const [filterMode, setFilterMode] = useState<'a_recouvrer' | 'surplus' | 'all'>('a_recouvrer')
+  const [selectedFactureId, setSelectedFactureId] = useState<string | null>(null)
   const [paiementType, setPaiementType] = useState<'espece' | 'nature' | 'bon' | 'cheque' | null>(null)
 
-  const filteredFactures = factures.filter(f => 
-    f.membre?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    f.membre?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.id.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const selectedFacture = factures.find((f) => f.id === selectedFactureId) || null
+
+  const filteredFactures = factures.filter((f) => {
+    const reste = Number(f.montant_total || 0) + Number(f.montant_interet || 0) - Number(f.montant_paye || 0)
+    if (filterMode === 'a_recouvrer' && f.statut !== 'impayee' && f.statut !== 'partiellement_paye' && reste <= 0) {
+      return false
+    }
+    if (filterMode === 'surplus' && reste >= 0) {
+      return false
+    }
+
+    if (!searchTerm.trim()) return true
+    const term = searchTerm.toLowerCase()
+    return (
+      f.membre?.nom?.toLowerCase().includes(term) ||
+      f.membre?.prenom?.toLowerCase().includes(term) ||
+      f.membre?.code_membre?.toLowerCase().includes(term) ||
+      f.id.toLowerCase().includes(term)
+    )
+  })
 
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Colonne de gauche: Liste des factures impayées */}
+        {/* Colonne de gauche: Liste des factures */}
         <div className="md:col-span-1 bg-surface border border-surface-border rounded-lg shadow-sm flex flex-col h-[600px]">
-          <div className="p-4 border-b border-surface-border">
+          <div className="p-4 border-b border-surface-border space-y-3">
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-4 w-4 text-foreground-muted" aria-hidden="true" />
@@ -50,17 +66,46 @@ export default function RemboursementsClient({
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <div className="grid grid-cols-3 gap-1 bg-background p-1 rounded-md border border-surface-border text-xs">
+              <button
+                type="button"
+                onClick={() => setFilterMode('a_recouvrer')}
+                className={`py-1 px-2 rounded font-medium transition-colors ${
+                  filterMode === 'a_recouvrer' ? 'bg-primary text-white shadow-xs' : 'text-foreground-muted hover:text-foreground'
+                }`}
+              >
+                À recouvrer
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode('surplus')}
+                className={`py-1 px-2 rounded font-medium transition-colors ${
+                  filterMode === 'surplus' ? 'bg-primary text-white shadow-xs' : 'text-foreground-muted hover:text-foreground'
+                }`}
+              >
+                Surplus
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode('all')}
+                className={`py-1 px-2 rounded font-medium transition-colors ${
+                  filterMode === 'all' ? 'bg-primary text-white shadow-xs' : 'text-foreground-muted hover:text-foreground'
+                }`}
+              >
+                Toutes
+              </button>
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-2">
             {filteredFactures.map((facture) => {
               const isSelected = selectedFacture?.id === facture.id
-              const reste = facture.montant_total + (facture.montant_interet || 0) - (facture.montant_paye || 0)
+              const reste = Number(facture.montant_total || 0) + Number(facture.montant_interet || 0) - Number(facture.montant_paye || 0)
               
               return (
                 <button
                   key={facture.id}
-                  onClick={() => setSelectedFacture(facture)}
+                  onClick={() => setSelectedFactureId(facture.id)}
                   className={`w-full text-left p-3 mb-2 rounded-md transition-colors ${
                     isSelected ? 'bg-primary/10 border border-primary/30' : 'hover:bg-background border border-transparent'
                   }`}
@@ -73,7 +118,7 @@ export default function RemboursementsClient({
                       {facture.campagne?.nom}
                     </div>
                   </div>
-                  <div className={`mt-2 text-sm font-semibold ${reste < 0 ? 'text-primary' : 'text-danger'}`}>
+                  <div className={`mt-2 text-sm font-semibold ${reste < 0 ? 'text-primary' : reste === 0 ? 'text-success' : 'text-danger'}`}>
                     {reste < 0 ? dict.remboursements.list.surplus : dict.remboursements.list.reste}
                     {Math.abs(reste).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}
                   </div>
@@ -183,7 +228,6 @@ export default function RemboursementsClient({
           type={paiementType} 
           onClose={() => {
             setPaiementType(null)
-            setSelectedFacture(null) // Reset selection to force refresh
           }}
           dict={dict}
           locale={locale}

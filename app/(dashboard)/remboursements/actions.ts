@@ -17,7 +17,6 @@ export async function getFacturesPourRemboursement() {
       membre:membre_id (id, nom, prenom, code_membre, telephone, village),
       campagne:campagne_id (id, nom, produit_collecte, prix_collecte)
     `)
-    .in('statut', ['impayee', 'partiellement_paye']) // Only show unpaid or partially paid
     .order('date_emission', { ascending: false })
 
   if (error) return { error: error.message }
@@ -127,9 +126,14 @@ export async function enregistrerRemboursement(
   }
 
   revalidatePath('/remboursements')
+  revalidatePath('/remboursements/ristournes')
+  revalidatePath('/remboursements/stock-nature')
   revalidatePath('/tresorerie')
   revalidatePath('/facturation')
   revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/bilan-annuel')
+  revalidatePath('/dashboard')
   
   return { success: true }
 }
