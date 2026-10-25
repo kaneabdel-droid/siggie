@@ -31,9 +31,10 @@ export async function getRistournesData() {
   if (!user) return { error: 'Non authentifié' }
 
   try {
-    const [membres, factures, remboursements, sortiesNature, ristournes, comptes] = await Promise.all([
+    const [membres, factures, prestations, remboursements, sortiesNature, ristournes, comptes] = await Promise.all([
       fetchAll<{ id: string; prenom: string; nom: string }>(supabase, 'membres', 'id, prenom, nom'),
       fetchAll<{ membre_id: string | null; montant_total: number | null; montant_interet: number | null }>(supabase, 'factures', 'id, membre_id, montant_total, montant_interet'),
+      fetchAll<{ id: string; membre_id?: string | null; tiers_type?: string | null; client_id?: string | null; client_nom?: string | null; montant_facture: number | null }>(supabase, 'materiel_prestations', '*'),
       fetchAll<{ membre_id: string | null; montant_fcfa: number | null }>(supabase, 'remboursements', 'id, membre_id, montant_fcfa'),
       fetchAll<{ membre_id: string | null; quantite: number | null; prix_unitaire: number | null; type_sortie: string; tiers_type: string }>(supabase, 'sorties_stock_nature', 'id, membre_id, quantite, prix_unitaire, type_sortie, tiers_type'),
       fetchAll<{ id: string; membre_id: string; montant: number; compte_id: string | null; date_ristourne: string; motif: string | null; created_at: string }>(supabase, 'ristournes', 'id, membre_id, montant, compte_id, date_ristourne, motif, created_at'),
@@ -41,6 +42,12 @@ export async function getRistournesData() {
     ])
 
     const nomMembre = new Map(membres.map((m) => [m.id, `${m.prenom} ${m.nom}`.trim()]))
+    const membreIdParNom = new Map<string, string>()
+    for (const m of membres) {
+      membreIdParNom.set(`${m.prenom} ${m.nom}`.trim().toLowerCase(), m.id)
+      membreIdParNom.set(`${m.nom} ${m.prenom}`.trim().toLowerCase(), m.id)
+    }
+
     const cumul = new Map<string, { facture: number; rembourse: number; ristournes: number }>()
     const ligne = (id: string) => {
       let l = cumul.get(id)
@@ -48,9 +55,24 @@ export async function getRistournesData() {
       return l
     }
     for (const f of factures) if (f.membre_id) ligne(f.membre_id).facture += Number(f.montant_total || 0) + Number(f.montant_interet || 0)
+    for (const p of prestations) {
+      const mId =
+        p.membre_id ||
+        (p.tiers_type !== 'client' && !p.client_id && p.client_nom
+          ? membreIdParNom.get(String(p.client_nom).trim().toLowerCase())
+          : undefined)
+      if (mId) ligne(mId).facture += Number(p.montant_facture || 0)
+    }
     for (const r of remboursements) if (r.membre_id) ligne(r.membre_id).rembourse += Number(r.montant_fcfa || 0)
     for (const s of sortiesNature) {
-      if (s.type_sortie === 'ristourne' && s.tiers_type === 'membre' && s.membre_id) ligne(s.membre_id).ristournes += Number(s.quantite || 0) * Number(s.prix_unitaire || 0)
+      if (s.tiers_type === 'membre' && s.membre_id) {
+        const montant = Number(s.quantite || 0) * Number(s.prix_unitaire || 0)
+        if (s.type_sortie === 'ristourne') {
+          ligne(s.membre_id).ristournes += montant
+        } else if (s.type_sortie === 'vente') {
+          ligne(s.membre_id).facture += montant
+        }
+      }
     }
     for (const r of ristournes) ligne(r.membre_id).ristournes += Number(r.montant || 0)
 
@@ -144,8 +166,12 @@ export async function addRistourne(input: {
   }
 
   revalidatePath('/remboursements/ristournes')
+  revalidatePath('/remboursements')
+  revalidatePath('/facturation')
   revalidatePath('/tresorerie')
   revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/bilan-annuel')
   return { success: true }
 }
 
@@ -169,7 +195,11 @@ export async function deleteRistourne(id: string) {
   }
 
   revalidatePath('/remboursements/ristournes')
+  revalidatePath('/remboursements')
+  revalidatePath('/facturation')
   revalidatePath('/tresorerie')
   revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/bilan-annuel')
   return { success: true }
 }

@@ -16,7 +16,7 @@ export async function getReleveMembre(membreId: string) {
 
   if (!membre) return { error: "Membre introuvable" }
 
-  const [facturesRes, prestationsRes, ventesStockRes] = await Promise.all([
+  const [facturesRes, prestationsRes, sortiesStockRes, ristournesRes] = await Promise.all([
     supabase
       .from('factures')
       .select('id, montant_total, montant_interet, montant_paye, statut, date_emission, created_at, campagnes(id, nom, date_debut, produit_collecte, prix_collecte)')
@@ -28,11 +28,16 @@ export async function getReleveMembre(membreId: string) {
       .order('date_prestation', { ascending: true }),
     supabase
       .from('sorties_stock_nature')
-      .select('id, quantite, prix_unitaire, date_sortie, motif, campagnes(nom, produit_collecte)')
+      .select('id, type_sortie, quantite, prix_unitaire, date_sortie, motif, campagnes(nom, produit_collecte)')
       .eq('membre_id', membreId)
       .eq('tiers_type', 'membre')
-      .eq('type_sortie', 'vente')
+      .in('type_sortie', ['vente', 'ristourne'])
       .order('date_sortie', { ascending: true }),
+    supabase
+      .from('ristournes')
+      .select('id, montant, date_ristourne, motif, created_at, comptes:compte_id(nom)')
+      .eq('membre_id', membreId)
+      .order('date_ristourne', { ascending: true }),
   ])
 
   if (facturesRes.error) return { error: facturesRes.error.message }
@@ -60,17 +65,19 @@ export async function getReleveMembre(membreId: string) {
       date: membre.created_at || null,
       montant_facture: soldeInitial > 0 ? soldeInitial : 0,
       montant_paye: soldeInitial < 0 ? Math.abs(soldeInitial) : 0,
+      montant_ristourne: 0,
       solde_progressif: soldeInitial,
     })
   }
 
   type OperationMembre = {
     id: string
-    type_ligne: 'facture_campagne' | 'prestation_materiel' | 'vente_stock'
+    type_ligne: 'facture_campagne' | 'prestation_materiel' | 'vente_stock' | 'ristourne_numeraire' | 'ristourne_nature'
     campagne: string
     date: string | null
     montant_facture: number
     montant_paye: number
+    montant_ristourne?: number
     raw?: any
   }
 
@@ -87,6 +94,7 @@ export async function getReleveMembre(membreId: string) {
       date: f.date_emission || f.created_at,
       montant_facture: facture,
       montant_paye: paye,
+      montant_ristourne: 0,
       raw: { ...f, membre, campagne },
     })
   }
@@ -102,22 +110,51 @@ export async function getReleveMembre(membreId: string) {
       date: p.date_prestation || p.created_at,
       montant_facture: montant,
       montant_paye: 0,
+      montant_ristourne: 0,
       raw: { ...p, membre },
     })
   }
 
-  for (const v of ventesStockRes.data || []) {
-    const camp = Array.isArray(v.campagnes) ? v.campagnes[0] : v.campagnes
-    const montant = Number(v.quantite || 0) * Number(v.prix_unitaire || 0)
+  for (const s of sortiesStockRes.data || []) {
+    const camp = Array.isArray(s.campagnes) ? s.campagnes[0] : s.campagnes
+    const montant = Number(s.quantite || 0) * Number(s.prix_unitaire || 0)
     const prod = camp?.produit_collecte || 'Stock'
+
+    if (s.type_sortie === 'ristourne') {
+      operations.push({
+        id: `ristourne-nature-${s.id}`,
+        type_ligne: 'ristourne_nature',
+        campagne: `Ristourne en nature : ${prod} (${s.quantite} kg)${camp?.nom ? ` · ${camp.nom}` : ''}${s.motif ? ` — ${s.motif}` : ''}`,
+        date: s.date_sortie,
+        montant_facture: 0,
+        montant_paye: 0,
+        montant_ristourne: montant,
+      })
+    } else {
+      operations.push({
+        id: `vente-${s.id}`,
+        type_ligne: 'vente_stock',
+        campagne: `Facture Vente Stock : ${prod} (${s.quantite} kg)${camp?.nom ? ` · ${camp.nom}` : ''}`,
+        date: s.date_sortie,
+        montant_facture: montant,
+        montant_paye: 0,
+        montant_ristourne: 0,
+        raw: { ...s, membre, campagne: camp },
+      })
+    }
+  }
+
+  for (const r of ristournesRes.data || []) {
+    const compte = Array.isArray((r as any).comptes) ? (r as any).comptes[0] : (r as any).comptes
+    const montant = Number(r.montant || 0)
     operations.push({
-      id: `vente-${v.id}`,
-      type_ligne: 'vente_stock',
-      campagne: `Facture Vente Stock : ${prod} (${v.quantite} kg)${camp?.nom ? ` · ${camp.nom}` : ''}`,
-      date: v.date_sortie,
-      montant_facture: montant,
+      id: `ristourne-num-${r.id}`,
+      type_ligne: 'ristourne_numeraire',
+      campagne: `Ristourne versée (Surplus rendu)${compte?.nom ? ` · ${compte.nom}` : ''}${r.motif ? ` — ${r.motif}` : ''}`,
+      date: r.date_ristourne || r.created_at,
+      montant_facture: 0,
       montant_paye: 0,
-      raw: { ...v, membre, campagne: camp },
+      montant_ristourne: montant,
     })
   }
 
@@ -128,7 +165,8 @@ export async function getReleveMembre(membreId: string) {
   })
 
   for (const op of operations) {
-    solde += op.montant_facture - op.montant_paye
+    // Une ristourne restitue le surplus au membre : elle augmente le solde (réduit le surplus négatif vers 0)
+    solde += op.montant_facture - op.montant_paye + Number(op.montant_ristourne || 0)
     lignes.push({
       ...op,
       solde_progressif: solde,
@@ -137,3 +175,4 @@ export async function getReleveMembre(membreId: string) {
 
   return { membre, lignes, soldeFinal: solde, soldeInitial }
 }
+

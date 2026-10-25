@@ -91,8 +91,12 @@ export default function ReleveMembreClient({
             <p className="text-sm text-foreground-muted">{t.title} — {membres.find((m) => m.id === selectedMembre)?.prenom || ''} {membres.find((m) => m.id === selectedMembre)?.nom || ''}</p>
           </div>
           <div className={`overflow-hidden rounded-lg px-4 py-5 shadow sm:p-6 max-w-xs ${soldeFinal > 0 ? 'bg-danger' : 'bg-success'} text-white`}>
-            <dt className="text-sm font-medium text-white/90">{t.current_balance}</dt>
-            <dd className="mt-1 text-2xl font-semibold tracking-tight">{soldeFinal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}</dd>
+            <dt className="text-sm font-medium text-white/90">
+              {soldeFinal < 0 ? `${t.current_balance} (Surplus à ristourner)` : t.current_balance}
+            </dt>
+            <dd className="mt-1 text-2xl font-semibold tracking-tight">
+              {soldeFinal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+            </dd>
           </div>
 
           <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
@@ -109,6 +113,8 @@ export default function ReleveMembreClient({
               </thead>
               <tbody className="divide-y divide-surface-border bg-surface">
                 {lignes.map((l) => {
+                  const isRistourne = l.type_ligne === 'ristourne_numeraire' || l.type_ligne === 'ristourne_nature'
+                  const montantRistourne = Number(l.montant_ristourne || 0)
                   const factureDoc =
                     l.type_ligne === 'facture_campagne' && l.raw
                       ? { ...l.raw, type_document: 'campagne' as const }
@@ -133,16 +139,33 @@ export default function ReleveMembreClient({
                               Vente Stock
                             </span>
                           )}
+                          {isRistourne && (
+                            <span className="inline-flex items-center rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning">
+                              {l.type_ligne === 'ristourne_nature' ? 'Ristourne Nature' : 'Ristourne Espèces'}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
                         {l.date ? new Date(l.date).toLocaleDateString(dateLocale) : '-'}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground">
-                        {l.montant_facture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                        {isRistourne ? (
+                          <span className="text-foreground-muted">-</span>
+                        ) : (
+                          `${l.montant_facture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}${unite}`
+                        )}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-success">
-                        {l.montant_paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right">
+                        {isRistourne ? (
+                          <span className="font-medium text-warning" title="Ristourne versée au membre (réduit le surplus)">
+                            -{montantRistourne.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite} (Ristourné)
+                          </span>
+                        ) : (
+                          <span className="text-success">
+                            {l.montant_paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                          </span>
+                        )}
                       </td>
                       <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-semibold ${l.solde_progressif > 0 ? 'text-danger' : 'text-success'}`}>
                         {l.solde_progressif.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
