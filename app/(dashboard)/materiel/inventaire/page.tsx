@@ -16,17 +16,14 @@ export default async function MaterielPage() {
   }
 
   return (
-    <div id="materiel-inventaire-print">
-      <div className="sm:flex sm:items-center sm:justify-between sm:gap-4 mb-8">
+    <div id="materiel-inventaire-print" className="pb-12">
+      <div className="sm:flex sm:items-center sm:justify-between sm:gap-4 mb-4">
         <div className="sm:flex-auto min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-foreground sm:truncate sm:text-3xl sm:tracking-tight font-heading">
+          <h3 className="text-lg font-bold leading-6 text-foreground sm:truncate sm:text-xl font-heading">
             {dict.materiel.tabs.inventaire}
-          </h2>
-          <p className="mt-2 text-sm text-foreground-muted break-words">
-            {dict.materiel.desc}
-          </p>
+          </h3>
         </div>
-        <div className="mt-4 sm:mt-0 sm:flex-none flex items-center gap-2">
+        <div className="mt-2 sm:mt-0 sm:flex-none flex items-center gap-2">
           <PrintSectionButton sectionId="materiel-inventaire-print" label={dict.common.print} />
           <AddMaterielModal dict={dict} />
         </div>

@@ -280,14 +280,15 @@ export async function generateFacturePdf({
 
   // Header
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(26)
+  doc.setFontSize(18)
   doc.setTextColor(45, 106, 79) // Vert
-  doc.text(gieName, 14, 30)
+  const gieLines = doc.splitTextToSize(gieName, 115)
+  doc.text(gieLines, 14, gieLines.length > 1 ? 23 : 28)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(28)
-  doc.setTextColor(200, 200, 200)
-  doc.text('FACTURE', pageWidth - 14, 35, { align: 'right' })
+  doc.setFontSize(22)
+  doc.setTextColor(180, 180, 180)
+  doc.text('FACTURE', pageWidth - 14, 28, { align: 'right' })
 
   // Ligne de séparation
   doc.setDrawColor(45, 106, 79)
@@ -621,18 +622,20 @@ export async function generatePrestationPdf({
 
   // Header
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(24)
+  doc.setFontSize(17)
   doc.setTextColor(45, 106, 79)
-  doc.text(gieName, 14, 28)
+  const gieLinesPrest = doc.splitTextToSize(gieName, 105)
+  doc.text(gieLinesPrest, 14, gieLinesPrest.length > 1 ? 22 : 27)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(20)
-  doc.setTextColor(180, 180, 180)
-  doc.text('FACTURE PRESTATION', pageWidth - 14, 28, { align: 'right' })
+  doc.setFontSize(15)
+  doc.setTextColor(45, 106, 79)
+  doc.text('FACTURE PRESTATION', pageWidth - 14, 25, { align: 'right' })
 
-  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9.5)
   doc.setTextColor(100, 100, 100)
-  doc.text('Service & Équipement Agricole', pageWidth - 14, 34, { align: 'right' })
+  doc.text('Service & Équipement Agricole', pageWidth - 14, 31, { align: 'right' })
 
   doc.setDrawColor(45, 106, 79)
   doc.setLineWidth(0.5)
@@ -888,18 +891,20 @@ export async function generateVenteStockPdf({
 
   // Header
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(24)
+  doc.setFontSize(17)
   doc.setTextColor(45, 106, 79)
-  doc.text(gieName, 14, 28)
+  const gieLinesVente = doc.splitTextToSize(gieName, 105)
+  doc.text(gieLinesVente, 14, gieLinesVente.length > 1 ? 22 : 27)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(20)
-  doc.setTextColor(180, 180, 180)
-  doc.text('FACTURE DE VENTE', pageWidth - 14, 28, { align: 'right' })
+  doc.setFontSize(15)
+  doc.setTextColor(45, 106, 79)
+  doc.text('FACTURE DE VENTE', pageWidth - 14, 25, { align: 'right' })
 
-  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9.5)
   doc.setTextColor(100, 100, 100)
-  doc.text('Vente de Stock Agricole', pageWidth - 14, 34, { align: 'right' })
+  doc.text('Vente de Stock Agricole', pageWidth - 14, 31, { align: 'right' })
 
   doc.setDrawColor(45, 106, 79)
   doc.setLineWidth(0.5)

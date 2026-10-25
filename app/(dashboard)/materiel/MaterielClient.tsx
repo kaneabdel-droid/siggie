@@ -43,68 +43,70 @@ export default function MaterielClient({ materiels, dict, fullDict, locale }: { 
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
-      <table className="min-w-full divide-y divide-surface-border">
-        <thead className="bg-background">
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.name}</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.type}</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.supplier}</th>
-            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.value}</th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.lifespan}</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.acq_date}</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{dict.status}</th>
-            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider sticky right-0 bg-background shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10 print:hidden">{dict.actions}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-surface-border bg-surface">
-          {materiels.map((mat) => (
-            <tr key={mat.id} className="hover:bg-surface-hover transition-colors">
-              <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-foreground">
-                {mat.nom}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
-                {typeLabels[mat.type_materiel] || mat.type_materiel || '-'}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
-                {mat.fournisseur || '-'}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-right font-medium">
-                {mat.valeur_acquisition ? mat.valeur_acquisition.toLocaleString(localeCode, { maximumFractionDigits: 0 }) : '-'}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-center text-foreground-muted">
-                {mat.duree_vie_economique ? `${mat.duree_vie_economique} ${dict.years}` : '-'}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
-                {mat.date_acquisition ? new Date(mat.date_acquisition).toLocaleDateString(localeCode) : '-'}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm">
-                {getEtatBadge(mat.etat)}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-right sticky right-0 bg-surface shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10 print:hidden">
-                <div className="flex justify-end gap-2">
-                  <EditMaterielModal materiel={mat} iconOnly dict={fullDict} />
-                  <button
-                    onClick={() => handleDelete(mat.id)}
-                    disabled={updatingId === mat.id}
-                    title={dict.action_delete}
-                    className="text-danger hover:text-danger/80 p-1 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-          {materiels.length === 0 && (
+    <div className="-mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+      <div className="w-full overflow-x-auto rounded-xl border border-surface-border bg-surface shadow-sm min-h-[60vh] flex flex-col justify-between">
+        <table className="w-full min-w-full table-auto divide-y divide-surface-border">
+          <thead className="bg-background">
             <tr>
-              <td colSpan={8} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
-                {dict.empty}
-              </td>
+              <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">{dict.name}</th>
+              <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">{dict.type}</th>
+              <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">{dict.supplier}</th>
+              <th scope="col" className="px-5 py-3.5 text-right text-xs font-semibold text-foreground-muted uppercase tracking-wider">{dict.value}</th>
+              <th scope="col" className="px-5 py-3.5 text-center text-xs font-semibold text-foreground-muted uppercase tracking-wider">{dict.lifespan}</th>
+              <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">{dict.acq_date}</th>
+              <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-foreground-muted uppercase tracking-wider">{dict.status}</th>
+              <th scope="col" className="px-5 py-3.5 text-right text-xs font-semibold text-foreground-muted uppercase tracking-wider print:hidden">{dict.actions}</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-surface-border bg-surface">
+            {materiels.map((mat) => (
+              <tr key={mat.id} className="hover:bg-surface-hover transition-colors">
+                <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-foreground">
+                  {mat.nom}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-foreground-muted">
+                  {typeLabels[mat.type_materiel] || mat.type_materiel || '-'}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-foreground-muted">
+                  {mat.fournisseur || '-'}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-right font-medium text-foreground">
+                  {mat.valeur_acquisition ? mat.valeur_acquisition.toLocaleString(localeCode, { maximumFractionDigits: 0 }) : '-'}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-center text-foreground-muted">
+                  {mat.duree_vie_economique ? `${mat.duree_vie_economique} ${dict.years}` : '-'}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-foreground-muted">
+                  {mat.date_acquisition ? new Date(mat.date_acquisition).toLocaleDateString(localeCode) : '-'}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm">
+                  {getEtatBadge(mat.etat)}
+                </td>
+                <td className="whitespace-nowrap px-5 py-4 text-sm text-right print:hidden">
+                  <div className="flex justify-end items-center gap-2">
+                    <EditMaterielModal materiel={mat} iconOnly dict={fullDict} />
+                    <button
+                      onClick={() => handleDelete(mat.id)}
+                      disabled={updatingId === mat.id}
+                      title={dict.action_delete}
+                      className="text-danger hover:text-danger/80 p-1.5 rounded-md hover:bg-danger/10 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {materiels.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-6 py-8 text-center text-sm text-foreground-muted italic">
+                  {dict.empty}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
