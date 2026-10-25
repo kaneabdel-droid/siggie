@@ -13,7 +13,7 @@ export type BilanRaw = {
   campagnes: { id: string; prix_collecte: number | null }[]
   paiementsClients: { montant: number | null; date_paiement: string }[]
   materiels: { valeur_acquisition: number | null; duree_vie_economique: number | null; date_acquisition: string | null }[]
-  prestations: { montant_facture: number | null; date_prestation: string }[]
+  prestations: { montant_facture: number | null; date_prestation: string; tiers_type?: string | null; membre_id?: string | null }[]
   consommations: { montant_total: number | null; date_consommation: string }[]
   comptes: { solde_initial: number | null }[]
   transactions: { type_transaction: string; montant: number | null; date_transaction: string | null; type_piece: string | null; credit_id: string | null }[]
@@ -141,6 +141,12 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   const soldeMembre = new Map<string, number>()
   const ajouter = (id: string | null, v: number) => soldeMembre.set(id ?? 'externe', (soldeMembre.get(id ?? 'externe') || 0) + v)
   for (const f of raw.factures.filter((x) => avant(x.date_emission, fin))) ajouter(f.membre_id, n(f.montant_total) + n(f.montant_interet))
+  for (const p of raw.prestations.filter((x) => (x.tiers_type === 'membre' || Boolean(x.membre_id)) && avant(x.date_prestation, fin))) {
+    ajouter(p.membre_id ?? null, n(p.montant_facture))
+  }
+  for (const s of raw.sorties.filter((x) => x.type_sortie === 'vente' && x.tiers_type === 'membre' && x.membre_id && avant(x.date_sortie, fin))) {
+    ajouter(s.membre_id, n(s.quantite) * n(s.prix_unitaire))
+  }
   for (const r of raw.remboursements.filter((x) => avant(x.date_paiement, fin))) ajouter(r.membre_id, -n(r.montant_fcfa))
   for (const s of raw.sorties.filter((x) => x.type_sortie === 'ristourne' && x.tiers_type === 'membre' && x.membre_id && avant(x.date_sortie, fin))) {
     ajouter(s.membre_id, n(s.quantite) * n(s.prix_unitaire))
@@ -150,9 +156,16 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   const soldes = [...soldeMembre.values()]
   const creancesMembres = somme(soldes, (v) => Math.max(0, v))
   const dettesMembres = somme(soldes, (v) => Math.max(0, -v))
-  const creancesClients =
-    somme(raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && avant(s.date_sortie, fin)), (s) => n(s.quantite) * n(s.prix_unitaire)) -
-    somme(raw.paiementsClients.filter((p) => avant(p.date_paiement, fin)), (p) => n(p.montant))
+  const prestationsClients = somme(
+    raw.prestations.filter((p) => p.tiers_type !== 'membre' && !p.membre_id && avant(p.date_prestation, fin)),
+    (p) => n(p.montant_facture)
+  )
+  const creancesClients = Math.max(
+    0,
+    somme(raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && avant(s.date_sortie, fin)), (s) => n(s.quantite) * n(s.prix_unitaire)) +
+      prestationsClients -
+      somme(raw.paiementsClients.filter((p) => avant(p.date_paiement, fin)), (p) => n(p.montant))
+  )
 
   const tresoAvant = raw.transactions.filter((t) => avant(t.date_transaction, fin))
   const disponibilites =

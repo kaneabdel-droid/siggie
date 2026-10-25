@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { getStockNature } from './actions'
 import AddSortieModal from './AddSortieModal'
 import { useUnite } from '@/components/DeviseProvider'
+import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
+import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
 
 export default function StockNatureClient({
   campagnes,
@@ -11,12 +13,14 @@ export default function StockNatureClient({
   initialClients,
   dict,
   locale,
+  gieName = 'Mon GIE',
 }: {
   campagnes: any[]
   membres: any[]
   initialClients: { id: string; nom: string }[]
   dict: any
   locale: string
+  gieName?: string
 }) {
   const unite = useUnite()
   const [selectedCampagne, setSelectedCampagne] = useState(campagnes[0]?.id || '')
@@ -103,38 +107,81 @@ export default function StockNatureClient({
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.unit_price}</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.quantity}</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.balance}</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider print:hidden">Facture</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border bg-surface">
-              {journal.map((m, idx) => (
-                <tr key={m.id || idx} className="hover:bg-surface-hover transition-colors">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">
-                    {new Date(m.date).toLocaleDateString(dateLocale)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm">
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                      m.type === 'entree' ? 'bg-success/10 text-success ring-success/20' :
-                      m.type === 'vente' ? 'bg-primary/10 text-primary ring-primary/20' :
-                      'bg-warning/10 text-warning ring-warning/20'
-                    }`}>
-                      {typeLabel(m.type)}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">{m.tiers}</td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
-                    {Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
-                  </td>
-                  <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-medium ${m.type === 'entree' ? 'text-success' : 'text-danger'}`}>
-                    {m.type === 'entree' ? '+' : '-'}{Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold bg-background/50">
-                    {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              ))}
+              {journal.map((m, idx) => {
+                const isVente = m.type === 'vente'
+                const isMembre = m.tiers_type === 'membre'
+                const factureVente = isVente
+                  ? {
+                      id: m.id,
+                      type_document: 'vente_stock' as const,
+                      tiers_type: m.tiers_type || 'client',
+                      tiers_nom: m.tiers,
+                      membre: m.membre || null,
+                      client: m.client || null,
+                      campagne: campagneInfo,
+                      date_sortie: m.date,
+                      quantite: m.quantite,
+                      prix_unitaire: m.prix_unitaire,
+                      montant_total: Number(m.quantite || 0) * Number(m.prix_unitaire || 0),
+                      motif: m.motif,
+                    }
+                  : null
+
+                return (
+                  <tr key={m.id || idx} className="hover:bg-surface-hover transition-colors">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+                      {new Date(m.date).toLocaleDateString(dateLocale)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                        m.type === 'entree' ? 'bg-success/10 text-success ring-success/20' :
+                        m.type === 'vente' ? 'bg-primary/10 text-primary ring-primary/20' :
+                        'bg-warning/10 text-warning ring-warning/20'
+                      }`}>
+                        {typeLabel(m.type)}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+                      <div className="flex items-center gap-2">
+                        <span>{m.tiers}</span>
+                        {isVente && (
+                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            isMembre ? 'bg-primary/10 text-primary' : 'bg-secondary/15 text-secondary'
+                          }`}>
+                            {isMembre ? 'Relevé Membre' : 'Relevé Client'}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
+                      {Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                    </td>
+                    <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-medium ${m.type === 'entree' ? 'text-success' : 'text-danger'}`}>
+                      {m.type === 'entree' ? '+' : '-'}{Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold bg-background/50">
+                      {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right print:hidden">
+                      {factureVente ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <FactureWhatsAppModal facture={factureVente} gieName={gieName} dict={dict} />
+                          <DownloadPdfButton facture={factureVente} dict={dict} gieName={gieName} />
+                        </div>
+                      ) : (
+                        <span className="text-foreground-muted">-</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
               {journal.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
+                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
                     {t.empty}
                   </td>
                 </tr>
@@ -146,3 +193,4 @@ export default function StockNatureClient({
     </div>
   )
 }
+

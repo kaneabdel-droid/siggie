@@ -42,8 +42,17 @@ export default function FactureWhatsAppModal({
   const [errorNotice, setErrorNotice] = useState<string | null>(null)
 
   const membre = facture.membre
-  const nomMembre = `${membre?.prenom || ''} ${membre?.nom || ''}`.trim() || 'Membre'
-  const idCourt = (facture.id || '').substring(0, 8).toUpperCase()
+  const client = facture.client
+  const nomMembre =
+    `${membre?.prenom || ''} ${membre?.nom || ''}`.trim() ||
+    client?.nom ||
+    facture.client_nom ||
+    facture.tiers_nom ||
+    'Client / Membre'
+  const idCourt = String(facture.id || '')
+    .replace(/^(prestation|vente)-/, '')
+    .substring(0, 8)
+    .toUpperCase()
 
   // Détecter la disponibilité de Web Share API pour les fichiers PDF (iOS Safari, Android Chrome)
   useEffect(() => {
@@ -66,7 +75,7 @@ export default function FactureWhatsAppModal({
   const handleOpen = async () => {
     setIsOpen(true)
     setErrorNotice(null)
-    const initialPhone = membre?.telephone || ''
+    const initialPhone = membre?.telephone || client?.telephone || facture.client_telephone || ''
     setTelephone(initialPhone)
     setSavePhoneToDb(!initialPhone) // cocher par défaut si le numéro n'était pas déjà renseigné
     setLoadingDetails(true)

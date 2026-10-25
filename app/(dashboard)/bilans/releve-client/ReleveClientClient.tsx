@@ -6,6 +6,8 @@ import AddClientModal from './AddClientModal'
 import AddPaiementClientModal from './AddPaiementClientModal'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { useUnite } from '@/components/DeviseProvider'
+import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
+import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
 
 type Client = { id: string; nom: string; telephone: string | null }
 
@@ -96,7 +98,7 @@ export default function ReleveClientClient({
       {error && <div className="text-danger p-4 bg-danger/10 rounded-md">{error}</div>}
 
       {clients.length > 0 && !loading && !error && (
-        <div id="releve-client-print">
+        <div id="releve-client-print" className="space-y-4">
           <div className="hidden print:block mb-4">
             <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
             <p className="text-sm text-foreground-muted">{t.title} — {selectedClientNom}</p>
@@ -116,38 +118,74 @@ export default function ReleveClientClient({
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.unit_price}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.amount}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.balance}</th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider print:hidden">Facture</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border bg-surface">
-                {journal.map((m, idx) => (
-                  <tr key={m.id || idx} className="hover:bg-surface-hover transition-colors">
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">
-                      {new Date(m.date).toLocaleDateString(dateLocale)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                        m.type === 'vente' ? 'bg-danger/10 text-danger ring-danger/20' : 'bg-success/10 text-success ring-success/20'
-                      }`}>
-                        {m.type === 'vente' ? t.type_sale : t.type_payment}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
-                      {m.quantite !== null ? Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 }) : '-'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
-                      {m.prix_unitaire !== null ? `${Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}${unite}` : '-'}
-                    </td>
-                    <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-medium ${m.type === 'vente' ? 'text-danger' : 'text-success'}`}>
-                      {m.type === 'vente' ? '+' : '-'}{Number(m.montant).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold bg-background/50">
-                      {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
-                    </td>
-                  </tr>
-                ))}
+                {journal.map((m, idx) => {
+                  const isDebit = m.type === 'vente' || m.type === 'prestation'
+                  const factureDoc =
+                    m.type === 'prestation' && m.raw
+                      ? { ...m.raw, type_document: 'prestation' as const, tiers_type: 'client' }
+                      : m.type === 'vente' && m.raw
+                      ? { ...m.raw, type_document: 'vente_stock' as const, tiers_type: 'client', montant_total: m.montant }
+                      : null
+
+                  return (
+                    <tr key={m.id || idx} className="hover:bg-surface-hover transition-colors">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+                        {new Date(m.date).toLocaleDateString(dateLocale)}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                            m.type === 'vente'
+                              ? 'bg-danger/10 text-danger ring-danger/20'
+                              : m.type === 'prestation'
+                              ? 'bg-secondary/15 text-secondary ring-secondary/20'
+                              : 'bg-success/10 text-success ring-success/20'
+                          }`}>
+                            {m.type === 'vente'
+                              ? t.type_sale
+                              : m.type === 'prestation'
+                              ? 'Prestation Matériel'
+                              : t.type_payment}
+                          </span>
+                          {m.designation && (
+                            <span className="text-xs text-foreground font-medium">{m.designation}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
+                        {m.quantite !== null
+                          ? `${Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}${m.unite ? ` ${m.unite}` : ''}`
+                          : '-'}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
+                        {m.prix_unitaire !== null ? `${Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}${unite}` : '-'}
+                      </td>
+                      <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-medium ${isDebit ? 'text-danger' : 'text-success'}`}>
+                        {isDebit ? '+' : '-'}{Number(m.montant).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold bg-background/50">
+                        {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right print:hidden">
+                        {factureDoc ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <FactureWhatsAppModal facture={factureDoc} gieName={gieName} dict={dict} />
+                            <DownloadPdfButton facture={factureDoc} dict={dict} gieName={gieName} />
+                          </div>
+                        ) : (
+                          <span className="text-foreground-muted">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
                 {journal.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
+                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
                       {t.empty}
                     </td>
                   </tr>
@@ -160,3 +198,4 @@ export default function ReleveClientClient({
     </div>
   )
 }
+

@@ -11,7 +11,7 @@ export default async function FacturationPage() {
 
   const [{ factures, error }, { data: campagnes }, tenant] = await Promise.all([
     getFactures(),
-    supabase.from('campagnes').select('id, nom').order('created_at', { ascending: false }),
+    supabase.from('campagnes').select('id, nom, statut').order('created_at', { ascending: false }),
     getTenantContext(),
   ])
 

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { getReleveMembre } from './actions'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { useUnite } from '@/components/DeviseProvider'
+import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
+import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
 
 export default function ReleveMembreClient({
   membres,
@@ -83,7 +85,7 @@ export default function ReleveMembreClient({
       {error && <div className="text-danger p-4 bg-danger/10 rounded-md">{error}</div>}
 
       {!loading && !error && (
-        <div id="releve-membre-print">
+        <div id="releve-membre-print" className="space-y-4">
           <div className="hidden print:block mb-4">
             <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
             <p className="text-sm text-foreground-muted">{t.title} — {membres.find((m) => m.id === selectedMembre)?.prenom || ''} {membres.find((m) => m.id === selectedMembre)?.nom || ''}</p>
@@ -102,29 +104,65 @@ export default function ReleveMembreClient({
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.billed}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.paid}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.balance}</th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider print:hidden">Facture</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border bg-surface">
-                {lignes.map((l) => (
-                  <tr key={l.id} className="hover:bg-surface-hover transition-colors">
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-foreground">{l.campagne}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
-                      {l.date ? new Date(l.date).toLocaleDateString(dateLocale) : '-'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground">
-                      {l.montant_facture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-success">
-                      {l.montant_paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
-                    </td>
-                    <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-semibold ${l.solde_progressif > 0 ? 'text-danger' : 'text-success'}`}>
-                      {l.solde_progressif.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
-                    </td>
-                  </tr>
-                ))}
+                {lignes.map((l) => {
+                  const factureDoc =
+                    l.type_ligne === 'facture_campagne' && l.raw
+                      ? { ...l.raw, type_document: 'campagne' as const }
+                      : l.type_ligne === 'prestation_materiel' && l.raw
+                      ? { ...l.raw, type_document: 'prestation' as const, tiers_type: 'membre' }
+                      : l.type_ligne === 'vente_stock' && l.raw
+                      ? { ...l.raw, type_document: 'vente_stock' as const, tiers_type: 'membre', montant_total: l.montant_facture }
+                      : null
+
+                  return (
+                    <tr key={l.id} className="hover:bg-surface-hover transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-foreground">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{l.campagne}</span>
+                          {l.type_ligne === 'prestation_materiel' && (
+                            <span className="inline-flex items-center rounded bg-secondary/15 px-1.5 py-0.5 text-[10px] font-medium text-secondary">
+                              Prestation Matériel
+                            </span>
+                          )}
+                          {l.type_ligne === 'vente_stock' && (
+                            <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                              Vente Stock
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground-muted">
+                        {l.date ? new Date(l.date).toLocaleDateString(dateLocale) : '-'}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground">
+                        {l.montant_facture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-success">
+                        {l.montant_paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                      </td>
+                      <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-semibold ${l.solde_progressif > 0 ? 'text-danger' : 'text-success'}`}>
+                        {l.solde_progressif.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-right print:hidden">
+                        {factureDoc ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <FactureWhatsAppModal facture={factureDoc} gieName={gieName} dict={dict} />
+                            <DownloadPdfButton facture={factureDoc} dict={dict} gieName={gieName} />
+                          </div>
+                        ) : (
+                          <span className="text-foreground-muted">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
                 {lignes.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
                       {t.empty}
                     </td>
                   </tr>
@@ -137,3 +175,4 @@ export default function ReleveMembreClient({
     </div>
   )
 }
+

@@ -1,11 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getTenantContext } from '@/utils/supabase/tenant'
 import StockNatureClient from './StockNatureClient'
 
 export default async function StockNaturePage() {
   const supabase = await createClient()
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+  const tenant = await getTenantContext()
   const t = dict.remboursements_pages.stock_nature
 
   const { data: campagnes } = await supabase
@@ -39,7 +41,14 @@ export default async function StockNaturePage() {
         <p className="mt-2 text-sm text-foreground-muted">{t.desc}</p>
       </div>
 
-      <StockNatureClient campagnes={campagnes} membres={membres || []} initialClients={clients || []} dict={dict} locale={locale} />
+      <StockNatureClient
+        campagnes={campagnes}
+        membres={membres || []}
+        initialClients={clients || []}
+        dict={dict}
+        locale={locale}
+        gieName={tenant?.gieName || 'Mon GIE'}
+      />
     </div>
   )
 }

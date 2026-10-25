@@ -9,6 +9,10 @@ type Mouvement = {
   date: string
   type: 'entree' | 'vente' | 'ristourne'
   tiers: string
+  tiers_type?: string
+  membre?: any
+  client?: any
+  motif?: string | null
   prix_unitaire: number
   quantite: number
 }
@@ -18,7 +22,7 @@ export async function getStockNature(campagneId: string) {
 
   const { data: campagne } = await supabase
     .from('campagnes')
-    .select('nom, produit_collecte, prix_collecte')
+    .select('id, nom, produit_collecte, prix_collecte')
     .eq('id', campagneId)
     .single()
 
@@ -36,7 +40,7 @@ export async function getStockNature(campagneId: string) {
   if (factureIds.length > 0) {
     const { data, error } = await supabase
       .from('remboursements')
-      .select('id, quantite_nature, montant_fcfa, date_paiement, membre_id, membres(prenom, nom)')
+      .select('id, quantite_nature, montant_fcfa, date_paiement, membre_id, membres(id, prenom, nom, code_membre, telephone)')
       .eq('type_remboursement', 'nature')
       .not('quantite_nature', 'is', null)
       .in('facture_id', factureIds)
@@ -48,7 +52,7 @@ export async function getStockNature(campagneId: string) {
   // Sorties : ventes et ristournes enregistrées manuellement
   const { data: sorties, error: sortiesError } = await supabase
     .from('sorties_stock_nature')
-    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, date_sortie, membres(prenom, nom), clients_externes(nom)')
+    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, motif, date_sortie, membres(id, prenom, nom, code_membre, telephone), clients_externes(id, nom, telephone)')
     .eq('campagne_id', campagneId)
 
   if (sortiesError) return { error: sortiesError.message }
@@ -63,6 +67,8 @@ export async function getStockNature(campagneId: string) {
       date: r.date_paiement,
       type: 'entree',
       tiers: membre ? `${membre.prenom} ${membre.nom}` : '-',
+      tiers_type: 'membre',
+      membre,
       prix_unitaire: quantite > 0 ? Number(r.montant_fcfa) / quantite : 0,
       quantite,
     })
@@ -76,6 +82,10 @@ export async function getStockNature(campagneId: string) {
       date: s.date_sortie,
       type: s.type_sortie as 'vente' | 'ristourne',
       tiers: s.tiers_type === 'membre' ? (membre ? `${membre.prenom} ${membre.nom}` : '-') : (client?.nom || s.tiers_nom || '-'),
+      tiers_type: s.tiers_type,
+      membre,
+      client: client || (s.tiers_nom ? { nom: s.tiers_nom } : null),
+      motif: s.motif,
       prix_unitaire: Number(s.prix_unitaire || 0),
       quantite: Number(s.quantite),
     })
@@ -142,5 +152,9 @@ export async function addSortieStockNature(input: {
   if (error) return { error: error.message }
 
   revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/facturation')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/bilan-annuel')
   return { success: true }
 }

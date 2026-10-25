@@ -7,6 +7,8 @@ import EditPrestationModal from './EditPrestationModal'
 import type { ProduitMateriel } from './PrestationFields'
 import type { ContexteBudgetMateriel } from '../BudgetCampagneChamps'
 import { useUnite } from '@/components/DeviseProvider'
+import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
+import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
 
 export default function PrestationsClient({
   prestations,
@@ -16,6 +18,7 @@ export default function PrestationsClient({
   budget,
   dict,
   locale,
+  gieName = 'Mon GIE',
 }: {
   prestations: any[]
   materiels: any[]
@@ -24,6 +27,7 @@ export default function PrestationsClient({
   budget: ContexteBudgetMateriel
   dict: any
   locale: string
+  gieName?: string
 }) {
   const uniteDevise = useUnite()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -90,6 +94,20 @@ export default function PrestationsClient({
           <tbody className="divide-y divide-surface-border bg-surface">
             {prestations.map((p) => {
               const quantite = Number(p.quantite_traitee || (p.unite === 'ha' || !p.unite ? p.superficie : 0) || 0)
+              const isMembre =
+                p.tiers_type === 'membre' ||
+                Boolean(p.membre_id) ||
+                (!p.client_id &&
+                  p.client_nom &&
+                  (budget.membres || []).some(
+                    (m) => `${m.prenom} ${m.nom}`.trim().toLowerCase() === String(p.client_nom).trim().toLowerCase()
+                  ))
+              const factureDoc = {
+                ...p,
+                type_document: 'prestation' as const,
+                tiers_type: isMembre ? 'membre' : 'client',
+              }
+
               return (
                 <tr key={p.id} className="hover:bg-surface-hover transition-colors align-top">
                   <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-foreground">
@@ -101,7 +119,16 @@ export default function PrestationsClient({
                   <td className="px-4 py-4 text-sm text-foreground-muted">
                     <span className="font-medium text-foreground">{p.type_prestation}</span>
                     {p.campagne?.nom && <span className="ms-2 rounded bg-background px-1.5 py-0.5 text-xs">{p.campagne.nom}</span>}
-                    {p.client_nom && <span className="block text-xs">{t.for_client} {p.client_nom}</span>}
+                    {p.client_nom && (
+                      <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span>{t.for_client} <strong className="text-foreground">{p.client_nom}</strong></span>
+                        <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          isMembre ? 'bg-primary/10 text-primary' : 'bg-secondary/15 text-secondary'
+                        }`}>
+                          {isMembre ? 'Relevé Membre' : 'Relevé Client'}
+                        </span>
+                      </span>
+                    )}
                     {p.client_telephone && (
                       <a href={`tel:${p.client_telephone.replace(/[^\d+]/g, '')}`} className="mt-0.5 inline-flex items-center gap-1 text-xs text-primary hover:underline" dir="ltr">
                         <Phone className="h-3 w-3" aria-hidden="true" />
@@ -134,7 +161,9 @@ export default function PrestationsClient({
                     +{Number(p.montant_facture).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
                   </td>
                   <td className="whitespace-nowrap px-4 py-4 text-sm text-end print:hidden">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <FactureWhatsAppModal facture={factureDoc} gieName={gieName} dict={dict} />
+                      <DownloadPdfButton facture={factureDoc} dict={dict} gieName={gieName} />
                       <EditPrestationModal prestation={p} materiels={materiels} produits={produits} varietes={varietes} budget={budget} dict={dict} />
                       <button
                         onClick={() => handleDelete(p.id)}
@@ -162,3 +191,4 @@ export default function PrestationsClient({
     </div>
   )
 }
+

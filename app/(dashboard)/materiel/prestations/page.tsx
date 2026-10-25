@@ -40,7 +40,16 @@ export default async function PrestationsPage() {
         <p className="text-sm text-foreground-muted">{dict.materiel_pages.prestations.title}</p>
       </div>
 
-      <PrestationsClient prestations={prestations || []} materiels={materiels || []} produits={produits || []} varietes={varietes} budget={budget} dict={dict} locale={locale} />
+      <PrestationsClient
+        prestations={prestations || []}
+        materiels={materiels || []}
+        produits={produits || []}
+        varietes={varietes}
+        budget={budget}
+        dict={dict}
+        locale={locale}
+        gieName={tenant?.gieName || 'Mon GIE'}
+      />
     </div>
   )
 }

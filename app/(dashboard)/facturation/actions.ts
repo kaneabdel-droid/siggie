@@ -10,16 +10,151 @@ export async function getFactures() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Non authentifié")
 
-  const { data: factures, error } = await supabase
-    .from('factures')
-    .select(`
-      *,
-      membre:membre_id (id, nom, prenom, code_membre, telephone, village),
-      campagne:campagne_id (id, nom, produit_collecte, prix_collecte)
-    `)
-    .order('date_emission', { ascending: false })
+  const [facturesRes, prestationsRes, ventesRes, membresRes, clientsRes] = await Promise.all([
+    supabase
+      .from('factures')
+      .select(`
+        *,
+        membre:membre_id (id, nom, prenom, code_membre, telephone, village),
+        campagne:campagne_id (id, nom, produit_collecte, prix_collecte)
+      `)
+      .order('date_emission', { ascending: false }),
+    supabase
+      .from('materiel_prestations')
+      .select(`
+        *,
+        materiel:materiel_id (id, nom),
+        produit:produit_id (id, nom),
+        campagne:campagne_id (id, nom, produit_collecte, prix_collecte)
+      `)
+      .order('date_prestation', { ascending: false }),
+    supabase
+      .from('sorties_stock_nature')
+      .select(`
+        *,
+        campagne:campagne_id (id, nom, produit_collecte, prix_collecte)
+      `)
+      .eq('type_sortie', 'vente')
+      .order('date_sortie', { ascending: false }),
+    supabase.from('membres').select('id, nom, prenom, code_membre, telephone, village'),
+    supabase.from('clients_externes').select('id, nom, telephone'),
+  ])
 
-  if (error) return { error: error.message }
+  if (facturesRes.error) return { error: facturesRes.error.message }
+
+  const membresById = new Map<string, any>()
+  const membresByName = new Map<string, any>()
+  for (const m of membresRes.data || []) {
+    membresById.set(m.id, m)
+    membresByName.set(`${m.prenom} ${m.nom}`.trim().toLowerCase(), m)
+    membresByName.set(`${m.nom} ${m.prenom}`.trim().toLowerCase(), m)
+  }
+
+  const clientsById = new Map<string, any>()
+  const clientsByName = new Map<string, any>()
+  for (const c of clientsRes.data || []) {
+    clientsById.set(c.id, c)
+    clientsByName.set(String(c.nom || '').trim().toLowerCase(), c)
+  }
+
+  const facturesCampagne = (facturesRes.data || []).map((f: any) => ({
+    ...f,
+    type_document: 'campagne' as const,
+    tiers_type: 'membre' as const,
+    designation: f.campagne?.nom ? `Facture Campagne — ${f.campagne.nom}` : 'Facture Campagne',
+  }))
+
+  const facturesPrestations = (prestationsRes.data || []).map((p: any) => {
+    const cNomLower = String(p.client_nom || '').trim().toLowerCase()
+    const matchedMembre = p.membre_id
+      ? membresById.get(p.membre_id)
+      : p.tiers_type === 'membre' || (!p.client_id && membresByName.has(cNomLower))
+      ? membresByName.get(cNomLower)
+      : null
+    const isMembre = p.tiers_type === 'membre' || Boolean(matchedMembre)
+    const matchedClient = !isMembre
+      ? (p.client_id ? clientsById.get(p.client_id) : clientsByName.get(cNomLower)) || {
+          id: p.client_id || null,
+          nom: p.client_nom || 'Client externe',
+          telephone: p.client_telephone || null,
+        }
+      : null
+
+    const montant = Number(p.montant_facture || 0)
+    const qte = Number(p.quantite_traitee || p.superficie || 0)
+    const uniteStr = p.unite === 'autre' ? (p.unite_autre || '') : (p.unite || 'ha')
+
+    return {
+      id: `prestation-${p.id}`,
+      raw_id: p.id,
+      type_document: 'prestation' as const,
+      tiers_type: isMembre ? ('membre' as const) : ('client' as const),
+      membre_id: matchedMembre?.id || p.membre_id || null,
+      membre: matchedMembre || null,
+      client_id: matchedClient?.id || p.client_id || null,
+      client: matchedClient || null,
+      client_nom: p.client_nom || (matchedMembre ? `${matchedMembre.prenom} ${matchedMembre.nom}`.trim() : matchedClient?.nom),
+      client_telephone: p.client_telephone || matchedMembre?.telephone || matchedClient?.telephone || null,
+      campagne_id: p.campagne_id || p.campagne?.id || null,
+      campagne: p.campagne || null,
+      designation: `${p.type_prestation || 'Prestation'}${p.materiel?.nom ? ` (${p.materiel.nom})` : ''}${qte > 0 ? ` · ${qte} ${uniteStr}` : ''}`,
+      date_emission: p.date_prestation || p.created_at,
+      montant_total: montant,
+      montant_interet: 0,
+      montant_paye: 0,
+      statut: 'impayee',
+      imputation_releve: isMembre ? 'releve_membre' : 'releve_client',
+      raw: { ...p, membre: matchedMembre, client: matchedClient, tiers_type: isMembre ? 'membre' : 'client' },
+    }
+  })
+
+  const facturesVentes = (ventesRes.data || []).map((v: any) => {
+    const isMembre = v.tiers_type === 'membre' || Boolean(v.membre_id)
+    const matchedMembre = v.membre_id ? membresById.get(v.membre_id) : null
+    const tNomLower = String(v.tiers_nom || '').trim().toLowerCase()
+    const matchedClient = !isMembre
+      ? (v.client_id ? clientsById.get(v.client_id) : clientsByName.get(tNomLower)) || {
+          id: v.client_id || null,
+          nom: v.tiers_nom || 'Client externe',
+          telephone: null,
+        }
+      : null
+
+    const quantite = Number(v.quantite || 0)
+    const prixUnitaire = Number(v.prix_unitaire || 0)
+    const montant = quantite * prixUnitaire
+    const prod = v.campagne?.produit_collecte || 'Stock en nature'
+
+    return {
+      id: `vente-${v.id}`,
+      raw_id: v.id,
+      type_document: 'vente_stock' as const,
+      tiers_type: isMembre ? ('membre' as const) : ('client' as const),
+      membre_id: matchedMembre?.id || v.membre_id || null,
+      membre: matchedMembre || null,
+      client_id: matchedClient?.id || v.client_id || null,
+      client: matchedClient || null,
+      client_nom: matchedMembre ? `${matchedMembre.prenom} ${matchedMembre.nom}`.trim() : (matchedClient?.nom || v.tiers_nom || 'Client'),
+      client_telephone: matchedMembre?.telephone || matchedClient?.telephone || null,
+      campagne_id: v.campagne_id || v.campagne?.id || null,
+      campagne: v.campagne || null,
+      designation: `Vente ${prod} (${quantite} kg × ${prixUnitaire.toLocaleString('fr-FR')})`,
+      date_emission: v.date_sortie || v.created_at,
+      montant_total: montant,
+      montant_interet: 0,
+      montant_paye: 0,
+      statut: 'impayee',
+      imputation_releve: isMembre ? 'releve_membre' : 'releve_client',
+      raw: { ...v, membre: matchedMembre, client: matchedClient, montant_total: montant },
+    }
+  })
+
+  const factures = [...facturesCampagne, ...facturesPrestations, ...facturesVentes].sort((a, b) => {
+    const ta = a.date_emission ? new Date(a.date_emission).getTime() : 0
+    const tb = b.date_emission ? new Date(b.date_emission).getTime() : 0
+    return tb - ta
+  })
+
   return { factures }
 }
 

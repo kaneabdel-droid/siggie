@@ -53,6 +53,21 @@ export function buildFactureWhatsAppText({
   distributions?: any[]
   credits?: any[]
 }): string {
+  if (facture?.type_document === 'prestation') {
+    return buildPrestationWhatsAppText({
+      prestation: facture.raw || facture,
+      gieName,
+      unite,
+    })
+  }
+  if (facture?.type_document === 'vente_stock') {
+    return buildVenteStockWhatsAppText({
+      vente: facture.raw || facture,
+      gieName,
+      unite,
+    })
+  }
+
   const nomMembre = `${facture.membre?.prenom || ''} ${facture.membre?.nom || ''}`.trim() || 'Membre'
   const codeMembre = facture.membre?.code_membre
   const village = facture.membre?.village
@@ -173,6 +188,21 @@ export async function generateFacturePdf({
   unite?: string
   supabaseClient?: any
 }) {
+  if (facture?.type_document === 'prestation') {
+    return generatePrestationPdf({
+      prestation: facture.raw || facture,
+      gieName,
+      unite,
+    })
+  }
+  if (facture?.type_document === 'vente_stock') {
+    return generateVenteStockPdf({
+      vente: facture.raw || facture,
+      gieName,
+      unite,
+    })
+  }
+
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
     import('jspdf-autotable'),
@@ -478,3 +508,537 @@ export async function generateFacturePdf({
     quantiteNature,
   }
 }
+
+/**
+ * Génère le texte formaté WhatsApp pour une Facture Prestation Matériel.
+ */
+export function buildPrestationWhatsAppText({
+  prestation,
+  gieName,
+  unite = 'FCFA',
+}: {
+  prestation: any
+  gieName: string
+  unite?: string
+}): string {
+  const idCourt = String(prestation.id || '').replace(/^prestation-/, '').substring(0, 8).toUpperCase()
+  const isMembre = prestation.tiers_type === 'membre' || Boolean(prestation.membre_id || prestation.membre?.id)
+  const nomTiers =
+    prestation.client_nom ||
+    (prestation.membre ? `${prestation.membre.prenom || ''} ${prestation.membre.nom || ''}`.trim() : '') ||
+    prestation.client?.nom ||
+    'Client'
+  const codeMembre = prestation.membre?.code_membre
+  const typePrestation = prestation.type_prestation || 'Prestation agricole'
+  const nomMateriel = prestation.materiel?.nom || 'Matériel du GIE'
+  const nomCampagne = prestation.campagne?.nom || null
+  const datePrestation = prestation.date_prestation
+    ? new Date(prestation.date_prestation).toLocaleDateString('fr-FR')
+    : new Date().toLocaleDateString('fr-FR')
+
+  const qte = Number(prestation.quantite_traitee || prestation.superficie || 0)
+  const uniteTravail = prestation.unite === 'autre' ? (prestation.unite_autre || 'unité') : (prestation.unite || 'ha')
+  const montantFacture = Number(prestation.montant_facture || 0)
+  const unitStr = unite ? ` ${unite.trim()}` : ' FCFA'
+
+  let detailsRecolte = ''
+  if (prestation.quantite_obtenue != null) {
+    const prodNom = prestation.produit?.nom ? ` (${prestation.produit.nom})` : ''
+    detailsRecolte += `\n• Quantité obtenue : ${prestation.quantite_obtenue} ${prestation.unite_obtenue || ''}${prodNom}`
+    if (prestation.mode_paiement === 'part_recolte' && prestation.part_quantite != null) {
+      detailsRecolte += `\n• Part GIE (${prestation.taux_part || 0}%) : ${prestation.part_quantite} ${prestation.unite_obtenue || ''}`
+    }
+  }
+
+  const releveLabel = isMembre ? 'Relevé Membre' : 'Relevé Client'
+
+  return (
+`*FACTURE PRESTATION N° ${idCourt}*
+🏛️ *${gieName.toUpperCase()}*
+───────────────────
+👤 *${isMembre ? 'Membre' : 'Client'} :* ${nomTiers}${codeMembre ? ` (${codeMembre})` : ''}
+🚜 *Prestation :* ${typePrestation}
+⚙️ *Équipement :* ${nomMateriel}
+${nomCampagne ? `🌱 *Campagne :* ${nomCampagne}\n` : ''}📅 *Date :* ${datePrestation}
+
+━━━━━━━━━━━━━━━━━━━
+📊 *DÉTAIL DE LA PRESTATION*
+━━━━━━━━━━━━━━━━━━━
+• Travail réalisé : ${qte > 0 ? `${qte} ${uniteTravail}` : '-'}${detailsRecolte}
+• *MONTANT FACTURÉ :* ${formatFactureAmount(montantFacture)}${unitStr}
+───────────────────
+📌 *Imputation comptable :* Intégré directement au *${releveLabel}*
+━━━━━━━━━━━━━━━━━━━
+Merci de votre confiance.
+_Message généré par SIGGIE_`
+  )
+}
+
+/**
+ * Génère la facture PDF A4 pour une Prestation Matériel.
+ */
+export async function generatePrestationPdf({
+  prestation,
+  gieName,
+  unite = 'FCFA',
+}: {
+  prestation: any
+  gieName: string
+  unite?: string
+}) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
+
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+
+  const rawId = String(prestation.id || '').replace(/^prestation-/, '')
+  const idCourt = rawId.substring(0, 8).toUpperCase() || 'PREST'
+  const isMembre = prestation.tiers_type === 'membre' || Boolean(prestation.membre_id || prestation.membre?.id)
+  const nomTiers =
+    prestation.client_nom ||
+    (prestation.membre ? `${prestation.membre.prenom || ''} ${prestation.membre.nom || ''}`.trim() : '') ||
+    prestation.client?.nom ||
+    (isMembre ? 'Membre du GIE' : 'Client externe')
+  const telephone = prestation.client_telephone || prestation.membre?.telephone || prestation.client?.telephone || ''
+  const codeMembre = prestation.membre?.code_membre || ''
+  const dateStr = prestation.date_prestation
+    ? new Date(prestation.date_prestation).toLocaleDateString('fr-FR')
+    : new Date().toLocaleDateString('fr-FR')
+  const nomCampagne = prestation.campagne?.nom || 'Hors campagne'
+  const nomMateriel = prestation.materiel?.nom || 'Équipement du GIE'
+  const typePrestation = prestation.type_prestation || 'Prestation matériel'
+  const qte = Number(prestation.quantite_traitee || prestation.superficie || 0)
+  const uniteTravail = prestation.unite === 'autre' ? (prestation.unite_autre || 'unité') : (prestation.unite || 'ha')
+  const montantFacture = Number(prestation.montant_facture || 0)
+  const tarifUnitaire =
+    prestation.mode_paiement === 'part_recolte'
+      ? Number(prestation.prix_unitaire_part || 0)
+      : Number(prestation.tarif_unitaire || (qte > 0 ? montantFacture / qte : montantFacture))
+
+  // Header
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(24)
+  doc.setTextColor(45, 106, 79)
+  doc.text(gieName, 14, 28)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(20)
+  doc.setTextColor(180, 180, 180)
+  doc.text('FACTURE PRESTATION', pageWidth - 14, 28, { align: 'right' })
+
+  doc.setFontSize(10)
+  doc.setTextColor(100, 100, 100)
+  doc.text('Service & Équipement Agricole', pageWidth - 14, 34, { align: 'right' })
+
+  doc.setDrawColor(45, 106, 79)
+  doc.setLineWidth(0.5)
+  doc.line(14, 40, pageWidth - 14, 40)
+
+  // Infos Facture
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(0, 0, 0)
+  doc.text('Informations de la prestation :', 14, 47)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(80, 80, 80)
+  doc.text(`N° Facture : PREST-${idCourt}`, 14, 52)
+  doc.text(`Date de réalisation : ${dateStr}`, 14, 57)
+  doc.text(`Campagne : ${nomCampagne}`, 14, 62)
+  doc.text(`Matériel utilisé : ${nomMateriel}`, 14, 67)
+
+  // Facturé à
+  doc.setFillColor(245, 247, 250)
+  doc.roundedRect(pageWidth - 90, 44, 76, 25, 2, 2, 'F')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(0, 0, 0)
+  doc.text(`Facturé à (${isMembre ? 'Membre GIE' : 'Client externe'}) :`, pageWidth - 85, 49)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(45, 106, 79)
+  doc.text(nomTiers.toUpperCase(), pageWidth - 85, 55)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(80, 80, 80)
+  if (codeMembre) {
+    doc.text(`Code membre : ${codeMembre}`, pageWidth - 85, 60)
+  } else {
+    doc.text(`Catégorie : ${isMembre ? 'Membre du GIE' : 'Client Externe'}`, pageWidth - 85, 60)
+  }
+  if (telephone) {
+    doc.text(`Tél : ${telephone}`, pageWidth - 85, 65)
+  }
+
+  const designationLines = [`${typePrestation} — ${nomMateriel}`]
+  if (prestation.produit?.nom) {
+    designationLines.push(`Culture / Produit : ${prestation.produit.nom}${prestation.variete ? ` (${prestation.variete})` : ''}`)
+  }
+  if (prestation.quantite_obtenue != null) {
+    designationLines.push(`Récolte obtenue : ${prestation.quantite_obtenue} ${prestation.unite_obtenue || ''}`)
+  }
+  if (prestation.mode_paiement === 'part_recolte' && prestation.part_quantite != null) {
+    designationLines.push(
+      `Règlement en part de récolte (${prestation.taux_part || 0}%) : ${prestation.part_quantite} ${prestation.unite_obtenue || ''}`
+    )
+  }
+
+  const tableBody = [
+    [
+      designationLines.join('\n'),
+      qte > 0 ? `${qte} ${uniteTravail}` : '1',
+      tarifUnitaire > 0 ? formatFactureAmount(tarifUnitaire) : '-',
+      formatFactureAmount(montantFacture),
+    ],
+  ]
+
+  autoTable(doc, {
+    startY: 75,
+    head: [['Désignation de la prestation', 'Quantité / Unité', 'Tarif Unitaire', unite ? `Montant (${unite.trim()})` : 'Montant']],
+    body: tableBody,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [45, 106, 79],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'left',
+      cellPadding: 3,
+    },
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,
+      cellPadding: 3.5,
+    },
+    columnStyles: {
+      0: { halign: 'left', cellWidth: 'auto' },
+      1: { halign: 'center', cellWidth: 32 },
+      2: { halign: 'right', cellWidth: 35 },
+      3: { halign: 'right', cellWidth: 40, fontStyle: 'bold' },
+    },
+  })
+
+  const finalY = ((doc as any).lastAutoTable?.finalY || 115) + 8
+  const totalBoxX = pageWidth - 90
+
+  doc.setDrawColor(45, 106, 79)
+  doc.setLineWidth(0.5)
+  doc.line(totalBoxX, finalY, pageWidth - 14, finalY)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(45, 106, 79)
+  doc.text('MONTANT FACTURÉ :', totalBoxX, finalY + 8)
+  doc.text(`${formatFactureAmount(montantFacture)} ${unite.trim()}`, pageWidth - 14, finalY + 8, { align: 'right' })
+
+  // Imputation relevé
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9.5)
+  doc.setTextColor(0, 0, 0)
+  doc.text('Imputation comptable :', 14, finalY + 6)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(90, 90, 90)
+  doc.text(
+    `• Ce montant est imputé sur le ${isMembre ? 'Relevé Membre' : 'Relevé Client'} de ${nomTiers}.`,
+    14,
+    finalY + 12
+  )
+  doc.text(
+    `• Mode de facturation : ${prestation.mode_paiement === 'part_recolte' ? 'Part sur la récolte' : 'Forfait / Tarif à l\'unité'}.`,
+    14,
+    finalY + 17
+  )
+
+  // Signature Box
+  doc.setDrawColor(200, 200, 200)
+  doc.setLineDashPattern([2, 2], 0)
+  doc.rect(pageWidth - 70, finalY + 24, 56, 22)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(120, 120, 120)
+  doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 29)
+
+  // Footer
+  doc.setLineDashPattern([], 0)
+  doc.setDrawColor(230, 230, 230)
+  doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15)
+  doc.text('Généré par SIGGIE - Système Intégré de Gestion pour GIE', pageWidth / 2, pageHeight - 10, { align: 'center' })
+
+  const safeNom = nomTiers.replace(/\s+/g, '_') || 'Client'
+  const filename = `Facture_Prestation_${idCourt}_${safeNom}.pdf`
+  const blob = doc.output('blob')
+  const file = new File([blob], filename, { type: 'application/pdf' })
+
+  return {
+    doc,
+    blob,
+    file,
+    filename,
+    nomMembre: nomTiers,
+    distributions: [],
+    credits: [],
+    totalDu: montantFacture,
+    resteAPayer: montantFacture,
+    quantiteNature: 'N/A',
+  }
+}
+
+/**
+ * Génère le texte formaté WhatsApp pour une Facture Vente de Stock.
+ */
+export function buildVenteStockWhatsAppText({
+  vente,
+  gieName,
+  unite = 'FCFA',
+}: {
+  vente: any
+  gieName: string
+  unite?: string
+}): string {
+  const idCourt = String(vente.id || '').replace(/^vente-/, '').substring(0, 8).toUpperCase()
+  const isMembre = vente.tiers_type === 'membre' || Boolean(vente.membre_id || vente.membre?.id)
+  const nomTiers =
+    vente.tiers_nom ||
+    vente.tiers ||
+    (vente.membre ? `${vente.membre.prenom || ''} ${vente.membre.nom || ''}`.trim() : '') ||
+    vente.client?.nom ||
+    'Client'
+  const codeMembre = vente.membre?.code_membre
+  const produit = vente.campagne?.produit_collecte || vente.produit_collecte || 'Produit agricole (Stock)'
+  const nomCampagne = vente.campagne?.nom || null
+  const dateVente = (vente.date_sortie || vente.date)
+    ? new Date(vente.date_sortie || vente.date).toLocaleDateString('fr-FR')
+    : new Date().toLocaleDateString('fr-FR')
+
+  const quantite = Number(vente.quantite || 0)
+  const prixUnitaire = Number(vente.prix_unitaire || 0)
+  const montantTotal = Number(vente.montant_total || quantite * prixUnitaire)
+  const unitStr = unite ? ` ${unite.trim()}` : ' FCFA'
+  const releveLabel = isMembre ? 'Relevé Membre' : 'Relevé Client'
+
+  return (
+`*FACTURE VENTE DE STOCK N° ${idCourt}*
+🏛️ *${gieName.toUpperCase()}*
+───────────────────
+👤 *${isMembre ? 'Membre' : 'Client'} :* ${nomTiers}${codeMembre ? ` (${codeMembre})` : ''}
+🌾 *Produit vendu :* ${produit}
+${nomCampagne ? `🌱 *Campagne :* ${nomCampagne}\n` : ''}📅 *Date :* ${dateVente}
+
+━━━━━━━━━━━━━━━━━━━
+📊 *DÉTAIL DE LA VENTE*
+━━━━━━━━━━━━━━━━━━━
+• Quantité : ${quantite} kg
+• Prix unitaire : ${formatFactureAmount(prixUnitaire)}${unitStr} / kg
+• *MONTANT TOTAL FACTURÉ :* ${formatFactureAmount(montantTotal)}${unitStr}
+───────────────────
+📌 *Imputation comptable :* Intégré directement au *${releveLabel}*
+━━━━━━━━━━━━━━━━━━━
+Merci de votre confiance.
+_Message généré par SIGGIE_`
+  )
+}
+
+/**
+ * Génère la facture PDF A4 pour une Vente de Stock en nature.
+ */
+export async function generateVenteStockPdf({
+  vente,
+  gieName,
+  unite = 'FCFA',
+}: {
+  vente: any
+  gieName: string
+  unite?: string
+}) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
+
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+
+  const rawId = String(vente.id || '').replace(/^vente-/, '')
+  const idCourt = rawId.substring(0, 8).toUpperCase() || 'VENTE'
+  const isMembre = vente.tiers_type === 'membre' || Boolean(vente.membre_id || vente.membre?.id)
+  const nomTiers =
+    vente.tiers_nom ||
+    vente.tiers ||
+    (vente.membre ? `${vente.membre.prenom || ''} ${vente.membre.nom || ''}`.trim() : '') ||
+    vente.client?.nom ||
+    (isMembre ? 'Membre du GIE' : 'Client externe')
+  const telephone = vente.membre?.telephone || vente.client?.telephone || ''
+  const codeMembre = vente.membre?.code_membre || ''
+  const dateStr = (vente.date_sortie || vente.date)
+    ? new Date(vente.date_sortie || vente.date).toLocaleDateString('fr-FR')
+    : new Date().toLocaleDateString('fr-FR')
+  const nomCampagne = vente.campagne?.nom || 'Stock général'
+  const produit = vente.campagne?.produit_collecte || vente.produit_collecte || 'Produit agricole en stock'
+  const quantite = Number(vente.quantite || 0)
+  const prixUnitaire = Number(vente.prix_unitaire || 0)
+  const montantTotal = Number(vente.montant_total || quantite * prixUnitaire)
+
+  // Header
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(24)
+  doc.setTextColor(45, 106, 79)
+  doc.text(gieName, 14, 28)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(20)
+  doc.setTextColor(180, 180, 180)
+  doc.text('FACTURE DE VENTE', pageWidth - 14, 28, { align: 'right' })
+
+  doc.setFontSize(10)
+  doc.setTextColor(100, 100, 100)
+  doc.text('Vente de Stock Agricole', pageWidth - 14, 34, { align: 'right' })
+
+  doc.setDrawColor(45, 106, 79)
+  doc.setLineWidth(0.5)
+  doc.line(14, 40, pageWidth - 14, 40)
+
+  // Infos Facture
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(0, 0, 0)
+  doc.text('Informations de la vente :', 14, 47)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(80, 80, 80)
+  doc.text(`N° Facture : VENTE-${idCourt}`, 14, 52)
+  doc.text(`Date de vente : ${dateStr}`, 14, 57)
+  doc.text(`Campagne d'origine : ${nomCampagne}`, 14, 62)
+
+  // Facturé à
+  doc.setFillColor(245, 247, 250)
+  doc.roundedRect(pageWidth - 90, 44, 76, 23, 2, 2, 'F')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(0, 0, 0)
+  doc.text(`Facturé à (${isMembre ? 'Membre GIE' : 'Client externe'}) :`, pageWidth - 85, 49)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(45, 106, 79)
+  doc.text(nomTiers.toUpperCase(), pageWidth - 85, 55)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(80, 80, 80)
+  if (codeMembre) {
+    doc.text(`Code membre : ${codeMembre}`, pageWidth - 85, 60)
+  } else {
+    doc.text(`Catégorie : ${isMembre ? 'Membre du GIE' : 'Client Externe'}`, pageWidth - 85, 60)
+  }
+  if (telephone) {
+    doc.text(`Tél : ${telephone}`, pageWidth - 85, 64.5)
+  }
+
+  const designation = [
+    `Vente de stock : ${produit}`,
+    vente.motif ? `Motif / Référence : ${vente.motif}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  autoTable(doc, {
+    startY: 73,
+    head: [['Désignation du produit vendu', 'Quantité (kg)', 'Prix Unitaire / kg', unite ? `Montant (${unite.trim()})` : 'Montant']],
+    body: [
+      [
+        designation,
+        `${quantite} kg`,
+        formatFactureAmount(prixUnitaire),
+        formatFactureAmount(montantTotal),
+      ],
+    ],
+    theme: 'striped',
+    headStyles: {
+      fillColor: [45, 106, 79],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'left',
+      cellPadding: 3,
+    },
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,
+      cellPadding: 3.5,
+    },
+    columnStyles: {
+      0: { halign: 'left', cellWidth: 'auto' },
+      1: { halign: 'center', cellWidth: 32 },
+      2: { halign: 'right', cellWidth: 35 },
+      3: { halign: 'right', cellWidth: 40, fontStyle: 'bold' },
+    },
+  })
+
+  const finalY = ((doc as any).lastAutoTable?.finalY || 110) + 8
+  const totalBoxX = pageWidth - 90
+
+  doc.setDrawColor(45, 106, 79)
+  doc.setLineWidth(0.5)
+  doc.line(totalBoxX, finalY, pageWidth - 14, finalY)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(45, 106, 79)
+  doc.text('NET À PAYER :', totalBoxX, finalY + 8)
+  doc.text(`${formatFactureAmount(montantTotal)} ${unite.trim()}`, pageWidth - 14, finalY + 8, { align: 'right' })
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9.5)
+  doc.setTextColor(0, 0, 0)
+  doc.text('Imputation comptable :', 14, finalY + 6)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(90, 90, 90)
+  doc.text(
+    `• Ce montant est imputé sur le ${isMembre ? 'Relevé Membre' : 'Relevé Client'} de ${nomTiers}.`,
+    14,
+    finalY + 12
+  )
+
+  // Signature Box
+  doc.setDrawColor(200, 200, 200)
+  doc.setLineDashPattern([2, 2], 0)
+  doc.rect(pageWidth - 70, finalY + 22, 56, 22)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(120, 120, 120)
+  doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 27)
+
+  // Footer
+  doc.setLineDashPattern([], 0)
+  doc.setDrawColor(230, 230, 230)
+  doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15)
+  doc.text('Généré par SIGGIE - Système Intégré de Gestion pour GIE', pageWidth / 2, pageHeight - 10, { align: 'center' })
+
+  const safeNom = nomTiers.replace(/\s+/g, '_') || 'Client'
+  const filename = `Facture_Vente_${idCourt}_${safeNom}.pdf`
+  const blob = doc.output('blob')
+  const file = new File([blob], filename, { type: 'application/pdf' })
+
+  return {
+    doc,
+    blob,
+    file,
+    filename,
+    nomMembre: nomTiers,
+    distributions: [],
+    credits: [],
+    totalDu: montantTotal,
+    resteAPayer: montantTotal,
+    quantiteNature: 'N/A',
+  }
+}
+
