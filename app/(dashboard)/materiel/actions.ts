@@ -167,8 +167,8 @@ function texte(fd: FormData, cle: string) {
   return v || null
 }
 
-/** Lit et contrôle le pointage d'une prestation (unité, quantités, variété, téléphone, part de récolte). */
-async function lirePointage(fd: FormData, supabase: Awaited<ReturnType<typeof createClient>>) {
+/** Lit et contrôle le pointage d'une prestation (unité, quantités, variété, bénéficiaire membre/client, part de récolte). */
+async function lirePointage(fd: FormData, supabase: Awaited<ReturnType<typeof createClient>>, gieId?: string) {
   const t = (await getDictionary(await getLocale())).materiel_pages.prestations.errors
 
   const unite = String(fd.get('unite') ?? 'ha')
@@ -179,8 +179,83 @@ async function lirePointage(fd: FormData, supabase: Awaited<ReturnType<typeof cr
   const quantite_traitee = nombre(fd, 'quantite_traitee')
   if (quantite_traitee === null || Number.isNaN(quantite_traitee) || quantite_traitee <= 0) return { error: t.quantity }
 
-  const client_telephone = texte(fd, 'client_telephone')
-  if (!client_telephone || client_telephone.replace(/\D/g, '').length < 7) return { error: t.phone }
+  const tiers_type = fd.get('tiers_type') === 'membre' ? 'membre' : 'client'
+  const raw_membre_id = tiers_type === 'membre' ? texte(fd, 'membre_id') : null
+  let raw_client_id = tiers_type === 'client' ? texte(fd, 'client_id') : null
+  if (raw_client_id === '__new__') raw_client_id = null
+
+  let client_nom = texte(fd, 'client_nom')
+  let client_telephone = texte(fd, 'client_telephone')
+
+  if (tiers_type === 'membre') {
+    if (!raw_membre_id) return { error: "Veuillez sélectionner un membre du GIE." }
+    const { data: membre } = await supabase
+      .from('membres')
+      .select('prenom, nom, telephone')
+      .eq('id', raw_membre_id)
+      .maybeSingle()
+    if (!membre) return { error: "Membre introuvable." }
+    client_nom = `${membre.prenom} ${membre.nom}`.trim()
+    if (!client_telephone && membre.telephone) {
+      client_telephone = membre.telephone
+    }
+    // Si l'utilisateur a saisi un téléphone et que le membre n'en avait pas, mettre à jour la fiche membre
+    if (client_telephone && !membre.telephone) {
+      await supabase.from('membres').update({ telephone: client_telephone }).eq('id', raw_membre_id)
+    }
+  } else {
+    if (raw_client_id) {
+      const { data: cExt } = await supabase
+        .from('clients_externes')
+        .select('id, nom, telephone')
+        .eq('id', raw_client_id)
+        .maybeSingle()
+      if (cExt) {
+        if (!client_nom) client_nom = cExt.nom
+        if (!client_telephone && cExt.telephone) client_telephone = cExt.telephone
+        if (client_telephone && !cExt.telephone) {
+          await supabase.from('clients_externes').update({ telephone: client_telephone }).eq('id', cExt.id)
+        }
+      }
+    } else if (client_nom && gieId) {
+      // Rechercher si ce client externe existe déjà (par nom insensible à la casse)
+      const { data: existingClient } = await supabase
+        .from('clients_externes')
+        .select('id, nom, telephone')
+        .eq('gie_id', gieId)
+        .ilike('nom', client_nom.trim())
+        .limit(1)
+        .maybeSingle()
+
+      if (existingClient) {
+        raw_client_id = existingClient.id
+        if (!client_telephone && existingClient.telephone) {
+          client_telephone = existingClient.telephone
+        }
+      } else {
+        // Créer automatiquement le client externe pour qu'il apparaisse directement dans le Relevé Client
+        const { data: newClient } = await supabase
+          .from('clients_externes')
+          .insert({
+            gie_id: gieId,
+            nom: client_nom.trim(),
+            telephone: client_telephone || null,
+          })
+          .select('id')
+          .maybeSingle()
+        if (newClient) {
+          raw_client_id = newClient.id
+        }
+      }
+    }
+
+    if (!client_nom) {
+      return { error: "Veuillez sélectionner ou saisir le nom du client." }
+    }
+    if (!client_telephone || client_telephone.replace(/\D/g, '').length < 7) {
+      return { error: t.phone }
+    }
+  }
 
   const produit_id = texte(fd, 'produit_id')
   let variete = texte(fd, 'variete')
@@ -222,7 +297,7 @@ async function lirePointage(fd: FormData, supabase: Awaited<ReturnType<typeof cr
       campagne_id: texte(fd, 'campagne_id'),
       type_prestation,
       date_prestation,
-      client_nom: texte(fd, 'client_nom'),
+      client_nom,
       client_telephone,
       unite,
       unite_autre,
@@ -238,6 +313,11 @@ async function lirePointage(fd: FormData, supabase: Awaited<ReturnType<typeof cr
       taux_part,
       prix_unitaire_part,
       montant_facture,
+    },
+    tiersExtras: {
+      tiers_type,
+      membre_id: tiers_type === 'membre' ? raw_membre_id : null,
+      client_id: tiers_type === 'client' ? raw_client_id : null,
     },
   }
 }
@@ -258,16 +338,38 @@ export async function addPrestation(fd: FormData) {
 
   if (!userData) return { error: "Utilisateur introuvable" }
 
-  const pointage = await lirePointage(fd, supabase)
+  const pointage = await lirePointage(fd, supabase, userData.gie_id)
   if ('error' in pointage) return { error: pointage.error }
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('materiel_prestations')
-    .insert({ gie_id: userData.gie_id, ...pointage.valeurs, pointe_par: user.id })
+    .insert({
+      gie_id: userData.gie_id,
+      ...pointage.valeurs,
+      ...pointage.tiersExtras,
+      pointe_par: user.id,
+    })
+
+  // Fallback si la migration 56 n'est pas encore appliquée sur la base distante
+  if (error && /tiers_type|membre_id|client_id|column/i.test(error.message)) {
+    const retry = await supabase
+      .from('materiel_prestations')
+      .insert({
+        gie_id: userData.gie_id,
+        ...pointage.valeurs,
+        pointe_par: user.id,
+      })
+    error = retry.error
+  }
 
   if (error) return { error: error.message }
 
   revalidatePath('/materiel/prestations')
+  revalidatePath('/facturation')
+  revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/bilan-annuel')
   return { success: true }
 }
 
@@ -284,6 +386,11 @@ export async function deletePrestation(id: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/materiel/prestations')
+  revalidatePath('/facturation')
+  revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/bilan-annuel')
   return { success: true }
 }
 
@@ -447,13 +554,26 @@ export async function updatePrestation(id: string, fd: FormData) {
   if (denied) return denied as never
   const supabase = await createClient()
 
-  const pointage = await lirePointage(fd, supabase)
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userData } = user
+    ? await supabase.from('utilisateurs').select('gie_id').eq('id', user.id).maybeSingle()
+    : { data: null }
+
+  const pointage = await lirePointage(fd, supabase, userData?.gie_id)
   if ('error' in pointage) return { error: pointage.error }
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('materiel_prestations')
-    .update(pointage.valeurs)
+    .update({ ...pointage.valeurs, ...pointage.tiersExtras })
     .eq('id', id)
+
+  if (error && /tiers_type|membre_id|client_id|column/i.test(error.message)) {
+    const retry = await supabase
+      .from('materiel_prestations')
+      .update(pointage.valeurs)
+      .eq('id', id)
+    error = retry.error
+  }
 
   if (error) {
     console.error(error)
@@ -461,6 +581,12 @@ export async function updatePrestation(id: string, fd: FormData) {
   }
 
   revalidatePath('/materiel')
+  revalidatePath('/materiel/prestations')
+  revalidatePath('/facturation')
+  revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/bilan-annuel')
   return { success: true }
 }
 
@@ -469,14 +595,17 @@ export async function updatePrestation(id: string, fd: FormData) {
 // ---------------------------------------------------------------------------
 
 /**
- * Campagnes et sous-rubriques du budget Matériel : chaque prestation (recette) ou consommation (dépense) imputée à une
- * campagne alimente le réalisé de la rubrique « équipement / type » du suivi budgétaire.
+ * Campagnes, membres, clients externes et sous-rubriques du budget Matériel :
+ * chaque prestation (recette) ou consommation (dépense) imputée à une campagne
+ * alimente le réalisé du suivi budgétaire, et chaque prestation s'intègre au Relevé Membre ou Client.
  */
 export async function getContexteBudgetMateriel() {
   const supabase = await createClient()
-  const [{ data: campagnes }, { data: imputations }] = await Promise.all([
+  const [{ data: campagnes }, { data: imputations }, { data: membres }, { data: clients }] = await Promise.all([
     supabase.from('campagnes').select('id, nom, statut, date_debut').order('date_debut', { ascending: false, nullsFirst: false }),
     supabase.from('imputations').select('libelle, compte, nature').eq('categorie', 'materiel').order('compte'),
+    supabase.from('membres').select('id, prenom, nom, code_membre, telephone, village').order('prenom', { ascending: true }),
+    supabase.from('clients_externes').select('id, nom, telephone').order('nom', { ascending: true }),
   ])
   const types = (nature: string) => (imputations || []).filter((i) => i.nature === nature).map((i) => ({ type: i.compte, materiel: i.libelle }))
   return {
@@ -484,6 +613,8 @@ export async function getContexteBudgetMateriel() {
     defaultCampagneId: (campagnes || []).find((c) => c.statut === 'en_cours')?.id ?? '',
     typesRecette: types('recette'),
     typesDepense: types('depense'),
+    membres: membres || [],
+    clients: clients || [],
   }
 }
 

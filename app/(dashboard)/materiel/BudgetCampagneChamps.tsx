@@ -5,6 +5,8 @@ export type ContexteBudgetMateriel = {
   defaultCampagneId: string
   typesRecette: { type: string; materiel: string }[]
   typesDepense: { type: string; materiel: string }[]
+  membres?: { id: string; prenom: string; nom: string; code_membre?: string | null; telephone?: string | null; village?: string | null }[]
+  clients?: { id: string; nom: string; telephone?: string | null }[]
 }
 
 const champ =

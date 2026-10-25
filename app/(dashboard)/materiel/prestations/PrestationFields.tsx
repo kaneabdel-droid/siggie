@@ -36,6 +36,33 @@ export default function PrestationFields({
 }) {
   const t = dict.materiel_pages.prestations.form
   const p = prestation ?? {}
+  const membres = budget.membres ?? []
+  const clients = budget.clients ?? []
+
+  // Détection initiale du type de bénéficiaire (membre ou client externe)
+  const initialMatchedMembre =
+    p.membre_id
+      ? membres.find((m) => m.id === p.membre_id)
+      : p.client_nom
+      ? membres.find((m) => `${m.prenom} ${m.nom}`.trim().toLowerCase() === String(p.client_nom).trim().toLowerCase())
+      : undefined
+
+  const initialMatchedClient =
+    !initialMatchedMembre && p.client_id
+      ? clients.find((c) => c.id === p.client_id)
+      : !initialMatchedMembre && p.client_nom
+      ? clients.find((c) => c.nom.trim().toLowerCase() === String(p.client_nom).trim().toLowerCase())
+      : undefined
+
+  const [tiersType, setTiersType] = useState<'membre' | 'client'>(
+    p.tiers_type === 'membre' || initialMatchedMembre ? 'membre' : 'client'
+  )
+  const [membreId, setMembreId] = useState<string>(p.membre_id ?? initialMatchedMembre?.id ?? '')
+  const [clientId, setClientId] = useState<string>(
+    p.client_id ?? initialMatchedClient?.id ?? (p.client_nom && !initialMatchedMembre ? '__new__' : '')
+  )
+  const [clientNom, setClientNom] = useState<string>(p.client_nom ?? '')
+  const [clientTel, setClientTel] = useState<string>(p.client_telephone ?? '')
 
   const [unite, setUnite] = useState<string>(p.unite ?? 'ha')
   const [quantite, setQuantite] = useState<string>(p.quantite_traitee ? String(p.quantite_traitee) : p.superficie ? String(p.superficie) : '')
@@ -88,29 +115,161 @@ export default function PrestationFields({
       </div>
 
       <fieldset className={section}>
-        <legend className={titreSection}>{t.section_client}</legend>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
-          <div>
-            <label htmlFor="client_nom" className={etiquette}>{t.client_label}</label>
-            <input type="text" name="client_nom" id="client_nom" defaultValue={p.client_nom ?? ''} className={champ} />
-          </div>
-          <div>
-            <label htmlFor="client_telephone" className={etiquette}>{t.phone_label} *</label>
+        <legend className={titreSection}>{t.section_client} (Membre ou Client)</legend>
+        <div className="flex flex-wrap gap-4 pb-1">
+          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
             <input
-              type="tel"
-              name="client_telephone"
-              id="client_telephone"
-              required
-              inputMode="tel"
-              autoComplete="off"
-              pattern="[0-9+ ().\-]{7,}"
-              placeholder={t.phone_placeholder}
-              defaultValue={p.client_telephone ?? ''}
-              className={champ}
-              dir="ltr"
+              type="radio"
+              name="tiers_type"
+              value="membre"
+              checked={tiersType === 'membre'}
+              onChange={() => {
+                setTiersType('membre')
+                if (membreId) {
+                  const m = membres.find((x) => x.id === membreId)
+                  if (m) {
+                    setClientNom(`${m.prenom} ${m.nom}`.trim())
+                    if (m.telephone) setClientTel(m.telephone)
+                  }
+                }
+              }}
+              className="text-primary focus:ring-primary"
             />
-          </div>
+            <span className="font-medium">Membre du GIE</span>
+            <span className="text-xs text-foreground-muted">(intégré au Relevé Membre)</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+            <input
+              type="radio"
+              name="tiers_type"
+              value="client"
+              checked={tiersType === 'client'}
+              onChange={() => {
+                setTiersType('client')
+                if (clientId && clientId !== '__new__') {
+                  const c = clients.find((x) => x.id === clientId)
+                  if (c) {
+                    setClientNom(c.nom)
+                    if (c.telephone) setClientTel(c.telephone)
+                  }
+                }
+              }}
+              className="text-primary focus:ring-primary"
+            />
+            <span className="font-medium">Client externe</span>
+            <span className="text-xs text-foreground-muted">(intégré au Relevé Client)</span>
+          </label>
         </div>
+
+        {tiersType === 'membre' ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+            <div>
+              <label htmlFor="membre_id" className={etiquette}>Membre du GIE *</label>
+              <select
+                name="membre_id"
+                id="membre_id"
+                required
+                value={membreId}
+                onChange={(e) => {
+                  const id = e.target.value
+                  setMembreId(id)
+                  const m = membres.find((x) => x.id === id)
+                  if (m) {
+                    setClientNom(`${m.prenom} ${m.nom}`.trim())
+                    setClientTel(m.telephone ?? '')
+                  }
+                }}
+                className={champ}
+              >
+                <option value="">— Sélectionner un membre —</option>
+                {membres.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.prenom} {m.nom} {m.code_membre ? `[${m.code_membre}]` : ''}
+                  </option>
+                ))}
+              </select>
+              <input type="hidden" name="client_nom" value={clientNom} />
+            </div>
+            <div>
+              <label htmlFor="client_telephone" className={etiquette}>{t.phone_label}</label>
+              <input
+                type="tel"
+                name="client_telephone"
+                id="client_telephone"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder={t.phone_placeholder}
+                value={clientTel}
+                onChange={(e) => setClientTel(e.target.value)}
+                className={champ}
+                dir="ltr"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+            <div>
+              <label htmlFor="client_id" className={etiquette}>Client externe *</label>
+              <select
+                name="client_id"
+                id="client_id"
+                value={clientId}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setClientId(val)
+                  if (val && val !== '__new__') {
+                    const c = clients.find((x) => x.id === val)
+                    if (c) {
+                      setClientNom(c.nom)
+                      if (c.telephone) setClientTel(c.telephone)
+                    }
+                  } else if (val === '__new__') {
+                    setClientNom('')
+                  }
+                }}
+                className={champ}
+              >
+                <option value="__new__">+ Nouveau client / Saisie libre</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nom}</option>
+                ))}
+              </select>
+              {(clientId === '__new__' || !clientId) ? (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    name="client_nom"
+                    id="client_nom"
+                    required
+                    placeholder="Nom complet du client externe *"
+                    value={clientNom}
+                    onChange={(e) => setClientNom(e.target.value)}
+                    className={champ}
+                  />
+                </div>
+              ) : (
+                <input type="hidden" name="client_nom" value={clientNom} />
+              )}
+            </div>
+            <div>
+              <label htmlFor="client_telephone" className={etiquette}>{t.phone_label} *</label>
+              <input
+                type="tel"
+                name="client_telephone"
+                id="client_telephone"
+                required
+                inputMode="tel"
+                autoComplete="off"
+                pattern="[0-9+ ().\-]{7,}"
+                placeholder={t.phone_placeholder}
+                value={clientTel}
+                onChange={(e) => setClientTel(e.target.value)}
+                className={champ}
+                dir="ltr"
+              />
+            </div>
+          </div>
+        )}
       </fieldset>
 
       <fieldset className={section}>
