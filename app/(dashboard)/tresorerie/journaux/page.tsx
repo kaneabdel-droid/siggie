@@ -5,7 +5,13 @@ import JournalClient from './JournalClient'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getTenantContext } from '@/utils/supabase/tenant'
 
-export default async function JournauxPage() {
+export default async function JournauxPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ compteId?: string }>
+}) {
+  const resolvedParams = searchParams ? await searchParams : undefined
+  const initialCompteId = resolvedParams?.compteId
   const supabase = await createClient()
   const [
     { comptes, error },
@@ -55,6 +61,7 @@ export default async function JournauxPage() {
         clients={clients || []}
         membres={membres || []}
         materiels={materiels || []}
+        initialCompteId={initialCompteId}
         dict={dict}
         locale={locale}
         gieName={tenant?.gieName || 'Mon GIE'}

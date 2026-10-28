@@ -10,8 +10,12 @@ type Transaction = {
   montant: number
   motif: string
   type_piece: string | null
+  reference_piece?: string | null
   imputation_id: string | null
   campagne_id: string | null
+  date_transaction?: string | null
+  date_effective?: string | null
+  created_at?: string | null
 }
 
 type Campagne = { id: string; nom: string; statut: string }
@@ -43,7 +47,9 @@ export default function TransactionRowActions({
       type_transaction: formData.get('type_transaction') as string,
       montant: Number(formData.get('montant')),
       motif: formData.get('motif') as string,
+      date_transaction: (formData.get('date_transaction') as string) || undefined,
       type_piece: (formData.get('type_piece') as string) || undefined,
+      reference_piece: (formData.get('reference_piece') as string)?.trim() || undefined,
       imputation_id: (formData.get('imputation_id') as string) || undefined,
       campagne_id: (formData.get('campagne_id') as string) || undefined,
     })
@@ -91,6 +97,18 @@ export default function TransactionRowActions({
                   {t.edit_title}
                 </h3>
                 <form id={`edit-tx-form-${transaction.id}`} onSubmit={handleEdit} className="space-y-4">
+                  {/* Date de transaction modifiable */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Date de l'opération *</label>
+                    <input
+                      type="date"
+                      name="date_transaction"
+                      defaultValue={transaction.date_transaction || transaction.date_effective || transaction.created_at?.slice(0, 10) || new Date().toISOString().slice(0, 10)}
+                      required
+                      className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 font-mono"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-foreground">{t.form.type_label}</label>
                     <select name="type_transaction" defaultValue={transaction.type_transaction} required className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
@@ -98,18 +116,35 @@ export default function TransactionRowActions({
                       <option value="sortie">{t.form.type_out}</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground">{t.form.piece_label}</label>
-                    <select name="type_piece" defaultValue={transaction.type_piece || ''} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
-                      <option value="">{t.form.piece_none}</option>
-                      <option value="facture_fournisseur">{t.form.piece_supplier}</option>
-                      <option value="retrait_espece">{t.form.piece_withdrawal}</option>
-                      <option value="versement">{t.form.piece_deposit}</option>
-                    </select>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">{t.form.piece_label}</label>
+                      <select name="type_piece" defaultValue={transaction.type_piece || ''} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
+                        <option value="">{t.form.piece_none}</option>
+                        <option value="facture_fournisseur">{t.form.piece_supplier}</option>
+                        <option value="recu">Reçu / Quittance</option>
+                        <option value="retrait_espece">{t.form.piece_withdrawal}</option>
+                        <option value="versement">{t.form.piece_deposit}</option>
+                        <option value="cheque">Chèque</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">Référence / N° de pièce</label>
+                      <input
+                        type="text"
+                        name="reference_piece"
+                        defaultValue={transaction.reference_piece || ''}
+                        placeholder="Ex: FAC-001, CHQ-123..."
+                        className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 font-mono"
+                      />
+                    </div>
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-foreground">{t.form.amount_label}</label>
-                    <input type="number" name="montant" defaultValue={transaction.montant} required min={1} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input type="number" name="montant" defaultValue={transaction.montant} required min={1} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 font-mono font-semibold" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground">{t.form.imputation_label}</label>

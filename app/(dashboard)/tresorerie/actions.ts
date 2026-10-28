@@ -80,6 +80,7 @@ export async function addTransaction(data: {
   date_transaction?: string
   credit_id?: string
   type_piece?: string
+  reference_piece?: string
   imputation_id?: string
   campagne_id?: string
   tiers_type?: string
@@ -123,9 +124,10 @@ export async function addTransaction(data: {
     const nomOrigine = compteOrigine?.nom || 'Compte Origine'
     const nomDest = compteDest?.nom || 'Compte Destination'
 
+    const refTag = data.reference_piece?.trim() ? ` [REF:${data.reference_piece.trim()}]` : ''
     const userComment = data.motif?.trim() ? ` (${data.motif.trim()})` : ''
-    const motifSortie = `Virement vers ${nomDest}${userComment} [TIERS:${nomDest}]`
-    const motifEntree = `Virement reçu de ${nomOrigine}${userComment} [TIERS:${nomOrigine}]`
+    const motifSortie = `Virement vers ${nomDest}${userComment}${refTag} [TIERS:${nomDest}]`
+    const motifEntree = `Virement reçu de ${nomOrigine}${userComment}${refTag} [TIERS:${nomOrigine}]`
 
     // 1. Sortie du compte d'origine
     const insertSortie = await supabase.from('transactions').insert({
@@ -164,8 +166,11 @@ export async function addTransaction(data: {
     return { success: true }
   }
 
-  // Formatage du motif avec tags tiers et matériel pour backward compatibility totale
+  // Formatage du motif avec tags référence, tiers et matériel pour backward compatibility totale
   let safeMotif = data.motif?.trim() || 'Opération'
+  if (data.reference_piece?.trim()) {
+    safeMotif = `${safeMotif} [REF:${data.reference_piece.trim()}]`
+  }
   if (data.tiers_nom?.trim()) {
     safeMotif = `${safeMotif} [TIERS:${data.tiers_nom.trim()}]`
   }
@@ -216,7 +221,19 @@ export async function addTransaction(data: {
   return { success: true }
 }
 
-export async function updateTransaction(id: string, data: { type_transaction: string, montant: number, motif: string, type_piece?: string, imputation_id?: string, campagne_id?: string, date_transaction?: string }) {
+export async function updateTransaction(
+  id: string,
+  data: {
+    type_transaction: string
+    montant: number
+    motif: string
+    type_piece?: string
+    imputation_id?: string
+    campagne_id?: string
+    date_transaction?: string
+    reference_piece?: string
+  }
+) {
   const denied = await requirePermission('tresorerie', 'update')
   if (denied) return denied as never
   const supabase = await createClient()
@@ -224,16 +241,20 @@ export async function updateTransaction(id: string, data: { type_transaction: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Non authentifié" }
 
+  // Conserver ou actualiser la référence dans le motif
+  let safeMotif = data.motif.replace(/\[REF:.*?\]/g, '').trim()
+  if (data.reference_piece?.trim()) {
+    safeMotif = `${safeMotif} [REF:${data.reference_piece.trim()}]`
+  }
+
   const updatePayload: any = {
     type_transaction: data.type_transaction,
     montant: data.montant,
-    motif: data.motif,
+    motif: safeMotif,
     type_piece: data.type_piece || null,
     imputation_id: data.imputation_id || null,
-    campagne_id: data.campagne_id || null
-  }
-  if (data.date_transaction) {
-    updatePayload.date_transaction = data.date_transaction
+    campagne_id: data.campagne_id || null,
+    date_transaction: data.date_transaction || new Date().toISOString().slice(0, 10),
   }
 
   const { error } = await supabase
@@ -285,16 +306,23 @@ export async function getJournal(compteId: string) {
     .from('transactions')
     .select('*')
     .eq('compte_id', compteId)
-    .order('created_at', { ascending: true }) // Ordre chronologique
 
   if (error) return { error: error.message }
+
+  // Tri chronologique rigoureux prenant en compte la date modifiable de l'opération
+  const sortedTxs = (transactions || []).slice().sort((a, b) => {
+    const da = a.date_transaction || (a.created_at ? a.created_at.slice(0, 10) : '')
+    const db = b.date_transaction || (b.created_at ? b.created_at.slice(0, 10) : '')
+    if (da !== db) return da.localeCompare(db)
+    return (a.created_at || '').localeCompare(b.created_at || '')
+  })
 
   let soldeCourant = Number(compte.solde_initial || 0)
 
   // Map to calculate equipment breakdown
   const matMap = new Map<string, { nom: string; entrees: number; sorties: number }>()
   
-  const journal = (transactions || []).map(tx => {
+  const journal = sortedTxs.map(tx => {
     let entree = null
     let sortie = null
     const montant = Number(tx.montant || 0)
@@ -307,8 +335,16 @@ export async function getJournal(compteId: string) {
       soldeCourant -= sortie
     }
 
-    // Extract tiers from column or motif
     const motifStr = String(tx.motif || '')
+
+    // Extract reference from column or motif
+    let referencePiece: string | null = (tx as any).reference_piece || null
+    const matchRef = motifStr.match(/\[REF:(.*?)\]/)
+    if (matchRef) {
+      referencePiece = matchRef[1].trim()
+    }
+
+    // Extract tiers from column or motif
     let tiersNom = tx.tiers_nom || null
     if (!tiersNom) {
       const matchTiers = motifStr.match(/\[TIERS:(.*?)\]/)
@@ -326,7 +362,11 @@ export async function getJournal(compteId: string) {
       matMap.set(materielNom, existing)
     }
 
-    const cleanMotif = motifStr.replace(/\[TIERS:.*?\]/g, '').replace(/\[MATERIEL:.*?\]/g, '').trim()
+    const cleanMotif = motifStr
+      .replace(/\[TIERS:.*?\]/g, '')
+      .replace(/\[MATERIEL:.*?\]/g, '')
+      .replace(/\[REF:.*?\]/g, '')
+      .trim()
 
     return {
       ...tx,
@@ -334,6 +374,7 @@ export async function getJournal(compteId: string) {
       motif_affiche: cleanMotif,
       tiers_affiche: tiersNom || '-',
       materiel_nom: materielNom,
+      reference_piece: referencePiece,
       entree,
       sortie,
       solde: soldeCourant

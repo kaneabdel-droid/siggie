@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getJournal } from '../actions'
 import AddTransactionModal from './AddTransactionModal'
 import TransactionRowActions from './TransactionRowActions'
 import PrintSectionButton from '@/components/PrintSectionButton'
-import { Truck, ArrowLeftRight, User, Filter, RotateCcw } from 'lucide-react'
+import { Truck, ArrowLeftRight, User, Filter, RotateCcw, FileText } from 'lucide-react'
 import { useUnite } from '@/components/DeviseProvider'
 
 type Campagne = { id: string; nom: string; statut: string }
@@ -17,6 +18,7 @@ export default function JournalClient({
   clients = [],
   membres = [],
   materiels = [],
+  initialCompteId,
   dict,
   locale,
   gieName,
@@ -27,12 +29,16 @@ export default function JournalClient({
   clients?: any[]
   membres?: any[]
   materiels?: any[]
+  initialCompteId?: string
   dict: any
   locale: string
   gieName: string
 }) {
   const unite = useUnite()
-  const [selectedCompte, setSelectedCompte] = useState(comptes[0]?.id || '')
+  const searchParams = useSearchParams()
+  const urlCompteId = searchParams.get('compteId')
+  const defaultCompte = initialCompteId || urlCompteId || comptes[0]?.id || ''
+  const [selectedCompte, setSelectedCompte] = useState(defaultCompte)
   const [journal, setJournal] = useState<any[]>([])
   const [soldeInitial, setSoldeInitial] = useState(0)
   const [repartitionMateriel, setRepartitionMateriel] = useState<any[]>([])
@@ -40,8 +46,24 @@ export default function JournalClient({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    if (urlCompteId && urlCompteId !== selectedCompte && comptes.some(c => c.id === urlCompteId)) {
+      setSelectedCompte(urlCompteId)
+    }
+  }, [urlCompteId, comptes, selectedCompte])
+
   const t = dict?.tresorerie_pages?.journaux || {}
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
+
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return '-'
+    const clean = dateStr.slice(0, 10)
+    if (clean.length === 10 && clean.includes('-')) {
+      const [y, m, d] = clean.split('-')
+      return locale === 'fr' ? `${d}/${m}/${y}` : `${y}-${m}-${d}`
+    }
+    return new Date(dateStr).toLocaleDateString(dateLocale)
+  }
 
   const fetchJournal = useCallback(async () => {
     if (!selectedCompte) return
@@ -189,11 +211,17 @@ export default function JournalClient({
                 return (
                   <tr key={ligne.id || idx} className="hover:bg-surface-hover transition-colors">
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground font-mono">
-                      {new Date(ligne.date_effective || ligne.created_at).toLocaleDateString(dateLocale)}
+                      {formatDate(ligne.date_effective || ligne.created_at)}
                     </td>
                     <td className="px-6 py-4 text-sm text-foreground">
                       <div className="font-medium">{ligne.motif_affiche || ligne.motif}</div>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        {ligne.reference_piece && (
+                          <span className="inline-flex items-center gap-1 rounded bg-background px-1.5 py-0.5 text-[10px] font-mono font-bold text-foreground border border-surface-border shadow-2xs">
+                            <FileText className="w-2.5 h-2.5 text-primary" />
+                            <span>Réf: {ligne.reference_piece}</span>
+                          </span>
+                        )}
                         {ligne.type_piece && (
                           <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[10px] font-medium ${
                             isVirement ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface text-foreground-muted border border-surface-border'

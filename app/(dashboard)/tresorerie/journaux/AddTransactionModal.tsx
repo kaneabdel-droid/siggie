@@ -65,6 +65,7 @@ export default function AddTransactionModal({
     const montant = Number(formData.get('montant'))
     const motif = (formData.get('motif') as string) || ''
     const type_piece = (formData.get('type_piece') as string) || undefined
+    const reference_piece = (formData.get('reference_piece') as string)?.trim() || undefined
     const campagne_id = (formData.get('campagne_id') as string) || undefined
 
     // Resolve tiers name
@@ -96,6 +97,7 @@ export default function AddTransactionModal({
       motif,
       date_transaction: dateTransaction,
       type_piece: tiersType === 'compte_transfert' ? 'virement_interne' : type_piece,
+      reference_piece,
       campagne_id,
       tiers_type: tiersType,
       tiers_nom: tiersNom,
@@ -385,23 +387,38 @@ export default function AddTransactionModal({
                 />
               </div>
 
-              {/* Type de pièce */}
-              <div>
-                <label htmlFor="type_piece" className="block text-sm font-medium text-foreground">
-                  Type de pièce justificative
-                </label>
-                <select
-                  name="type_piece"
-                  id="type_piece"
-                  className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-                >
-                  <option value="">Aucune pièce spécifique</option>
-                  <option value="facture_fournisseur">Facture fournisseur</option>
-                  <option value="recu">Reçu / Quittance</option>
-                  <option value="retrait_espece">Retrait d'espèces</option>
-                  <option value="versement">Versement bancaire</option>
-                  <option value="cheque">Chèque</option>
-                </select>
+              {/* Type de pièce et Référence / N° de pièce */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="type_piece" className="block text-sm font-medium text-foreground">
+                    Type de pièce justificative
+                  </label>
+                  <select
+                    name="type_piece"
+                    id="type_piece"
+                    className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                  >
+                    <option value="">Aucune pièce spécifique</option>
+                    <option value="facture_fournisseur">Facture fournisseur</option>
+                    <option value="recu">Reçu / Quittance</option>
+                    <option value="retrait_espece">Retrait d'espèces</option>
+                    <option value="versement">Versement bancaire</option>
+                    <option value="cheque">Chèque</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="reference_piece" className="block text-sm font-medium text-foreground">
+                    Référence / N° de pièce ou chèque
+                  </label>
+                  <input
+                    type="text"
+                    name="reference_piece"
+                    id="reference_piece"
+                    placeholder="Ex: FAC-2026-001, CHQ-445892..."
+                    className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-mono"
+                  />
+                </div>
               </div>
             </form>
 

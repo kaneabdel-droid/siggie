@@ -1,5 +1,6 @@
+import Link from 'next/link'
 import { getComptes } from './actions'
-import { Landmark, Plus, Wallet } from 'lucide-react'
+import { Landmark, Plus, Wallet, ArrowRight } from 'lucide-react'
 import AddCompteModal from './AddCompteModal'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getTenantContext } from '@/utils/supabase/tenant'
@@ -40,17 +41,27 @@ export default async function TresoreriePage() {
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {comptes?.map((compte) => (
-          <div key={compte.id} className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
-            <div className="p-3 bg-secondary/10 text-secondary rounded-lg">
-              {compte.type_compte === 'caisse' ? <Wallet className="h-6 w-6" /> : <Landmark className="h-6 w-6" />}
+          <Link
+            key={compte.id}
+            href={`/tresorerie/journaux?compteId=${compte.id}`}
+            className="group overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center justify-between gap-4 hover:border-primary hover:shadow-md transition-all cursor-pointer"
+            title="Consulter le journal de ce compte"
+          >
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="p-3 bg-secondary/10 text-secondary rounded-lg group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                {compte.type_compte === 'caisse' ? <Wallet className="h-6 w-6" /> : <Landmark className="h-6 w-6" />}
+              </div>
+              <div className="min-w-0">
+                <dt className="truncate text-sm font-medium text-foreground-muted group-hover:text-foreground transition-colors">{compte.nom}</dt>
+                <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate font-mono">
+                  {(compte.solde_courant || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted font-sans">{unite.trim()}</span>
+                </dd>
+              </div>
             </div>
-          <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">{compte.nom}</dt>
-              <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">
-                {(compte.solde_courant || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted">{unite.trim()}</span>
-              </dd>
+            <div className="shrink-0 text-foreground-muted/60 group-hover:text-primary group-hover:translate-x-1 transition-all">
+              <ArrowRight className="h-5 w-5" />
             </div>
-          </div>
+          </Link>
         ))}
         {comptes?.length === 0 && (
           <div className="col-span-full text-center py-12 text-foreground-muted bg-surface rounded-lg border border-surface-border">
