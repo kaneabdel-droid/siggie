@@ -25,10 +25,15 @@ export default function DistributionClient({
   dejaDistribue = {},
   dict,
   locale,
-}: DistributionClientProps) {
+  // Campagne par défaut : en cours
+  const defaultCampagneId = useMemo(() => {
+    const enCours = campagnes.find((c) => c.statut === 'en_cours')
+    return enCours?.id || campagnes[0]?.id || ''
+  }, [campagnes])
+
   // Filtres
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCampagneId, setSelectedCampagneId] = useState('')
+  const [selectedCampagneId, setSelectedCampagneId] = useState(defaultCampagneId)
   const [selectedTypeIntrant, setSelectedTypeIntrant] = useState('')
   const [selectedIntrantId, setSelectedIntrantId] = useState('')
   const [dateDebut, setDateDebut] = useState('')

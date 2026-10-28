@@ -15,6 +15,8 @@ type Mouvement = {
   motif?: string | null
   prix_unitaire: number
   quantite: number
+  origine_stock?: 'exploitation' | 'materiel' | 'achat' | string
+  variete?: string | null
 }
 
 export async function getStockNature(campagneId: string) {
@@ -28,7 +30,7 @@ export async function getStockNature(campagneId: string) {
 
   if (!campagne) return { error: "Campagne introuvable" }
 
-  // Entrées : remboursements en nature déjà enregistrés pour les factures de cette campagne
+  // Entrées : remboursements en nature
   const { data: factures } = await supabase
     .from('factures')
     .select('id')
@@ -36,18 +38,20 @@ export async function getStockNature(campagneId: string) {
 
   const factureIds = factures?.map(f => f.id) || []
 
-  let remboursements: any[] = []
-  if (factureIds.length > 0) {
-    const { data, error } = await supabase
-      .from('remboursements')
-      .select('id, quantite_nature, montant_fcfa, date_paiement, membre_id, membres(id, prenom, nom, code_membre, telephone)')
-      .eq('type_remboursement', 'nature')
-      .not('quantite_nature', 'is', null)
-      .in('facture_id', factureIds)
+  // Remboursements en nature pour cette campagne ou sans facture_id liée (prestations/clients)
+  let rembQuery = supabase
+    .from('remboursements')
+    .select('id, quantite_nature, produit_nature, montant_fcfa, date_paiement, membre_id, client_id, membres(id, prenom, nom, code_membre, telephone), clients_externes(id, nom, telephone)')
+    .eq('type_remboursement', 'nature')
+    .not('quantite_nature', 'is', null)
 
-    if (error) return { error: error.message }
-    remboursements = data || []
-  }
+  const { data: allRemb, error: rembError } = await rembQuery
+  if (rembError) return { error: rembError.message }
+
+  const remboursements = (allRemb || []).filter((r: any) => {
+    if (r.facture_id && factureIds.length > 0) return factureIds.includes(r.facture_id)
+    return true
+  })
 
   // Sorties : ventes et ristournes enregistrées manuellement
   const { data: sorties, error: sortiesError } = await supabase
@@ -61,16 +65,35 @@ export async function getStockNature(campagneId: string) {
 
   for (const r of remboursements) {
     const membre = Array.isArray(r.membres) ? r.membres[0] : r.membres
+    const client = Array.isArray(r.clients_externes) ? r.clients_externes[0] : r.clients_externes
     const quantite = Number(r.quantite_nature || 0)
+
+    // Parse variety and origin from produit_nature if present
+    const prodStr = String(r.produit_nature || '')
+    let variete: string | null = null
+    const varMatch = prodStr.match(/\[VARIETE:(.*?)\]/)
+    if (varMatch) variete = varMatch[1].trim()
+
+    let origineStock = 'exploitation'
+    const origMatch = prodStr.match(/\[ORIGINE:(.*?)\]/)
+    if (origMatch) origineStock = origMatch[1].trim()
+    else if (r.client_id || (!membre && client)) origineStock = 'materiel'
+
+    const tiersNom = membre ? `${membre.prenom} ${membre.nom}` : client?.nom || 'Client externe'
+
     mouvements.push({
       id: r.id,
       date: r.date_paiement,
       type: 'entree',
-      tiers: membre ? `${membre.prenom} ${membre.nom}` : '-',
-      tiers_type: 'membre',
+      tiers: tiersNom,
+      tiers_type: membre ? 'membre' : 'client',
       membre,
-      prix_unitaire: quantite > 0 ? Number(r.montant_fcfa) / quantite : 0,
+      client,
+      prix_unitaire: quantite > 0 ? Number(r.montant_fcfa) / quantite : Number(campagne.prix_collecte || 0),
       quantite,
+      origine_stock: origineStock,
+      variete,
+      motif: prodStr.replace(/\[.*?\]/g, '').trim(),
     })
   }
 

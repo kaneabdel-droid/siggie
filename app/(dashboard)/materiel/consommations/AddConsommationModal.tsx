@@ -77,19 +77,32 @@ export default function AddConsommationModal({ materiels, budget, dict }: { mate
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="type_consommation" className="block text-sm font-medium text-foreground">{t.type_label}</label>
-                    <select
+                    <label htmlFor="type_consommation" className="block text-sm font-medium text-foreground">
+                      {t.type_label} / Rubrique Budget
+                    </label>
+                    <input
+                      type="text"
                       name="type_consommation"
                       id="type_consommation"
+                      list="types-consommation-suggestions"
+                      placeholder="Ex: Carburant, Huile, Réparation, Pièce..."
                       required
                       className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-                    >
+                    />
+                    <datalist id="types-consommation-suggestions">
+                      {budget?.typesDepense?.map((td, idx) => (
+                        <option key={`budget-${idx}`} value={td.type}>{td.materiel ? `${td.materiel} - ${td.type}` : td.type}</option>
+                      ))}
                       <option value="Carburant">{t.type_fuel}</option>
                       <option value="Huile">{t.type_oil}</option>
                       <option value="Piece">{t.type_part}</option>
                       <option value="Reparation">{t.type_repair}</option>
+                      <option value="Entretien">Entretien courant</option>
                       <option value="Autre">{t.type_other}</option>
-                    </select>
+                    </datalist>
+                    <p className="mt-1 text-xs text-foreground-muted">
+                      Sélectionnez une rubrique du budget ou saisissez librement un poste d&apos;imputation.
+                    </p>
                   </div>
                   <div>
                     <label htmlFor="fournisseur" className="block text-sm font-medium text-foreground">{t.supplier_label}</label>

@@ -34,7 +34,12 @@ export default function CreateDistributionModal({
   const [tab, setTab] = useState<'intrant' | 'membre'>('intrant')
   const d = dict.distribution_extra.create_modal
 
-  const [selectedCampagneId, setSelectedCampagneId] = useState('')
+  const defaultCampagneId = useMemo(() => {
+    const enCours = campagnes.find((c) => c.statut === 'en_cours')
+    return enCours?.id || campagnes[0]?.id || ''
+  }, [campagnes])
+
+  const [selectedCampagneId, setSelectedCampagneId] = useState(defaultCampagneId)
   const [selectedIntrantId, setSelectedIntrantId] = useState('')
   const [selectedMembreId, setSelectedMembreId] = useState('')
 
@@ -46,7 +51,7 @@ export default function CreateDistributionModal({
 
   // Reset function
   const resetForm = () => {
-    setSelectedCampagneId('')
+    setSelectedCampagneId(defaultCampagneId)
     setSelectedIntrantId('')
     setSelectedMembreId('')
     setQuantitiesByMembre({})

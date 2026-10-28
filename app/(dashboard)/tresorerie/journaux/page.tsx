@@ -7,12 +7,21 @@ import { getTenantContext } from '@/utils/supabase/tenant'
 
 export default async function JournauxPage() {
   const supabase = await createClient()
-  const { comptes, error } = await getComptes()
-  const { imputations } = await getImputations()
-  const { data: campagnes } = await supabase
-    .from('campagnes')
-    .select('id, nom, statut')
-    .order('date_debut', { ascending: false })
+  const [
+    { comptes, error },
+    { imputations },
+    { data: campagnes },
+    { data: clients },
+    { data: membres },
+    { data: materiels },
+  ] = await Promise.all([
+    getComptes(),
+    getImputations(),
+    supabase.from('campagnes').select('id, nom, statut').order('date_debut', { ascending: false }),
+    supabase.from('clients_externes').select('id, nom, telephone').order('nom', { ascending: true }),
+    supabase.from('membres').select('id, nom, prenom, code_membre').order('nom', { ascending: true }),
+    supabase.from('materiels').select('id, nom, code_materiel').order('nom', { ascending: true }),
+  ])
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const tenant = await getTenantContext()
@@ -39,7 +48,17 @@ export default async function JournauxPage() {
         </p>
       </div>
 
-      <JournalClient comptes={comptes} imputations={imputations || []} campagnes={campagnes || []} dict={dict} locale={locale} gieName={tenant?.gieName || 'Mon GIE'} />
+      <JournalClient
+        comptes={comptes}
+        imputations={imputations || []}
+        campagnes={campagnes || []}
+        clients={clients || []}
+        membres={membres || []}
+        materiels={materiels || []}
+        dict={dict}
+        locale={locale}
+        gieName={tenant?.gieName || 'Mon GIE'}
+      />
     </div>
   )
 }

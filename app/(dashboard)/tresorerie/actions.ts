@@ -72,7 +72,22 @@ export async function addCompte(nom: string, type_compte: string, solde_initial:
   return { success: true }
 }
 
-export async function addTransaction(data: { compte_id: string, type_transaction: string, montant: number, motif: string, credit_id?: string, type_piece?: string, imputation_id?: string, campagne_id?: string }) {
+export async function addTransaction(data: {
+  compte_id: string
+  type_transaction: string
+  montant: number
+  motif: string
+  date_transaction?: string
+  credit_id?: string
+  type_piece?: string
+  imputation_id?: string
+  campagne_id?: string
+  tiers_type?: string
+  tiers_nom?: string
+  compte_destination_id?: string
+  materiel_id?: string
+  materiel_nom?: string
+}) {
   const denied = await requirePermission('tresorerie', 'create')
   if (denied) return denied as never
   const supabase = await createClient()
@@ -87,28 +102,121 @@ export async function addTransaction(data: { compte_id: string, type_transaction
     .single()
 
   if (!userData) return { error: "Utilisateur introuvable" }
+  if (!data.montant || data.montant <= 0) return { error: "Montant invalide" }
 
-  const { error } = await supabase
+  const dateTx = data.date_transaction || new Date().toISOString().slice(0, 10)
+
+  // Cas spécial : Virement entre caisses / comptes (double imputation rigoureusement équilibrée)
+  if (data.tiers_type === 'compte_transfert' && data.compte_destination_id) {
+    if (data.compte_id === data.compte_destination_id) {
+      return { error: "Le compte d'origine et le compte de destination doivent être distincts." }
+    }
+
+    const { data: comptesData } = await supabase
+      .from('comptes')
+      .select('id, nom')
+      .in('id', [data.compte_id, data.compte_destination_id])
+
+    const compteOrigine = comptesData?.find((c) => c.id === data.compte_id)
+    const compteDest = comptesData?.find((c) => c.id === data.compte_destination_id)
+
+    const nomOrigine = compteOrigine?.nom || 'Compte Origine'
+    const nomDest = compteDest?.nom || 'Compte Destination'
+
+    const userComment = data.motif?.trim() ? ` (${data.motif.trim()})` : ''
+    const motifSortie = `Virement vers ${nomDest}${userComment} [TIERS:${nomDest}]`
+    const motifEntree = `Virement reçu de ${nomOrigine}${userComment} [TIERS:${nomOrigine}]`
+
+    // 1. Sortie du compte d'origine
+    const insertSortie = await supabase.from('transactions').insert({
+      gie_id: userData.gie_id,
+      compte_id: data.compte_id,
+      type_transaction: 'sortie',
+      montant: data.montant,
+      motif: motifSortie,
+      type_piece: 'virement_interne',
+      date_transaction: dateTx,
+      tiers_type: 'compte_transfert',
+      tiers_nom: nomDest,
+      campagne_id: data.campagne_id || null,
+    })
+
+    if (insertSortie.error) return { error: insertSortie.error.message }
+
+    // 2. Entrée sur le compte de destination (exactement le même montant et même date)
+    const insertEntree = await supabase.from('transactions').insert({
+      gie_id: userData.gie_id,
+      compte_id: data.compte_destination_id,
+      type_transaction: 'entree',
+      montant: data.montant,
+      motif: motifEntree,
+      type_piece: 'virement_interne',
+      date_transaction: dateTx,
+      tiers_type: 'compte_transfert',
+      tiers_nom: nomOrigine,
+      campagne_id: data.campagne_id || null,
+    })
+
+    if (insertEntree.error) return { error: insertEntree.error.message }
+
+    revalidatePath('/tresorerie')
+    revalidatePath('/tresorerie/journaux')
+    return { success: true }
+  }
+
+  // Formatage du motif avec tags tiers et matériel pour backward compatibility totale
+  let safeMotif = data.motif?.trim() || 'Opération'
+  if (data.tiers_nom?.trim()) {
+    safeMotif = `${safeMotif} [TIERS:${data.tiers_nom.trim()}]`
+  }
+  if (data.materiel_nom?.trim()) {
+    safeMotif = `${safeMotif} [MATERIEL:${data.materiel_nom.trim()}]`
+  }
+
+  // Try insert with native extended columns
+  const tryInsert = await supabase
     .from('transactions')
     .insert({
       gie_id: userData.gie_id,
       compte_id: data.compte_id,
       type_transaction: data.type_transaction,
       montant: data.montant,
-      motif: data.motif,
+      motif: safeMotif,
+      date_transaction: dateTx,
+      tiers_type: data.tiers_type || null,
+      tiers_nom: data.tiers_nom?.trim() || null,
       credit_id: data.credit_id || null,
       type_piece: data.type_piece || null,
       imputation_id: data.imputation_id || null,
-      campagne_id: data.campagne_id || null
+      campagne_id: data.campagne_id || null,
+      materiel_id: data.materiel_id || null,
     })
 
-  if (error) return { error: error.message }
+  if (tryInsert.error) {
+    // Fallback if date_transaction or tiers_nom don't exist on remote schema
+    const fallback = await supabase
+      .from('transactions')
+      .insert({
+        gie_id: userData.gie_id,
+        compte_id: data.compte_id,
+        type_transaction: data.type_transaction,
+        montant: data.montant,
+        motif: safeMotif,
+        credit_id: data.credit_id || null,
+        type_piece: data.type_piece || null,
+        imputation_id: data.imputation_id || null,
+        campagne_id: data.campagne_id || null,
+      })
+
+    if (fallback.error) return { error: fallback.error.message }
+  }
 
   revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
   return { success: true }
 }
 
-export async function updateTransaction(id: string, data: { type_transaction: string, montant: number, motif: string, type_piece?: string, imputation_id?: string, campagne_id?: string }) {
+export async function updateTransaction(id: string, data: { type_transaction: string, montant: number, motif: string, type_piece?: string, imputation_id?: string, campagne_id?: string, date_transaction?: string }) {
   const denied = await requirePermission('tresorerie', 'update')
   if (denied) return denied as never
   const supabase = await createClient()
@@ -116,21 +224,27 @@ export async function updateTransaction(id: string, data: { type_transaction: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Non authentifié" }
 
+  const updatePayload: any = {
+    type_transaction: data.type_transaction,
+    montant: data.montant,
+    motif: data.motif,
+    type_piece: data.type_piece || null,
+    imputation_id: data.imputation_id || null,
+    campagne_id: data.campagne_id || null
+  }
+  if (data.date_transaction) {
+    updatePayload.date_transaction = data.date_transaction
+  }
+
   const { error } = await supabase
     .from('transactions')
-    .update({
-      type_transaction: data.type_transaction,
-      montant: data.montant,
-      motif: data.motif,
-      type_piece: data.type_piece || null,
-      imputation_id: data.imputation_id || null,
-      campagne_id: data.campagne_id || null
-    })
+    .update(updatePayload)
     .eq('id', id)
 
   if (error) return { error: error.message }
 
   revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
   revalidatePath('/credits')
   return { success: true }
 }
@@ -151,6 +265,7 @@ export async function deleteTransaction(id: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
   revalidatePath('/credits')
   return { success: true }
 }
@@ -160,7 +275,7 @@ export async function getJournal(compteId: string) {
 
   const { data: compte } = await supabase
     .from('comptes')
-    .select('solde_initial, nom')
+    .select('solde_initial, nom, type_compte')
     .eq('id', compteId)
     .single()
 
@@ -170,34 +285,72 @@ export async function getJournal(compteId: string) {
     .from('transactions')
     .select('*')
     .eq('compte_id', compteId)
-    .order('created_at', { ascending: true }) // Ordre chronologique strict
+    .order('created_at', { ascending: true }) // Ordre chronologique
 
   if (error) return { error: error.message }
 
   let soldeCourant = Number(compte.solde_initial || 0)
+
+  // Map to calculate equipment breakdown
+  const matMap = new Map<string, { nom: string; entrees: number; sorties: number }>()
   
   const journal = (transactions || []).map(tx => {
     let entree = null
     let sortie = null
+    const montant = Number(tx.montant || 0)
+
     if (tx.type_transaction === 'entree') {
-      entree = Number(tx.montant)
+      entree = montant
       soldeCourant += entree
     } else {
-      sortie = Number(tx.montant)
+      sortie = montant
       soldeCourant -= sortie
     }
+
+    // Extract tiers from column or motif
+    const motifStr = String(tx.motif || '')
+    let tiersNom = tx.tiers_nom || null
+    if (!tiersNom) {
+      const matchTiers = motifStr.match(/\[TIERS:(.*?)\]/)
+      if (matchTiers) tiersNom = matchTiers[1].trim()
+    }
+
+    // Extract materiel from column or motif
+    let materielNom: string | null = null
+    const matchMat = motifStr.match(/\[MATERIEL:(.*?)\]/)
+    if (matchMat) {
+      materielNom = matchMat[1].trim()
+      const existing = matMap.get(materielNom) || { nom: materielNom, entrees: 0, sorties: 0 }
+      if (tx.type_transaction === 'entree') existing.entrees += montant
+      else existing.sorties += montant
+      matMap.set(materielNom, existing)
+    }
+
+    const cleanMotif = motifStr.replace(/\[TIERS:.*?\]/g, '').replace(/\[MATERIEL:.*?\]/g, '').trim()
+
     return {
       ...tx,
+      date_effective: tx.date_transaction || (tx.created_at ? tx.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+      motif_affiche: cleanMotif,
+      tiers_affiche: tiersNom || '-',
+      materiel_nom: materielNom,
       entree,
       sortie,
       solde: soldeCourant
     }
   })
 
+  const repartitionMateriel = Array.from(matMap.values()).map(m => ({
+    ...m,
+    net: m.entrees - m.sorties
+  }))
+
   return { 
     journal: journal.reverse(), 
     soldeInitial: compte.solde_initial, 
-    compteNom: compte.nom 
+    compteNom: compte.nom,
+    compteType: compte.type_compte,
+    repartitionMateriel,
   }
 }
 

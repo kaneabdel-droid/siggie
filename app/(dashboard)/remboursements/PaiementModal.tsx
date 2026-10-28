@@ -18,6 +18,9 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
   const [loading, setLoading] = useState(false)
   const [quantiteNature, setQuantiteNature] = useState<string>('')
   const [produitNature, setProduitNature] = useState<string>('')
+  const [variete, setVariete] = useState<string>('')
+  const initialOrigine = facture.type_document === 'prestation' ? 'materiel' : facture.type_document === 'vente_stock' ? 'achat' : 'exploitation'
+  const [origineStock, setOrigineStock] = useState<'exploitation' | 'materiel' | 'achat'>(initialOrigine)
   const [montantSaisi, setMontantSaisi] = useState<string>('')
   const [referencePiece, setReferencePiece] = useState<string>('')
   const [compteId, setCompteId] = useState<string>(comptes[0]?.id ?? '')
@@ -26,11 +29,12 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
 
   const resteAPayer = Number(facture.montant_total || 0) + Number(facture.montant_interet || 0) - Number(facture.montant_paye || 0)
   const resteArrondi = Math.max(0, Math.round(resteAPayer))
-  const prixCollecte = Number(facture.campagne?.prix_collecte || 0)
+  const prixParDefaut = Number(facture.campagne?.prix_collecte || 150)
+  const [prixUnitaire, setPrixUnitaire] = useState<number>(prixParDefaut > 0 ? prixParDefaut : 150)
 
   // Calculate equivalent in FCFA when typing nature quantity
   const qteNum = parseFloat(quantiteNature)
-  const equivalentFcfa = type === 'nature' && Number.isFinite(qteNum) && qteNum > 0 ? qteNum * prixCollecte : 0
+  const equivalentFcfa = type === 'nature' && Number.isFinite(qteNum) && qteNum > 0 ? qteNum * prixUnitaire : 0
 
   // Montant effectif saisi (numéraire ou équivalent nature)
   const montantNum = parseFloat(montantSaisi)
@@ -49,7 +53,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
       setMontantSaisi(resteArrondi > 0 ? String(resteArrondi) : '')
     }
     if (type === 'nature') {
-      setProduitNature(facture.campagne?.produit_collecte || '')
+      setProduitNature(facture.campagne?.produit_collecte || 'Riz paddy')
       setQuantiteNature('')
     }
   }, [type, facture.id, resteArrondi, facture.campagne?.produit_collecte])
@@ -75,7 +79,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
       }
     } else {
       qte = parseFloat(quantiteNature)
-      montantFcfa = qte * prixCollecte
+      montantFcfa = qte * prixUnitaire
       if (!produitNature.trim()) {
         alert(d.missing_product_error || "Veuillez préciser la nature du produit reçu.")
         setLoading(false)
@@ -91,13 +95,21 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
 
     const res = await enregistrerRemboursement(
       facture.id,
-      facture.membre.id,
+      facture.membre?.id || null,
       type,
       montantFcfa,
       type === 'nature' ? qte : null,
       type === 'nature' ? produitNature : null,
       (type === 'espece' || type === 'cheque' || (type === 'bon' && compteId)) ? compteId : null,
-      (type === 'cheque' || type === 'bon') ? referencePiece.trim() : null
+      (type === 'cheque' || type === 'bon') ? referencePiece.trim() : null,
+      {
+        clientId: facture.client?.id || facture.client_id || null,
+        clientNom: facture.client_nom || facture.client?.nom || null,
+        origineStock,
+        variete,
+        typeDocument: facture.type_document || 'campagne',
+        campagneId: facture.campagne_id || facture.campagne?.id || null,
+      }
     )
 
     setLoading(false)
@@ -262,36 +274,95 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
 
               {type === 'nature' && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground">
-                      {d.nature_product || 'Nature du produit reçu'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder={d.nature_product_placeholder || 'Ex: Riz paddy, Arachide...'}
-                      value={produitNature}
-                      onChange={(e) => setProduitNature(e.target.value)}
-                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">
+                        {d.nature_product || 'Nature du produit reçu'} *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder={d.nature_product_placeholder || 'Ex: Riz paddy, Arachide...'}
+                        value={produitNature}
+                        onChange={(e) => setProduitNature(e.target.value)}
+                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">
+                        Variété (optionnel)
+                      </label>
+                      <input
+                        type="text"
+                        list="modal-varietes-list"
+                        placeholder="Ex: Sahel 108, BG 90-2..."
+                        value={variete}
+                        onChange={(e) => setVariete(e.target.value)}
+                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                      />
+                      <datalist id="modal-varietes-list">
+                        <option value="Sahel 108" />
+                        <option value="BG 90-2" />
+                        <option value="IR 1529" />
+                        <option value="Nerica" />
+                        <option value="Tox 728-1" />
+                        <option value="Wita 9" />
+                      </datalist>
+                    </div>
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-foreground mt-2">
-                      {d.weight_label || 'Poids ou quantité récupérée'}
-                      <span className="text-foreground-muted font-normal ml-2">
-                        ({d.calc_base || 'Base :'} {prixCollecte} {d.per_unit_suffix || 'FCFA/kg'})
-                      </span>
+                      Origine du stock *
                     </label>
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      step="any"
-                      value={quantiteNature}
-                      onChange={(e) => setQuantiteNature(e.target.value)}
-                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    <select
+                      value={origineStock}
+                      onChange={(e) => setOrigineStock(e.target.value as any)}
+                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                    >
+                      <option value="exploitation">Exploitation (Remboursement membre GIE)</option>
+                      <option value="materiel">Matériel (Paiement prestation en nature / part récolte)</option>
+                      <option value="achat">Achat (Achat pour revente de paddy / approvisionnement)</option>
+                    </select>
+                    <p className="mt-1 text-xs text-foreground-muted">
+                      Ce stock sera imputé et suivi chronologiquement dans le Stock en Nature.
+                    </p>
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">
+                        Prix unitaire d'évaluation ({unite}/kg) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        step="any"
+                        value={prixUnitaire}
+                        onChange={(e) => setPrixUnitaire(parseFloat(e.target.value) || 0)}
+                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">
+                        {d.weight_label || 'Quantité reçue (kg)'} *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="any"
+                        placeholder="Ex: 500"
+                        value={quantiteNature}
+                        onChange={(e) => setQuantiteNature(e.target.value)}
+                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
                   <div className="p-3 bg-primary/10 border border-primary/20 rounded-md mt-4">
                     <div className="text-sm text-primary font-medium">{d.equivalent_label || 'Équivalent financier déduit :'}</div>
                     <div className="text-xl font-bold text-primary mt-1">{equivalentFcfa.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</div>

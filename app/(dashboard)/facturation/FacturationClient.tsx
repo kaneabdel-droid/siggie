@@ -9,6 +9,7 @@ import FactureWhatsAppModal from './FactureWhatsAppModal'
 import GenererFacturesModal from './GenererFacturesModal'
 import CalculInteretModal from './CalculInteretModal'
 import { useUnite } from '@/components/DeviseProvider'
+import FicheClientModal from '@/components/FicheClientModal'
 
 export default function FacturationClient({
   factures = [],
@@ -450,6 +451,19 @@ export default function FacturationClient({
                                       <span className="rounded bg-background px-1.5 py-0.5 border border-surface-border font-mono text-[10px]">
                                         {facture.membre.code_membre}
                                       </span>
+                                    )}
+                                    {!isMembre && (
+                                      <FicheClientModal
+                                        client={{
+                                          id: facture.client_id || facture.client?.id || '',
+                                          nom: nomAffiche,
+                                          telephone: telephoneAffiche,
+                                          code_client: facture.client?.code_client || (facture.client_id ? `CLI-${String(facture.client_id).slice(0, 4).toUpperCase()}` : 'CLI'),
+                                        }}
+                                        gieName={gieName}
+                                        dict={dict}
+                                        locale={locale}
+                                      />
                                     )}
                                     {telephoneAffiche && (
                                       <span>· {telephoneAffiche}</span>

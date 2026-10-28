@@ -12,8 +12,12 @@ export async function getClients() {
     ? await supabase.from('utilisateurs').select('gie_id').eq('id', user.id).maybeSingle()
     : { data: null }
 
-  const [clientsRes, membresRes, prestationsRes, sortiesRes] = await Promise.all([
-    supabase.from('clients_externes').select('id, nom, telephone').order('nom', { ascending: true }),
+  let clientsRes = await supabase.from('clients_externes').select('id, nom, telephone, code_client').order('nom', { ascending: true })
+  if (clientsRes.error && (clientsRes.error.message?.includes('code_client') || clientsRes.error.code === '42703')) {
+    clientsRes = await supabase.from('clients_externes').select('id, nom, telephone').order('nom', { ascending: true })
+  }
+
+  const [membresRes, prestationsRes, sortiesRes] = await Promise.all([
     supabase.from('membres').select('id, prenom, nom'),
     supabase.from('materiel_prestations').select('id, client_nom, client_telephone, tiers_type, membre_id, client_id'),
     supabase.from('sorties_stock_nature').select('id, tiers_nom, tiers_type, client_id').eq('tiers_type', 'client'),
@@ -21,7 +25,10 @@ export async function getClients() {
 
   if (clientsRes.error) return { error: clientsRes.error.message }
 
-  const clients = [...(clientsRes.data || [])]
+  const clients = (clientsRes.data || []).map((c: any, idx: number) => ({
+    ...c,
+    code_client: c.code_client || `CLI-${c.id ? c.id.slice(0, 4).toUpperCase() : String(idx + 1).padStart(3, '0')}`,
+  }))
   const existingClientNames = new Set(clients.map((c) => c.nom.trim().toLowerCase()))
   const memberNames = new Set(
     (membresRes.data || []).flatMap((m) => [
@@ -67,7 +74,12 @@ export async function getClients() {
         .insert(newClientsToInsert)
         .select('id, nom, telephone')
       if (inserted) {
-        clients.push(...inserted)
+        inserted.forEach((item: any, i: number) => {
+          clients.push({
+            ...item,
+            code_client: item.code_client || `CLI-${item.id ? item.id.slice(0, 4).toUpperCase() : String(clients.length + i + 1).padStart(3, '0')}`
+          })
+        })
         clients.sort((a, b) => a.nom.localeCompare(b.nom))
       }
     }
@@ -93,23 +105,44 @@ export async function addClient(nom: string, telephone?: string) {
   if (!userData) return { error: "Utilisateur introuvable" }
   if (!nom.trim()) return { error: "Le nom du client est requis" }
 
-  const { data, error } = await supabase
+  // Generate a code client
+  const { data: countData } = await supabase
     .from('clients_externes')
-    .insert({ gie_id: userData.gie_id, nom: nom.trim(), telephone: telephone?.trim() || null })
-    .select('id, nom, telephone')
+    .select('id', { count: 'exact', head: true })
+  const nextNum = (countData ? Number(countData) : 0) + 1
+  const codeClient = `CLI-${String(nextNum).padStart(3, '0')}`
+
+  let insertRes = await supabase
+    .from('clients_externes')
+    .insert({ gie_id: userData.gie_id, nom: nom.trim(), telephone: telephone?.trim() || null, code_client: codeClient })
+    .select('id, nom, telephone, code_client')
     .single()
 
-  if (error) return { error: error.message }
+  if (insertRes.error && (insertRes.error.message?.includes('code_client') || insertRes.error.code === '42703')) {
+    insertRes = await supabase
+      .from('clients_externes')
+      .insert({ gie_id: userData.gie_id, nom: nom.trim(), telephone: telephone?.trim() || null })
+      .select('id, nom, telephone')
+      .single()
+  }
+
+  if (insertRes.error) return { error: insertRes.error.message }
+
+  const client = {
+    ...insertRes.data,
+    code_client: (insertRes.data as any)?.code_client || codeClient
+  }
 
   revalidatePath('/bilans/releve-client')
   revalidatePath('/materiel/prestations')
-  return { success: true, client: data }
+  revalidatePath('/membres')
+  return { success: true, client }
 }
 
 type Mouvement = {
   id: string
   date: string
-  type: 'vente' | 'prestation' | 'paiement'
+  type: 'vente' | 'prestation' | 'paiement' | 'remboursement'
   designation: string
   quantite: number | null
   unite?: string | null
@@ -121,15 +154,27 @@ type Mouvement = {
 export async function getReleveClient(clientId: string) {
   const supabase = await createClient()
 
-  const { data: client } = await supabase
+  let clientRes = await supabase
     .from('clients_externes')
-    .select('id, nom, telephone')
+    .select('id, nom, telephone, code_client')
     .eq('id', clientId)
     .single()
 
-  if (!client) return { error: "Client introuvable" }
+  if (clientRes.error && (clientRes.error.message?.includes('code_client') || clientRes.error.code === '42703')) {
+    clientRes = await supabase
+      .from('clients_externes')
+      .select('id, nom, telephone')
+      .eq('id', clientId)
+      .single()
+  }
 
-  const [ventesRes, prestationsRes, paiementsRes] = await Promise.all([
+  const client = clientRes.data
+  if (!client) return { error: "Client introuvable" }
+  if (!(client as any).code_client) {
+    (client as any).code_client = `CLI-${client.id ? client.id.slice(0, 4).toUpperCase() : '001'}`
+  }
+
+  const [ventesRes, prestationsRes, paiementsRes, remboursementsRes] = await Promise.all([
     supabase
       .from('sorties_stock_nature')
       .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, campagnes(nom, produit_collecte)')
@@ -141,6 +186,10 @@ export async function getReleveClient(clientId: string) {
     supabase
       .from('paiements_clients')
       .select('id, montant, date_paiement, motif')
+      .eq('client_id', clientId),
+    supabase
+      .from('remboursements')
+      .select('id, montant_fcfa, type_remboursement, quantite_nature, produit_nature, date_paiement, reference_piece')
       .eq('client_id', clientId),
   ])
 
@@ -217,11 +266,27 @@ export async function getReleveClient(clientId: string) {
     })
   }
 
+  for (const r of (remboursementsRes.data || []) as any[]) {
+    const desc = r.type_remboursement === 'nature'
+      ? `Remboursement en nature : ${r.quantite_nature || ''} kg de ${r.produit_nature || 'produit'}`
+      : `Remboursement (${r.type_remboursement || 'espèces'})${r.reference_piece ? ` - Réf: ${r.reference_piece}` : ''}`
+    mouvements.push({
+      id: r.id,
+      date: r.date_paiement ? r.date_paiement.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      type: 'remboursement',
+      designation: desc,
+      quantite: r.quantite_nature ? Number(r.quantite_nature) : null,
+      unite: 'kg',
+      prix_unitaire: null,
+      montant: Number(r.montant_fcfa || 0),
+    })
+  }
+
   mouvements.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   let solde = 0
   const journal = mouvements.map((m) => {
-    solde += m.type === 'paiement' ? -m.montant : m.montant
+    solde += (m.type === 'paiement' || m.type === 'remboursement') ? -m.montant : m.montant
     return { ...m, solde }
   })
 

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Landmark, BookText, ArrowLeftRight, Tags } from 'lucide-react'
+import { Landmark, BookText, ArrowLeftRight, Tags, CalendarRange } from 'lucide-react'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -42,6 +42,13 @@ export default async function TresorerieLayout({
         >
           <BookText className="w-4 h-4" />
           {dict.tresorerie.tabs.journaux}
+        </Link>
+        <Link
+          href="/tresorerie/plan-financement"
+          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+        >
+          <CalendarRange className="w-4 h-4 text-primary" />
+          <span>Plan de Financement</span>
         </Link>
         <Link
           href="/tresorerie/rapprochement"

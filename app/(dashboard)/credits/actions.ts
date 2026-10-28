@@ -58,8 +58,15 @@ export async function addCredit(formData: FormData) {
   const { error: insertError } = await supabase.from('credits').insert([fullData])
 
   if (insertError) {
-    // Si la colonne type_credit ou autre n'existe pas encore en DB, repli propre
-    if (insertError.code === '42703' || insertError.message.includes('does not exist')) {
+    const isSchemaError =
+      insertError.code === '42703' ||
+      insertError.code === 'PGRST204' ||
+      insertError.message?.toLowerCase().includes('schema cache') ||
+      insertError.message?.toLowerCase().includes('could not find') ||
+      insertError.message?.toLowerCase().includes('column') ||
+      insertError.message?.toLowerCase().includes('does not exist')
+
+    if (isSchemaError) {
       const fallbackData: any = {
         gie_id: userData.gie_id,
         campagne_id: campagneId,
@@ -122,13 +129,36 @@ export async function updateCreditStatus(
     .eq('id', id)
 
   if (error) {
-    if (error.code === '42703' || error.message.includes('does not exist')) {
+    const isSchemaError =
+      error.code === '42703' ||
+      error.code === 'PGRST204' ||
+      error.message?.toLowerCase().includes('schema cache') ||
+      error.message?.toLowerCase().includes('could not find') ||
+      error.message?.toLowerCase().includes('column') ||
+      error.message?.toLowerCase().includes('does not exist')
+
+    if (isSchemaError) {
       // Retirer les colonnes non encore migrées
       delete data.type_credit
       delete data.equipement_nom
       delete data.periodicite_remboursement
       delete data.nombre_echeances
       delete data.montant_echeance
+
+      // Si extra a été fourni, encoder dans but_credit pour conserver les métadonnées
+      if (extra?.type_credit || extra?.equipement_nom) {
+        try {
+          const { data: existingCredit } = await supabase.from('credits').select('but_credit').eq('id', id).single()
+          const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]`
+          const cleanOld = (existingCredit?.but_credit || '')
+            .replace(/\[TYPE:[^\]]+\]/g, '')
+            .replace(/\[EQUIPEMENT:[^\]]*\]/g, '')
+            .replace(/\[PERIODICITE:[^\]]*\]/g, '')
+            .trim()
+          data.but_credit = cleanOld ? `${metaTag} ${cleanOld}` : metaTag
+        } catch (_) {}
+      }
+
       const { error: err2 } = await supabase.from('credits').update(data).eq('id', id)
       if (err2) {
         console.error("Erreur modification statut credit (repli):", err2)

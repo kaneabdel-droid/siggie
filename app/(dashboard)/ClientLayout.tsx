@@ -91,10 +91,10 @@ export default function ClientLayout({
 
   const filteredNavigation = navigation.filter(item => {
     if (subscriptionTier === 'standard') {
-      if (item.href === '/materiel' || item.href === '/bilans' || item.href === '/superficies') return false
+      if (item.href === '/materiel' || item.href === '/superficies') return false
     }
     if (subscriptionTier === 'medium') {
-      if (item.href === '/bilans' || item.href === '/superficies') return false
+      if (item.href === '/superficies') return false
     }
     const moduleKey = moduleForPath(item.href)
     if (moduleKey && !hasPermission(role, permissions, moduleKey, 'read')) return false

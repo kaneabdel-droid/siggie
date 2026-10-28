@@ -5,11 +5,44 @@ import { hasPermission } from '@/lib/permissions'
 import { getBilanAnnuel } from './actions'
 import BilanAnnuelClient from './BilanAnnuelClient'
 
+import Link from 'next/link'
+import { Scale } from 'lucide-react'
+
 export default async function BilanAnnuelPage({
   searchParams,
 }: {
   searchParams: Promise<{ annee?: string }>
 }) {
+  const tenant = await getTenantContext()
+
+  if (tenant?.subscriptionTier !== 'premium') {
+    return (
+      <div className="bg-surface rounded-xl border border-surface-border p-8 text-center max-w-lg mx-auto shadow-sm my-12">
+        <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+          <Scale className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-foreground">Bilan Annuel d&apos;Exploitation</h3>
+        <p className="text-sm text-foreground-muted mt-2">
+          Le bilan financier annuel consolidé est une fonctionnalité réservée au forfait Premium. Vos relevés membre et client restent quant à eux accessibles.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link
+            href="/abonnement"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+          >
+            Passer à Premium
+          </Link>
+          <Link
+            href="/bilans/releve-membre"
+            className="inline-flex items-center justify-center rounded-md bg-surface border border-surface-border px-4 py-2 text-sm font-medium text-foreground hover:bg-background"
+          >
+            Voir les Relevés
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const { annee: anneeParam } = await searchParams
   const anneeCourante = new Date().getFullYear()
   const parsed = Number(anneeParam)

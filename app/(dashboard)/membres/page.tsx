@@ -1,20 +1,26 @@
 import { createClient } from '@/utils/supabase/server'
-import { Search } from 'lucide-react'
+import { Search, Users, UserCheck } from 'lucide-react'
+import Link from 'next/link'
 import SearchMembres from './SearchMembres'
 import CreateMembreButton from './CreateMembreButton'
 import MembreRowActions from './MembreRowActions'
+import ClientsListTab from './ClientsListTab'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getClients } from '@/app/(dashboard)/bilans/releve-client/actions'
+import { getTenantContext } from '@/utils/supabase/tenant'
 
 export default async function MembresPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ query?: string }>
+  searchParams?: Promise<{ query?: string; tab?: string }>
 }) {
   const supabase = await createClient()
   const params = await searchParams
   const query = params?.query || ''
+  const currentTab = params?.tab === 'clients' ? 'clients' : 'membres'
   const locale = await getLocale()
   const dict = await getDictionary(locale)
+  const tenant = await getTenantContext()
 
   // Fetch members for the current GIE
   let queryBuilder = supabase
@@ -22,11 +28,16 @@ export default async function MembresPage({
     .select('*')
     .order('nom', { ascending: true })
 
-  if (query) {
+  if (query && currentTab === 'membres') {
     queryBuilder = queryBuilder.or(`nom.ilike.%${query}%,prenom.ilike.%${query}%,village.ilike.%${query}%`)
   }
 
-  const { data: membres, error } = await queryBuilder
+  const [{ data: membres, error }, { clients }] = await Promise.all([
+    queryBuilder,
+    getClients(),
+  ])
+
+  const totalClients = clients?.length || 0
 
   return (
     <div>
@@ -35,29 +46,84 @@ export default async function MembresPage({
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.membres.title}</h2>
             <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-              {membres?.length || 0} membre{(membres?.length || 0) > 1 ? 's' : ''}
+              {currentTab === 'membres'
+                ? `${membres?.length || 0} membre${(membres?.length || 0) > 1 ? 's' : ''}`
+                : `${totalClients} client${totalClients > 1 ? 's' : ''}`}
             </span>
           </div>
           <p className="mt-2 text-sm text-foreground-muted">
             {dict.membres.desc}
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <CreateMembreButton dict={dict} />
+        {currentTab === 'membres' && (
+          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <CreateMembreButton dict={dict} />
+          </div>
+        )}
+      </div>
+
+      {/* Tabs Switcher: Membres vs Clients Externes */}
+      <div className="mt-6 border-b border-surface-border">
+        <nav className="flex space-x-6" aria-label="Tabs">
+          <Link
+            href="/membres"
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+              currentTab === 'membres'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-foreground-muted hover:text-foreground'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Membres du GIE</span>
+            <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
+              currentTab === 'membres' ? 'bg-primary/15 text-primary' : 'bg-surface text-foreground-muted'
+            }`}>
+              {membres?.length || 0}
+            </span>
+          </Link>
+
+          <Link
+            href="/membres?tab=clients"
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+              currentTab === 'clients'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-foreground-muted hover:text-foreground'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Clients Externes (Acheteurs & Prestations)</span>
+            <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
+              currentTab === 'clients' ? 'bg-primary/15 text-primary' : 'bg-surface text-foreground-muted'
+            }`}>
+              {totalClients}
+            </span>
+          </Link>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {currentTab === 'clients' ? (
+        <div className="mt-6">
+          <ClientsListTab
+            initialClients={clients || []}
+            gieName={tenant?.gieName || 'Mon GIE'}
+            dict={dict}
+            locale={locale}
+          />
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Barre de recherche Membres */}
+          <div className="mt-6 flex items-center space-x-4">
+            <SearchMembres dict={dict} />
+          </div>
 
-      {/* Barre de recherche */}
-      <div className="mt-8 flex items-center space-x-4">
-        <SearchMembres dict={dict} />
-      </div>
-
-      {/* Table des membres */}
-      <div className="mt-8 flow-root">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden overflow-x-auto shadow ring-1 ring-surface-border sm:rounded-lg bg-surface">
-              <table className="min-w-full divide-y divide-surface-border">
+          {/* Table des membres */}
+          <div className="mt-6 flow-root">
+            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div className="overflow-hidden overflow-x-auto shadow ring-1 ring-surface-border sm:rounded-lg bg-surface">
+                  <table className="min-w-full divide-y divide-surface-border">
                 <thead className="bg-background/50">
                   <tr>
                     <th scope="col" className="py-3.5 pl-4 pr-2 text-left text-xs font-semibold text-foreground-muted sm:pl-6 w-14">
@@ -146,6 +212,8 @@ export default async function MembresPage({
           </div>
         </div>
       </div>
-    </div>
-  )
+    </>
+  )}
+</div>
+)
 }

@@ -8,6 +8,7 @@ import PrintSectionButton from '@/components/PrintSectionButton'
 import { useUnite } from '@/components/DeviseProvider'
 import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
 import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
+import FicheClientModal from '@/components/FicheClientModal'
 
 type Client = { id: string; nom: string; telephone: string | null }
 
@@ -82,6 +83,22 @@ export default function ReleveClientClient({
         <div className="mt-4 sm:mt-0 flex flex-wrap gap-3">
           <AddClientModal onCreated={handleClientCreated} dict={dict} />
           <AddPaiementClientModal clientId={selectedClient} onSuccess={fetchReleve} dict={dict} />
+          {selectedClient && (
+            <FicheClientModal
+              client={clients.find((c) => c.id === selectedClient) || { id: selectedClient, nom: selectedClientNom }}
+              gieName={gieName}
+              dict={dict}
+              locale={locale}
+              triggerButton={
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background transition-colors"
+                >
+                  <span>Fiche détaillée client</span>
+                </button>
+              }
+            />
+          )}
           {clients.length > 0 && !loading && !error && (
             <PrintSectionButton sectionId="releve-client-print" label={dict.common.print} />
           )}

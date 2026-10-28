@@ -78,6 +78,16 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
     materielsDuGie = materielsData || []
   }
 
+  const totalSuperficieAdmise = (enrolledData || []).reduce((sum, e) => sum + (Number(e.superficie) || 0), 0)
+
+  const intrantHydraulique = (campagneIntrants as any[])?.find(ci => {
+    const nom = (ci.intrants?.nom || '').toLowerCase()
+    const type = (ci.intrants?.type_intrant || '').toLowerCase()
+    return nom.includes('hydraulique') || nom.includes('eau') || type.includes('hydraulique')
+  })
+  const tarifHydraulique = Number(intrantHydraulique?.prix_facturation || 0)
+  const montantCoutHydraulique = totalSuperficieAdmise * tarifHydraulique
+
   return (
     <div>
       <div className="mb-6">
@@ -107,15 +117,56 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-lg bg-surface px-4 py-5 shadow sm:p-6 border border-surface-border flex items-center gap-4">
-        <div className="rounded-md bg-secondary/20 p-3 shrink-0">
-          <Users className="h-6 w-6 text-secondary" aria-hidden="true" />
-        </div>
+      {/* Cartes KPI : Inscriptions, Surface admise, Coût Hydraulique */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Taux d'inscription */}
+        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow border border-surface-border flex items-center gap-4">
+          <div className="rounded-md bg-secondary/20 p-3 shrink-0">
+            <Users className="h-6 w-6 text-secondary" aria-hidden="true" />
+          </div>
           <div className="min-w-0">
-            <dt className="truncate text-sm font-medium text-foreground-muted">{t.enrollment_rate}</dt>
-          <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate">
-            {totalInscrits} / {totalMembres} {t.members_unit}
-          </dd>
+            <dt className="truncate text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.enrollment_rate}</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground truncate">
+              {totalInscrits} / {totalMembres} {t.members_unit}
+            </dd>
+            <p className="text-xs text-foreground-muted mt-0.5">
+              {totalMembres > 0 ? Math.round((totalInscrits / totalMembres) * 100) : 0}% des membres du GIE
+            </p>
+          </div>
+        </div>
+
+        {/* Total surface admise */}
+        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow border border-surface-border flex items-center gap-4">
+          <div className="rounded-md bg-primary/20 p-3 shrink-0">
+            <PieChart className="h-6 w-6 text-primary" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <dt className="truncate text-xs font-medium text-foreground-muted uppercase tracking-wider">Surface Admise</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-primary truncate">
+              {totalSuperficieAdmise.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ha
+            </dd>
+            <p className="text-xs text-foreground-muted mt-0.5">
+              Cumul des parcelles inscrites
+            </p>
+          </div>
+        </div>
+
+        {/* Coût Hydraulique correspondant */}
+        <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow border border-surface-border flex items-center gap-4">
+          <div className="rounded-md bg-blue-500/20 p-3 shrink-0">
+            <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <dt className="truncate text-xs font-medium text-foreground-muted uppercase tracking-wider">Coût Hydraulique</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-foreground truncate">
+              {montantCoutHydraulique.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} F
+            </dd>
+            <p className="text-xs text-foreground-muted mt-0.5">
+              {tarifHydraulique > 0 ? `${tarifHydraulique.toLocaleString('fr-FR')} F/ha × ${totalSuperficieAdmise} ha` : 'Tarif non configuré'}
+            </p>
+          </div>
         </div>
       </div>
 

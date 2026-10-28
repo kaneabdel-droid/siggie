@@ -12,7 +12,7 @@ export default async function DistributionPage() {
   // 1. Fetch campaigns (active ones)
   const { data: campagnes } = await supabase
     .from('campagnes')
-    .select('id, nom')
+    .select('id, nom, statut')
     .in('statut', ['en_cours', 'planifiee'])
     .order('created_at', { ascending: false })
 

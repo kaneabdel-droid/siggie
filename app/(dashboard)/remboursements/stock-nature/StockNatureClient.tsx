@@ -146,14 +146,38 @@ export default function StockNatureClient({
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">
-                      <div className="flex items-center gap-2">
-                        <span>{m.tiers}</span>
-                        {isVente && (
-                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                            isMembre ? 'bg-primary/10 text-primary' : 'bg-secondary/15 text-secondary'
-                          }`}>
-                            {isMembre ? 'Relevé Membre' : 'Relevé Client'}
-                          </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{m.tiers}</span>
+                          {isVente && (
+                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                              isMembre ? 'bg-primary/10 text-primary' : 'bg-secondary/15 text-secondary'
+                            }`}>
+                              {isMembre ? 'Relevé Membre' : 'Relevé Client'}
+                            </span>
+                          )}
+                        </div>
+                        {m.type === 'entree' && (
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                              m.origine_stock === 'materiel'
+                                ? 'bg-secondary/15 text-secondary border border-secondary/20'
+                                : m.origine_stock === 'achat'
+                                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                                : 'bg-primary/10 text-primary border border-primary/20'
+                            }`}>
+                              {m.origine_stock === 'materiel'
+                                ? 'Origine : Matériel (Prestation)'
+                                : m.origine_stock === 'achat'
+                                ? 'Origine : Achat (Revente)'
+                                : 'Origine : Exploitation (Membre)'}
+                            </span>
+                            {m.variete && (
+                              <span className="inline-flex items-center rounded bg-background px-1.5 py-0.5 text-[10px] font-mono text-foreground-muted border border-surface-border">
+                                Var. {m.variete}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>

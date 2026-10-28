@@ -6,6 +6,7 @@ import PaiementModal from './PaiementModal'
 import { useUnite } from '@/components/DeviseProvider'
 import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
 import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
+import FicheClientModal from '@/components/FicheClientModal'
 
 export default function RemboursementsClient({ 
   factures, 
@@ -43,6 +44,11 @@ export default function RemboursementsClient({
       f.membre?.nom?.toLowerCase().includes(term) ||
       f.membre?.prenom?.toLowerCase().includes(term) ||
       f.membre?.code_membre?.toLowerCase().includes(term) ||
+      f.client_nom?.toLowerCase().includes(term) ||
+      f.client?.nom?.toLowerCase().includes(term) ||
+      f.client?.code_client?.toLowerCase().includes(term) ||
+      f.designation?.toLowerCase().includes(term) ||
+      f.campagne?.nom?.toLowerCase().includes(term) ||
       f.id.toLowerCase().includes(term)
     )
   })
@@ -101,6 +107,10 @@ export default function RemboursementsClient({
             {filteredFactures.map((facture) => {
               const isSelected = selectedFacture?.id === facture.id
               const reste = Number(facture.montant_total || 0) + Number(facture.montant_interet || 0) - Number(facture.montant_paye || 0)
+              const isMembre = facture.tiers_type !== 'client'
+              const nomAffiche = isMembre
+                ? `${facture.membre?.prenom || ''} ${facture.membre?.nom || ''}`.trim()
+                : facture.client_nom || facture.client?.nom || 'Client externe'
               
               return (
                 <button
@@ -111,11 +121,29 @@ export default function RemboursementsClient({
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <div className="font-medium text-foreground truncate min-w-0">
-                      {facture.membre?.prenom} {facture.membre?.nom}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground truncate">
+                        {nomAffiche}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[10px] font-medium ${
+                          facture.type_document === 'prestation'
+                            ? 'bg-secondary/15 text-secondary'
+                            : facture.type_document === 'vente_stock'
+                            ? 'bg-emerald-500/10 text-emerald-600'
+                            : 'bg-primary/10 text-primary'
+                        }`}>
+                          {facture.type_document === 'prestation' ? 'Prestation' : facture.type_document === 'vente_stock' ? 'Vente stock' : 'Campagne'}
+                        </span>
+                        {!isMembre && (
+                          <span className="text-[10px] text-foreground-muted font-mono">
+                            {facture.client?.code_client || 'CLI'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-xs text-foreground-muted shrink-0 text-right">
-                      {facture.campagne?.nom}
+                      {facture.campagne?.nom || ''}
                     </div>
                   </div>
                   <div className={`mt-2 text-sm font-semibold ${reste < 0 ? 'text-primary' : reste === 0 ? 'text-success' : 'text-danger'}`}>
@@ -139,9 +167,28 @@ export default function RemboursementsClient({
           {selectedFacture ? (
             <div className="bg-surface border border-surface-border rounded-lg shadow-sm p-6 h-full">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-                <h3 className="text-xl font-bold text-foreground break-words">
-                  {dict.remboursements.details.title} {selectedFacture.membre?.prenom} {selectedFacture.membre?.nom}
-                </h3>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-foreground break-words">
+                      {dict.remboursements.details.title} {selectedFacture.tiers_type === 'client' ? (selectedFacture.client_nom || selectedFacture.client?.nom || 'Client externe') : `${selectedFacture.membre?.prenom || ''} ${selectedFacture.membre?.nom || ''}`}
+                    </h3>
+                    {selectedFacture.tiers_type === 'client' && (
+                      <FicheClientModal
+                        client={selectedFacture.client || {
+                          id: selectedFacture.client_id || '',
+                          nom: selectedFacture.client_nom || 'Client',
+                          code_client: selectedFacture.client?.code_client || 'CLI'
+                        }}
+                        gieName={gieName}
+                        dict={dict}
+                        locale={locale}
+                      />
+                    )}
+                  </div>
+                  <div className="text-xs text-foreground-muted mt-1">
+                    {selectedFacture.designation}
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <FactureWhatsAppModal 
                     facture={selectedFacture} 

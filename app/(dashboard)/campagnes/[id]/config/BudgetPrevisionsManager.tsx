@@ -58,6 +58,11 @@ function RubriqueList({
   const [editingPosteId, setEditingPosteId] = useState<string | null>(null)
   const [newPosteName, setNewPosteName] = useState('')
 
+  // Total budgété pour cette nature (recette ou dépense)
+  const totalBudgetNature = useMemo(() => {
+    return rubriques.reduce((sum, r) => sum + (previsions[r.id] || 0), 0)
+  }, [rubriques, previsions])
+
   // Regroupement par Rubrique (libelle)
   const rubriquesGroupes = useMemo(() => {
     const groups: { libelle: string; postes: Rubrique[] }[] = []
@@ -165,6 +170,7 @@ function RubriqueList({
         <div className="divide-y divide-surface-border">
           {rubriquesGroupes.map((group) => {
             const subtotal = group.postes.reduce((s, p) => s + (previsions[p.id] || 0), 0)
+            const groupPct = totalBudgetNature > 0 ? ((subtotal / totalBudgetNature) * 100).toFixed(1) : '0'
             const isRenaming = renamingRubrique === group.libelle
 
             return (
@@ -221,6 +227,9 @@ function RubriqueList({
                     <span className="text-xs font-semibold text-foreground">
                       {subtotal.toLocaleString('fr-FR')}{unite}
                     </span>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20" title="% dans cette section">
+                      {groupPct}%
+                    </span>
 
                     {!isRenaming && (
                       <div className="flex items-center gap-1">
@@ -261,6 +270,8 @@ function RubriqueList({
                   {group.postes.map((p) => {
                     const isEditingPoste = editingPosteId === p.id
                     const isEditingPrevision = editingPrevisionId === p.id
+                    const pMontant = previsions[p.id] || 0
+                    const pPct = totalBudgetNature > 0 ? ((pMontant / totalBudgetNature) * 100).toFixed(1) : '0'
 
                     return (
                       <li
@@ -319,8 +330,12 @@ function RubriqueList({
                           )}
                         </div>
 
-                        {/* Montant prévision & Suppression du poste */}
+                        {/* Montant prévision, Pourcentage & Suppression du poste */}
                         <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-mono text-foreground-muted bg-background px-1.5 py-0.5 rounded border border-surface-border shrink-0" title="Part dans cette section">
+                            {pPct}%
+                          </span>
+
                           {isEditingPrevision ? (
                             <div className="flex items-center gap-1.5">
                               <input
