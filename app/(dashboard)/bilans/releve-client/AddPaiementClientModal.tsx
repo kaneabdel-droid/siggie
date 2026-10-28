@@ -15,7 +15,18 @@ export default function AddPaiementClientModal({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const t = dict.bilans_pages.releve_client
+  const t = dict?.bilans_pages?.releve_client || {
+    add_payment: "Enregistrer un paiement",
+    payment_form: {
+      title: "Enregistrer un paiement",
+      amount: "Montant (FCFA)",
+      date: "Date du paiement",
+      notes: "Motif / Référence",
+      cancel: "Annuler",
+      save: "Enregistrer",
+      saving: "Enregistrement...",
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
