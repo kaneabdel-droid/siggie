@@ -126,40 +126,64 @@ export async function addTransaction(data: {
 
     const refTag = data.reference_piece?.trim() ? ` [REF:${data.reference_piece.trim()}]` : ''
     const userComment = data.motif?.trim() ? ` (${data.motif.trim()})` : ''
-    const motifSortie = `Virement vers ${nomDest}${userComment}${refTag} [TIERS:${nomDest}]`
-    const motifEntree = `Virement reçu de ${nomOrigine}${userComment}${refTag} [TIERS:${nomOrigine}]`
 
-    // 1. Sortie du compte d'origine
-    const insertSortie = await supabase.from('transactions').insert({
-      gie_id: userData.gie_id,
-      compte_id: data.compte_id,
-      type_transaction: 'sortie',
-      montant: data.montant,
-      motif: motifSortie,
-      type_piece: 'virement_interne',
-      date_transaction: dateTx,
-      tiers_type: 'compte_transfert',
-      tiers_nom: nomDest,
-      campagne_id: data.campagne_id || null,
-    })
+    if (data.type_transaction === 'entree') {
+      // Le compte courant reçoit le virement (entrée), l'autre compte est la source (sortie)
+      const motifCurrent = `Virement reçu de ${nomDest}${userComment}${refTag} [TIERS:${nomDest}]`
+      const motifOther = `Virement vers ${nomOrigine}${userComment}${refTag} [TIERS:${nomOrigine}]`
 
-    if (insertSortie.error) return { error: insertSortie.error.message }
+      const insertCurrent = await supabase.from('transactions').insert({
+        gie_id: userData.gie_id,
+        compte_id: data.compte_id,
+        type_transaction: 'entree',
+        montant: data.montant,
+        motif: motifCurrent,
+        type_piece: 'virement_interne',
+        date_transaction: dateTx,
+        campagne_id: data.campagne_id || null,
+      })
+      if (insertCurrent.error) return { error: insertCurrent.error.message }
 
-    // 2. Entrée sur le compte de destination (exactement le même montant et même date)
-    const insertEntree = await supabase.from('transactions').insert({
-      gie_id: userData.gie_id,
-      compte_id: data.compte_destination_id,
-      type_transaction: 'entree',
-      montant: data.montant,
-      motif: motifEntree,
-      type_piece: 'virement_interne',
-      date_transaction: dateTx,
-      tiers_type: 'compte_transfert',
-      tiers_nom: nomOrigine,
-      campagne_id: data.campagne_id || null,
-    })
+      const insertOther = await supabase.from('transactions').insert({
+        gie_id: userData.gie_id,
+        compte_id: data.compte_destination_id,
+        type_transaction: 'sortie',
+        montant: data.montant,
+        motif: motifOther,
+        type_piece: 'virement_interne',
+        date_transaction: dateTx,
+        campagne_id: data.campagne_id || null,
+      })
+      if (insertOther.error) return { error: insertOther.error.message }
+    } else {
+      // Sortie sur le compte courant (décaissement), entrée sur le compte destination
+      const motifSortie = `Virement vers ${nomDest}${userComment}${refTag} [TIERS:${nomDest}]`
+      const motifEntree = `Virement reçu de ${nomOrigine}${userComment}${refTag} [TIERS:${nomOrigine}]`
 
-    if (insertEntree.error) return { error: insertEntree.error.message }
+      const insertSortie = await supabase.from('transactions').insert({
+        gie_id: userData.gie_id,
+        compte_id: data.compte_id,
+        type_transaction: 'sortie',
+        montant: data.montant,
+        motif: motifSortie,
+        type_piece: 'virement_interne',
+        date_transaction: dateTx,
+        campagne_id: data.campagne_id || null,
+      })
+      if (insertSortie.error) return { error: insertSortie.error.message }
+
+      const insertEntree = await supabase.from('transactions').insert({
+        gie_id: userData.gie_id,
+        compte_id: data.compte_destination_id,
+        type_transaction: 'entree',
+        montant: data.montant,
+        motif: motifEntree,
+        type_piece: 'virement_interne',
+        date_transaction: dateTx,
+        campagne_id: data.campagne_id || null,
+      })
+      if (insertEntree.error) return { error: insertEntree.error.message }
+    }
 
     revalidatePath('/tresorerie')
     revalidatePath('/tresorerie/journaux')
@@ -178,8 +202,8 @@ export async function addTransaction(data: {
     safeMotif = `${safeMotif} [MATERIEL:${data.materiel_nom.trim()}]`
   }
 
-  // Try insert with native extended columns
-  const tryInsert = await supabase
+  // Insertion en utilisant exclusivement les colonnes réelles de la table transactions
+  const { error } = await supabase
     .from('transactions')
     .insert({
       gie_id: userData.gie_id,
@@ -188,32 +212,15 @@ export async function addTransaction(data: {
       montant: data.montant,
       motif: safeMotif,
       date_transaction: dateTx,
-      tiers_type: data.tiers_type || null,
-      tiers_nom: data.tiers_nom?.trim() || null,
       credit_id: data.credit_id || null,
       type_piece: data.type_piece || null,
       imputation_id: data.imputation_id || null,
       campagne_id: data.campagne_id || null,
-      materiel_id: data.materiel_id || null,
     })
 
-  if (tryInsert.error) {
-    // Fallback if date_transaction or tiers_nom don't exist on remote schema
-    const fallback = await supabase
-      .from('transactions')
-      .insert({
-        gie_id: userData.gie_id,
-        compte_id: data.compte_id,
-        type_transaction: data.type_transaction,
-        montant: data.montant,
-        motif: safeMotif,
-        credit_id: data.credit_id || null,
-        type_piece: data.type_piece || null,
-        imputation_id: data.imputation_id || null,
-        campagne_id: data.campagne_id || null,
-      })
-
-    if (fallback.error) return { error: fallback.error.message }
+  if (error) {
+    console.error("Erreur insertion transaction:", error)
+    return { error: error.message }
   }
 
   revalidatePath('/tresorerie')

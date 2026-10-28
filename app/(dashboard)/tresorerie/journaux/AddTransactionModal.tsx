@@ -289,7 +289,9 @@ export default function AddTransactionModal({
                 {tiersType === 'compte_transfert' && (
                   <div className="space-y-2">
                     <label className="block text-xs font-medium text-foreground-muted">
-                      Compte de destination (Crédité) :
+                      {typeTransaction === 'entree'
+                        ? "Compte d'origine (Débité) :"
+                        : "Compte de destination (Crédité) :"}
                     </label>
                     <select
                       required
@@ -297,7 +299,11 @@ export default function AddTransactionModal({
                       onChange={(e) => setSelectedDestinationCompteId(e.target.value)}
                       className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                     >
-                      <option value="">-- Choisir le compte destination --</option>
+                      <option value="">
+                        {typeTransaction === 'entree'
+                          ? "-- Choisir le compte source débité --"
+                          : "-- Choisir le compte destination crédité --"}
+                      </option>
                       {otherComptes.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.nom} ({c.type_compte || 'Compte'})
@@ -307,7 +313,10 @@ export default function AddTransactionModal({
                     <div className="rounded-lg bg-primary/10 border border-primary/20 p-2.5 text-xs text-primary flex items-start gap-2">
                       <ArrowRightLeft className="w-4 h-4 shrink-0 mt-0.5" />
                       <span>
-                        <strong>Virement équilibré automatique :</strong> Une écriture de sortie sera débitée sur ce compte et une écriture d'entrée identique sera créditée sur le compte de destination.
+                        <strong>Virement équilibré automatique :</strong>{' '}
+                        {typeTransaction === 'entree'
+                          ? "Une écriture d'entrée sera créditée sur ce compte et une écriture de sortie équivalente sera débitée sur le compte sélectionné."
+                          : "Une écriture de sortie sera débitée sur ce compte et une écriture d'entrée équivalente sera créditée sur le compte de destination."}
                       </span>
                     </div>
                   </div>
