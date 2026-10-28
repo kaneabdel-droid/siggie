@@ -17,7 +17,7 @@ import {
   Layers2
 } from 'lucide-react'
 import CreditRowActions from './CreditRowActions'
-import { getCreditType, getCreditEquipementNom, getCreditPeriodicite, cleanButCredit } from '@/lib/credits-types'
+import { getCreditType, getCreditEquipementNom, getCreditPeriodicite, cleanButCredit, isCreditIndependant } from '@/lib/credits-types'
 
 type CreditItem = {
   id: string
@@ -66,11 +66,13 @@ export default function CreditsListClient({
       const equipementNom = getCreditEquipementNom(c)
       const periodicite = getCreditPeriodicite(c)
       const cleanedReason = cleanButCredit(c.but_credit)
+      const isIndep = isCreditIndependant(c)
       return {
         ...c,
         computedType: type,
         computedEquipementNom: equipementNom,
         computedPeriodicite: periodicite,
+        computedIsIndependant: isIndep,
         cleanedReason,
       }
     })
@@ -327,6 +329,15 @@ export default function CreditsListClient({
                             <span className="font-semibold text-foreground text-sm">
                               {isEquip ? (equipNom || 'Matériel agricole') : (credit.campagnes?.nom || 'Campagne en cours')}
                             </span>
+                            {isEquip && (credit.computedIsIndependant ? (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface text-foreground-muted border border-surface-border" title="Non rattaché à une campagne spécifique (pluriannuel)">
+                                Indépendant
+                              </span>
+                            ) : credit.campagnes?.nom ? (
+                              <span className="text-[10px] text-foreground-muted">
+                                ({credit.campagnes.nom})
+                              </span>
+                            ) : null)}
                           </div>
 
                           {credit.cleanedReason && (

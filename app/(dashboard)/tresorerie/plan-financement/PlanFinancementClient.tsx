@@ -70,6 +70,25 @@ export default function PlanFinancementClient({
 
   const selectedCampagne = campagnes.find((c) => c.id === selectedCampagneId) || null
 
+  // Map des comptes pour lookup rapide
+  const comptesMap = useMemo(() => new Map(comptes.map((c) => [c.id, c])), [comptes])
+
+  // Règle de cadrage :
+  // - Caisse : solde initial effectif au 01/09/2026 (données antérieures ignorées)
+  // - Banques : solde initial effectif au 01/07/2026 (données antérieures ignorées)
+  const isCaisse = (type_compte?: string) => (type_compte || '').toLowerCase() === 'caisse'
+  const getDateMinCompte = (compteId: string) => {
+    const c = comptesMap.get(compteId)
+    return isCaisse(c?.type_compte) ? '2026-09-01' : '2026-07-01'
+  }
+
+  const isTxValide = (tx: Transaction) => {
+    const txDateStr = (tx.date_transaction || tx.created_at || '').slice(0, 10)
+    if (!txDateStr) return false
+    const dateMin = getDateMinCompte(tx.compte_id)
+    return txDateStr >= dateMin
+  }
+
   // 1. Calcul du Plan de Financement par Campagne
   // Formule: Trésorerie départ + Encaissements du mois - Paiements du mois = Solde fin de mois (début mois suivant)
   const planCampagne = useMemo(() => {
@@ -84,53 +103,79 @@ export default function PlanFinancementClient({
     if (isNaN(dFin.getTime()) || dFin <= dDebut) dFin = new Date(dDebut.getTime() + 180 * 24 * 60 * 60 * 1000)
 
     // Liste des mois couverts par la campagne
-    const moisBuckets: { year: number; month: number; label: string }[] = []
+    const moisBuckets: { year: number; month: number; label: string; debutMois: string; finMois: string }[] = []
     const cur = new Date(dDebut.getFullYear(), dDebut.getMonth(), 1)
     const end = new Date(dFin.getFullYear(), dFin.getMonth(), 1)
 
     while (cur <= end && moisBuckets.length < 12) {
+      const year = cur.getFullYear()
+      const month = cur.getMonth()
+      const mStr = String(month + 1).padStart(2, '0')
       moisBuckets.push({
-        year: cur.getFullYear(),
-        month: cur.getMonth(),
-        label: `${MOIS_NOMS[cur.getMonth()]} ${cur.getFullYear()}`,
+        year,
+        month,
+        label: `${MOIS_NOMS[month]} ${year}`,
+        debutMois: `${year}-${mStr}-01`,
+        finMois: `${year}-${mStr}-31`,
       })
       cur.setMonth(cur.getMonth() + 1)
     }
 
     if (moisBuckets.length === 0) {
+      const year = dDebut.getFullYear()
+      const month = dDebut.getMonth()
+      const mStr = String(month + 1).padStart(2, '0')
       moisBuckets.push({
-        year: dDebut.getFullYear(),
-        month: dDebut.getMonth(),
-        label: `${MOIS_NOMS[dDebut.getMonth()]} ${dDebut.getFullYear()}`,
+        year,
+        month,
+        label: `${MOIS_NOMS[month]} ${year}`,
+        debutMois: `${year}-${mStr}-01`,
+        finMois: `${year}-${mStr}-31`,
       })
     }
 
-    // Filtrer les transactions de cette campagne
+    // Filtrer les transactions valides de cette campagne
+    // Règle: les données antérieures au 01/09/2026 pour la caisse et au 01/07/2026 pour les banques sont ignorées
     const txCampagne = transactions.filter(
-      (tx) => tx.campagne_id === selectedCampagne.id
+      (tx) => tx.campagne_id === selectedCampagne.id && isTxValide(tx)
     )
 
-    // Trésorerie initiale de départ (somme des soldes initiaux des comptes de trésorerie ou 0)
-    const totalSoldeInitialComptes = comptes.reduce(
-      (sum, c) => sum + Number(c.solde_initial || 0),
-      0
-    )
+    // Trésorerie initiale de départ au 1er mois de campagne :
+    // Ne comprend que les soldes des comptes effectifs à cette date
+    const premierMois = moisBuckets[0]?.debutMois || ''
+    let totalSoldeInitialComptes = 0
+    comptes.forEach((c) => {
+      const dateMin = isCaisse(c.type_compte) ? '2026-09-01' : '2026-07-01'
+      if (premierMois >= dateMin) {
+        totalSoldeInitialComptes += Number(c.solde_initial || 0)
+      }
+    })
 
     let soldeCourant = totalSoldeInitialComptes
     let totalIn = 0
     let totalOut = 0
 
     const moisData = moisBuckets.map((b, idx) => {
-      const soldeDepart = soldeCourant
+      // Reprise en cours de campagne si un compte devient effectif durant ce mois
+      let apportReprise = 0
+      if (idx > 0) {
+        comptes.forEach((c) => {
+          const dateMin = isCaisse(c.type_compte) ? '2026-09-01' : '2026-07-01'
+          if (dateMin >= b.debutMois && dateMin <= b.finMois) {
+            apportReprise += Number(c.solde_initial || 0)
+          }
+        })
+      }
+
+      const soldeDepart = soldeCourant + apportReprise
 
       let encaissements = 0
       let decaissements = 0
 
       for (const tx of txCampagne) {
-        const txDateStr = tx.date_transaction || tx.created_at
+        const txDateStr = (tx.date_transaction || tx.created_at || '').slice(0, 10)
         if (!txDateStr) continue
-        const d = new Date(txDateStr)
-        if (d.getFullYear() === b.year && d.getMonth() === b.month) {
+        if (txDateStr >= b.debutMois && txDateStr <= b.finMois) {
           const m = Number(tx.montant || 0)
           if (tx.type_transaction === 'entree') {
             encaissements += m
@@ -151,6 +196,7 @@ export default function PlanFinancementClient({
         numeroMois: idx + 1,
         label: b.label,
         soldeDepart,
+        apportReprise,
         encaissements,
         decaissements,
         fluxNet,
@@ -165,22 +211,47 @@ export default function PlanFinancementClient({
       soldeInitial: totalSoldeInitialComptes,
       soldeFinal: soldeCourant,
     }
-  }, [selectedCampagne, transactions, comptes])
+  }, [selectedCampagne, transactions, comptes, comptesMap])
 
   // 2. Calcul du Plan de Trésorerie Annuel sur 12 Mois (Premium)
   const planAnnuel12Mois = useMemo(() => {
     // Calcul mois par mois (0 à 11) pour l'année sélectionnée
-    const totalInitialComptes = comptes.reduce(
-      (sum, c) => sum + Number(c.solde_initial || 0),
-      0
-    )
-
-    let soldeReport = totalInitialComptes
+    let soldeReport = 0
     let anneeIn = 0
     let anneeOut = 0
 
     const moisData = MOIS_NOMS.map((nomMois, indexMois) => {
-      const soldeDebut = soldeReport
+      const moisNum = indexMois + 1
+      const mStr = String(moisNum).padStart(2, '0')
+      const debutMoisStr = `${selectedAnnee}-${mStr}-01`
+      const finMoisStr = `${selectedAnnee}-${mStr}-31`
+
+      // Reprise des soldes initiaux :
+      // - Banques : actives au 01/07/2026 (Juillet)
+      // - Caisses : actives au 01/09/2026 (Septembre)
+      // - Les données antérieures sont ignorées.
+      let apportReprise = 0
+      if (selectedAnnee === 2026) {
+        if (indexMois === 6) { // Juillet 2026
+          comptes.forEach((c) => {
+            if (!isCaisse(c.type_compte)) {
+              apportReprise += Number(c.solde_initial || 0)
+            }
+          })
+        } else if (indexMois === 8) { // Septembre 2026
+          comptes.forEach((c) => {
+            if (isCaisse(c.type_compte)) {
+              apportReprise += Number(c.solde_initial || 0)
+            }
+          })
+        }
+      } else if (selectedAnnee > 2026 && indexMois === 0) {
+        comptes.forEach((c) => {
+          apportReprise += Number(c.solde_initial || 0)
+        })
+      }
+
+      const soldeDebut = soldeReport + apportReprise
 
       let rembMembres = 0
       let prestMateriel = 0
@@ -193,10 +264,11 @@ export default function PlanFinancementClient({
       let autresSorties = 0
 
       for (const tx of transactions) {
-        const txDateStr = tx.date_transaction || tx.created_at
+        if (!isTxValide(tx)) continue
+        const txDateStr = (tx.date_transaction || tx.created_at || '').slice(0, 10)
         if (!txDateStr) continue
-        const d = new Date(txDateStr)
-        if (d.getFullYear() === selectedAnnee && d.getMonth() === indexMois) {
+
+        if (txDateStr >= debutMoisStr && txDateStr <= finMoisStr) {
           const m = Number(tx.montant || 0)
           const motifLower = (tx.motif || '').toLowerCase()
           const pieceLower = (tx.type_piece || '').toLowerCase()
@@ -216,7 +288,7 @@ export default function PlanFinancementClient({
               intrantsSorties += m
             } else if (motifLower.includes('carburant') || motifLower.includes('gasoil') || motifLower.includes('vidange') || motifLower.includes('reparation')) {
               materielCarburant += m
-            } else if (motifLower.includes('salaire') || motifLower.includes('gestion') || motifLower.includes('reunion')) {
+            } else if (motifLower.includes('salaire') || motifLower.includes('gestion') || motifLower.includes('reunion') || motifLower.includes('gardien') || motifLower.includes('indemnite') || motifLower.includes('faucardage')) {
               fraisGeneraux += m
             } else {
               autresSorties += m
@@ -238,6 +310,7 @@ export default function PlanFinancementClient({
         nomMois,
         indexMois,
         soldeDebut,
+        apportReprise,
         rembMembres,
         prestMateriel,
         ventesStock,
@@ -260,7 +333,7 @@ export default function PlanFinancementClient({
       netAnnuel: anneeIn - anneeOut,
       soldeFinal: soldeReport,
     }
-  }, [transactions, comptes, selectedAnnee])
+  }, [transactions, comptes, selectedAnnee, comptesMap])
 
   return (
     <div className="space-y-6">
@@ -288,6 +361,22 @@ export default function PlanFinancementClient({
             sectionId={activeTab === 'campagne' ? 'print-plan-campagne' : 'print-plan-annuel'}
             label={dict?.common?.print || "Imprimer"}
           />
+        </div>
+      </div>
+
+      {/* Information Banner sur la convention de solde initial */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
+        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="text-xs text-foreground space-y-1">
+          <p className="font-semibold text-primary">
+            Cadrage des soldes de trésorerie :
+          </p>
+          <p className="text-foreground-muted">
+            • <strong>Caisse</strong> : Solde initial effectif au <strong>01/09/2026</strong>. Les écritures antérieures manquantes sont ignorées.
+          </p>
+          <p className="text-foreground-muted">
+            • <strong>Banques</strong> : Soldes initiaux effectifs au <strong>01/07/2026</strong>. Les écritures antérieures manquantes sont ignorées.
+          </p>
         </div>
       </div>
 
@@ -460,7 +549,12 @@ export default function PlanFinancementClient({
                       <div className="text-xs text-foreground-muted">Mois N° {m.numeroMois}</div>
                     </td>
                     <td className="px-4 py-3.5 text-right font-mono font-medium text-foreground whitespace-nowrap">
-                      {m.soldeDepart.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                      <div>{m.soldeDepart.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}</div>
+                      {m.apportReprise > 0 && (
+                        <div className="text-[10px] text-primary font-sans font-medium">
+                          +{m.apportReprise.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} F (reprise)
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-right font-mono font-semibold text-success whitespace-nowrap">
                       +{m.encaissements.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
@@ -571,7 +665,12 @@ export default function PlanFinancementClient({
                           {m.nomMois}
                         </td>
                         <td className="px-3 py-3 text-right font-mono text-foreground whitespace-nowrap">
-                          {m.soldeDebut.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
+                          <div>{m.soldeDebut.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}</div>
+                          {m.apportReprise > 0 && (
+                            <div className="text-[10px] text-primary font-sans font-medium">
+                              +{m.apportReprise.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} F (reprise)
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-3 text-right font-mono text-success whitespace-nowrap">
                           {m.rembMembres > 0 ? `+${m.rembMembres.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}` : '-'}

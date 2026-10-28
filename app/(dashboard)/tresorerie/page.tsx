@@ -56,6 +56,9 @@ export default async function TresoreriePage() {
                 <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground truncate font-mono">
                   {(compte.solde_courant || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} <span className="text-sm font-normal text-foreground-muted font-sans">{unite.trim()}</span>
                 </dd>
+                <div className="text-[11px] text-foreground-muted/80 mt-0.5">
+                  Solde initial au {compte.type_compte === 'caisse' ? '01/09/2026' : '01/07/2026'}
+                </div>
               </div>
             </div>
             <div className="shrink-0 text-foreground-muted/60 group-hover:text-primary group-hover:translate-x-1 transition-all">

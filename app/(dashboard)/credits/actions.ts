@@ -24,7 +24,40 @@ export async function addCredit(formData: FormData) {
   const typeCredit = ((formData.get('type_credit') as string) || 'campagne') as 'campagne' | 'equipement'
   const equipementNom = (formData.get('equipement_nom') as string)?.trim() || null
   const rawCampagneId = formData.get('campagne_id') as string | null
-  const campagneId = rawCampagneId && rawCampagneId.trim() !== '' ? rawCampagneId : null
+  const isIndependant = !rawCampagneId || rawCampagneId.trim() === '' || rawCampagneId === 'independant'
+  let campagneId = !isIndependant ? rawCampagneId!.trim() : null
+
+  // Si l'utilisateur choisit "(Toutes campagnes / Indépendant)", la contrainte PostgreSQL
+  // campagne_id NOT NULL exige une clé étrangère valide vers la table campagnes.
+  // On rattache techniquement à la campagne en cours ou la plus récente du GIE,
+  // tout en marquant le crédit comme indépendant via le méta-tag [INDEPENDANT:true].
+  if (!campagneId) {
+    const { data: activeCamp } = await supabase
+      .from('campagnes')
+      .select('id')
+      .eq('gie_id', userData.gie_id)
+      .order('date_debut', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (activeCamp?.id) {
+      campagneId = activeCamp.id
+    } else {
+      // Si aucune campagne n'existe encore pour ce GIE, on en crée une générique
+      const { data: newCamp } = await supabase
+        .from('campagnes')
+        .insert([{
+          gie_id: userData.gie_id,
+          nom: 'Investissements & Équipements',
+          statut: 'en_cours',
+          date_debut: new Date().toISOString().split('T')[0]
+        }])
+        .select('id')
+        .single()
+      campagneId = newCamp?.id || null
+    }
+  }
+
   const banqueNom = (formData.get('banque_nom') as string)?.trim() || null
   const montantDemande = parseFloat(formData.get('montant_demande') as string) || 0
   const rawBut = (formData.get('but_credit') as string)?.trim() || ''
@@ -34,7 +67,7 @@ export async function addCredit(formData: FormData) {
   const tauxInteret = parseFloat(formData.get('taux_interet') as string) || 0
 
   // Tag de méta-données pour compatibilité absolue
-  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''} [PERIODICITE:${periodicite}]`
+  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''} [PERIODICITE:${periodicite}]${isIndependant ? ' [INDEPENDANT:true]' : ''}`
   const butCreditWithMeta = rawBut ? `${metaTag} ${rawBut}` : metaTag
 
   const insertData: any = {
@@ -88,7 +121,8 @@ export async function updateCreditStatus(
     try {
       const { data: existingCredit } = await supabase.from('credits').select('but_credit').eq('id', id).single()
       const cleanOld = cleanButCredit(existingCredit?.but_credit)
-      const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]`
+      const isIndep = existingCredit?.but_credit?.includes('[INDEPENDANT:true]')
+      const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]${isIndep ? ' [INDEPENDANT:true]' : ''}`
       data.but_credit = cleanOld ? `${metaTag} ${cleanOld}` : metaTag
     } catch (_) {}
   }

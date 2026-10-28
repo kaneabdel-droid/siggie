@@ -408,6 +408,7 @@ export default function AddTransactionModal({
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                   >
                     <option value="">Aucune pièce spécifique</option>
+                    <option value="bon">Bon</option>
                     <option value="facture_fournisseur">Facture fournisseur</option>
                     <option value="recu">Reçu / Quittance</option>
                     <option value="retrait_espece">Retrait d'espèces</option>

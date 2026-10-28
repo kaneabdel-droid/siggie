@@ -53,6 +53,15 @@ export function getCreditPeriodicite(credit: {
 }
 
 /**
+ * Détermine si le crédit est indépendant de toute campagne agricole (pluriannuel)
+ */
+export function isCreditIndependant(credit: {
+  but_credit?: string | null
+}): boolean {
+  return !!(credit.but_credit && credit.but_credit.includes('[INDEPENDANT:true]'))
+}
+
+/**
  * Nettoie le motif du crédit des méta-tags pour l'affichage utilisateur
  */
 export function cleanButCredit(butCredit: string | null | undefined): string {
@@ -62,6 +71,7 @@ export function cleanButCredit(butCredit: string | null | undefined): string {
     .replace(/\[EQUIPEMENT:[^\]]*\]/g, '')
     .replace(/\[PERIODICITE:[^\]]*\]/g, '')
     .replace(/\[ECHEANCE:[^\]]*\]/g, '')
+    .replace(/\[INDEPENDANT:[^\]]*\]/g, '')
     .trim()
 }
 

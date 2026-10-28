@@ -41,6 +41,7 @@ export default function JournalClient({
   const [selectedCompte, setSelectedCompte] = useState(defaultCompte)
   const [journal, setJournal] = useState<any[]>([])
   const [soldeInitial, setSoldeInitial] = useState(0)
+  const [dateSoldeInitial, setDateSoldeInitial] = useState('')
   const [repartitionMateriel, setRepartitionMateriel] = useState<any[]>([])
   const [selectedMaterielFilter, setSelectedMaterielFilter] = useState<string>('all')
   const [loading, setLoading] = useState(false)
@@ -76,6 +77,7 @@ export default function JournalClient({
       setError('')
       setJournal(res.journal || [])
       setSoldeInitial(res.soldeInitial || 0)
+      setDateSoldeInitial(res.dateSoldeInitial || '')
       setRepartitionMateriel(res.repartitionMateriel || [])
     }
   }, [selectedCompte])
@@ -226,7 +228,15 @@ export default function JournalClient({
                           <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[10px] font-medium ${
                             isVirement ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface text-foreground-muted border border-surface-border'
                           }`}>
-                            {isVirement ? 'Virement équilibré' : ligne.type_piece}
+                            {ligne.type_piece === 'bon' ? 'Bon' :
+                             ligne.type_piece === 'facture_fournisseur' ? 'Facture' :
+                             ligne.type_piece === 'recu' ? 'Reçu' :
+                             ligne.type_piece === 'cheque' ? 'Chèque' :
+                             ligne.type_piece === 'versement' ? 'Versement' :
+                             ligne.type_piece === 'retrait_espece' ? 'Espèces' :
+                             ligne.type_piece === 'virement_interne' ? 'Virement équilibré' :
+                             ligne.type_piece === 'remboursement_credit' ? 'Remb. crédit' :
+                             ligne.type_piece}
                           </span>
                         )}
                         {ligne.materiel_nom && (
@@ -261,7 +271,7 @@ export default function JournalClient({
               {/* Ligne du solde initial */}
               <tr className="bg-background/80">
                 <td colSpan={5} className="px-6 py-4 text-sm font-medium text-foreground text-right italic">
-                  {t.initial_balance || "Solde initial"}
+                  {t.initial_balance || "Solde initial"} {dateSoldeInitial ? `(au ${dateSoldeInitial})` : ''}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold font-mono">
                   {Number(soldeInitial).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}

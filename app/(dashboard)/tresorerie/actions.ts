@@ -21,20 +21,34 @@ export async function getComptes() {
   }
 
   // Pour chaque compte, on calcule le solde actuel (solde initial + entrees - sorties)
+  // Règle: solde initial au 01/09/2026 pour la caisse, au 01/07/2026 pour les banques.
+  // Les données précédentes étant manquantes, on les ignore.
   const { data: transactions } = await supabase
     .from('transactions')
-    .select('compte_id, type_transaction, montant')
+    .select('compte_id, type_transaction, montant, date_transaction, created_at')
 
   const comptesAvecSolde = comptes.map(compte => {
     let solde = Number(compte.solde_initial || 0)
+    const isCaisse = (compte.type_compte || '').toLowerCase() === 'caisse'
+    const dateMin = isCaisse ? '2026-09-01' : '2026-07-01'
+    const dateLabel = isCaisse ? '01/09/2026' : '01/07/2026'
+
     if (transactions) {
-      const txs = transactions.filter(t => t.compte_id === compte.id)
+      const txs = transactions.filter(t => {
+        if (t.compte_id !== compte.id) return false
+        const d = (t.date_transaction || t.created_at || '').slice(0, 10)
+        return d >= dateMin
+      })
       for (const t of txs) {
         if (t.type_transaction === 'entree') solde += Number(t.montant)
         else if (t.type_transaction === 'sortie') solde -= Number(t.montant)
       }
     }
-    return { ...compte, solde_courant: solde }
+    return { 
+      ...compte, 
+      solde_courant: solde,
+      date_solde_initial: dateLabel,
+    }
   })
 
   return { comptes: comptesAvecSolde }
@@ -309,6 +323,10 @@ export async function getJournal(compteId: string) {
 
   if (!compte) return { error: "Compte introuvable" }
 
+  const isCaisse = (compte.type_compte || '').toLowerCase() === 'caisse'
+  const dateMin = isCaisse ? '2026-09-01' : '2026-07-01'
+  const dateSoldeInitial = isCaisse ? '01/09/2026' : '01/07/2026'
+
   const { data: transactions, error } = await supabase
     .from('transactions')
     .select('*')
@@ -316,8 +334,15 @@ export async function getJournal(compteId: string) {
 
   if (error) return { error: error.message }
 
+  // Règle: les données antérieures au solde initial (01/09/2026 pour caisse, 01/07/2026 pour banques)
+  // étant manquantes, on les ignore.
+  const validTransactions = (transactions || []).filter(tx => {
+    const d = (tx.date_transaction || tx.created_at || '').slice(0, 10)
+    return d >= dateMin
+  })
+
   // Tri chronologique rigoureux prenant en compte la date modifiable de l'opération
-  const sortedTxs = (transactions || []).slice().sort((a, b) => {
+  const sortedTxs = validTransactions.slice().sort((a, b) => {
     const da = a.date_transaction || (a.created_at ? a.created_at.slice(0, 10) : '')
     const db = b.date_transaction || (b.created_at ? b.created_at.slice(0, 10) : '')
     if (da !== db) return da.localeCompare(db)
@@ -396,6 +421,7 @@ export async function getJournal(compteId: string) {
   return { 
     journal: journal.reverse(), 
     soldeInitial: compte.solde_initial, 
+    dateSoldeInitial,
     compteNom: compte.nom,
     compteType: compte.type_compte,
     repartitionMateriel,

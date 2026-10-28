@@ -122,6 +122,7 @@ export default function TransactionRowActions({
                       <label className="block text-sm font-medium text-foreground">{t.form.piece_label}</label>
                       <select name="type_piece" defaultValue={transaction.type_piece || ''} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2">
                         <option value="">{t.form.piece_none}</option>
+                        <option value="bon">Bon</option>
                         <option value="facture_fournisseur">{t.form.piece_supplier}</option>
                         <option value="recu">Reçu / Quittance</option>
                         <option value="retrait_espece">{t.form.piece_withdrawal}</option>
