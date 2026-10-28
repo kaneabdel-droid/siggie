@@ -38,10 +38,16 @@ export async function getStockNature(campagneId: string) {
 
   const factureIds = factures?.map(f => f.id) || []
 
+  // Récupérer les clients externes séparément pour éviter l'erreur de cache de schéma PostgREST
+  const { data: clientsData } = await supabase
+    .from('clients_externes')
+    .select('id, nom, telephone')
+  const clientMap = new Map((clientsData || []).map((c: any) => [c.id, c]))
+
   // Remboursements en nature pour cette campagne ou sans facture_id liée (prestations/clients)
   let rembQuery = supabase
     .from('remboursements')
-    .select('id, quantite_nature, produit_nature, montant_fcfa, date_paiement, membre_id, client_id, membres(id, prenom, nom, code_membre, telephone), clients_externes(id, nom, telephone)')
+    .select('id, quantite_nature, produit_nature, montant_fcfa, date_paiement, membre_id, facture_id, factures(client_nom), membres(id, prenom, nom, code_membre, telephone)')
     .eq('type_remboursement', 'nature')
     .not('quantite_nature', 'is', null)
 
@@ -56,7 +62,7 @@ export async function getStockNature(campagneId: string) {
   // Sorties : ventes et ristournes enregistrées manuellement
   const { data: sorties, error: sortiesError } = await supabase
     .from('sorties_stock_nature')
-    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, motif, date_sortie, membres(id, prenom, nom, code_membre, telephone), clients_externes(id, nom, telephone)')
+    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, motif, date_sortie, membres(id, prenom, nom, code_membre, telephone)')
     .eq('campagne_id', campagneId)
 
   if (sortiesError) return { error: sortiesError.message }
@@ -65,7 +71,9 @@ export async function getStockNature(campagneId: string) {
 
   for (const r of remboursements) {
     const membre = Array.isArray(r.membres) ? r.membres[0] : r.membres
-    const client = Array.isArray(r.clients_externes) ? r.clients_externes[0] : r.clients_externes
+    const factureData = Array.isArray(r.factures) ? r.factures[0] : r.factures
+    const clientNomFacture = factureData?.client_nom
+    const client = clientNomFacture ? { nom: clientNomFacture } : null
     const quantite = Number(r.quantite_nature || 0)
 
     // Parse variety and origin from produit_nature if present
@@ -77,7 +85,7 @@ export async function getStockNature(campagneId: string) {
     let origineStock = 'exploitation'
     const origMatch = prodStr.match(/\[ORIGINE:(.*?)\]/)
     if (origMatch) origineStock = origMatch[1].trim()
-    else if (r.client_id || (!membre && client)) origineStock = 'materiel'
+    else if (!membre && client) origineStock = 'materiel'
 
     const tiersNom = membre ? `${membre.prenom} ${membre.nom}` : client?.nom || 'Client externe'
 
@@ -99,7 +107,7 @@ export async function getStockNature(campagneId: string) {
 
   for (const s of sorties || []) {
     const membre = Array.isArray(s.membres) ? s.membres[0] : s.membres
-    const client = Array.isArray(s.clients_externes) ? s.clients_externes[0] : s.clients_externes
+    const client = s.client_id ? clientMap.get(s.client_id) : (s.tiers_nom ? { nom: s.tiers_nom } : null)
     mouvements.push({
       id: s.id,
       date: s.date_sortie,

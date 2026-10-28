@@ -1,10 +1,11 @@
 import { createClient } from '@/utils/supabase/server'
-import { Search, Users, UserCheck } from 'lucide-react'
+import { Search, Users, UserCheck, Eye } from 'lucide-react'
 import Link from 'next/link'
 import SearchMembres from './SearchMembres'
 import CreateMembreButton from './CreateMembreButton'
 import MembreRowActions from './MembreRowActions'
 import ClientsListTab from './ClientsListTab'
+import FicheMembreModal from '@/components/FicheMembreModal'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getClients } from '@/app/(dashboard)/bilans/releve-client/actions'
 import { getTenantContext } from '@/utils/supabase/tenant'
@@ -130,7 +131,7 @@ export default async function MembresPage({
                       N°
                     </th>
                     <th scope="col" className="py-3.5 pl-3 pr-3 text-left text-sm font-semibold text-foreground">
-                      {dict.membres.table.name}
+                      {dict.membres.table.name} (cliquable)
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                       {dict.membres.table.village}
@@ -147,8 +148,8 @@ export default async function MembresPage({
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                       {dict.membres.table.status}
                     </th>
-                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">{dict.membres.table.actions}</span>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6 text-right text-xs font-semibold text-foreground-muted">
+                      Fiche & Actions
                     </th>
                   </tr>
                 </thead>
@@ -161,12 +162,27 @@ export default async function MembresPage({
                         </td>
                         <td className="whitespace-nowrap py-4 pl-3 pr-3 text-sm font-medium text-foreground">
                           <div className="flex items-center gap-2">
-                            <span>{membre.nom} {membre.prenom}</span>
-                            {membre.code_membre && (
-                              <span className="inline-flex items-center rounded bg-background px-1.5 py-0.5 text-[11px] font-mono font-medium text-foreground-muted border border-surface-border">
-                                {membre.code_membre}
-                              </span>
-                            )}
+                            <FicheMembreModal
+                              membre={membre}
+                              gieName={tenant?.gieName || 'Mon GIE'}
+                              dict={dict}
+                              locale={locale}
+                              triggerButton={
+                                <button
+                                  type="button"
+                                  className="hover:text-primary transition-colors cursor-pointer text-left font-semibold group flex items-center gap-1.5"
+                                  title="Consulter la fiche complète du membre"
+                                >
+                                  <span className="group-hover:underline">{membre.nom} {membre.prenom}</span>
+                                </button>
+                              }
+                            />
+                            <FicheMembreModal
+                              membre={membre}
+                              gieName={tenant?.gieName || 'Mon GIE'}
+                              dict={dict}
+                              locale={locale}
+                            />
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">
@@ -195,7 +211,25 @@ export default async function MembresPage({
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <MembreRowActions membre={membre} dict={dict} />
+                          <div className="flex items-center justify-end gap-2">
+                            <FicheMembreModal
+                              membre={membre}
+                              gieName={tenant?.gieName || 'Mon GIE'}
+                              dict={dict}
+                              locale={locale}
+                              triggerButton={
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-surface hover:bg-background text-foreground border border-surface-border shadow-2xs transition-colors cursor-pointer"
+                                  title="Consulter toutes les données et relevé du membre"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-primary" />
+                                  <span>Fiche & Relevé</span>
+                                </button>
+                              }
+                            />
+                            <MembreRowActions membre={membre} dict={dict} />
+                          </div>
                         </td>
                       </tr>
                     ))

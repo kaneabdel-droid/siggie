@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
+import { cleanButCredit } from '@/lib/credits-types'
 
 export async function addCredit(formData: FormData) {
   const denied = await requirePermission('credits', 'create')
@@ -31,61 +32,27 @@ export async function addCredit(formData: FormData) {
   const periodicite = (formData.get('periodicite_remboursement') as string) || 'annuelle'
   const dureeCredit = parseInt(formData.get('duree_credit') as string, 10) || (typeCredit === 'equipement' ? 36 : 12)
   const tauxInteret = parseFloat(formData.get('taux_interet') as string) || 0
-  const nombreEcheances = parseInt(formData.get('nombre_echeances') as string, 10) || (typeCredit === 'equipement' ? Math.max(1, Math.round(dureeCredit / 12)) : 1)
-  const montantEcheance = parseFloat(formData.get('montant_echeance') as string) || 0
 
   // Tag de méta-données pour compatibilité absolue
   const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''} [PERIODICITE:${periodicite}]`
   const butCreditWithMeta = rawBut ? `${metaTag} ${rawBut}` : metaTag
 
-  const fullData: any = {
+  const insertData: any = {
     gie_id: userData.gie_id,
     campagne_id: campagneId,
     banque_nom: banqueNom,
     montant_demande: montantDemande,
     but_credit: butCreditWithMeta,
     type_financement: typeFinancement,
-    type_credit: typeCredit,
-    equipement_nom: equipementNom,
-    periodicite_remboursement: periodicite,
     duree_credit: dureeCredit,
     taux_interet: tauxInteret,
-    nombre_echeances: nombreEcheances,
-    montant_echeance: montantEcheance,
   }
 
-  // 1. Essai d'insertion avec les nouvelles colonnes
-  const { error: insertError } = await supabase.from('credits').insert([fullData])
+  const { error: insertError } = await supabase.from('credits').insert([insertData])
 
   if (insertError) {
-    const isSchemaError =
-      insertError.code === '42703' ||
-      insertError.code === 'PGRST204' ||
-      insertError.message?.toLowerCase().includes('schema cache') ||
-      insertError.message?.toLowerCase().includes('could not find') ||
-      insertError.message?.toLowerCase().includes('column') ||
-      insertError.message?.toLowerCase().includes('does not exist')
-
-    if (isSchemaError) {
-      const fallbackData: any = {
-        gie_id: userData.gie_id,
-        campagne_id: campagneId,
-        banque_nom: banqueNom,
-        montant_demande: montantDemande,
-        but_credit: butCreditWithMeta,
-        type_financement: typeFinancement,
-        duree_credit: dureeCredit,
-        taux_interet: tauxInteret,
-      }
-      const { error: fbErr } = await supabase.from('credits').insert([fallbackData])
-      if (fbErr) {
-        console.error("Erreur ajout credit (repli):", fbErr)
-        return { error: fbErr.message }
-      }
-    } else {
-      console.error("Erreur ajout credit:", insertError)
-      return { error: insertError.message }
-    }
+    console.error("Erreur ajout credit:", insertError)
+    return { error: insertError.message }
   }
 
   revalidatePath('/credits')
@@ -117,11 +84,14 @@ export async function updateCreditStatus(
   if (duree_credit !== undefined) data.duree_credit = duree_credit
   if (type_financement !== undefined) data.type_financement = type_financement
 
-  if (extra?.type_credit !== undefined) data.type_credit = extra.type_credit
-  if (extra?.equipement_nom !== undefined) data.equipement_nom = extra.equipement_nom
-  if (extra?.periodicite_remboursement !== undefined) data.periodicite_remboursement = extra.periodicite_remboursement
-  if (extra?.nombre_echeances !== undefined) data.nombre_echeances = extra.nombre_echeances
-  if (extra?.montant_echeance !== undefined) data.montant_echeance = extra.montant_echeance
+  if (extra?.type_credit || extra?.equipement_nom || extra?.periodicite_remboursement) {
+    try {
+      const { data: existingCredit } = await supabase.from('credits').select('but_credit').eq('id', id).single()
+      const cleanOld = cleanButCredit(existingCredit?.but_credit)
+      const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]`
+      data.but_credit = cleanOld ? `${metaTag} ${cleanOld}` : metaTag
+    } catch (_) {}
+  }
 
   const { error } = await supabase
     .from('credits')
@@ -129,45 +99,8 @@ export async function updateCreditStatus(
     .eq('id', id)
 
   if (error) {
-    const isSchemaError =
-      error.code === '42703' ||
-      error.code === 'PGRST204' ||
-      error.message?.toLowerCase().includes('schema cache') ||
-      error.message?.toLowerCase().includes('could not find') ||
-      error.message?.toLowerCase().includes('column') ||
-      error.message?.toLowerCase().includes('does not exist')
-
-    if (isSchemaError) {
-      // Retirer les colonnes non encore migrées
-      delete data.type_credit
-      delete data.equipement_nom
-      delete data.periodicite_remboursement
-      delete data.nombre_echeances
-      delete data.montant_echeance
-
-      // Si extra a été fourni, encoder dans but_credit pour conserver les métadonnées
-      if (extra?.type_credit || extra?.equipement_nom) {
-        try {
-          const { data: existingCredit } = await supabase.from('credits').select('but_credit').eq('id', id).single()
-          const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]`
-          const cleanOld = (existingCredit?.but_credit || '')
-            .replace(/\[TYPE:[^\]]+\]/g, '')
-            .replace(/\[EQUIPEMENT:[^\]]*\]/g, '')
-            .replace(/\[PERIODICITE:[^\]]*\]/g, '')
-            .trim()
-          data.but_credit = cleanOld ? `${metaTag} ${cleanOld}` : metaTag
-        } catch (_) {}
-      }
-
-      const { error: err2 } = await supabase.from('credits').update(data).eq('id', id)
-      if (err2) {
-        console.error("Erreur modification statut credit (repli):", err2)
-        return { error: err2.message }
-      }
-    } else {
-      console.error("Erreur modification statut credit:", error)
-      return { error: error.message }
-    }
+    console.error("Erreur modification statut credit:", error)
+    return { error: error.message }
   }
 
   revalidatePath('/credits')
