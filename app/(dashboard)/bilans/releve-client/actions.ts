@@ -12,7 +12,7 @@ export async function getClients() {
     ? await supabase.from('utilisateurs').select('gie_id').eq('id', user.id).maybeSingle()
     : { data: null }
 
-  let clientsRes = await supabase.from('clients_externes').select('id, nom, telephone, code_client').order('nom', { ascending: true })
+  let clientsRes: any = await supabase.from('clients_externes').select('id, nom, telephone, code_client').order('nom', { ascending: true })
   if (clientsRes.error && (clientsRes.error.message?.includes('code_client') || clientsRes.error.code === '42703')) {
     clientsRes = await supabase.from('clients_externes').select('id, nom, telephone').order('nom', { ascending: true })
   }
@@ -29,7 +29,7 @@ export async function getClients() {
     ...c,
     code_client: c.code_client || `CLI-${c.id ? c.id.slice(0, 4).toUpperCase() : String(idx + 1).padStart(3, '0')}`,
   }))
-  const existingClientNames = new Set(clients.map((c) => c.nom.trim().toLowerCase()))
+  const existingClientNames = new Set(clients.map((c: any) => c.nom.trim().toLowerCase()))
   const memberNames = new Set(
     (membresRes.data || []).flatMap((m) => [
       `${m.prenom} ${m.nom}`.trim().toLowerCase(),
@@ -80,7 +80,7 @@ export async function getClients() {
             code_client: item.code_client || `CLI-${item.id ? item.id.slice(0, 4).toUpperCase() : String(clients.length + i + 1).padStart(3, '0')}`
           })
         })
-        clients.sort((a, b) => a.nom.localeCompare(b.nom))
+        clients.sort((a: any, b: any) => a.nom.localeCompare(b.nom))
       }
     }
   }

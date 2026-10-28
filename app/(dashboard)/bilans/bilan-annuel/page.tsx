@@ -50,7 +50,6 @@ export default async function BilanAnnuelPage({
 
   const locale = await getLocale()
   const dict = await getDictionary(locale)
-  const tenant = await getTenantContext()
   const t = dict.bilan_annuel
 
   const supabase = await createClient()

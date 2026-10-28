@@ -7,7 +7,7 @@ import { addDistributionsByIntrant, addDistributionsByMembre } from './actions'
 import { isStockableType, isForfaitaireType, isSuperficieBasedType } from '@/lib/intrants/types'
 import { repartirAuProrata } from '@/lib/intrants/repartition'
 
-type Campagne = { id: string; nom: string }
+type Campagne = { id: string; nom: string; statut?: string }
 type Membre = { id: string; prenom: string; nom: string; telephone?: string; code_membre?: string }
 type Intrant = { id: string; nom: string; type_intrant: string; quantite_stock: number; prix_unitaire: number }
 type CampagneMembre = { campagne_id: string; membre: Membre; superficie: number }

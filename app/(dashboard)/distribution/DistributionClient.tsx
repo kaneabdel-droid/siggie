@@ -25,6 +25,7 @@ export default function DistributionClient({
   dejaDistribue = {},
   dict,
   locale,
+}: DistributionClientProps) {
   // Campagne par défaut : en cours
   const defaultCampagneId = useMemo(() => {
     const enCours = campagnes.find((c) => c.statut === 'en_cours')
