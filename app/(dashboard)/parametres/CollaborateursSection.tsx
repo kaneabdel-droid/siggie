@@ -27,7 +27,13 @@ import {
   modifierMotDePasseCollaborateur,
 } from './actions'
 import PermissionsMatrix from '@/app/admin/(protected)/gies/[id]/PermissionsMatrix'
-import { fullPermissions, sanitizePermissions, type PermissionMap } from '@/lib/permissions'
+import {
+  defaultPermissionsForRole,
+  fullPermissions,
+  readOnlyPermissions,
+  sanitizePermissions,
+  type PermissionMap,
+} from '@/lib/permissions'
 
 export type CollaborateurItem = {
   id: string
@@ -90,8 +96,10 @@ export default function CollaborateursSection({
   const [showAddModal, setShowAddModal] = useState(false)
   const [addRole, setAddRole] = useState('collaborateur')
   const [addRoleCustom, setAddRoleCustom] = useState('')
-  const [addRestrictPerms, setAddRestrictPerms] = useState(false)
-  const [addCustomPerms, setAddCustomPerms] = useState<PermissionMap>(fullPermissions())
+  const [addRestrictPerms, setAddRestrictPerms] = useState(true)
+  const [addCustomPerms, setAddCustomPerms] = useState<PermissionMap>(
+    () => defaultPermissionsForRole('collaborateur') ?? readOnlyPermissions()
+  )
   const [showAddPassword, setShowAddPassword] = useState(false)
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false)
 
@@ -138,9 +146,31 @@ export default function CollaborateursSection({
     setErrorMsg(null)
     setAddRole('collaborateur')
     setAddRoleCustom('')
-    setAddRestrictPerms(false)
-    setAddCustomPerms(fullPermissions())
+    setAddRestrictPerms(true)
+    setAddCustomPerms(defaultPermissionsForRole('collaborateur') ?? readOnlyPermissions())
     setShowAddPassword(false)
+  }
+
+  function handleChangeAddRole(nextRole: string) {
+    setAddRole(nextRole)
+    if (nextRole === 'admin') {
+      setAddRestrictPerms(false)
+      setAddCustomPerms(fullPermissions())
+    } else {
+      setAddRestrictPerms(true)
+      setAddCustomPerms(defaultPermissionsForRole(nextRole) ?? readOnlyPermissions())
+    }
+  }
+
+  function handleChangeEditRole(nextRole: string) {
+    setEditRole(nextRole)
+    if (nextRole === 'admin') {
+      setRestrictPerms(false)
+      setCustomPerms(fullPermissions())
+    } else {
+      setRestrictPerms(true)
+      setCustomPerms(defaultPermissionsForRole(nextRole) ?? readOnlyPermissions())
+    }
   }
 
   // Fermeture des modales avec la touche Echap
@@ -195,7 +225,12 @@ export default function CollaborateursSection({
           telephone: res.collaborateur.telephone || rawTel,
           role: res.collaborateur.role || finalRole,
           email: rawEmail || `${res.collaborateur.identifiant}@auth.dembasolution.internal`,
-          permissions: addRestrictPerms ? addCustomPerms : null,
+          permissions:
+            res.collaborateur.permissions !== undefined
+              ? res.collaborateur.permissions
+              : addRestrictPerms
+                ? addCustomPerms
+                : defaultPermissionsForRole(finalRole),
         }
         setCollabList((prev) => [newCollab, ...prev.filter((c) => c.id !== newCollab.id)])
 
@@ -214,8 +249,8 @@ export default function CollaborateursSection({
         form.reset()
         setAddRole('collaborateur')
         setAddRoleCustom('')
-        setAddRestrictPerms(false)
-        setAddCustomPerms(fullPermissions())
+        setAddRestrictPerms(true)
+        setAddCustomPerms(defaultPermissionsForRole('collaborateur') ?? readOnlyPermissions())
         setShowAddPassword(false)
 
         // 5. Rafraîchir les données serveur
@@ -321,8 +356,11 @@ export default function CollaborateursSection({
       setEditRole('autre')
       setEditRoleCustom(collab.role || '')
     }
-    setCustomPerms(collab.permissions ?? fullPermissions())
-    setRestrictPerms(collab.permissions !== null)
+    const isCollabAdmin = (collab.role || '').toLowerCase() === 'admin'
+    setCustomPerms(
+      collab.permissions ?? (isCollabAdmin ? fullPermissions() : (defaultPermissionsForRole(collab.role) ?? readOnlyPermissions()))
+    )
+    setRestrictPerms(collab.permissions !== null || !isCollabAdmin)
   }
 
   // Sauvegarder les permissions et le rôle
@@ -879,7 +917,7 @@ export default function CollaborateursSection({
                 <select
                   name="role"
                   value={addRole}
-                  onChange={(e) => setAddRole(e.target.value)}
+                  onChange={(e) => handleChangeAddRole(e.target.value)}
                   className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
                 >
                   {ROLES_STANDARDS.map((r) => (
@@ -985,7 +1023,7 @@ export default function CollaborateursSection({
               </label>
               <select
                 value={editRole}
-                onChange={(e) => setEditRole(e.target.value)}
+                onChange={(e) => handleChangeEditRole(e.target.value)}
                 className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
               >
                 {ROLES_STANDARDS.map((r) => (

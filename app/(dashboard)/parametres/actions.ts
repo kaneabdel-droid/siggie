@@ -74,7 +74,7 @@ export async function uploadLogo(formData: FormData): Promise<ActionResult> {
 
 import { createAdminClient } from '@/utils/supabase/admin'
 import { genererEmailSynthetique, normaliserIdentifiant } from '@/lib/auth-identifier'
-import { sanitizePermissions, type PermissionMap } from '@/lib/permissions'
+import { defaultPermissionsForRole, sanitizePermissions, type PermissionMap } from '@/lib/permissions'
 
 export async function creerCollaborateur(formData: FormData): Promise<{
   success?: boolean
@@ -85,6 +85,7 @@ export async function creerCollaborateur(formData: FormData): Promise<{
     nom_complet: string | null
     telephone: string | null
     role: string
+    permissions: PermissionMap | null
   }
 }> {
   try {
@@ -117,11 +118,15 @@ export async function creerCollaborateur(formData: FormData): Promise<{
     }
 
     let permissions: PermissionMap | null = null
-    if (rawPerms) {
-      try {
-        permissions = sanitizePermissions(JSON.parse(rawPerms))
-      } catch {
-        // Ignorer si invalide
+    if (role.toLowerCase() !== 'admin') {
+      if (rawPerms) {
+        try {
+          permissions = sanitizePermissions(JSON.parse(rawPerms))
+        } catch {
+          permissions = defaultPermissionsForRole(role)
+        }
+      } else {
+        permissions = defaultPermissionsForRole(role)
       }
     }
 
@@ -259,6 +264,7 @@ export async function creerCollaborateur(formData: FormData): Promise<{
         nom_complet: nomComplet,
         telephone,
         role,
+        permissions,
       },
     }
   } catch (err: unknown) {

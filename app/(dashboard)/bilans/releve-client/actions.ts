@@ -269,6 +269,7 @@ export async function getReleveClient(clientId: string) {
     const prodMatch = rawMotif.match(/\[PRODUIT:([^\]]+)\]/)
     const varMatch = rawMotif.match(/\[VARIETE:([^\]]+)\]/)
     const refMatch = rawMotif.match(/\[REF:([^\]]+)\]/)
+    const uniteMatch = rawMotif.match(/\[UNITE:([^\]]+)\]/)
 
     const cleanMotif = rawMotif.replace(/\[[^\]]*\]/g, '').trim()
 
@@ -277,10 +278,11 @@ export async function getReleveClient(clientId: string) {
     const prodNature = prodMatch ? prodMatch[1].trim() : null
     const varNature = varMatch ? varMatch[1].trim() : null
     const refPiece = refMatch ? refMatch[1].trim() : null
+    const uniteNature = uniteMatch ? uniteMatch[1].trim() : 'kg'
 
     let designation = cleanMotif ? `Paiement reçu (${cleanMotif})` : 'Paiement reçu'
     if (mode === 'nature' && qteNature) {
-      designation = `Paiement en nature : ${qteNature} kg de ${prodNature || 'produit'}${varNature ? ` (Var. ${varNature})` : ''}`
+      designation = `Paiement en nature : ${qteNature} ${uniteNature} de ${prodNature || 'produit'}${varNature ? ` (Var. ${varNature})` : ''}`
     } else if (mode === 'cheque') {
       designation = cleanMotif || `Paiement par chèque${refPiece ? ` (N° ${refPiece})` : ''}`
     } else if (mode === 'bon') {
@@ -297,7 +299,7 @@ export async function getReleveClient(clientId: string) {
       type: 'paiement',
       designation,
       quantite: mode === 'nature' && qteNature ? qteNature : null,
-      unite: mode === 'nature' && qteNature ? 'kg' : null,
+      unite: mode === 'nature' && qteNature ? uniteNature : null,
       prix_unitaire: mode === 'nature' && puNature ? puNature : null,
       montant: Number(p.montant),
     })
@@ -306,8 +308,10 @@ export async function getReleveClient(clientId: string) {
   for (const r of (remboursementsRes.data || []) as any[]) {
     if (rembIdsFromPaiements.has(r.id)) continue
     const cleanProd = String(r.produit_nature || 'produit').replace(/\[[^\]]*\]/g, '').trim()
+    const rUniteMatch = String(r.produit_nature || '').match(/\[UNITE:([^\]]+)\]/)
+    const rUnite = rUniteMatch ? rUniteMatch[1].trim() : 'kg'
     const desc = r.type_remboursement === 'nature'
-      ? `Remboursement en nature : ${r.quantite_nature || ''} kg de ${cleanProd}`
+      ? `Remboursement en nature : ${r.quantite_nature || ''} ${rUnite} de ${cleanProd}`
       : `Remboursement (${r.type_remboursement || 'espèces'})${r.reference_piece ? ` - Réf: ${r.reference_piece}` : ''}`
     mouvements.push({
       id: r.id,
@@ -315,7 +319,7 @@ export async function getReleveClient(clientId: string) {
       type: 'remboursement',
       designation: desc,
       quantite: r.quantite_nature ? Number(r.quantite_nature) : null,
-      unite: r.quantite_nature ? 'kg' : null,
+      unite: r.quantite_nature ? rUnite : null,
       prix_unitaire: r.quantite_nature && Number(r.quantite_nature) > 0 ? Math.round(Number(r.montant_fcfa || 0) / Number(r.quantite_nature)) : null,
       montant: Number(r.montant_fcfa || 0),
     })
@@ -361,6 +365,7 @@ export async function addPaiementClient(input: {
   reference_piece?: string | null
   quantite_nature?: number | null
   produit_nature?: string | null
+  unite_nature?: string | null
   prix_unitaire_nature?: number | null
   variete?: string | null
   origine_stock?: 'exploitation' | 'materiel' | 'achat'
@@ -392,6 +397,7 @@ export async function addPaiementClient(input: {
   const qteNature = mode === 'nature' ? Number(input.quantite_nature || 0) : null
   const puNature = mode === 'nature' ? Number(input.prix_unitaire_nature || 0) : null
   const cleanProdName = mode === 'nature' ? (input.produit_nature || 'Riz paddy').trim() : null
+  const uniteNature = mode === 'nature' ? (input.unite_nature?.trim() || 'kg') : 'kg'
 
   if (mode === 'nature') {
     if (!qteNature || qteNature <= 0) return { error: "Veuillez saisir une quantité en nature valide (kg)." }
@@ -433,7 +439,7 @@ export async function addPaiementClient(input: {
   // 1. Si paiement en nature (ou règlement client), tenter l'ajout dans remboursements pour le stock en nature
   let rembId: string | null = null
   if (mode === 'nature') {
-    const safeProduitNature = `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}] [CLIENT:${nomClient}]${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
+    const safeProduitNature = `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}] [UNITE:${uniteNature}] [CLIENT:${nomClient}]${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
     const tryRemb = await supabase
       .from('remboursements')
       .insert({
@@ -488,7 +494,7 @@ export async function addPaiementClient(input: {
     motifHumain = `Autre paiement${refPiece ? ` (${refPiece})` : ''} - ${nomClient}${userNote ? ` - ${userNote}` : ''}`
     typePiece = 'remboursement_autre'
   } else if (mode === 'nature') {
-    motifHumain = `Paiement en nature : ${qteNature} kg de ${cleanProdName}${variete ? ` (Var. ${variete})` : ''}${userNote ? ` - ${userNote}` : ''}`
+    motifHumain = `Paiement en nature : ${qteNature} ${uniteNature} de ${cleanProdName}${variete ? ` (Var. ${variete})` : ''}${userNote ? ` - ${userNote}` : ''}`
   }
 
   if (compteId && (mode === 'espece' || mode === 'cheque' || mode === 'bon' || mode === 'autre')) {
@@ -516,6 +522,7 @@ export async function addPaiementClient(input: {
     compteId ? `[COMPTE:${compteId}]` : '',
     refPiece ? `[REF:${refPiece}]` : '',
     mode === 'nature' && qteNature ? `[QTE:${qteNature}]` : '',
+    mode === 'nature' && uniteNature ? `[UNITE:${uniteNature}]` : '',
     mode === 'nature' && puNature ? `[PU:${puNature}]` : '',
     mode === 'nature' && cleanProdName ? `[PRODUIT:${cleanProdName}]` : '',
     mode === 'nature' && variete ? `[VARIETE:${variete}]` : '',

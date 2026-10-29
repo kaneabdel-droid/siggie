@@ -19,6 +19,8 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
   const [quantiteNature, setQuantiteNature] = useState<string>('')
   const [produitNature, setProduitNature] = useState<string>('')
   const [variete, setVariete] = useState<string>('')
+  const [uniteMesure, setUniteMesure] = useState<'kg' | 'sacs' | 'autre'>('kg')
+  const [uniteMesureAutre, setUniteMesureAutre] = useState<string>('')
   const initialOrigine = facture.type_document === 'prestation' ? 'materiel' : facture.type_document === 'vente_stock' ? 'achat' : 'exploitation'
   const [origineStock, setOrigineStock] = useState<'exploitation' | 'materiel' | 'achat'>(initialOrigine)
   const [montantSaisi, setMontantSaisi] = useState<string>('')
@@ -31,6 +33,9 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
   const resteArrondi = Math.max(0, Math.round(resteAPayer))
   const prixParDefaut = Number(facture.campagne?.prix_collecte || 150)
   const [prixUnitaire, setPrixUnitaire] = useState<number>(prixParDefaut > 0 ? prixParDefaut : 150)
+
+  const uniteEffective = uniteMesure === 'autre' ? (uniteMesureAutre.trim() || 'unité') : uniteMesure
+  const unitePrixLabel = uniteEffective === 'sacs' ? 'sac' : uniteEffective
 
   // Calculate equivalent in FCFA when typing nature quantity
   const qteNum = parseFloat(quantiteNature)
@@ -107,6 +112,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
         clientNom: facture.client_nom || facture.client?.nom || null,
         origineStock,
         variete,
+        uniteNature: type === 'nature' ? uniteEffective : null,
         prixUnitaireNature: type === 'nature' ? prixUnitaire : null,
         typeDocument: facture.type_document || 'campagne',
         campagneId: facture.campagne_id || facture.campagne?.id || null,
@@ -372,10 +378,80 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                  {/* Choix de l'unité de mesure */}
+                  <div className="mt-3">
+                    <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
+                      Unité de mesure de la quantité *
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setUniteMesure('kg')}
+                        className={`py-1.5 px-3 rounded-md text-xs font-semibold border transition-all text-center ${
+                          uniteMesure === 'kg'
+                            ? 'bg-primary text-white border-primary shadow-xs ring-1 ring-primary'
+                            : 'bg-background text-foreground border-surface-border hover:bg-surface'
+                        }`}
+                      >
+                        Kilogrammes (kg)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUniteMesure('sacs')}
+                        className={`py-1.5 px-3 rounded-md text-xs font-semibold border transition-all text-center ${
+                          uniteMesure === 'sacs'
+                            ? 'bg-primary text-white border-primary shadow-xs ring-1 ring-primary'
+                            : 'bg-background text-foreground border-surface-border hover:bg-surface'
+                        }`}
+                      >
+                        Sacs
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUniteMesure('autre')}
+                        className={`py-1.5 px-3 rounded-md text-xs font-semibold border transition-all text-center ${
+                          uniteMesure === 'autre'
+                            ? 'bg-primary text-white border-primary shadow-xs ring-1 ring-primary'
+                            : 'bg-background text-foreground border-surface-border hover:bg-surface'
+                        }`}
+                      >
+                        Autre unité...
+                      </button>
+                    </div>
+                    {uniteMesure === 'autre' && (
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          required
+                          value={uniteMesureAutre}
+                          onChange={(e) => setUniteMesureAutre(e.target.value)}
+                          placeholder="Précisez l'unité (ex: Tonnes, Bottes, Bidons, Caisses...)"
+                          className="block w-full rounded-md border border-primary bg-background px-3 py-1.5 text-foreground text-xs focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                     <div>
                       <label className="block text-sm font-medium text-foreground">
-                        Prix unitaire d'évaluation ({unite}/kg) *
+                        Quantité reçue ({uniteEffective}) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        step="any"
+                        placeholder={uniteMesure === 'sacs' ? 'Ex: 10' : 'Ex: 500'}
+                        value={quantiteNature}
+                        onChange={(e) => setQuantiteNature(e.target.value)}
+                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">
+                        Prix unitaire ({unite.trim() || 'FCFA'}/{unitePrixLabel}) *
                       </label>
                       <input
                         type="number"
@@ -387,27 +463,18 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
                         className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                       />
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-foreground">
-                        {d.weight_label || 'Quantité reçue (kg)'} *
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="0.01"
-                        step="any"
-                        placeholder="Ex: 500"
-                        value={quantiteNature}
-                        onChange={(e) => setQuantiteNature(e.target.value)}
-                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-                      />
-                    </div>
                   </div>
 
-                  <div className="p-3 bg-primary/10 border border-primary/20 rounded-md mt-4">
-                    <div className="text-sm text-primary font-medium">{d.equivalent_label || 'Équivalent financier déduit :'}</div>
-                    <div className="text-xl font-bold text-primary mt-1">{equivalentFcfa.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</div>
+                  <div className="p-3 bg-primary/10 border border-primary/20 rounded-md mt-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-primary font-medium">{d.equivalent_label || 'Équivalent financier déduit (& ajouté au stock) :'}</div>
+                      <div className="text-xl font-bold text-primary mt-0.5">{equivalentFcfa.toLocaleString(localeCode, { maximumFractionDigits: 0 })}{unite}</div>
+                    </div>
+                    {qteNum > 0 && prixUnitaire > 0 && (
+                      <div className="text-xs font-mono text-primary/80 bg-primary/10 px-2 py-1 rounded">
+                        {qteNum} {uniteEffective} × {prixUnitaire.toLocaleString(localeCode)} {unite.trim() || 'FCFA'}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

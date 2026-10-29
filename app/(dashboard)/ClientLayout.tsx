@@ -25,10 +25,19 @@ import {
   Settings,
   UploadCloud,
   CheckSquare,
-  Activity,
-  Truck
 } from 'lucide-react'
 import { DeviseProvider } from '@/components/DeviseProvider'
+
+const ROLE_LABELS: Record<string, string> = {
+  president: 'Président',
+  tresorier: 'Trésorier',
+  comptable: 'Comptable',
+  secretaire: 'Secrétaire',
+  magasinier: 'Magasinier',
+  gestionnaire: 'Gestionnaire',
+  collaborateur: 'Collaborateur',
+  employe: 'Employé',
+}
 
 export default function ClientLayout({
   children,
@@ -51,6 +60,12 @@ export default function ClientLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+
+  const roleNorm = (role || 'admin').trim().toLowerCase()
+  const roleBadgeLabel =
+    roleNorm === 'admin'
+      ? dict.header.admin
+      : ROLE_LABELS[roleNorm] || role
 
   const navigation = [
     { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -95,6 +110,12 @@ export default function ClientLayout({
     }
     if (subscriptionTier === 'medium') {
       if (item.href === '/superficies') return false
+    }
+    if (item.href === '/abonnement' && roleNorm !== 'admin') {
+      return false
+    }
+    if (item.href === '/parametres/import' && !hasPermission(role, permissions, 'parametres', 'update')) {
+      return false
     }
     const moduleKey = moduleForPath(item.href)
     if (moduleKey && !hasPermission(role, permissions, moduleKey, 'read')) return false
@@ -219,9 +240,8 @@ export default function ClientLayout({
               <OfflineSyncBar />
               <LanguageSelector currentLang={locale} />
               <ThemeSwitcher />
-              {/* Profile dropdown or simple user info could go here */}
               <div className="min-w-0 max-w-[6rem] truncate text-sm font-semibold leading-6 text-foreground sm:max-w-[10rem] sm:text-base md:max-w-xs">
-                {gieName} <span className="hidden sm:inline">({dict.header.admin})</span>
+                {gieName} <span className="hidden sm:inline capitalize">({roleBadgeLabel})</span>
               </div>
             </div>
           </div>

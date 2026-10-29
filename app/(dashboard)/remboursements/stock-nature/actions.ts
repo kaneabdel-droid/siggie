@@ -15,6 +15,7 @@ type Mouvement = {
   motif?: string | null
   prix_unitaire: number
   quantite: number
+  unite?: string
   origine_stock?: 'exploitation' | 'materiel' | 'achat' | string
   variete?: string | null
 }
@@ -98,6 +99,10 @@ export async function getStockNature(campagneId: string) {
     if (origMatch) origineStock = origMatch[1].trim()
     else if (!membre && client) origineStock = 'materiel'
 
+    let uniteMesure = 'kg'
+    const uniteMatch = prodStr.match(/\[UNITE:(.*?)\]/)
+    if (uniteMatch) uniteMesure = uniteMatch[1].trim()
+
     const tiersNom = membre ? `${membre.prenom} ${membre.nom}` : client?.nom || 'Client externe'
 
     mouvements.push({
@@ -110,6 +115,7 @@ export async function getStockNature(campagneId: string) {
       client,
       prix_unitaire: quantite > 0 ? Number(r.montant_fcfa) / quantite : Number(campagne.prix_collecte || 0),
       quantite,
+      unite: uniteMesure,
       origine_stock: origineStock,
       variete,
       motif: prodStr.replace(/\[.*?\]/g, '').trim(),
@@ -145,6 +151,7 @@ export async function getStockNature(campagneId: string) {
     const prodMatch = motifStr.match(/\[PRODUIT:([^\]]+)\]/)
     const varMatch = motifStr.match(/\[VARIETE:([^\]]+)\]/)
     const origMatch = motifStr.match(/\[ORIGINE:([^\]]+)\]/)
+    const uniteMatch = motifStr.match(/\[UNITE:([^\]]+)\]/)
 
     const clientObj = pc.client_id ? clientMap.get(pc.client_id) : null
     const tiersNom = clientObj?.nom || 'Client externe'
@@ -159,6 +166,7 @@ export async function getStockNature(campagneId: string) {
       client: clientObj || { id: pc.client_id, nom: tiersNom },
       prix_unitaire: prixUnitaire,
       quantite,
+      unite: uniteMatch ? uniteMatch[1].trim() : 'kg',
       origine_stock: origMatch ? origMatch[1].trim() : 'materiel',
       variete: varMatch ? varMatch[1].trim() : null,
       motif: prodMatch ? prodMatch[1].trim() : motifStr.replace(/\[[^\]]*\]/g, '').trim(),
@@ -168,6 +176,8 @@ export async function getStockNature(campagneId: string) {
   for (const s of sorties || []) {
     const membre = Array.isArray(s.membres) ? s.membres[0] : s.membres
     const client = s.client_id ? clientMap.get(s.client_id) : (s.tiers_nom ? { nom: s.tiers_nom } : null)
+    const sUniteMatch = String(s.motif || '').match(/\[UNITE:([^\]]+)\]/)
+    const sUnite = sUniteMatch ? sUniteMatch[1].trim() : 'kg'
     mouvements.push({
       id: s.id,
       date: s.date_sortie,
@@ -179,6 +189,7 @@ export async function getStockNature(campagneId: string) {
       motif: s.motif,
       prix_unitaire: Number(s.prix_unitaire || 0),
       quantite: Number(s.quantite),
+      unite: sUnite,
     })
   }
 

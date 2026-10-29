@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getSharedAdminUser } from '@/utils/supabase/admin-identity'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/auth'
-import { sanitizePermissions, type PermissionMap } from '@/lib/permissions'
+import { defaultPermissionsForRole, sanitizePermissions, type PermissionMap } from '@/lib/permissions'
 
 type ActionResult = { success?: true; error?: string }
 
@@ -145,8 +145,16 @@ export async function creerUtilisateurPourGie(
 
   // Le trigger handle_new_user() a créé la ligne : mise à jour des droits et données complémentaires
   if (created.user) {
-    const updatePayload: Record<string, any> = {}
-    if (permissions) updatePayload.permissions = sanitizePermissions(permissions)
+    const cleanRole = role.trim() || 'employe'
+    const effectivePerms =
+      cleanRole.toLowerCase() === 'admin'
+        ? null
+        : permissions
+          ? sanitizePermissions(permissions)
+          : defaultPermissionsForRole(cleanRole)
+    const updatePayload: Record<string, any> = {
+      permissions: effectivePerms,
+    }
     if (!identifiant.includes('@')) updatePayload.identifiant = identifiant
     if (options?.telephone?.trim()) updatePayload.telephone = options.telephone.trim()
     if (options?.nomComplet?.trim()) updatePayload.nom_complet = options.nomComplet.trim()

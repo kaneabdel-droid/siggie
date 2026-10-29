@@ -195,6 +195,7 @@ export async function enregistrerRemboursement(
     clientNom?: string | null
     origineStock?: 'exploitation' | 'materiel' | 'achat'
     variete?: string | null
+    uniteNature?: string | null
     prixUnitaireNature?: number | null
     typeDocument?: 'campagne' | 'prestation' | 'vente_stock'
     campagneId?: string | null
@@ -283,8 +284,9 @@ export async function enregistrerRemboursement(
 
   // 1. Enregistrer dans la table remboursements (avec tolérance schéma)
   const cleanProdName = (produitNature || 'Produit').trim()
+  const uniteNature = options?.uniteNature?.trim() || 'kg'
   const safeProduitNature = type === 'nature'
-    ? `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}]${!membreId && nomTiers ? ` [CLIENT:${nomTiers}]` : ''}${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
+    ? `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}] [UNITE:${uniteNature}]${!membreId && nomTiers ? ` [CLIENT:${nomTiers}]` : ''}${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
     : null
 
   const rembInsertPayload: any = {

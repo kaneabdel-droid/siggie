@@ -182,13 +182,13 @@ export default function StockNatureClient({
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground-muted">
-                      {Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+                      {Number(m.prix_unitaire).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}/{m.unite === 'sacs' ? 'sac' : (m.unite || 'kg')}
                     </td>
                     <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-medium ${m.type === 'entree' ? 'text-success' : 'text-danger'}`}>
-                      {m.type === 'entree' ? '+' : '-'}{Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}
+                      {m.type === 'entree' ? '+' : '-'}{Number(m.quantite).toLocaleString(dateLocale, { maximumFractionDigits: 2 })} {m.unite || 'kg'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-foreground font-semibold bg-background/50">
-                      {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 2 })}
+                      {Number(m.solde).toLocaleString(dateLocale, { maximumFractionDigits: 2 })} {m.unite || 'kg'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-right print:hidden">
                       {factureVente ? (

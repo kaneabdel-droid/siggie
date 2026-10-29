@@ -62,17 +62,6 @@ export function moduleForPath(pathname: string): string | null {
   return null
 }
 
-// Valeur stockée : null/absent = accès complet. Un compte "admin" du GIE a toujours tout.
-export function hasPermission(
-  role: string | null | undefined,
-  permissions: PermissionMap | null | undefined,
-  moduleKey: string,
-  action: PermissionAction
-): boolean {
-  if (role === 'admin' || !permissions) return true
-  return permissions[moduleKey]?.includes(action) ?? false
-}
-
 // Élimine les modules/actions inconnus avant stockage ; "create/update/delete"
 // n'a de sens qu'avec "read" (on ne modifie pas ce qu'on ne peut pas voir).
 export function sanitizePermissions(input: unknown): PermissionMap {
@@ -94,7 +83,127 @@ export function fullPermissions(): PermissionMap {
 }
 
 export function readOnlyPermissions(): PermissionMap {
-  return Object.fromEntries(PERMISSION_MODULES.map((m) => [m.key, ['read' as PermissionAction]]))
+  return Object.fromEntries(
+    PERMISSION_MODULES.filter((m) => m.key !== 'parametres').map((m) => [m.key, ['read' as PermissionAction]])
+  )
+}
+
+/**
+ * Retourne la matrice de permissions par défaut adaptée au rôle sélectionné.
+ * Seul le rôle 'admin' retourne `null` (accès complet sans restriction).
+ * Tous les autres rôles reçoivent automatiquement des droits restreints adaptés à leur fonction.
+ */
+export function defaultPermissionsForRole(role?: string | null): PermissionMap | null {
+  const r = (role || 'collaborateur').trim().toLowerCase()
+  if (r === 'admin') {
+    return null
+  }
+
+  // Président : supervision complète en lecture seule sur tous les modules métiers
+  if (r === 'president') {
+    return readOnlyPermissions()
+  }
+
+  // Trésorier / Comptable : gestion financière, trésorerie, remboursements, facturation et bilans
+  if (r === 'tresorier' || r === 'comptable') {
+    return sanitizePermissions({
+      dashboard: ['read'],
+      membres: ['read'],
+      campagnes: ['read'],
+      intrants: ['read'],
+      distribution: ['read'],
+      credits: ['read', 'create', 'update'],
+      facturation: ['read', 'create', 'update'],
+      remboursements: ['read', 'create'],
+      ristournes: ['read', 'create'],
+      stock_nature: ['read'],
+      tresorerie: ['read', 'create', 'update'],
+      imputations: ['read', 'create', 'update'],
+      materiel: ['read'],
+      materiel_prestations: ['read'],
+      materiel_consommations: ['read'],
+      materiel_analyses: ['read'],
+      bilans: ['read'],
+      bilan_annuel: ['read', 'update'],
+      bilans_clients: ['read', 'create'],
+    })
+  }
+
+  // Magasinier : gestion des stocks d'intrants, distributions, stock en nature et matériel
+  if (r === 'magasinier') {
+    return sanitizePermissions({
+      dashboard: ['read'],
+      membres: ['read'],
+      campagnes: ['read'],
+      intrants: ['read', 'create', 'update'],
+      distribution: ['read', 'create', 'update'],
+      stock_nature: ['read', 'create'],
+      remboursements: ['read'],
+      materiel: ['read', 'create', 'update'],
+      materiel_prestations: ['read', 'create', 'update'],
+      materiel_consommations: ['read', 'create', 'update'],
+      materiel_analyses: ['read'],
+      bilans: ['read'],
+    })
+  }
+
+  // Gestionnaire de campagne : gestion membres, campagnes, superficies, intrants, distributions, prestations
+  if (r === 'gestionnaire') {
+    return sanitizePermissions({
+      dashboard: ['read'],
+      membres: ['read', 'create', 'update'],
+      campagnes: ['read', 'create', 'update'],
+      intrants: ['read', 'create', 'update'],
+      distribution: ['read', 'create', 'update'],
+      credits: ['read'],
+      facturation: ['read', 'create', 'update'],
+      remboursements: ['read', 'create'],
+      stock_nature: ['read', 'create'],
+      materiel: ['read'],
+      materiel_prestations: ['read', 'create', 'update'],
+      materiel_consommations: ['read', 'create', 'update'],
+      materiel_analyses: ['read'],
+      bilans: ['read'],
+      bilan_annuel: ['read'],
+      bilans_clients: ['read', 'create'],
+    })
+  }
+
+  // Secrétaire général / Opérateur : gestion administrative des membres, campagnes, distributions et facturation
+  if (r === 'secretaire') {
+    return sanitizePermissions({
+      dashboard: ['read'],
+      membres: ['read', 'create', 'update'],
+      campagnes: ['read', 'create', 'update'],
+      intrants: ['read'],
+      distribution: ['read', 'create', 'update'],
+      credits: ['read'],
+      facturation: ['read', 'create', 'update'],
+      remboursements: ['read'],
+      tresorerie: ['read'],
+      materiel: ['read'],
+      materiel_prestations: ['read', 'create'],
+      bilans: ['read'],
+      bilans_clients: ['read', 'create'],
+    })
+  }
+
+  // Collaborateur standard / Employé / Autre rôle : lecture seule par défaut
+  return readOnlyPermissions()
+}
+
+// Un compte "admin" du GIE a toujours tout.
+// Pour tout autre rôle, si `permissions` est null/absent en base, on applique les permissions par défaut du rôle.
+export function hasPermission(
+  role: string | null | undefined,
+  permissions: PermissionMap | null | undefined,
+  moduleKey: string,
+  action: PermissionAction
+): boolean {
+  if (role === 'admin') return true
+  const effectivePermissions = permissions ?? defaultPermissionsForRole(role)
+  if (!effectivePermissions) return true
+  return effectivePermissions[moduleKey]?.includes(action) ?? false
 }
 
 // Première page accessible : destination de repli quand l'accès est refusé.
