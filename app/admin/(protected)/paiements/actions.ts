@@ -35,3 +35,33 @@ export async function confirmerVirement(paymentId: string) {
   revalidatePath('/admin/paiements')
   return result.processed ? { success: true } : { error: 'Échec de la confirmation' }
 }
+
+export async function supprimerPaiement(paymentId: string) {
+  const user = await getSharedAdminUser()
+  if (!isAdminEmail(user?.email)) {
+    return { error: 'Non autorisé' }
+  }
+
+  const admin = createAdminClient()
+  const { error } = await admin.from('abonnement_paiements').delete().eq('id', paymentId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/paiements')
+  revalidatePath('/admin/siggie')
+  return { success: true }
+}
+
+export async function supprimerTousPaiementsEchoues() {
+  const user = await getSharedAdminUser()
+  if (!isAdminEmail(user?.email)) {
+    return { error: 'Non autorisé' }
+  }
+
+  const admin = createAdminClient()
+  const { error } = await admin.from('abonnement_paiements').delete().in('statut', ['failed', 'echoue'])
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/paiements')
+  revalidatePath('/admin/siggie')
+  return { success: true }
+}

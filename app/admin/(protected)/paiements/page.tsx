@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase/admin'
 import ConfirmerVirementButton from './ConfirmerVirementButton'
+import SupprimerPaiementButton from './SupprimerPaiementButton'
+import SupprimerTousEchouesButton from './SupprimerTousEchouesButton'
 import { formatPaiement } from '@/lib/payments/dollars'
 
 export default async function AdminPaiementsPage({
@@ -19,7 +21,13 @@ export default async function AdminPaiementsPage({
 
   if (statut) query = query.eq('statut', statut)
 
-  const { data: paiements } = await query
+  const [{ data: paiements }, { count: failedCount }] = await Promise.all([
+    query,
+    supabase
+      .from('abonnement_paiements')
+      .select('id', { count: 'exact', head: true })
+      .in('statut', ['failed', 'echoue']),
+  ])
 
   const filtres = [
     { label: 'Tous', value: undefined },
@@ -30,7 +38,10 @@ export default async function AdminPaiementsPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold font-heading mb-6">Paiements</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold font-heading">Paiements</h1>
+        <SupprimerTousEchouesButton count={failedCount ?? 0} />
+      </div>
 
       <div className="flex flex-wrap gap-2 mb-6">
         {filtres.map((f) => (
@@ -56,7 +67,7 @@ export default async function AdminPaiementsPage({
               <th className="px-4 py-3 font-medium">Montant</th>
               <th className="px-4 py-3 font-medium">Prestataire</th>
               <th className="px-4 py-3 font-medium">Statut</th>
-              <th className="px-4 py-3 font-medium"></th>
+              <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border">
@@ -75,14 +86,19 @@ export default async function AdminPaiementsPage({
                   <td className="px-4 py-3 capitalize">{p.provider} ({p.moyen_paiement})</td>
                   <td className="px-4 py-3">
                     <span className={p.statut === 'completed' ? 'text-success' : p.statut === 'failed' ? 'text-danger' : 'text-primary'}>
-                      {p.statut}
+                      {p.statut === 'completed' ? 'Payé' : p.statut === 'failed' ? 'Échoué' : p.statut}
                     </span>
                     {p.doublon && (
                       <span className="ml-2 rounded bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">Doublon — à rembourser</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    {p.provider === 'virement' && p.statut === 'pending' && <ConfirmerVirementButton paymentId={p.id} />}
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {p.provider === 'virement' && p.statut === 'pending' && <ConfirmerVirementButton paymentId={p.id} />}
+                      {(p.statut === 'failed' || p.statut === 'pending' || p.statut === 'echoue') && (
+                        <SupprimerPaiementButton paymentId={p.id} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               )

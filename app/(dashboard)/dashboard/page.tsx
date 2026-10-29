@@ -1,4 +1,4 @@
-import { Users, Leaf, Banknote, Tractor, ArrowRight } from 'lucide-react'
+import { Users, Leaf, Banknote, Tractor, ArrowRight, Wallet, ArrowDownLeft, PlusCircle } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -29,10 +29,10 @@ export default async function Dashboard() {
     supabase.from('membres').select('*', { count: 'exact', head: true }),
     supabase.from('campagnes').select('id, nom, statut').eq('statut', 'en_cours').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     // Activités récentes (Derniers membres inscrits)
-    supabase.from('membres').select('prenom, nom, created_at').order('created_at', { ascending: false }).limit(3),
-    // Aperçu financier (Trésorerie)
-    supabase.from('comptes').select('solde_initial'),
-    supabase.from('transactions').select('type_transaction, montant'),
+    supabase.from('membres').select('prenom, nom, created_at').order('created_at', { ascending: false }).limit(5),
+    // Aperçu financier & Comptes (incluant caisse et banques)
+    supabase.from('comptes').select('id, nom, type_compte, solde_initial'),
+    supabase.from('transactions').select('id, compte_id, type_transaction, montant, date_transaction, created_at, motif, type_piece, comptes(nom, type_compte)'),
     // Campagnes pour le comparatif inter-saisons (disponible uniquement pour l'abonnement Premium)
     isPremium
       ? supabase.from('campagnes').select('id, nom, statut, date_debut, date_fin, produit_collecte, prix_collecte, created_at').order('created_at', { ascending: false })
@@ -157,27 +157,69 @@ export default async function Dashboard() {
     }
   }
 
+  // Caisse & Trésorerie
+  const caisseComptes = (comptes || []).filter(c => (c.type_compte || '').toLowerCase() === 'caisse')
+  const caisseIds = new Set(caisseComptes.map(c => c.id))
+  const caissePrincipale = caisseComptes[0] || null
+
   const soldeInitialTotal = comptes?.reduce((acc, c) => acc + (Number(c.solde_initial) || 0), 0) || 0
+  const soldeInitialCaisse = caisseComptes.reduce((acc, c) => acc + (Number(c.solde_initial) || 0), 0)
 
   let totalEntrees = 0
   let totalSorties = 0
-  
+  let totalEntreesCaisse = 0
+  let totalSortiesCaisse = 0
+  let countPaiementsEspece = 0
+
+  const paiementsEspeceList: any[] = []
+
   if (transactions) {
     transactions.forEach(t => {
+      const isCaisse = caisseIds.has(t.compte_id) || (t.comptes as any)?.type_compte === 'caisse'
+      const m = Number(t.montant || 0)
+
       if (t.type_transaction === 'entree') {
-        totalEntrees += Number(t.montant)
+        totalEntrees += m
+        if (isCaisse) {
+          totalEntreesCaisse += m
+          countPaiementsEspece++
+          paiementsEspeceList.push(t)
+        }
       } else if (t.type_transaction === 'sortie') {
-        totalSorties += Number(t.montant)
+        totalSorties += m
+        if (isCaisse) {
+          totalSortiesCaisse += m
+        }
       }
     })
   }
 
+  // Tri chronologique des paiements espèces récents (du plus récent au plus ancien)
+  paiementsEspeceList.sort((a, b) => {
+    const da = a.date_transaction || (a.created_at ? a.created_at.slice(0, 10) : '')
+    const db = b.date_transaction || (b.created_at ? b.created_at.slice(0, 10) : '')
+    if (da !== db) return db.localeCompare(da)
+    return (b.created_at || '').localeCompare(a.created_at || '')
+  })
+  const recentsPaiementsEspece = paiementsEspeceList.slice(0, 5)
+
   const soldeActuel = soldeInitialTotal + totalEntrees - totalSorties
+  const soldeCaisse = soldeInitialCaisse + totalEntreesCaisse - totalSortiesCaisse
 
   const stats = [
-    { name: dict.dashboard.stats.members, value: membresCount || '0', icon: Users, desc: dict.dashboard.stats.members_desc, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { name: dict.dashboard.stats.season, value: nomCampagne, icon: Leaf, desc: campagneData ? dict.dashboard.stats.season_active : dict.dashboard.stats.season_done, color: 'text-green-600', bg: 'bg-green-100' },
-    { name: dict.dashboard.stats.repayment, value: `${tauxRemboursement}%`, icon: Banknote, desc: dict.dashboard.stats.repayment_desc, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+    { name: dict.dashboard.stats.members, value: membresCount || '0', icon: Users, desc: dict.dashboard.stats.members_desc, color: 'text-blue-600', bg: 'bg-blue-100', link: '/membres' },
+    { name: dict.dashboard.stats.season, value: nomCampagne, icon: Leaf, desc: campagneData ? dict.dashboard.stats.season_active : dict.dashboard.stats.season_done, color: 'text-green-600', bg: 'bg-green-100', link: '/campagnes' },
+    { name: dict.dashboard.stats.repayment, value: `${tauxRemboursement}%`, icon: Banknote, desc: dict.dashboard.stats.repayment_desc, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/remboursements' },
+    {
+      name: "Paiements Espèces",
+      value: `${totalEntreesCaisse.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} ${unite}`,
+      icon: Wallet,
+      desc: `Solde caisse : ${soldeCaisse.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} ${unite}`,
+      color: 'text-amber-600',
+      bg: 'bg-amber-100',
+      link: caissePrincipale ? `/tresorerie/journaux?compteId=${caissePrincipale.id}` : '/tresorerie',
+      linkText: 'Consulter la caisse',
+    },
     { name: dict.dashboard.stats.equipment, value: null, icon: Tractor, desc: '', color: 'text-orange-600', bg: 'bg-orange-100', link: '/materiel', linkText: dict.dashboard.stats.equipment_link },
   ]
 
@@ -192,7 +234,7 @@ export default async function Dashboard() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {stats.map((item) => (
           <div
             key={item.name}
@@ -236,7 +278,8 @@ export default async function Dashboard() {
         isPremium={isPremium}
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Colonne 1 : Aperçu Financier Global & Caisse */}
         <div className="rounded-xl bg-surface border border-surface-border shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-surface-border bg-background/50 flex justify-between items-center">
             <h3 className="text-lg font-semibold leading-6 text-foreground">{dict.dashboard.finance.title}</h3>
@@ -244,7 +287,7 @@ export default async function Dashboard() {
               {dict.dashboard.finance.view_journal}
             </Link>
           </div>
-          <div className="p-6 flex-1 flex flex-col justify-center bg-surface space-y-6">
+          <div className="p-6 flex-1 flex flex-col justify-between bg-surface space-y-5">
             
             <div className="bg-background rounded-lg border border-surface-border p-5 text-center">
               <p className="text-sm font-medium text-foreground-muted mb-1">{dict.dashboard.finance.balance}</p>
@@ -253,29 +296,107 @@ export default async function Dashboard() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-success/10 border border-success/20 rounded-lg p-4 text-center">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-success/10 border border-success/20 rounded-lg p-3.5 text-center">
                 <p className="text-xs font-medium text-success mb-1">{dict.dashboard.finance.inflows}</p>
-                <p className="text-lg font-bold text-success">
+                <p className="text-base font-bold text-success truncate">
                   +{totalEntrees.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}
                 </p>
               </div>
-              <div className="bg-danger/10 border border-danger/20 rounded-lg p-4 text-center">
+              <div className="bg-danger/10 border border-danger/20 rounded-lg p-3.5 text-center">
                 <p className="text-xs font-medium text-danger mb-1">{dict.dashboard.finance.outflows}</p>
-                <p className="text-lg font-bold text-danger">
+                <p className="text-base font-bold text-danger truncate">
                   -{totalSorties.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            </div>
+
+            {/* Encart Caisse Espèces */}
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-lg shrink-0">
+                  <Wallet className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">Caisse (Espèces en main)</p>
+                  <p className="text-[11px] text-foreground-muted truncate">
+                    {countPaiementsEspece} encaissement{countPaiementsEspece > 1 ? 's' : ''} (+{totalEntreesCaisse.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite.trim()})
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[11px] text-foreground-muted">Solde caisse</p>
+                <p className={`text-base font-bold font-mono ${soldeCaisse >= 0 ? 'text-amber-700 dark:text-amber-400' : 'text-danger'}`}>
+                  {soldeCaisse.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite.trim()}
                 </p>
               </div>
             </div>
 
           </div>
         </div>
+
+        {/* Colonne 2 : Paiements en Espèces Récents */}
+        <div className="rounded-xl bg-surface border border-surface-border shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-surface-border bg-background/50 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-amber-600" />
+              <h3 className="text-lg font-semibold leading-6 text-foreground">Paiements Espèces Récents</h3>
+            </div>
+            <Link href="/remboursements" className="text-xs font-semibold px-2.5 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+              + Encaisser
+            </Link>
+          </div>
+          <div className="p-6 flex-1 flex flex-col justify-between bg-surface">
+            <div className="space-y-3">
+              {recentsPaiementsEspece && recentsPaiementsEspece.length > 0 ? (
+                recentsPaiementsEspece.map((tx) => (
+                  <div key={tx.id} className="p-3 rounded-lg bg-background border border-surface-border flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate" title={tx.motif || 'Paiement en espèces'}>
+                        {tx.motif || 'Paiement en espèces'}
+                      </p>
+                      <div className="text-xs text-foreground-muted mt-0.5 flex items-center gap-2">
+                        <span>
+                          {tx.date_transaction
+                            ? new Date(tx.date_transaction).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })
+                            : tx.created_at
+                            ? new Date(tx.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })
+                            : '-'}
+                        </span>
+                        {tx.comptes?.nom && <span>• {tx.comptes.nom}</span>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="inline-flex items-center font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                        +{Number(tx.montant || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite.trim()}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-sm text-foreground-muted">
+                  Aucun paiement en espèces enregistré pour le moment.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-surface-border flex items-center justify-between">
+              <Link
+                href={caissePrincipale ? `/tresorerie/journaux?compteId=${caissePrincipale.id}` : '/tresorerie'}
+                className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1"
+              >
+                Voir le journal de caisse <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
         
+        {/* Colonne 3 : Derniers Membres Inscrits */}
         <div className="rounded-xl bg-surface border border-surface-border shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-surface-border bg-background/50">
             <h3 className="text-lg font-semibold leading-6 text-foreground">{dict.dashboard.recent_members.title}</h3>
           </div>
-          <div className="p-6 flex-1 bg-surface">
+          <div className="p-6 flex-1 flex flex-col justify-between bg-surface">
             <div className="flow-root">
               <ul role="list" className="-mb-8">
                 {recentsMembres && recentsMembres.length > 0 ? (
