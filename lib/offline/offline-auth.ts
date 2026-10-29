@@ -7,7 +7,7 @@ import {
   removeOfflineAccount,
   type OfflineStoredAccount,
 } from './offline-storage'
-import { normaliserIdentifiant } from '../auth-identifier'
+import { normaliserIdentifiant, extraireChiffresTelephone } from '../auth-identifier'
 
 export interface OfflineUserContext {
   userId: string
@@ -73,7 +73,9 @@ export async function cacheOfflineAccount(
   const idList = [
     normaliserIdentifiant(rawIdentifier),
     context.identifiant ? normaliserIdentifiant(context.identifiant) : null,
+    context.nomComplet ? normaliserIdentifiant(context.nomComplet) : null,
     context.telephone ? normaliserIdentifiant(context.telephone) : null,
+    context.telephone ? extraireChiffresTelephone(context.telephone) : null,
     context.email ? normaliserIdentifiant(context.email) : null,
   ].filter(Boolean) as string[]
 

@@ -402,3 +402,43 @@ export async function modifierRoleEtPermissionsCollaborateur(
   return { success: true }
 }
 
+
+export async function modifierMotDePasseCollaborateur(
+  collaborateurId: string,
+  newPassword: string
+): Promise<{ success?: boolean; error?: string }> {
+  const tenant = await getTenantContext()
+  if (!tenant || tenant.role !== 'admin') {
+    return { error: "Seul l'administrateur du GIE peut modifier le mot de passe d'un collaborateur." }
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    return { error: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' }
+  }
+
+  const adminSupabase = createAdminClient()
+
+  const { data: cible } = await adminSupabase
+    .from('utilisateurs')
+    .select('id')
+    .eq('id', collaborateurId)
+    .eq('gie_id', tenant.gieId)
+    .maybeSingle()
+
+  if (!cible) {
+    return { error: 'Collaborateur introuvable dans votre GIE.' }
+  }
+
+  const { error } = await adminSupabase.auth.admin.updateUserById(collaborateurId, {
+    password: newPassword,
+    email_confirm: true,
+    ban_duration: 'none',
+  })
+
+  if (error) {
+    return { error: `Impossible de modifier le mot de passe : ${error.message}` }
+  }
+
+  revalidatePath('/parametres')
+  return { success: true }
+}

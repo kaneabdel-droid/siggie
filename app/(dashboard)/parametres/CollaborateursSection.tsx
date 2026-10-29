@@ -24,6 +24,7 @@ import {
   supprimerCollaborateur,
   genererLienResetCollaborateur,
   modifierRoleEtPermissionsCollaborateur,
+  modifierMotDePasseCollaborateur,
 } from './actions'
 import PermissionsMatrix from '@/app/admin/(protected)/gies/[id]/PermissionsMatrix'
 import { fullPermissions, sanitizePermissions, type PermissionMap } from '@/lib/permissions'
@@ -91,6 +92,7 @@ export default function CollaborateursSection({
   const [addRoleCustom, setAddRoleCustom] = useState('')
   const [addRestrictPerms, setAddRestrictPerms] = useState(false)
   const [addCustomPerms, setAddCustomPerms] = useState<PermissionMap>(fullPermissions())
+  const [showAddPassword, setShowAddPassword] = useState(false)
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false)
 
   // Carte récapitulative affichée en haut après création réussie
@@ -112,14 +114,20 @@ export default function CollaborateursSection({
   const [customPerms, setCustomPerms] = useState<PermissionMap>(fullPermissions())
   const [restrictPerms, setRestrictPerms] = useState(false)
 
-  // Lien magique de réinitialisation
+  // Réinitialisation directe ou lien magique
   const [activeResetLink, setActiveResetLink] = useState<{
+    collabId: string
     link: string
     nom: string
     telephone?: string | null
     identifiant?: string | null
   } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [directPassword, setDirectPassword] = useState('')
+  const [showDirectPassword, setShowDirectPassword] = useState(false)
+  const [directPasswordSuccess, setDirectPasswordSuccess] = useState<string | null>(null)
+  const [directPasswordError, setDirectPasswordError] = useState<string | null>(null)
+  const [copiedDirectAccess, setCopiedDirectAccess] = useState(false)
 
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -132,6 +140,7 @@ export default function CollaborateursSection({
     setAddRoleCustom('')
     setAddRestrictPerms(false)
     setAddCustomPerms(fullPermissions())
+    setShowAddPassword(false)
   }
 
   // Fermeture des modales avec la touche Echap
@@ -207,6 +216,7 @@ export default function CollaborateursSection({
         setAddRoleCustom('')
         setAddRestrictPerms(false)
         setAddCustomPerms(fullPermissions())
+        setShowAddPassword(false)
 
         // 5. Rafraîchir les données serveur
         router.refresh()
@@ -241,20 +251,53 @@ export default function CollaborateursSection({
     })
   }
 
-  // Génération du lien de récupération
+  // Génération du lien de récupération / ouverture modale mot de passe
   function handleGenerateResetLink(collab: CollaborateurItem) {
     setErrorMsg(null)
+    setDirectPassword('')
+    setShowDirectPassword(false)
+    setDirectPasswordSuccess(null)
+    setDirectPasswordError(null)
+    setCopiedDirectAccess(false)
     startTransition(async () => {
       const res = await genererLienResetCollaborateur(collab.id)
       if (res.error) {
-        setErrorMsg(res.error)
-      } else if (res.link) {
+        // Même si la génération du lien échoue, on ouvre la modale pour permettre la modification directe du mot de passe
         setActiveResetLink({
-          link: res.link,
+          collabId: collab.id,
+          link: '',
           nom: collab.nom_complet || collab.identifiant || 'Collaborateur',
-          telephone: res.telephone,
-          identifiant: res.identifiant,
+          telephone: collab.telephone,
+          identifiant: collab.identifiant,
         })
+      } else {
+        setActiveResetLink({
+          collabId: collab.id,
+          link: res.link || '',
+          nom: collab.nom_complet || collab.identifiant || 'Collaborateur',
+          telephone: res.telephone ?? collab.telephone,
+          identifiant: res.identifiant ?? collab.identifiant,
+        })
+      }
+    })
+  }
+
+  function handleSaveDirectPassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!activeResetLink) return
+    setDirectPasswordError(null)
+    setDirectPasswordSuccess(null)
+    const pwd = directPassword.trim()
+    if (pwd.length < 6) {
+      setDirectPasswordError('Le nouveau mot de passe doit contenir au moins 6 caractères.')
+      return
+    }
+    startTransition(async () => {
+      const res = await modifierMotDePasseCollaborateur(activeResetLink.collabId, pwd)
+      if (res.error) {
+        setDirectPasswordError(res.error)
+      } else {
+        setDirectPasswordSuccess('Le nouveau mot de passe a été enregistré et activé immédiatement !')
       }
     })
   }
@@ -301,10 +344,10 @@ export default function CollaborateursSection({
           prev.map((c) =>
             c.id === selectedCollabPerms.id
               ? {
-                  ...c,
-                  role: finalRole,
-                  permissions: restrictPerms ? sanitizePermissions(customPerms) : null,
-                }
+                ...c,
+                role: finalRole,
+                permissions: restrictPerms ? sanitizePermissions(customPerms) : null,
+              }
               : c
           )
         )
@@ -372,7 +415,7 @@ export default function CollaborateursSection({
             <div className="rounded-lg bg-surface/90 p-2.5 border border-surface-border/50">
               <span className="text-foreground-muted block text-[11px] mb-0.5">Identifiant de connexion :</span>
               <code className="font-mono font-semibold text-primary text-sm select-all">
-                @{createdSuccessInfo.identifiant}
+                {createdSuccessInfo.identifiant}
               </code>
             </div>
 
@@ -416,7 +459,7 @@ export default function CollaborateursSection({
             <button
               type="button"
               onClick={() => {
-                const txt = `Vos identifiants d'accès SIGGIE :\n- Nom : ${createdSuccessInfo.nom}\n- Identifiant : ${createdSuccessInfo.identifiant}\n- Mot de passe : ${createdSuccessInfo.password || '(défini par l\'administrateur)'}\n- Rôle : ${createdSuccessInfo.role}`
+                const txt = `Vos identifiants d'accès SIGGIE :\n- Nom : ${createdSuccessInfo.nom}\n- Identifiant : ${createdSuccessInfo.identifiant}${createdSuccessInfo.telephone ? `\n- Téléphone : ${createdSuccessInfo.telephone}` : ''}\n- Mot de passe : ${createdSuccessInfo.password || '(défini par l\'administrateur)'}\n- Rôle : ${createdSuccessInfo.role}`
                 navigator.clipboard.writeText(txt)
                 setCopiedSuccess(true)
                 setTimeout(() => setCopiedSuccess(false), 2000)
@@ -430,7 +473,7 @@ export default function CollaborateursSection({
             {createdSuccessInfo.telephone && (
               <a
                 href={`https://wa.me/${createdSuccessInfo.telephone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                  `Bonjour ${createdSuccessInfo.nom}, votre compte d'accès SIGGIE est prêt.\n\nIdentifiant de connexion : ${createdSuccessInfo.identifiant}\nMot de passe : ${createdSuccessInfo.password || ''}\n\nVous pouvez vous connecter dès maintenant sur l'application.`
+                  `Bonjour ${createdSuccessInfo.nom}, votre compte d'accès SIGGIE est prêt.\n\nIdentifiant : ${createdSuccessInfo.identifiant}\nTéléphone : ${createdSuccessInfo.telephone}\nMot de passe : ${createdSuccessInfo.password || ''}\n\nVous pouvez vous connecter par votre identifiant, votre nom ou votre numéro de téléphone.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -457,7 +500,7 @@ export default function CollaborateursSection({
           <Shield className="h-4 w-4 text-primary" /> Authentification simplifiée & sécurisée
         </p>
         <p>
-          Vos collaborateurs peuvent se connecter avec leur identifiant (ex: <code className="font-mono text-primary">amadou_ba</code>) ou leur numéro de téléphone (ex: <code className="font-mono text-primary">+221 77 123 45 67</code>). En cas d&apos;oubli de mot de passe, vous pouvez générer ci-dessous un lien magique sécurisé à leur transmettre par WhatsApp ou SMS.
+          Vos collaborateurs peuvent se connecter avec leur <strong>identifiant</strong> (ex: <code className="font-mono text-primary">ugt-president</code>), leur <strong>nom complet</strong> (ex: <code className="font-mono text-primary">Lamine DIOP</code>) ou leur <strong>numéro de téléphone</strong> (ex: <code className="font-mono text-primary">78 356 05 78</code> ou <code className="font-mono text-primary">+221 78 356 05 78</code>). En cas d&apos;oubli de mot de passe, cliquez sur <strong>Réinitialiser</strong> pour définir directement un nouveau mot de passe ou envoyer un lien par WhatsApp.
         </p>
       </div>
 
@@ -480,8 +523,8 @@ export default function CollaborateursSection({
               const titleName = hasName
                 ? collab.nom_complet
                 : (collab.identifiant && !collab.identifiant.includes('@')
-                    ? collab.identifiant
-                    : (collab.email && !isSynthetic ? collab.email.split('@')[0] : 'Collaborateur'))
+                  ? collab.identifiant
+                  : (collab.email && !isSynthetic ? collab.email.split('@')[0] : 'Collaborateur'))
               const roleDisplay = collab.role || 'collaborateur'
 
               return (
@@ -529,7 +572,7 @@ export default function CollaborateursSection({
                       type="button"
                       disabled={isPending}
                       onClick={() => handleGenerateResetLink(collab)}
-                      title="Générer un lien magique de réinitialisation"
+                      title="Modifier le mot de passe ou générer un lien de réinitialisation"
                       className="inline-flex items-center gap-1 rounded-md border border-surface-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-surface transition-colors disabled:opacity-50"
                     >
                       <Key className="h-3.5 w-3.5 text-primary" /> Réinitialiser
@@ -572,18 +615,24 @@ export default function CollaborateursSection({
         </table>
       </div>
 
-      {/* Modal : Lien de réinitialisation généré */}
+      {/* Modal : Réinitialisation directe du mot de passe & Lien magique */}
       {activeResetLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={() => setActiveResetLink(null)}
           />
-          <div className="relative my-8 w-full max-w-lg rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-4 z-10">
+          <div className="relative my-8 w-full max-w-lg rounded-xl border border-surface-border bg-surface p-6 shadow-xl space-y-5 z-10">
             <div className="flex items-start justify-between gap-4">
-              <h3 className="text-lg font-bold font-heading text-foreground">
-                Lien de réinitialisation de mot de passe
-              </h3>
+              <div>
+                <h3 className="text-lg font-bold font-heading text-foreground">
+                  Réinitialiser l&apos;accès de {activeResetLink.nom}
+                </h3>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  Identifiant : <code className="font-mono text-primary font-semibold">{activeResetLink.identifiant || activeResetLink.nom}</code>
+                  {activeResetLink.telephone ? ` • Tél : ${activeResetLink.telephone}` : ''}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setActiveResetLink(null)}
@@ -593,45 +642,112 @@ export default function CollaborateursSection({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="text-sm text-foreground-muted">
-              Transmettez ce lien magique sécurisé à <strong>{activeResetLink.nom}</strong>. Ce lien lui permettra de définir son nouveau mot de passe directement sans passer par un e-mail.
-            </p>
 
-            <div className="flex items-center gap-2 rounded-lg border border-surface-border bg-background p-2.5">
-              <input
-                type="text"
-                readOnly
-                value={activeResetLink.link}
-                className="w-full bg-transparent text-xs text-foreground font-mono focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="inline-flex shrink-0 items-center gap-1 rounded bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover transition-colors"
-              >
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? 'Copié !' : 'Copier'}
-              </button>
-            </div>
+            {/* Option 1 : Définir directement un nouveau mot de passe */}
+            <form onSubmit={handleSaveDirectPassword} className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Key className="h-3.5 w-3.5 text-primary" />
+                <span>Option 1 (Recommandée) : Définir directement un nouveau mot de passe</span>
+              </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              {activeResetLink.telephone ? (
-                <a
-                  href={`https://wa.me/${activeResetLink.telephone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                    `Bonjour ${activeResetLink.nom}, voici votre lien pour réinitialiser votre mot de passe SIGGIE : ${activeResetLink.link}`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-md bg-[#25D366] text-white px-3 py-2 text-xs font-semibold hover:opacity-95 transition-opacity"
-                >
-                  <MessageSquare className="h-4 w-4" /> Envoyer par WhatsApp
-                </a>
-              ) : (
-                <span className="text-xs text-foreground-muted italic">
-                  Aucun numéro de téléphone configuré pour WhatsApp.
-                </span>
+              {directPasswordError && (
+                <div className="rounded-lg bg-danger/10 border border-danger/20 p-2.5 text-xs text-danger flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{directPasswordError}</span>
+                </div>
               )}
 
+              {directPasswordSuccess && (
+                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs text-emerald-700 dark:text-emerald-300 space-y-2">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span>{directPasswordSuccess}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const txt = `Vos accès SIGGIE mis à jour :\n- Nom : ${activeResetLink.nom}\n- Identifiant : ${activeResetLink.identifiant || activeResetLink.nom}${activeResetLink.telephone ? `\n- Téléphone : ${activeResetLink.telephone}` : ''}\n- Nouveau mot de passe : ${directPassword.trim()}`
+                        navigator.clipboard.writeText(txt)
+                        setCopiedDirectAccess(true)
+                        setTimeout(() => setCopiedDirectAccess(false), 2000)
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-surface-border bg-surface px-2.5 py-1 text-xs font-medium text-foreground hover:bg-background"
+                    >
+                      {copiedDirectAccess ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiedDirectAccess ? 'Accès copiés !' : 'Copier les nouveaux accès'}
+                    </button>
+                    {activeResetLink.telephone && (
+                      <a
+                        href={`https://wa.me/${activeResetLink.telephone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                          `Bonjour ${activeResetLink.nom}, vos identifiants SIGGIE ont été mis à jour :\n- Identifiant : ${activeResetLink.identifiant || activeResetLink.nom}\n- Téléphone : ${activeResetLink.telephone}\n- Nouveau mot de passe : ${directPassword.trim()}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-[#25D366] text-white px-2.5 py-1 text-xs font-semibold hover:opacity-95"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" /> Envoyer par WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showDirectPassword ? 'text' : 'password'}
+                    value={directPassword}
+                    onChange={(e) => setDirectPassword(e.target.value)}
+                    minLength={6}
+                    placeholder="Nouveau mot de passe (min. 6 caractères)"
+                    className="w-full rounded-md border border-surface-border bg-background px-3 py-2 pr-9 text-sm text-foreground focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDirectPassword(!showDirectPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-foreground-muted hover:text-foreground"
+                  >
+                    {showDirectPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isPending || directPassword.trim().length < 6}
+                  className="shrink-0 rounded-md bg-primary px-3.5 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
+                >
+                  {isPending ? 'Enregistrement...' : 'Activer'}
+                </button>
+              </div>
+            </form>
+
+            {/* Option 2 : Lien magique */}
+            {activeResetLink.link && (
+              <div className="space-y-2.5 pt-2 border-t border-surface-border">
+                <p className="text-xs font-medium text-foreground-muted">
+                  Option 2 : Ou transmettez ce lien de réinitialisation à <strong>{activeResetLink.nom}</strong> :
+                </p>
+
+                <div className="flex items-center gap-2 rounded-lg border border-surface-border bg-background p-2.5">
+                  <input
+                    type="text"
+                    readOnly
+                    value={activeResetLink.link}
+                    className="w-full bg-transparent text-xs text-foreground font-mono focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="inline-flex shrink-0 items-center gap-1 rounded bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover transition-colors"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? 'Copié !' : 'Copier'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setActiveResetLink(null)}
@@ -693,7 +809,7 @@ export default function CollaborateursSection({
                   className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm font-mono focus:border-primary focus:outline-none"
                 />
                 <p className="mt-1 text-[11px] text-foreground-muted">
-                  Sera utilisé pour la connexion à la place de l&apos;e-mail.
+                  Sera utilisé pour la connexion (le collaborateur pourra aussi se connecter avec son nom ou son téléphone).
                 </p>
               </div>
 
@@ -737,14 +853,23 @@ export default function CollaborateursSection({
                 <label className="block text-xs font-medium text-foreground mb-1">
                   Mot de passe temporaire initial *
                 </label>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="Au moins 6 caractères"
-                  className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground text-sm focus:border-primary focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    name="password"
+                    type={showAddPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    placeholder="Au moins 6 caractères"
+                    className="w-full rounded-md border border-surface-border bg-background px-3 py-2 pr-10 text-foreground text-sm focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPassword(!showAddPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground-muted hover:text-foreground"
+                  >
+                    {showAddPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">

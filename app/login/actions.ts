@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/auth'
 import { pageSuivante } from '@/lib/suite'
-import { resoudreAuthEmail } from '@/lib/auth-identifier'
+import { resoudreEmailsCandidats } from '@/lib/auth-identifier'
 
 export type LoginActionResult = {
   success?: boolean
@@ -28,7 +28,7 @@ export type LoginActionResult = {
 
 export async function login(formData: FormData): Promise<LoginActionResult> {
   const cookieStore = await cookies()
-  
+
   // Check lockout status
   const lockoutUntil = cookieStore.get('lockout_until')?.value
   if (lockoutUntil && parseInt(lockoutUntil) > Date.now()) {
@@ -44,32 +44,47 @@ export async function login(formData: FormData): Promise<LoginActionResult> {
   const password = (formData.get('password') as string) || ''
 
   if (!rawIdentifier) {
-    return { error: 'Veuillez renseigner votre identifiant, téléphone ou e-mail.' }
+    return { error: 'Veuillez renseigner votre identifiant, nom, téléphone ou e-mail.' }
   }
   if (!password) {
     return { error: 'Veuillez saisir votre mot de passe.' }
   }
 
-  // Résolution de l'identifiant (e-mail réel, nom d'utilisateur ou numéro de téléphone)
-  let resolvedEmail = rawIdentifier
+  // Résolution de l'identifiant (e-mail réel, identifiant avec ou sans @, nom complet ou numéro de téléphone)
+  let candidateEmails: string[] = [rawIdentifier]
   try {
     const adminSupabase = createAdminClient()
-    const resolved = await resoudreAuthEmail(rawIdentifier, adminSupabase)
-    resolvedEmail = resolved.email
+    const resolved = await resoudreEmailsCandidats(rawIdentifier, adminSupabase)
+    if (resolved.length > 0) {
+      candidateEmails = resolved
+    }
   } catch {
-    resolvedEmail = rawIdentifier
+    candidateEmails = [rawIdentifier]
   }
 
-  const { data: signInData, error } = await supabase.auth.signInWithPassword({
-    email: resolvedEmail,
-    password,
-  })
+  let signInData: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>['data'] | null = null
+  let signInError: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>['error'] | null = null
+  let matchedEmail = candidateEmails[0] || rawIdentifier
 
-  if (error) {
+  for (const emailCandidate of candidateEmails) {
+    const res = await supabase.auth.signInWithPassword({
+      email: emailCandidate,
+      password,
+    })
+    if (!res.error && res.data?.user) {
+      signInData = res.data
+      signInError = null
+      matchedEmail = emailCandidate
+      break
+    }
+    signInError = res.error
+  }
+
+  if (signInError || !signInData?.user) {
     const attemptsCookie = cookieStore.get('login_attempts')?.value
     const attempts = attemptsCookie ? parseInt(attemptsCookie) + 1 : 1
 
-    if (attempts >= 3) {
+    if (attempts >= 6) {
       cookieStore.set('lockout_until', (Date.now() + 60000).toString(), { maxAge: 60 })
       cookieStore.delete('login_attempts')
       return {
@@ -90,7 +105,7 @@ export async function login(formData: FormData): Promise<LoginActionResult> {
   // Compte super-admin sans GIE : /dashboard le renverrait aussitôt ici (aucune ligne
   // utilisateurs), en boucle muette. On referme la session client et on l'oriente vers
   // la connexion admin.
-  if (isAdminEmail(resolvedEmail) || (signInData?.user?.email && isAdminEmail(signInData.user.email))) {
+  if (isAdminEmail(matchedEmail) || (signInData?.user?.email && isAdminEmail(signInData.user.email))) {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: rattachement } = user
       ? await supabase.from('utilisateurs').select('id').eq('id', user.id).maybeSingle()

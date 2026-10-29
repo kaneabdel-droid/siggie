@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { redirect } from 'next/navigation'
-import { estEmailSynthetique, normaliserIdentifiant } from '@/lib/auth-identifier'
+import { estEmailSynthetique, resoudreUtilisateursCandidats } from '@/lib/auth-identifier'
 
 export async function resetPasswordForEmail(formData: FormData) {
   const supabase = await createClient()
@@ -15,8 +15,8 @@ export async function resetPasswordForEmail(formData: FormData) {
   const next = encodeURIComponent(`/update-password${adminQuery}`)
   const redirectTo = `${siteUrl}/auth/callback?next=${next}`
 
-  // 1. Si la saisie est manifestement une adresse e-mail réelle (contient '@' sans être notre domaine interne)
-  if (rawInput.includes('@') && !estEmailSynthetique(rawInput)) {
+  // 1. Si la saisie est manifestement une adresse e-mail réelle (contient '@' ailleurs qu'en début et hors domaine interne)
+  if (rawInput.includes('@') && !rawInput.startsWith('@') && !estEmailSynthetique(rawInput)) {
     const { error } = await supabase.auth.resetPasswordForEmail(rawInput, {
       redirectTo,
     })
@@ -34,18 +34,21 @@ export async function resetPasswordForEmail(formData: FormData) {
     )
   }
 
-  // 2. Traitement d'un identifiant ou numéro de téléphone (compte collaborateur sans e-mail obligatoire)
-  const clean = normaliserIdentifiant(rawInput)
-
+  // 2. Traitement d'un identifiant, nom ou numéro de téléphone (compte collaborateur sans e-mail obligatoire)
   try {
     const adminSupabase = createAdminClient()
 
+    const candidats = await resoudreUtilisateursCandidats(rawInput, adminSupabase)
+    const bestCandidat = candidats[0]
+
     // Recherche de l'utilisateur et de son GIE rattaché
-    const { data: userRow } = await adminSupabase
-      .from('utilisateurs')
-      .select('id, identifiant, telephone, nom_complet, gie_id, gies(nom, email)')
-      .or(`identifiant.ilike.${clean},telephone.eq.${clean}`)
-      .maybeSingle()
+    const { data: userRow } = bestCandidat
+      ? await adminSupabase
+        .from('utilisateurs')
+        .select('id, identifiant, telephone, nom_complet, gie_id, gies(nom, email)')
+        .eq('id', bestCandidat.id)
+        .maybeSingle()
+      : { data: null }
 
     if (userRow?.id) {
       const { data: authUser } = await adminSupabase.auth.admin.getUserById(userRow.id)
