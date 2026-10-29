@@ -6,6 +6,8 @@ export type TenantContext = {
   userId: string
   gieId: string
   role: string
+  identifiant: string | null
+  nomComplet: string | null
   permissions: PermissionMap | null
   gieName: string
   subscriptionTier: string
@@ -28,7 +30,7 @@ export const getTenantContext = cache(async (): Promise<TenantContext | null> =>
 
   const { data } = await supabase
     .from('utilisateurs')
-    .select('gie_id, role, permissions, gies(nom, subscription_tier, devise)')
+    .select('gie_id, role, identifiant, nom_complet, permissions, gies(nom, subscription_tier, devise)')
     .eq('id', user.id)
     .single()
 
@@ -36,10 +38,24 @@ export const getTenantContext = cache(async (): Promise<TenantContext | null> =>
 
   const gie = Array.isArray(data.gies) ? data.gies[0] : data.gies
 
+  const identifiant =
+    data.identifiant ||
+    (user.user_metadata?.identifiant as string | undefined) ||
+    (user.email ? user.email.split('@')[0] : null) ||
+    null
+
+  const nomComplet =
+    data.nom_complet ||
+    (user.user_metadata?.nom_complet as string | undefined) ||
+    (user.user_metadata?.full_name as string | undefined) ||
+    null
+
   return {
     userId: user.id,
     gieId: data.gie_id,
     role: data.role,
+    identifiant,
+    nomComplet,
     permissions: (data.permissions as PermissionMap | null) ?? null,
     gieName: gie?.nom || 'Mon GIE',
     subscriptionTier: gie?.subscription_tier || 'standard',

@@ -70,25 +70,6 @@ export default function PlanFinancementClient({
 
   const selectedCampagne = campagnes.find((c) => c.id === selectedCampagneId) || null
 
-  // Map des comptes pour lookup rapide
-  const comptesMap = useMemo(() => new Map(comptes.map((c) => [c.id, c])), [comptes])
-
-  // Règle de cadrage :
-  // - Caisse : solde initial effectif au 01/09/2026 (données antérieures ignorées)
-  // - Banques : solde initial effectif au 01/07/2026 (données antérieures ignorées)
-  const isCaisse = (type_compte?: string) => (type_compte || '').toLowerCase() === 'caisse'
-  const getDateMinCompte = (compteId: string) => {
-    const c = comptesMap.get(compteId)
-    return isCaisse(c?.type_compte) ? '2026-09-01' : '2026-07-01'
-  }
-
-  const isTxValide = (tx: Transaction) => {
-    const txDateStr = (tx.date_transaction || tx.created_at || '').slice(0, 10)
-    if (!txDateStr) return false
-    const dateMin = getDateMinCompte(tx.compte_id)
-    return txDateStr >= dateMin
-  }
-
   // 1. Calcul du Plan de Financement par Campagne
   // Formule: Trésorerie départ + Encaissements du mois - Paiements du mois = Solde fin de mois (début mois suivant)
   const planCampagne = useMemo(() => {
@@ -134,40 +115,24 @@ export default function PlanFinancementClient({
       })
     }
 
-    // Filtrer les transactions valides de cette campagne
-    // Règle: les données antérieures au 01/09/2026 pour la caisse et au 01/07/2026 pour les banques sont ignorées
+    // Filtrer les transactions de cette campagne
     const txCampagne = transactions.filter(
-      (tx) => tx.campagne_id === selectedCampagne.id && isTxValide(tx)
+      (tx) => tx.campagne_id === selectedCampagne.id
     )
 
-    // Trésorerie initiale de départ au 1er mois de campagne :
-    // Ne comprend que les soldes des comptes effectifs à cette date
-    const premierMois = moisBuckets[0]?.debutMois || ''
-    let totalSoldeInitialComptes = 0
-    comptes.forEach((c) => {
-      const dateMin = isCaisse(c.type_compte) ? '2026-09-01' : '2026-07-01'
-      if (premierMois >= dateMin) {
-        totalSoldeInitialComptes += Number(c.solde_initial || 0)
-      }
-    })
+    // Trésorerie initiale de départ (somme des soldes initiaux des comptes de trésorerie)
+    const totalSoldeInitialComptes = comptes.reduce(
+      (sum, c) => sum + Number(c.solde_initial || 0),
+      0
+    )
 
     let soldeCourant = totalSoldeInitialComptes
     let totalIn = 0
     let totalOut = 0
 
     const moisData = moisBuckets.map((b, idx) => {
-      // Reprise en cours de campagne si un compte devient effectif durant ce mois
-      let apportReprise = 0
-      if (idx > 0) {
-        comptes.forEach((c) => {
-          const dateMin = isCaisse(c.type_compte) ? '2026-09-01' : '2026-07-01'
-          if (dateMin >= b.debutMois && dateMin <= b.finMois) {
-            apportReprise += Number(c.solde_initial || 0)
-          }
-        })
-      }
-
-      const soldeDepart = soldeCourant + apportReprise
+      const apportReprise = 0
+      const soldeDepart = soldeCourant
 
       let encaissements = 0
       let decaissements = 0
@@ -211,7 +176,7 @@ export default function PlanFinancementClient({
       soldeInitial: totalSoldeInitialComptes,
       soldeFinal: soldeCourant,
     }
-  }, [selectedCampagne, transactions, comptes, comptesMap])
+  }, [selectedCampagne, transactions, comptes])
 
   // 2. Calcul du Plan de Trésorerie Annuel sur 12 Mois (Premium)
   const planAnnuel12Mois = useMemo(() => {
@@ -226,26 +191,9 @@ export default function PlanFinancementClient({
       const debutMoisStr = `${selectedAnnee}-${mStr}-01`
       const finMoisStr = `${selectedAnnee}-${mStr}-31`
 
-      // Reprise des soldes initiaux :
-      // - Banques : actives au 01/07/2026 (Juillet)
-      // - Caisses : actives au 01/09/2026 (Septembre)
-      // - Les données antérieures sont ignorées.
+      // Reprise du solde initial au 1er janvier (indexMois === 0)
       let apportReprise = 0
-      if (selectedAnnee === 2026) {
-        if (indexMois === 6) { // Juillet 2026
-          comptes.forEach((c) => {
-            if (!isCaisse(c.type_compte)) {
-              apportReprise += Number(c.solde_initial || 0)
-            }
-          })
-        } else if (indexMois === 8) { // Septembre 2026
-          comptes.forEach((c) => {
-            if (isCaisse(c.type_compte)) {
-              apportReprise += Number(c.solde_initial || 0)
-            }
-          })
-        }
-      } else if (selectedAnnee > 2026 && indexMois === 0) {
+      if (indexMois === 0) {
         comptes.forEach((c) => {
           apportReprise += Number(c.solde_initial || 0)
         })
@@ -264,7 +212,6 @@ export default function PlanFinancementClient({
       let autresSorties = 0
 
       for (const tx of transactions) {
-        if (!isTxValide(tx)) continue
         const txDateStr = (tx.date_transaction || tx.created_at || '').slice(0, 10)
         if (!txDateStr) continue
 
@@ -333,7 +280,7 @@ export default function PlanFinancementClient({
       netAnnuel: anneeIn - anneeOut,
       soldeFinal: soldeReport,
     }
-  }, [transactions, comptes, selectedAnnee, comptesMap])
+  }, [transactions, comptes, selectedAnnee])
 
   return (
     <div className="space-y-6">
@@ -361,22 +308,6 @@ export default function PlanFinancementClient({
             sectionId={activeTab === 'campagne' ? 'print-plan-campagne' : 'print-plan-annuel'}
             label={dict?.common?.print || "Imprimer"}
           />
-        </div>
-      </div>
-
-      {/* Information Banner sur la convention de solde initial */}
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
-        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-        <div className="text-xs text-foreground space-y-1">
-          <p className="font-semibold text-primary">
-            Cadrage des soldes de trésorerie :
-          </p>
-          <p className="text-foreground-muted">
-            • <strong>Caisse</strong> : Solde initial effectif au <strong>01/09/2026</strong>. Les écritures antérieures manquantes sont ignorées.
-          </p>
-          <p className="text-foreground-muted">
-            • <strong>Banques</strong> : Soldes initiaux effectifs au <strong>01/07/2026</strong>. Les écritures antérieures manquantes sont ignorées.
-          </p>
         </div>
       </div>
 

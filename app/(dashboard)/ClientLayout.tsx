@@ -43,6 +43,8 @@ export default function ClientLayout({
   children,
   subscriptionTier,
   role,
+  identifiant,
+  nomComplet,
   permissions,
   gieName,
   devise = 'XOF',
@@ -52,6 +54,8 @@ export default function ClientLayout({
   children: React.ReactNode
   subscriptionTier: string
   role: string
+  identifiant?: string | null
+  nomComplet?: string | null
   permissions: PermissionMap | null
   gieName: string
   devise?: string
@@ -62,10 +66,12 @@ export default function ClientLayout({
   const pathname = usePathname()
 
   const roleNorm = (role || 'admin').trim().toLowerCase()
+  const rawIdent = (identifiant || nomComplet || '').trim()
+  const identBadge = rawIdent ? (rawIdent.startsWith('@') ? rawIdent : `@${rawIdent}`) : (dict?.header?.admin || 'Admin')
   const roleBadgeLabel =
     roleNorm === 'admin'
-      ? dict.header.admin
-      : ROLE_LABELS[roleNorm] || role
+      ? identBadge
+      : `${identBadge} · ${ROLE_LABELS[roleNorm] || role}`
 
   const navigation = [
     { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -240,8 +246,8 @@ export default function ClientLayout({
               <OfflineSyncBar />
               <LanguageSelector currentLang={locale} />
               <ThemeSwitcher />
-              <div className="min-w-0 max-w-[6rem] truncate text-sm font-semibold leading-6 text-foreground sm:max-w-[10rem] sm:text-base md:max-w-xs">
-                {gieName} <span className="hidden sm:inline capitalize">({roleBadgeLabel})</span>
+              <div className="min-w-0 max-w-[7rem] truncate text-sm font-semibold leading-6 text-foreground sm:max-w-[12rem] sm:text-base md:max-w-sm">
+                {gieName} <span className="hidden sm:inline font-normal text-foreground-muted">({roleBadgeLabel})</span>
               </div>
             </div>
           </div>
