@@ -112,7 +112,33 @@ export async function updateMateriel(
 
   if (error) return { error: error.message }
 
+  // Synchroniser la date de démarrage des crédits d'équipement liés à ce matériel
+  if (date_acquisition) {
+    try {
+      const { data: credits } = await supabase
+        .from('credits')
+        .select('id, but_credit')
+        .ilike('but_credit', '%[TYPE:equipement]%')
+
+      for (const c of credits || []) {
+        const bc = c.but_credit || ''
+        const matchById = bc.includes(`[MATERIEL_ID:${id}]`)
+        const eqMatch = bc.match(/\[EQUIPEMENT:([^\]]+)\]/)
+        const matchByName = eqMatch && eqMatch[1]?.trim().toLowerCase() === nom.trim().toLowerCase()
+        if (matchById || matchByName) {
+          let updatedBut = bc.replace(/\[DATE_ACQUISITION:[^\]]*\]/g, '').trim()
+          updatedBut = `[DATE_ACQUISITION:${date_acquisition}] ${updatedBut}`.trim()
+          await supabase
+            .from('credits')
+            .update({ date_demande: date_acquisition, but_credit: updatedBut })
+            .eq('id', c.id)
+        }
+      }
+    } catch (_) {}
+  }
+
   revalidatePath('/materiel')
+  revalidatePath('/credits')
   return { success: true }
 }
 

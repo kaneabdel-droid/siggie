@@ -10,16 +10,50 @@ type Campagne = {
   nom: string
 }
 
-export default function CreateCreditButton({ campagnes, dict }: { campagnes: Campagne[]; dict: any }) {
+type MaterielRef = {
+  id: string
+  nom: string
+  date_acquisition?: string | null
+  valeur_acquisition?: number | null
+  duree_vie_economique?: number | null
+}
+
+export default function CreateCreditButton({
+  campagnes,
+  materiels = [],
+  dict,
+}: {
+  campagnes: Campagne[]
+  materiels?: MaterielRef[]
+  dict: any
+}) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [typeCredit, setTypeCredit] = useState<'campagne' | 'equipement'>('campagne')
 
   // Champs de calcul dynamique pour le crédit d'équipement
+  const [selectedMaterielId, setSelectedMaterielId] = useState<string>('')
+  const [equipementNom, setEquipementNom] = useState<string>('')
+  const [dateAcquisition, setDateAcquisition] = useState<string>(new Date().toISOString().split('T')[0])
   const [montantDemande, setMontantDemande] = useState<number>(0)
   const [tauxInteret, setTauxInteret] = useState<number>(7.5)
   const [dureeMois, setDureeMois] = useState<number>(36) // 3 ans par défaut
   const [periodicite, setPeriodicite] = useState<PeriodiciteRemboursement>('annuelle')
+
+  function handleSelectMateriel(matId: string) {
+    setSelectedMaterielId(matId)
+    if (!matId) return
+    const mat = materiels.find((m) => m.id === matId)
+    if (mat) {
+      setEquipementNom(mat.nom)
+      if (mat.date_acquisition) {
+        setDateAcquisition(mat.date_acquisition.slice(0, 10))
+      }
+      if (mat.valeur_acquisition && mat.valeur_acquisition > 0) {
+        setMontantDemande(Number(mat.valeur_acquisition))
+      }
+    }
+  }
 
   const d = dict.credits_extra
 
@@ -142,17 +176,57 @@ export default function CreateCreditButton({ campagnes, dict }: { campagnes: Cam
                   {/* Section Spécifique Équipement */}
                   {typeCredit === 'equipement' ? (
                     <div className="p-3.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 space-y-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-foreground mb-1">
-                          Équipement ou Matériel financé *
-                        </label>
-                        <input
-                          type="text"
-                          name="equipement_nom"
-                          required
-                          placeholder="Ex: Tracteur New Holland 90CV, Moissonneuse-batteuse, Groupe motopompe..."
-                          className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                        />
+                      {materiels.length > 0 && (
+                        <div>
+                          <label className="block text-xs font-semibold text-foreground mb-1">
+                            Rattacher à un matériel du parc (synchronise la date d&apos;acquisition)
+                          </label>
+                          <select
+                            name="materiel_id"
+                            value={selectedMaterielId}
+                            onChange={(e) => handleSelectMateriel(e.target.value)}
+                            className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                          >
+                            <option value="">— Saisie libre / Nouveau matériel —</option>
+                            {materiels.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.nom}
+                                {m.date_acquisition ? ` • Acquis le ${new Date(m.date_acquisition).toLocaleDateString('fr-FR')}` : ''}
+                                {m.valeur_acquisition ? ` (${Number(m.valeur_acquisition).toLocaleString('fr-FR')} FCFA)` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-foreground mb-1">
+                            Équipement ou Matériel financé *
+                          </label>
+                          <input
+                            type="text"
+                            name="equipement_nom"
+                            required
+                            value={equipementNom}
+                            onChange={(e) => setEquipementNom(e.target.value)}
+                            placeholder="Ex: Tracteur New Holland 90CV, Moissonneuse-batteuse..."
+                            className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-foreground mb-1">
+                            Date d&apos;acquisition / Démarrage crédit *
+                          </label>
+                          <input
+                            type="date"
+                            name="date_acquisition"
+                            required
+                            value={dateAcquisition}
+                            onChange={(e) => setDateAcquisition(e.target.value)}
+                            className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                          />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

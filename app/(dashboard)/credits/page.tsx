@@ -11,12 +11,13 @@ export default async function CreditsPage() {
   const locale = await getLocale()
   const dict = await getDictionary(locale)
 
-  // Ces 3 requêtes sont indépendantes les unes des autres : les lancer en
+  // Ces requêtes sont indépendantes les unes des autres : les lancer en
   // parallèle évite de cumuler leurs latences réseau.
   const [
     { data: campagnes },
     { data: credits },
     { data: comptes },
+    { data: materiels },
   ] = await Promise.all([
     supabase.from('campagnes').select('id, nom').order('created_at', { ascending: false }),
     supabase.from('credits').select(`
@@ -24,6 +25,7 @@ export default async function CreditsPage() {
       campagnes ( nom )
     `).order('created_at', { ascending: false }),
     supabase.from('comptes').select('id, nom, type_compte'),
+    supabase.from('materiels').select('id, nom, date_acquisition, valeur_acquisition, duree_vie_economique').order('nom', { ascending: true }),
   ])
 
   // Total décaissé rattaché aux crédits
@@ -52,13 +54,14 @@ export default async function CreditsPage() {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 sm:flex-none">
-          <CreateCreditButton campagnes={campagnes || []} dict={dict} />
+          <CreateCreditButton campagnes={campagnes || []} materiels={materiels || []} dict={dict} />
         </div>
       </div>
 
       <CreditsListClient
         credits={credits || []}
         comptes={comptes || []}
+        materiels={materiels || []}
         dict={dict}
         locale={locale}
         unite={unite}

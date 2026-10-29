@@ -51,13 +51,23 @@ export async function getStockNature(campagneId: string) {
     .eq('type_remboursement', 'nature')
     .not('quantite_nature', 'is', null)
 
-  const { data: allRemb, error: rembError } = await rembQuery
+  const [{ data: allRemb, error: rembError }, { data: paiementsClients }] = await Promise.all([
+    rembQuery,
+    supabase.from('paiements_clients').select('id, client_id, montant, date_paiement, motif'),
+  ])
   if (rembError) return { error: rembError.message }
 
   const remboursements = (allRemb || []).filter((r: any) => {
+    const prodStr = String(r.produit_nature || '')
+    const campMatch = prodStr.match(/\[CAMPAGNE:([^\]]+)\]/)
+    if (campMatch && campMatch[1]) {
+      return campMatch[1].trim() === campagneId
+    }
     if (r.facture_id && factureIds.length > 0) return factureIds.includes(r.facture_id)
     return true
   })
+
+  const rembIdsIncluded = new Set(remboursements.map((r: any) => r.id))
 
   // Sorties : ventes et ristournes enregistrées manuellement
   const { data: sorties, error: sortiesError } = await supabase
@@ -72,12 +82,13 @@ export async function getStockNature(campagneId: string) {
   for (const r of remboursements) {
     const membre = Array.isArray(r.membres) ? r.membres[0] : r.membres
     const factureData = Array.isArray(r.factures) ? r.factures[0] : r.factures
-    const clientNomFacture = factureData?.client_nom
+    const prodStr = String(r.produit_nature || '')
+    const clientTagMatch = prodStr.match(/\[CLIENT:([^\]]+)\]/)
+    const clientNomFacture = clientTagMatch ? clientTagMatch[1].trim() : factureData?.client_nom
     const client = clientNomFacture ? { nom: clientNomFacture } : null
     const quantite = Number(r.quantite_nature || 0)
 
     // Parse variety and origin from produit_nature if present
-    const prodStr = String(r.produit_nature || '')
     let variete: string | null = null
     const varMatch = prodStr.match(/\[VARIETE:(.*?)\]/)
     if (varMatch) variete = varMatch[1].trim()
@@ -102,6 +113,55 @@ export async function getStockNature(campagneId: string) {
       origine_stock: origineStock,
       variete,
       motif: prodStr.replace(/\[.*?\]/g, '').trim(),
+    })
+  }
+
+  // Ajouter également les paiements en nature des clients externes (stockés dans paiements_clients si non déjà inclus via remboursements)
+  for (const pc of (paiementsClients || []) as any[]) {
+    const motifStr = String(pc.motif || '')
+    if (!motifStr.includes('[MODE:nature]')) continue
+
+    const rembIdMatch = motifStr.match(/\[REMB_ID:([^\]]+)\]/)
+    if (rembIdMatch && rembIdMatch[1] && rembIdsIncluded.has(rembIdMatch[1].trim())) {
+      continue
+    }
+
+    const campMatch = motifStr.match(/\[CAMPAGNE:([^\]]+)\]/)
+    if (campMatch && campMatch[1] && campMatch[1].trim() !== campagneId) {
+      continue
+    }
+
+    const qteMatch = motifStr.match(/\[QTE:([^\]]+)\]/)
+    const quantite = qteMatch ? Number(qteMatch[1]) : 0
+    if (!quantite || quantite <= 0) continue
+
+    const puMatch = motifStr.match(/\[PU:([^\]]+)\]/)
+    const prixUnitaire = puMatch
+      ? Number(puMatch[1])
+      : quantite > 0
+      ? Number(pc.montant || 0) / quantite
+      : Number(campagne.prix_collecte || 0)
+
+    const prodMatch = motifStr.match(/\[PRODUIT:([^\]]+)\]/)
+    const varMatch = motifStr.match(/\[VARIETE:([^\]]+)\]/)
+    const origMatch = motifStr.match(/\[ORIGINE:([^\]]+)\]/)
+
+    const clientObj = pc.client_id ? clientMap.get(pc.client_id) : null
+    const tiersNom = clientObj?.nom || 'Client externe'
+
+    mouvements.push({
+      id: `pc-${pc.id}`,
+      date: pc.date_paiement,
+      type: 'entree',
+      tiers: tiersNom,
+      tiers_type: 'client',
+      membre: null,
+      client: clientObj || { id: pc.client_id, nom: tiersNom },
+      prix_unitaire: prixUnitaire,
+      quantite,
+      origine_stock: origMatch ? origMatch[1].trim() : 'materiel',
+      variete: varMatch ? varMatch[1].trim() : null,
+      motif: prodMatch ? prodMatch[1].trim() : motifStr.replace(/\[[^\]]*\]/g, '').trim(),
     })
   }
 

@@ -191,14 +191,21 @@ export default function FinancementIntrantsManager({
   // Exportation PDF bancaire
   const exportPdf = () => {
     const doc = new jsPDF()
+    const uniteClean = unite ? unite.trim() : ''
+    const fmtPdf = (val: number) => {
+      const s = Math.round(Number(val || 0))
+        .toLocaleString(localeCode, { maximumFractionDigits: 0 })
+        .replace(/[\u00A0\u202F]/g, ' ')
+      return uniteClean ? `${s} ${uniteClean}` : s
+    }
 
     doc.setFontSize(16)
     doc.text(`PLAN DE FINANCEMENT PAR INTRANT & SERVICE`, 14, 20)
     doc.setFontSize(11)
     doc.text(`GIE : ${gieNom || 'Groupement Agricole'}`, 14, 28)
-    doc.text(`Banque : ${credit.banque_nom || 'Non spécifiée'} | Campagne : ${credit.campagnes?.nom || '-'}`, 14, 34)
-    doc.text(`Montant Total Accordé : ${montantTotalCredit.toLocaleString(localeCode)} ${unite}`, 14, 40)
-    doc.text(`Date d'édition : ${new Date().toLocaleDateString(localeCode)}`, 14, 46)
+    doc.text(`Banque : ${credit.banque_nom || 'Non specifiee'} | Campagne : ${credit.campagnes?.nom || '-'}`, 14, 34)
+    doc.text(`Montant Total Accorde : ${fmtPdf(montantTotalCredit)}`, 14, 40)
+    doc.text(`Date d'edition : ${new Date().toLocaleDateString(localeCode)}`, 14, 46)
 
     const tableRows = lignes.map(l => {
       const accorde = Number(l.montant_accorde || 0)
@@ -207,33 +214,38 @@ export default function FinancementIntrantsManager({
       return [
         l.designation + (l.fournisseur_nom ? ` (${l.fournisseur_nom})` : ''),
         l.type_rubrique === 'service' ? 'Service' : 'Intrant',
-        `${accorde.toLocaleString(localeCode)} ${unite}`,
-        `${paye.toLocaleString(localeCode)} ${unite}`,
-        `${ecart.toLocaleString(localeCode)} ${unite}`,
+        fmtPdf(accorde),
+        fmtPdf(paye),
+        fmtPdf(ecart),
       ]
     })
 
     tableRows.push([
-      'TOTAL GÉNÉRAL',
+      'TOTAL GENERAL',
       '',
-      `${totalAccordeRubriques.toLocaleString(localeCode)} ${unite}`,
-      `${totalPayeRubriques.toLocaleString(localeCode)} ${unite}`,
-      `${totalEcartRubriques.toLocaleString(localeCode)} ${unite}`,
+      fmtPdf(totalAccordeRubriques),
+      fmtPdf(totalPayeRubriques),
+      fmtPdf(totalEcartRubriques),
     ])
 
     autoTable(doc, {
       startY: 52,
-      head: [['Intrant ou Service', 'Type', 'Montant Accordé', 'Montant Payé / Décaissé', 'Écart (Accordé - Payé)']],
+      head: [['Intrant ou Service', 'Type', 'Montant Accorde', 'Montant Paye / Decaisse', 'Ecart (Accorde - Paye)']],
       body: tableRows,
       theme: 'grid',
       headStyles: { fillColor: [24, 76, 56], textColor: [255, 255, 255] },
       styles: { fontSize: 9 },
+      columnStyles: {
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+      },
     })
 
     const finalY = (doc as any).lastAutoTable?.finalY || 180
     doc.setFontSize(10)
-    doc.text(`Règle bancaire : Somme des rubriques accordées = ${totalAccordeRubriques.toLocaleString(localeCode)} ${unite}`, 14, finalY + 12)
-    doc.text(`Statut de conformité : ${estConforme ? 'CONFORME (100% alloué)' : ecartConformite > 0 ? `RESTE À ALLOUER (${ecartConformite.toLocaleString(localeCode)} ${unite})` : `DÉPASSEMENT (+${Math.abs(ecartConformite).toLocaleString(localeCode)} ${unite})`}`, 14, finalY + 18)
+    doc.text(`Regle bancaire : Somme des rubriques accordees = ${fmtPdf(totalAccordeRubriques)}`, 14, finalY + 12)
+    doc.text(`Statut de conformite : ${estConforme ? 'CONFORME (100% alloue)' : ecartConformite > 0 ? `RESTE A ALLOUER (${fmtPdf(ecartConformite)})` : `DEPASSEMENT (+${fmtPdf(Math.abs(ecartConformite))})`}`, 14, finalY + 18)
 
     doc.text('Signature Responsable GIE', 20, finalY + 35)
     doc.text('Cachet & Visa Banque Partenaire', 130, finalY + 35)

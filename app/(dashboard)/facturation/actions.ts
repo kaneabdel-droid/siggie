@@ -10,7 +10,7 @@ export async function getFactures() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Non authentifié")
 
-  const [facturesRes, prestationsRes, ventesRes, membresRes, clientsRes] = await Promise.all([
+  const [facturesRes, prestationsRes, ventesRes, membresRes, clientsRes, paiementsClientsRes] = await Promise.all([
     supabase
       .from('factures')
       .select(`
@@ -38,9 +38,20 @@ export async function getFactures() {
       .order('date_sortie', { ascending: false }),
     supabase.from('membres').select('id, nom, prenom, code_membre, telephone, village'),
     supabase.from('clients_externes').select('id, nom, telephone'),
+    supabase.from('paiements_clients').select('id, client_id, montant, motif'),
   ])
 
   if (facturesRes.error) return { error: facturesRes.error.message }
+
+  const paidByDocKey = new Map<string, number>()
+  for (const pc of (paiementsClientsRes.data || []) as any[]) {
+    const motifStr = String(pc.motif || '')
+    const docMatch = motifStr.match(/\[DOC:(prestation|vente_stock):([^\]]+)\]/)
+    if (docMatch) {
+      const key = `${docMatch[1]}:${docMatch[2]}`
+      paidByDocKey.set(key, (paidByDocKey.get(key) || 0) + Number(pc.montant || 0))
+    }
+  }
 
   const membresById = new Map<string, any>()
   const membresByName = new Map<string, any>()
@@ -69,18 +80,21 @@ export async function getFactures() {
     const matchedMembre = p.membre_id
       ? membresById.get(p.membre_id)
       : p.tiers_type === 'membre' || (!p.client_id && membresByName.has(cNomLower))
-      ? membresByName.get(cNomLower)
-      : null
+        ? membresByName.get(cNomLower)
+        : null
     const isMembre = p.tiers_type === 'membre' || Boolean(matchedMembre)
     const matchedClient = !isMembre
       ? (p.client_id ? clientsById.get(p.client_id) : clientsByName.get(cNomLower)) || {
-          id: p.client_id || null,
-          nom: p.client_nom || 'Client externe',
-          telephone: p.client_telephone || null,
-        }
+        id: p.client_id || null,
+        nom: p.client_nom || 'Client externe',
+        telephone: p.client_telephone || null,
+      }
       : null
 
     const montant = Number(p.montant_facture || 0)
+    const paidFromTags = paidByDocKey.get(`prestation:${p.id}`) || 0
+    const montantPaye = Math.max(Number(p.montant_paye || 0), paidFromTags)
+    const statut = p.statut_paiement || (montantPaye >= montant && montant > 0 ? 'payee' : montantPaye > 0 ? 'partiellement_paye' : 'impayee')
     const qte = Number(p.quantite_traitee || p.superficie || 0)
     const uniteStr = p.unite === 'autre' ? (p.unite_autre || '') : (p.unite || 'ha')
 
@@ -101,8 +115,8 @@ export async function getFactures() {
       date_emission: p.date_prestation || p.created_at,
       montant_total: montant,
       montant_interet: 0,
-      montant_paye: 0,
-      statut: 'impayee',
+      montant_paye: montantPaye,
+      statut,
       imputation_releve: isMembre ? 'releve_membre' : 'releve_client',
       raw: { ...p, membre: matchedMembre, client: matchedClient, tiers_type: isMembre ? 'membre' : 'client' },
     }
@@ -114,15 +128,18 @@ export async function getFactures() {
     const tNomLower = String(v.tiers_nom || '').trim().toLowerCase()
     const matchedClient = !isMembre
       ? (v.client_id ? clientsById.get(v.client_id) : clientsByName.get(tNomLower)) || {
-          id: v.client_id || null,
-          nom: v.tiers_nom || 'Client externe',
-          telephone: null,
-        }
+        id: v.client_id || null,
+        nom: v.tiers_nom || 'Client externe',
+        telephone: null,
+      }
       : null
 
     const quantite = Number(v.quantite || 0)
     const prixUnitaire = Number(v.prix_unitaire || 0)
     const montant = quantite * prixUnitaire
+    const paidFromTags = paidByDocKey.get(`vente_stock:${v.id}`) || 0
+    const montantPaye = Math.max(Number(v.montant_paye || 0), paidFromTags)
+    const statut = montantPaye >= montant && montant > 0 ? 'payee' : montantPaye > 0 ? 'partiellement_paye' : 'impayee'
     const prod = v.campagne?.produit_collecte || 'Stock en nature'
 
     return {
@@ -142,8 +159,8 @@ export async function getFactures() {
       date_emission: v.date_sortie || v.created_at,
       montant_total: montant,
       montant_interet: 0,
-      montant_paye: 0,
-      statut: 'impayee',
+      montant_paye: montantPaye,
+      statut,
       imputation_releve: isMembre ? 'releve_membre' : 'releve_client',
       raw: { ...v, membre: matchedMembre, client: matchedClient, montant_total: montant },
     }

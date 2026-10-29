@@ -41,10 +41,21 @@ export async function getFacturesPourRemboursement() {
       .select('id, nom, telephone, code_client'),
     supabase
       .from('paiements_clients')
-      .select('id, client_id, montant, date_paiement'),
+      .select('id, client_id, montant, date_paiement, motif'),
   ])
 
   if (facturesCampagneRes.error) return { error: facturesCampagneRes.error.message }
+
+  // Calcul des montants payés par document (prestation / vente_stock) via paiements_clients (tags [DOC:type:id])
+  const paidByDocKey = new Map<string, number>()
+  for (const pc of (paiementsClientsRes.data || []) as any[]) {
+    const motifStr = String(pc.motif || '')
+    const docMatch = motifStr.match(/\[DOC:(prestation|vente_stock):([^\]]+)\]/)
+    if (docMatch) {
+      const key = `${docMatch[1]}:${docMatch[2]}`
+      paidByDocKey.set(key, (paidByDocKey.get(key) || 0) + Number(pc.montant || 0))
+    }
+  }
 
   const clientMap = new Map<string, any>()
   const clientByName = new Map<string, any>()
@@ -91,7 +102,8 @@ export async function getFacturesPourRemboursement() {
       : null
 
     const montantTotal = Number(p.montant_facture || 0)
-    const montantPaye = Number(p.montant_paye || 0)
+    const paidFromTags = paidByDocKey.get(`prestation:${p.id}`) || 0
+    const montantPaye = Math.max(Number(p.montant_paye || 0), paidFromTags)
     const totalDu = montantTotal
     const reste = totalDu - montantPaye
 
@@ -132,7 +144,8 @@ export async function getFacturesPourRemboursement() {
       : null
 
     const montantTotal = Number(v.quantite || 0) * Number(v.prix_unitaire || 0)
-    const montantPaye = Number(v.montant_paye || 0)
+    const paidFromTags = paidByDocKey.get(`vente_stock:${v.id}`) || 0
+    const montantPaye = Math.max(Number(v.montant_paye || 0), paidFromTags)
     const totalDu = montantTotal
     const reste = totalDu - montantPaye
 
@@ -171,7 +184,7 @@ export async function getFacturesPourRemboursement() {
 export async function enregistrerRemboursement(
   factureId: string,
   membreId: string | null,
-  type: 'espece' | 'nature' | 'bon' | 'cheque',
+  type: 'espece' | 'nature' | 'bon' | 'cheque' | 'autre',
   montantFcfa: number,
   quantiteNature?: number | null,
   produitNature?: string | null,
@@ -182,6 +195,7 @@ export async function enregistrerRemboursement(
     clientNom?: string | null
     origineStock?: 'exploitation' | 'materiel' | 'achat'
     variete?: string | null
+    prixUnitaireNature?: number | null
     typeDocument?: 'campagne' | 'prestation' | 'vente_stock'
     campagneId?: string | null
   }
@@ -221,22 +235,56 @@ export async function enregistrerRemboursement(
   const origineStock = options?.origineStock || (docType === 'prestation' ? 'materiel' : docType === 'vente_stock' ? 'achat' : 'exploitation')
   const variete = options?.variete?.trim() || null
 
-  // Resolve nom for motif
+  // Résoudre la campagne de rattachement (indispensable pour l'entrée en Stock en Nature)
+  let effectiveCampagneId = options?.campagneId || null
+  if (!effectiveCampagneId && type === 'nature') {
+    const { data: activeCamp } = await supabase
+      .from('campagnes')
+      .select('id')
+      .eq('gie_id', userData.gie_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    effectiveCampagneId = activeCamp?.id || null
+  }
+
+  // Resolve nom & client_id for tiers
   let nomTiers = 'Tiers'
+  let resolvedClientId = options?.clientId || null
+
   if (membreId) {
     const { data: m } = await supabase.from('membres').select('prenom, nom').eq('id', membreId).maybeSingle()
     if (m) nomTiers = `${m.prenom} ${m.nom}`
-  } else if (options?.clientId) {
-    const { data: c } = await supabase.from('clients_externes').select('nom').eq('id', options.clientId).maybeSingle()
-    if (c) nomTiers = c.nom
-  } else if (options?.clientNom) {
-    nomTiers = options.clientNom
+  } else {
+    if (resolvedClientId) {
+      const { data: c } = await supabase.from('clients_externes').select('id, nom').eq('id', resolvedClientId).maybeSingle()
+      if (c) nomTiers = c.nom
+    } else if (options?.clientNom) {
+      nomTiers = options.clientNom.trim()
+      const { data: existingClient } = await supabase
+        .from('clients_externes')
+        .select('id, nom')
+        .eq('gie_id', userData.gie_id)
+        .ilike('nom', nomTiers)
+        .limit(1)
+        .maybeSingle()
+      if (existingClient) {
+        resolvedClientId = existingClient.id
+      } else {
+        const { data: createdClient } = await supabase
+          .from('clients_externes')
+          .insert({ gie_id: userData.gie_id, nom: nomTiers })
+          .select('id')
+          .maybeSingle()
+        if (createdClient) resolvedClientId = createdClient.id
+      }
+    }
   }
 
   // 1. Enregistrer dans la table remboursements (avec tolérance schéma)
-  // Encode tags in produit_nature for safety
+  const cleanProdName = (produitNature || 'Produit').trim()
   const safeProduitNature = type === 'nature'
-    ? `${produitNature || 'Produit'}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}]`
+    ? `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}]${!membreId && nomTiers ? ` [CLIENT:${nomTiers}]` : ''}${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
     : null
 
   const rembInsertPayload: any = {
@@ -255,8 +303,8 @@ export async function enregistrerRemboursement(
   if (membreId) {
     rembInsertPayload.membre_id = membreId
   }
-  if (options?.clientId) {
-    rembInsertPayload.client_id = options.clientId
+  if (resolvedClientId) {
+    rembInsertPayload.client_id = resolvedClientId
   }
 
   let rembId: string | null = null
@@ -278,9 +326,10 @@ export async function enregistrerRemboursement(
     rembId = tryInsert.data.id
   } else {
     // Fallback without extended columns if schema cache misses them
+    const { client_id: _cid, compte_id: _cpid, reference_piece: _ref, ...basePayload } = rembInsertPayload
     const fallbackInsert = await supabase
       .from('remboursements')
-      .insert(rembInsertPayload)
+      .insert(basePayload)
       .select('id')
       .maybeSingle()
 
@@ -289,45 +338,68 @@ export async function enregistrerRemboursement(
     }
   }
 
-  // 2. Entrée de trésorerie sur le compte choisi (espèces, chèques, ou bons reliés à un compte).
-  if (compteId && (type === 'espece' || type === 'cheque' || type === 'bon')) {
-    let typePiece = membreId ? 'remboursement_membre' : 'remboursement_client'
-    let motif = `Remboursement (${docType === 'prestation' ? 'Prestation' : docType === 'vente_stock' ? 'Vente stock' : 'Campagne'}) - ${nomTiers}`
+  // 2. Entrée de trésorerie sur le compte de destination choisi (espèces, chèque, bon ou autre relié à un compte)
+  const docLabel = docType === 'prestation' ? 'Prestation' : docType === 'vente_stock' ? 'Vente stock' : 'Campagne'
+  let motifHumain = `Remboursement (${docLabel}) - ${nomTiers}`
+  let typePiece = membreId ? 'remboursement_membre' : 'remboursement_client'
 
-    if (type === 'cheque') {
-      motif = `Remboursement par chèque ${referencePiece ? `N° ${referencePiece}` : ''} - ${nomTiers}`
-      typePiece = 'remboursement_cheque'
-    } else if (type === 'bon') {
-      motif = `Remboursement par bon ${referencePiece ? `N° ${referencePiece}` : ''} - ${nomTiers}`
-      typePiece = 'remboursement_bon'
-    }
+  if (type === 'cheque') {
+    motifHumain = `Paiement par chèque ${referencePiece ? `N° ${referencePiece}` : ''} (${docLabel}) - ${nomTiers}`
+    typePiece = 'remboursement_cheque'
+  } else if (type === 'bon') {
+    motifHumain = `Paiement par bon ${referencePiece ? `N° ${referencePiece}` : ''} (${docLabel}) - ${nomTiers}`
+    typePiece = 'remboursement_bon'
+  } else if (type === 'autre') {
+    motifHumain = `Autre paiement ${referencePiece ? `(${referencePiece})` : ''} (${docLabel}) - ${nomTiers}`
+    typePiece = 'remboursement_autre'
+  } else if (type === 'nature') {
+    motifHumain = `Paiement en nature : ${quantiteNature || 0} kg de ${cleanProdName}${variete ? ` (Var. ${variete})` : ''} (${docLabel}) - ${nomTiers}`
+  }
 
+  if (compteId && (type === 'espece' || type === 'cheque' || type === 'bon' || type === 'autre')) {
     const { error: txError } = await supabase.from('transactions').insert({
       gie_id: userData.gie_id,
       compte_id: compteId,
       type_transaction: 'entree',
       montant: montantFcfa,
-      motif,
+      motif: motifHumain,
       type_piece: typePiece,
       date_transaction: new Date().toISOString().slice(0, 10),
-      campagne_id: options?.campagneId || null,
+      campagne_id: effectiveCampagneId,
     })
 
     if (txError) {
       if (rembId) await supabase.from('remboursements').delete().eq('id', rembId)
       return { error: txError.message }
     }
+  }
 
-    // Si c'est un client externe, enregistrer aussi dans paiements_clients
-    if (options?.clientId) {
-      await supabase.from('paiements_clients').insert({
-        gie_id: userData.gie_id,
-        client_id: options.clientId,
-        montant: montantFcfa,
-        date_paiement: new Date().toISOString().slice(0, 10),
-        motif: `${motif}${referencePiece ? ` (Réf: ${referencePiece})` : ''}`,
-      })
-    }
+  // 2.b Si c'est un client non-membre, enregistrer dans paiements_clients (pour TOUS les modes, y compris nature, bon, autre)
+  if (!membreId && resolvedClientId) {
+    const puNature = options?.prixUnitaireNature || (quantiteNature && quantiteNature > 0 ? Math.round(montantFcfa / quantiteNature) : 0)
+    const metaTags = [
+      `[MODE:${type}]`,
+      `[DOC:${docType}:${rawId}]`,
+      rembId ? `[REMB_ID:${rembId}]` : '',
+      compteId ? `[COMPTE:${compteId}]` : '',
+      referencePiece ? `[REF:${referencePiece.trim()}]` : '',
+      type === 'nature' && quantiteNature ? `[QTE:${quantiteNature}]` : '',
+      type === 'nature' && puNature ? `[PU:${puNature}]` : '',
+      type === 'nature' && cleanProdName ? `[PRODUIT:${cleanProdName}]` : '',
+      type === 'nature' && variete ? `[VARIETE:${variete}]` : '',
+      type === 'nature' ? `[ORIGINE:${origineStock}]` : '',
+      type === 'nature' && effectiveCampagneId ? `[CAMPAGNE:${effectiveCampagneId}]` : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    await supabase.from('paiements_clients').insert({
+      gie_id: userData.gie_id,
+      client_id: resolvedClientId,
+      montant: montantFcfa,
+      date_paiement: new Date().toISOString().slice(0, 10),
+      motif: `${metaTags} ${motifHumain}`.trim(),
+    })
   }
 
   // 3. Mettre à jour la facture source (montant_paye et statut)

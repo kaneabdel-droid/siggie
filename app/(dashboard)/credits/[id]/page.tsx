@@ -22,6 +22,7 @@ export default async function CreditDetailPage({
     { data: credit },
     { data: lignes },
     { data: intrants },
+    { data: materiels },
   ] = await Promise.all([
     supabase
       .from('credits')
@@ -43,6 +44,10 @@ export default async function CreditDetailPage({
       .from('intrants')
       .select('id, nom, type_intrant, prix_unitaire')
       .order('nom', { ascending: true }),
+    supabase
+      .from('materiels')
+      .select('id, nom, date_acquisition, valeur_acquisition, duree_vie_economique, fournisseur, type_materiel')
+      .order('nom', { ascending: true }),
   ])
 
   if (!credit) {
@@ -55,6 +60,7 @@ export default async function CreditDetailPage({
     return (
       <CreditEquipementDetail
         credit={credit}
+        materiels={materiels || []}
         gieNom={tenant?.gieName}
         locale={locale}
       />

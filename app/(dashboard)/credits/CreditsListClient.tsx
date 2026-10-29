@@ -17,7 +17,15 @@ import {
   Layers2
 } from 'lucide-react'
 import CreditRowActions from './CreditRowActions'
-import { getCreditType, getCreditEquipementNom, getCreditPeriodicite, cleanButCredit, isCreditIndependant } from '@/lib/credits-types'
+import {
+  getCreditType,
+  getCreditEquipementNom,
+  getCreditPeriodicite,
+  cleanButCredit,
+  isCreditIndependant,
+  resolveCreditEquipementStartDate,
+  parseLocalDate,
+} from '@/lib/credits-types'
 
 type CreditItem = {
   id: string
@@ -35,12 +43,14 @@ type CreditItem = {
   nombre_echeances?: number | null
   montant_echeance?: number | null
   campagnes?: { nom: string } | null
+  date_demande?: string | null
   created_at?: string
 }
 
 export default function CreditsListClient({
   credits,
   comptes,
+  materiels = [],
   dict,
   locale,
   unite,
@@ -48,6 +58,7 @@ export default function CreditsListClient({
 }: {
   credits: CreditItem[]
   comptes: any[]
+  materiels?: Array<{ id: string; nom: string; date_acquisition?: string | null }>
   dict: any
   locale: string
   unite: string
@@ -67,16 +78,18 @@ export default function CreditsListClient({
       const periodicite = getCreditPeriodicite(c)
       const cleanedReason = cleanButCredit(c.but_credit)
       const isIndep = isCreditIndependant(c)
+      const startDate = type === 'equipement' ? resolveCreditEquipementStartDate(c, materiels) : null
       return {
         ...c,
         computedType: type,
         computedEquipementNom: equipementNom,
         computedPeriodicite: periodicite,
         computedIsIndependant: isIndep,
+        computedStartDate: startDate,
         cleanedReason,
       }
     })
-  }, [credits])
+  }, [credits, materiels])
 
   // Filtrage
   const filteredCredits = useMemo(() => {
@@ -374,6 +387,11 @@ export default function CreditsListClient({
                           <div className="text-[11px] text-foreground-muted capitalize">
                             Annuités {credit.computedPeriodicite}s
                           </div>
+                          {credit.computedStartDate && (
+                            <div className="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 font-medium">
+                              Début / Acq. : {parseLocalDate(credit.computedStartDate).toLocaleDateString(localeCode)}
+                            </div>
+                          )}
                         </div>
                       ) : credit.type_financement === 'par_intrant' ? (
                         <Link

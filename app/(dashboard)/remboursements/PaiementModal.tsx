@@ -6,7 +6,7 @@ import { useUnite } from '@/components/DeviseProvider'
 
 type PaiementModalProps = {
   facture: any
-  type: 'espece' | 'nature' | 'bon' | 'cheque'
+  type: 'espece' | 'nature' | 'bon' | 'cheque' | 'autre'
   onClose: () => void
   dict: any
   locale?: string
@@ -42,14 +42,14 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
     type === 'nature'
       ? equivalentFcfa
       : Number.isFinite(montantNum) && montantNum > 0
-      ? montantNum
-      : 0
+        ? montantNum
+        : 0
 
   const nouveauReste = resteAPayer - montantEffectif
 
   // Pre-fill default amount when opening modal for a specific facture/type
   useEffect(() => {
-    if (type === 'espece' || type === 'cheque' || type === 'bon') {
+    if (type === 'espece' || type === 'cheque' || type === 'bon' || type === 'autre') {
       setMontantSaisi(resteArrondi > 0 ? String(resteArrondi) : '')
     }
     if (type === 'nature') {
@@ -65,7 +65,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
     let montantFcfa = 0
     let qte: number | null = null
 
-    if (type === 'espece' || type === 'cheque' || type === 'bon') {
+    if (type === 'espece' || type === 'cheque' || type === 'bon' || type === 'autre') {
       montantFcfa = parseFloat(montantSaisi)
       if (type === 'cheque' && !referencePiece.trim()) {
         alert("Veuillez renseigner le numéro de chèque ou la référence bancaire.")
@@ -100,13 +100,14 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
       montantFcfa,
       type === 'nature' ? qte : null,
       type === 'nature' ? produitNature : null,
-      (type === 'espece' || type === 'cheque' || (type === 'bon' && compteId)) ? compteId : null,
-      (type === 'cheque' || type === 'bon') ? referencePiece.trim() : null,
+      (type === 'espece' || type === 'cheque' || ((type === 'bon' || type === 'autre') && compteId)) ? compteId : null,
+      (type === 'cheque' || type === 'bon' || type === 'autre') ? referencePiece.trim() : null,
       {
         clientId: facture.client?.id || facture.client_id || null,
         clientNom: facture.client_nom || facture.client?.nom || null,
         origineStock,
         variete,
+        prixUnitaireNature: type === 'nature' ? prixUnitaire : null,
         typeDocument: facture.type_document || 'campagne',
         campagneId: facture.campagne_id || facture.campagne?.id || null,
       }
@@ -120,11 +121,12 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
     }
   }
 
-  const modalTitle = 
+  const modalTitle =
     type === 'espece' ? (d.title_cash || "Enregistrer un paiement en espèces") :
-    type === 'cheque' ? "Enregistrer un paiement par chèque / banque" :
-    type === 'bon' ? "Enregistrer un paiement par bon / compensation" :
-    (d.title_nature || "Enregistrer un paiement en nature")
+      type === 'cheque' ? "Enregistrer un paiement par chèque / banque" :
+        type === 'bon' ? "Enregistrer un paiement par bon / compensation" :
+          type === 'autre' ? "Enregistrer un autre mode de paiement" :
+            (d.title_nature || "Enregistrer un paiement en nature (ajout au stock)")
 
   const renderAmountInputHeader = (label: string) => (
     <div className="flex items-center justify-between gap-2">
@@ -204,7 +206,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
                   <p className="mt-1 text-xs text-foreground-muted">
                     Vous pouvez saisir un montant inférieur (paiement partiel) ou supérieur (surplus / ristourne) au restant à payer.
                   </p>
-                  
+
                   <label className="mt-3 block text-sm font-medium text-foreground">N° de chèque ou Référence bancaire *</label>
                   <input
                     type="text"
@@ -257,7 +259,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
 
-                  <label className="mt-3 block text-sm font-medium text-foreground">Compte de contrepartie (optionnel)</label>
+                  <label className="mt-3 block text-sm font-medium text-foreground">Compte de destination (optionnel)</label>
                   <select
                     value={compteId}
                     onChange={(e) => setCompteId(e.target.value)}
@@ -269,6 +271,46 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
                     ))}
                   </select>
                   <p className="mt-1 text-xs text-foreground-muted">Si un compte est sélectionné, une entrée de trésorerie sera générée avec la référence du bon.</p>
+                </div>
+              )}
+
+              {type === 'autre' && (
+                <div>
+                  {renderAmountInputHeader('Montant réglé (FCFA)')}
+                  <input
+                    type="number"
+                    required
+                    min="0.01"
+                    step="any"
+                    placeholder="Saisissez le montant réglé"
+                    value={montantSaisi}
+                    onChange={(e) => setMontantSaisi(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+
+                  <label className="mt-3 block text-sm font-medium text-foreground">Mode / Référence du paiement</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Mobile Money, Wave, Orange Money, Virement, Compensation..."
+                    value={referencePiece}
+                    onChange={(e) => setReferencePiece(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+
+                  <label className="mt-3 block text-sm font-medium text-foreground">Compte de destination à créditer</label>
+                  <select
+                    value={compteId}
+                    onChange={(e) => setCompteId(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="">Aucun compte (régularisation sans mouvement de trésorerie)</option>
+                    {comptes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nom}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-foreground-muted">
+                    Sélectionnez le compte de trésorerie (Caisse, Banque, Mobile Money...) qui reçoit les fonds.
+                  </p>
                 </div>
               )}
 
@@ -373,13 +415,12 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
               {/* Aperçu en direct du solde après ce paiement */}
               {montantEffectif > 0 && (
                 <div
-                  className={`p-3 rounded-md text-xs border ${
-                    nouveauReste > 0.5
+                  className={`p-3 rounded-md text-xs border ${nouveauReste > 0.5
                       ? 'bg-warning/10 border-warning/30 text-foreground'
                       : nouveauReste < -0.5
-                      ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'bg-success/10 border-success/30 text-success'
-                  }`}
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'bg-success/10 border-success/30 text-success'
+                    }`}
                 >
                   {nouveauReste > 0.5 ? (
                     <div className="flex justify-between items-center">
@@ -410,10 +451,11 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
               type="submit"
               form="paiement-form"
               disabled={
-                loading || 
+                loading ||
                 (type === 'espece' && (montantEffectif <= 0 || !compteId)) ||
                 (type === 'cheque' && (montantEffectif <= 0 || !compteId || !referencePiece.trim())) ||
                 (type === 'bon' && (montantEffectif <= 0 || !referencePiece.trim())) ||
+                (type === 'autre' && montantEffectif <= 0) ||
                 (type === 'nature' && (montantEffectif <= 0 || !produitNature.trim()))
               }
               className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto disabled:opacity-50"

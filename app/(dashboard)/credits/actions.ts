@@ -3,7 +3,14 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
-import { cleanButCredit } from '@/lib/credits-types'
+import {
+  cleanButCredit,
+  getCreditMaterielId,
+  getCreditDateAcquisition,
+  getCreditEquipementNom,
+  getCreditPeriodicite,
+  getCreditType,
+} from '@/lib/credits-types'
 
 export async function addCredit(formData: FormData) {
   const denied = await requirePermission('credits', 'create')
@@ -66,8 +73,51 @@ export async function addCredit(formData: FormData) {
   const dureeCredit = parseInt(formData.get('duree_credit') as string, 10) || (typeCredit === 'equipement' ? 36 : 12)
   const tauxInteret = parseFloat(formData.get('taux_interet') as string) || 0
 
+  let matchedMaterielId = (formData.get('materiel_id') as string)?.trim() || null
+  let effectiveDateAcquisition = (formData.get('date_acquisition') as string)?.trim() || null
+
+  if (typeCredit === 'equipement') {
+    // Chercher le matériel correspondant (par ID ou par nom) pour synchroniser la date d'acquisition
+    let matchedMat: { id: string; nom: string; date_acquisition: string | null } | null = null
+    if (matchedMaterielId) {
+      const { data: matById } = await supabase
+        .from('materiels')
+        .select('id, nom, date_acquisition')
+        .eq('gie_id', userData.gie_id)
+        .eq('id', matchedMaterielId)
+        .maybeSingle()
+      matchedMat = matById || null
+    } else if (equipementNom) {
+      const { data: matByName } = await supabase
+        .from('materiels')
+        .select('id, nom, date_acquisition')
+        .eq('gie_id', userData.gie_id)
+        .ilike('nom', equipementNom)
+        .limit(1)
+        .maybeSingle()
+      matchedMat = matByName || null
+      if (matchedMat) {
+        matchedMaterielId = matchedMat.id
+      }
+    }
+
+    if (matchedMat) {
+      if (matchedMat.date_acquisition && !effectiveDateAcquisition) {
+        effectiveDateAcquisition = matchedMat.date_acquisition.slice(0, 10)
+      } else if (effectiveDateAcquisition && matchedMat.date_acquisition !== effectiveDateAcquisition) {
+        // Synchroniser la date d'acquisition sur la fiche matériel si elle a été renseignée/modifiée
+        await supabase
+          .from('materiels')
+          .update({ date_acquisition: effectiveDateAcquisition })
+          .eq('id', matchedMat.id)
+      } else if (matchedMat.date_acquisition) {
+        effectiveDateAcquisition = matchedMat.date_acquisition.slice(0, 10)
+      }
+    }
+  }
+
   // Tag de méta-données pour compatibilité absolue
-  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''} [PERIODICITE:${periodicite}]${isIndependant ? ' [INDEPENDANT:true]' : ''}`
+  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''}${matchedMaterielId ? ` [MATERIEL_ID:${matchedMaterielId}]` : ''}${effectiveDateAcquisition ? ` [DATE_ACQUISITION:${effectiveDateAcquisition}]` : ''} [PERIODICITE:${periodicite}]${isIndependant ? ' [INDEPENDANT:true]' : ''}`
   const butCreditWithMeta = rawBut ? `${metaTag} ${rawBut}` : metaTag
 
   const insertData: any = {
@@ -81,6 +131,10 @@ export async function addCredit(formData: FormData) {
     taux_interet: tauxInteret,
   }
 
+  if (typeCredit === 'equipement' && effectiveDateAcquisition) {
+    insertData.date_demande = effectiveDateAcquisition
+  }
+
   const { error: insertError } = await supabase.from('credits').insert([insertData])
 
   if (insertError) {
@@ -89,6 +143,7 @@ export async function addCredit(formData: FormData) {
   }
 
   revalidatePath('/credits')
+  revalidatePath('/materiel')
   return { success: true }
 }
 
@@ -105,6 +160,7 @@ export async function updateCreditStatus(
     periodicite_remboursement?: string
     nombre_echeances?: number
     montant_echeance?: number
+    date_acquisition?: string
   }
 ) {
   const denied = await requirePermission('credits', 'update')
@@ -117,13 +173,18 @@ export async function updateCreditStatus(
   if (duree_credit !== undefined) data.duree_credit = duree_credit
   if (type_financement !== undefined) data.type_financement = type_financement
 
-  if (extra?.type_credit || extra?.equipement_nom || extra?.periodicite_remboursement) {
+  if (extra?.type_credit || extra?.equipement_nom || extra?.periodicite_remboursement || extra?.date_acquisition) {
     try {
-      const { data: existingCredit } = await supabase.from('credits').select('but_credit').eq('id', id).single()
+      const { data: existingCredit } = await supabase.from('credits').select('but_credit, date_demande').eq('id', id).single()
       const cleanOld = cleanButCredit(existingCredit?.but_credit)
       const isIndep = existingCredit?.but_credit?.includes('[INDEPENDANT:true]')
-      const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]${isIndep ? ' [INDEPENDANT:true]' : ''}`
+      const existingMatId = getCreditMaterielId(existingCredit || {})
+      const effectiveDateAcq = extra.date_acquisition || getCreditDateAcquisition(existingCredit || {})
+      const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''}${existingMatId ? ` [MATERIEL_ID:${existingMatId}]` : ''}${effectiveDateAcq ? ` [DATE_ACQUISITION:${effectiveDateAcq}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]${isIndep ? ' [INDEPENDANT:true]' : ''}`
       data.but_credit = cleanOld ? `${metaTag} ${cleanOld}` : metaTag
+      if (effectiveDateAcq) {
+        data.date_demande = effectiveDateAcq
+      }
     } catch (_) {}
   }
 
@@ -138,6 +199,74 @@ export async function updateCreditStatus(
   }
 
   revalidatePath('/credits')
+  revalidatePath(`/credits/${id}`)
+  return { success: true }
+}
+
+export async function updateCreditEquipementDateAcquisition(
+  creditId: string,
+  dateAcquisition: string,
+  materielId?: string | null
+) {
+  const denied = await requirePermission('credits', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const cleanDate = dateAcquisition?.trim()
+  if (!cleanDate) {
+    return { error: "Veuillez saisir une date d'acquisition valide." }
+  }
+
+  const { data: existingCredit, error: fetchErr } = await supabase
+    .from('credits')
+    .select('*')
+    .eq('id', creditId)
+    .single()
+
+  if (fetchErr || !existingCredit) {
+    return { error: fetchErr?.message || 'Crédit introuvable' }
+  }
+
+  const typeCredit = getCreditType(existingCredit)
+  const equipementNom = getCreditEquipementNom(existingCredit)
+  const periodicite = getCreditPeriodicite(existingCredit)
+  const isIndep = existingCredit.but_credit?.includes('[INDEPENDANT:true]')
+  const resolvedMatId = materielId || getCreditMaterielId(existingCredit)
+  const cleanOld = cleanButCredit(existingCredit.but_credit)
+
+  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''}${resolvedMatId ? ` [MATERIEL_ID:${resolvedMatId}]` : ''} [DATE_ACQUISITION:${cleanDate}] [PERIODICITE:${periodicite}]${isIndep ? ' [INDEPENDANT:true]' : ''}`
+  const butCreditWithMeta = cleanOld ? `${metaTag} ${cleanOld}` : metaTag
+
+  const { error: updateErr } = await supabase
+    .from('credits')
+    .update({
+      date_demande: cleanDate,
+      but_credit: butCreditWithMeta,
+    })
+    .eq('id', creditId)
+
+  if (updateErr) {
+    return { error: updateErr.message }
+  }
+
+  // Synchroniser également la fiche matériel liée (par ID ou par nom)
+  if (resolvedMatId) {
+    await supabase
+      .from('materiels')
+      .update({ date_acquisition: cleanDate })
+      .eq('id', resolvedMatId)
+  } else if (equipementNom && existingCredit.gie_id) {
+    await supabase
+      .from('materiels')
+      .update({ date_acquisition: cleanDate })
+      .eq('gie_id', existingCredit.gie_id)
+      .ilike('nom', equipementNom)
+  }
+
+  revalidatePath('/credits')
+  revalidatePath(`/credits/${creditId}`)
+  revalidatePath('/materiel')
+  revalidatePath('/materiel/amortissements')
   return { success: true }
 }
 

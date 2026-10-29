@@ -62,6 +62,113 @@ export function isCreditIndependant(credit: {
 }
 
 /**
+ * Récupère l'identifiant du matériel lié au crédit d'équipement (s'il est renseigné)
+ */
+export function getCreditMaterielId(credit: {
+  materiel_id?: string | null
+  but_credit?: string | null
+}): string | null {
+  if (credit.materiel_id) return credit.materiel_id
+  if (credit.but_credit) {
+    const match = credit.but_credit.match(/\[MATERIEL_ID:([^\]]+)\]/)
+    if (match && match[1] && match[1].trim()) return match[1].trim()
+  }
+  return null
+}
+
+/**
+ * Récupère la date d'acquisition du matériel / date de démarrage du crédit d'équipement
+ */
+export function getCreditDateAcquisition(credit: {
+  date_acquisition?: string | null
+  date_demande?: string | null
+  but_credit?: string | null
+  created_at?: string | null
+}): string | null {
+  if (credit.date_acquisition) return credit.date_acquisition
+  if (credit.but_credit) {
+    const match = credit.but_credit.match(/\[DATE_ACQUISITION:([^\]]+)\]/)
+    if (match && match[1] && match[1].trim()) return match[1].trim()
+  }
+  return null
+}
+
+/**
+ * Trouve le matériel correspondant à un crédit d'équipement dans la liste du parc matériel
+ */
+export function findLinkedMateriel<T extends { id: string; nom: string; date_acquisition?: string | null }>(
+  credit: {
+    materiel_id?: string | null
+    equipement_nom?: string | null
+    but_credit?: string | null
+  },
+  materiels?: T[] | null
+): T | null {
+  if (!materiels || materiels.length === 0) return null
+  const matId = getCreditMaterielId(credit)
+  if (matId) {
+    const byId = materiels.find((m) => m.id === matId)
+    if (byId) return byId
+  }
+  const equipNom = getCreditEquipementNom(credit)
+  if (equipNom) {
+    const normalized = equipNom.trim().toLowerCase()
+    const byExactName = materiels.find((m) => m.nom?.trim().toLowerCase() === normalized)
+    if (byExactName) return byExactName
+    const byPartialName = materiels.find(
+      (m) =>
+         normalized.includes(m.nom?.trim().toLowerCase()) ||
+        m.nom?.trim().toLowerCase().includes(normalized)
+    )
+    if (byPartialName) return byPartialName
+  }
+  return null
+}
+
+/**
+ * Résout la date de démarrage du crédit d'équipement en la faisant correspondre
+ * en priorité avec la date d'acquisition du matériel lié.
+ */
+export function resolveCreditEquipementStartDate(
+  credit: {
+    materiel_id?: string | null
+    equipement_nom?: string | null
+    date_acquisition?: string | null
+    date_demande?: string | null
+    but_credit?: string | null
+    created_at?: string | null
+  },
+  materiels?: Array<{ id: string; nom: string; date_acquisition?: string | null }> | null
+): string | null {
+  const linkedMat = findLinkedMateriel(credit, materiels)
+  if (linkedMat?.date_acquisition) {
+    return linkedMat.date_acquisition
+  }
+  const metaDate = getCreditDateAcquisition(credit)
+  if (metaDate) {
+    return metaDate
+  }
+  if (credit.date_demande) {
+    return credit.date_demande
+  }
+  return credit.created_at || null
+}
+
+/**
+ * Parse une date ISO (YYYY-MM-DD ou timestamp) sans décalage de fuseau horaire
+ */
+export function parseLocalDate(dateStr: string | null | undefined): Date {
+  if (!dateStr) return new Date()
+  const clean = dateStr.trim()
+  const match = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  }
+  const parsed = new Date(clean)
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+}
+
+/**
  * Nettoie le motif du crédit des méta-tags pour l'affichage utilisateur
  */
 export function cleanButCredit(butCredit: string | null | undefined): string {
@@ -69,6 +176,8 @@ export function cleanButCredit(butCredit: string | null | undefined): string {
   return butCredit
     .replace(/\[TYPE:[^\]]+\]/g, '')
     .replace(/\[EQUIPEMENT:[^\]]*\]/g, '')
+    .replace(/\[MATERIEL_ID:[^\]]*\]/g, '')
+    .replace(/\[DATE_ACQUISITION:[^\]]*\]/g, '')
     .replace(/\[PERIODICITE:[^\]]*\]/g, '')
     .replace(/\[ECHEANCE:[^\]]*\]/g, '')
     .replace(/\[INDEPENDANT:[^\]]*\]/g, '')

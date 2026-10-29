@@ -253,22 +253,61 @@ export async function getReleveClient(clientId: string) {
     })
   }
 
+  const rembIdsFromPaiements = new Set<string>()
+
   for (const p of paiementsRes.data || []) {
+    const rawMotif = String(p.motif || '')
+    const rembMatch = rawMotif.match(/\[REMB_ID:([^\]]+)\]/)
+    if (rembMatch && rembMatch[1]) {
+      rembIdsFromPaiements.add(rembMatch[1].trim())
+    }
+
+    const modeMatch = rawMotif.match(/\[MODE:([^\]]+)\]/)
+    const mode = modeMatch ? modeMatch[1].trim() : 'espece'
+    const qteMatch = rawMotif.match(/\[QTE:([^\]]+)\]/)
+    const puMatch = rawMotif.match(/\[PU:([^\]]+)\]/)
+    const prodMatch = rawMotif.match(/\[PRODUIT:([^\]]+)\]/)
+    const varMatch = rawMotif.match(/\[VARIETE:([^\]]+)\]/)
+    const refMatch = rawMotif.match(/\[REF:([^\]]+)\]/)
+
+    const cleanMotif = rawMotif.replace(/\[[^\]]*\]/g, '').trim()
+
+    const qteNature = qteMatch ? Number(qteMatch[1]) : null
+    const puNature = puMatch ? Number(puMatch[1]) : null
+    const prodNature = prodMatch ? prodMatch[1].trim() : null
+    const varNature = varMatch ? varMatch[1].trim() : null
+    const refPiece = refMatch ? refMatch[1].trim() : null
+
+    let designation = cleanMotif ? `Paiement reçu (${cleanMotif})` : 'Paiement reçu'
+    if (mode === 'nature' && qteNature) {
+      designation = `Paiement en nature : ${qteNature} kg de ${prodNature || 'produit'}${varNature ? ` (Var. ${varNature})` : ''}`
+    } else if (mode === 'cheque') {
+      designation = cleanMotif || `Paiement par chèque${refPiece ? ` (N° ${refPiece})` : ''}`
+    } else if (mode === 'bon') {
+      designation = cleanMotif || `Paiement par bon${refPiece ? ` (N° ${refPiece})` : ''}`
+    } else if (mode === 'autre') {
+      designation = cleanMotif || `Autre paiement${refPiece ? ` (${refPiece})` : ''}`
+    } else if (cleanMotif) {
+      designation = cleanMotif
+    }
+
     mouvements.push({
       id: p.id,
       date: p.date_paiement,
       type: 'paiement',
-      designation: p.motif ? `Paiement reçu (${p.motif})` : 'Paiement reçu',
-      quantite: null,
-      unite: null,
-      prix_unitaire: null,
+      designation,
+      quantite: mode === 'nature' && qteNature ? qteNature : null,
+      unite: mode === 'nature' && qteNature ? 'kg' : null,
+      prix_unitaire: mode === 'nature' && puNature ? puNature : null,
       montant: Number(p.montant),
     })
   }
 
   for (const r of (remboursementsRes.data || []) as any[]) {
+    if (rembIdsFromPaiements.has(r.id)) continue
+    const cleanProd = String(r.produit_nature || 'produit').replace(/\[[^\]]*\]/g, '').trim()
     const desc = r.type_remboursement === 'nature'
-      ? `Remboursement en nature : ${r.quantite_nature || ''} kg de ${r.produit_nature || 'produit'}`
+      ? `Remboursement en nature : ${r.quantite_nature || ''} kg de ${cleanProd}`
       : `Remboursement (${r.type_remboursement || 'espèces'})${r.reference_piece ? ` - Réf: ${r.reference_piece}` : ''}`
     mouvements.push({
       id: r.id,
@@ -276,8 +315,8 @@ export async function getReleveClient(clientId: string) {
       type: 'remboursement',
       designation: desc,
       quantite: r.quantite_nature ? Number(r.quantite_nature) : null,
-      unite: 'kg',
-      prix_unitaire: null,
+      unite: r.quantite_nature ? 'kg' : null,
+      prix_unitaire: r.quantite_nature && Number(r.quantite_nature) > 0 ? Math.round(Number(r.montant_fcfa || 0) / Number(r.quantite_nature)) : null,
       montant: Number(r.montant_fcfa || 0),
     })
   }
@@ -297,11 +336,35 @@ export async function getReleveClient(clientId: string) {
   }
 }
 
+export async function getContextePaiementClient() {
+  const supabase = await createClient()
+  const [{ data: comptes }, { data: campagnes }] = await Promise.all([
+    supabase.from('comptes').select('id, nom, type_compte').order('nom', { ascending: true }),
+    supabase
+      .from('campagnes')
+      .select('id, nom, statut, produit_collecte, prix_collecte')
+      .order('created_at', { ascending: false }),
+  ])
+  return {
+    comptes: comptes || [],
+    campagnes: campagnes || [],
+  }
+}
+
 export async function addPaiementClient(input: {
   client_id: string
   montant: number
   date_paiement?: string
   motif?: string
+  mode_paiement?: 'espece' | 'cheque' | 'bon' | 'nature' | 'autre'
+  compte_id?: string | null
+  reference_piece?: string | null
+  quantite_nature?: number | null
+  produit_nature?: string | null
+  prix_unitaire_nature?: number | null
+  variete?: string | null
+  origine_stock?: 'exploitation' | 'materiel' | 'achat'
+  campagne_id?: string | null
 }) {
   const denied = await requirePermission('bilans_clients', 'create')
   if (denied) return denied as never
@@ -317,18 +380,166 @@ export async function addPaiementClient(input: {
     .single()
 
   if (!userData) return { error: "Utilisateur introuvable" }
-  if (!input.montant || input.montant <= 0) return { error: "Montant invalide" }
+
+  const mode = input.mode_paiement || 'espece'
+  const datePaiement = input.date_paiement || new Date().toISOString().slice(0, 10)
+  const compteId = input.compte_id?.trim() || null
+  const refPiece = input.reference_piece?.trim() || null
+  const variete = input.variete?.trim() || null
+  const origineStock = input.origine_stock || 'materiel'
+
+  let montantEffectif = Number(input.montant || 0)
+  const qteNature = mode === 'nature' ? Number(input.quantite_nature || 0) : null
+  const puNature = mode === 'nature' ? Number(input.prix_unitaire_nature || 0) : null
+  const cleanProdName = mode === 'nature' ? (input.produit_nature || 'Riz paddy').trim() : null
+
+  if (mode === 'nature') {
+    if (!qteNature || qteNature <= 0) return { error: "Veuillez saisir une quantité en nature valide (kg)." }
+    if (!puNature || puNature <= 0) return { error: "Veuillez saisir un prix unitaire d'évaluation valide." }
+    montantEffectif = Math.round(qteNature * puNature)
+  }
+
+  if (!montantEffectif || montantEffectif <= 0) return { error: "Montant invalide" }
+
+  if ((mode === 'espece' || mode === 'cheque') && !compteId) {
+    return {
+      error: mode === 'cheque'
+        ? "Veuillez sélectionner le compte bancaire de destination."
+        : "Veuillez sélectionner le compte de trésorerie de destination.",
+    }
+  }
+
+  // Récupérer le nom du client
+  const { data: clientRow } = await supabase
+    .from('clients_externes')
+    .select('nom')
+    .eq('id', input.client_id)
+    .maybeSingle()
+  const nomClient = clientRow?.nom || 'Client externe'
+
+  // Campagne de rattachement pour le stock en nature
+  let effectiveCampagneId = input.campagne_id?.trim() || null
+  if (mode === 'nature' && !effectiveCampagneId) {
+    const { data: activeCamp } = await supabase
+      .from('campagnes')
+      .select('id')
+      .eq('gie_id', userData.gie_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    effectiveCampagneId = activeCamp?.id || null
+  }
+
+  // 1. Si paiement en nature (ou règlement client), tenter l'ajout dans remboursements pour le stock en nature
+  let rembId: string | null = null
+  if (mode === 'nature') {
+    const safeProduitNature = `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}] [CLIENT:${nomClient}]${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
+    const tryRemb = await supabase
+      .from('remboursements')
+      .insert({
+        gie_id: userData.gie_id,
+        client_id: input.client_id,
+        type_remboursement: 'nature',
+        montant_fcfa: montantEffectif,
+        quantite_nature: qteNature,
+        produit_nature: safeProduitNature,
+        origine_stock: origineStock,
+        variete: variete,
+        date_paiement: datePaiement,
+      })
+      .select('id')
+      .maybeSingle()
+
+    if (tryRemb.data?.id) {
+      rembId = tryRemb.data.id
+    } else {
+      const fallbackRemb = await supabase
+        .from('remboursements')
+        .insert({
+          gie_id: userData.gie_id,
+          type_remboursement: 'nature',
+          montant_fcfa: montantEffectif,
+          quantite_nature: qteNature,
+          produit_nature: safeProduitNature,
+          date_paiement: datePaiement,
+        })
+        .select('id')
+        .maybeSingle()
+      if (fallbackRemb.data?.id) {
+        rembId = fallbackRemb.data.id
+      }
+    }
+  }
+
+  // 2. Libellé humain et écriture de trésorerie sur le compte de destination choisi
+  const userNote = input.motif?.trim() || ''
+  let motifHumain = userNote || `Règlement client - ${nomClient}`
+  let typePiece = 'remboursement_client'
+
+  if (mode === 'espece') {
+    motifHumain = `Paiement espèces - ${nomClient}${userNote ? ` (${userNote})` : ''}`
+  } else if (mode === 'cheque') {
+    motifHumain = `Paiement par chèque${refPiece ? ` N° ${refPiece}` : ''} - ${nomClient}${userNote ? ` (${userNote})` : ''}`
+    typePiece = 'remboursement_cheque'
+  } else if (mode === 'bon') {
+    motifHumain = `Paiement par bon${refPiece ? ` N° ${refPiece}` : ''} - ${nomClient}${userNote ? ` (${userNote})` : ''}`
+    typePiece = 'remboursement_bon'
+  } else if (mode === 'autre') {
+    motifHumain = `Autre paiement${refPiece ? ` (${refPiece})` : ''} - ${nomClient}${userNote ? ` - ${userNote}` : ''}`
+    typePiece = 'remboursement_autre'
+  } else if (mode === 'nature') {
+    motifHumain = `Paiement en nature : ${qteNature} kg de ${cleanProdName}${variete ? ` (Var. ${variete})` : ''}${userNote ? ` - ${userNote}` : ''}`
+  }
+
+  if (compteId && (mode === 'espece' || mode === 'cheque' || mode === 'bon' || mode === 'autre')) {
+    const { error: txError } = await supabase.from('transactions').insert({
+      gie_id: userData.gie_id,
+      compte_id: compteId,
+      type_transaction: 'entree',
+      montant: montantEffectif,
+      motif: motifHumain,
+      type_piece: typePiece,
+      date_transaction: datePaiement,
+      campagne_id: effectiveCampagneId,
+    })
+
+    if (txError) {
+      if (rembId) await supabase.from('remboursements').delete().eq('id', rembId)
+      return { error: txError.message }
+    }
+  }
+
+  // 3. Enregistrer dans paiements_clients avec les méta-tags complets
+  const metaTags = [
+    `[MODE:${mode}]`,
+    rembId ? `[REMB_ID:${rembId}]` : '',
+    compteId ? `[COMPTE:${compteId}]` : '',
+    refPiece ? `[REF:${refPiece}]` : '',
+    mode === 'nature' && qteNature ? `[QTE:${qteNature}]` : '',
+    mode === 'nature' && puNature ? `[PU:${puNature}]` : '',
+    mode === 'nature' && cleanProdName ? `[PRODUIT:${cleanProdName}]` : '',
+    mode === 'nature' && variete ? `[VARIETE:${variete}]` : '',
+    mode === 'nature' ? `[ORIGINE:${origineStock}]` : '',
+    mode === 'nature' && effectiveCampagneId ? `[CAMPAGNE:${effectiveCampagneId}]` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   const { error } = await supabase.from('paiements_clients').insert({
     gie_id: userData.gie_id,
     client_id: input.client_id,
-    montant: input.montant,
-    date_paiement: input.date_paiement || new Date().toISOString().slice(0, 10),
-    motif: input.motif?.trim() || null,
+    montant: montantEffectif,
+    date_paiement: datePaiement,
+    motif: `${metaTags} ${motifHumain}`.trim(),
   })
 
   if (error) return { error: error.message }
 
   revalidatePath('/bilans/releve-client')
+  revalidatePath('/remboursements')
+  revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
+  revalidatePath('/facturation')
   return { success: true }
 }
