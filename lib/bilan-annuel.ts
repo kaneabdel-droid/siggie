@@ -24,7 +24,7 @@ export type BilanRaw = {
   }[]
   sorties: { campagne_id: string; membre_id: string | null; type_sortie: string; tiers_type: string; quantite: number | null; prix_unitaire: number | null; date_sortie: string }[]
   campagnes: { id: string; prix_collecte: number | null }[]
-  paiementsClients: { montant: number | null; date_paiement: string }[]
+  paiementsClients: { id?: string; montant: number | null; date_paiement: string; motif?: string | null }[]
   materiels: { id?: string; valeur_acquisition: number | null; duree_vie_economique: number | null; date_acquisition: string | null }[]
   prestations: { montant_facture: number | null; date_prestation: string; tiers_type?: string | null; membre_id?: string | null }[]
   consommations: { montant_total: number | null; date_consommation: string }[]
@@ -55,6 +55,8 @@ export type BilanCalcule = {
   annee: number
   actif: {
     immobilisations: Ligne
+    stocks_intrants: Ligne
+    stocks_remboursement: Ligne
     stocks: Ligne
     creances: Ligne
     disponibilites: Ligne
@@ -126,6 +128,20 @@ function prixCollecteParCampagne(raw: BilanRaw): Map<string, number> {
     fcfa.set(c, (fcfa.get(c) || 0) + n(r.montant_fcfa))
     qte.set(c, (qte.get(c) || 0) + n(r.quantite_nature))
   }
+  for (const pc of raw.paiementsClients || []) {
+    const motifStr = String(pc.motif || '')
+    if (!motifStr.includes('[MODE:nature]')) continue
+    const cMatch = motifStr.match(/\[CAMPAGNE:([^\]]+)\]/)
+    const qMatch = motifStr.match(/\[QTE:([^\]]+)\]/)
+    if (cMatch && qMatch) {
+      const c = cMatch[1]
+      const q = n(qMatch[1])
+      if (q > 0) {
+        fcfa.set(c, (fcfa.get(c) || 0) + n(pc.montant))
+        qte.set(c, (qte.get(c) || 0) + q)
+      }
+    }
+  }
   const prix = new Map<string, number>()
   for (const c of raw.campagnes) {
     const moyen = (qte.get(c.id) || 0) > 0 ? (fcfa.get(c.id) || 0) / (qte.get(c.id) || 1) : 0
@@ -152,49 +168,103 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
       return Math.max(0, n(i.quantite_stock) + distribuesApres - achetesApres) * n(i.prix_unitaire)
     })
 
-  // Stock en nature (produits agricoles en stock issus des remboursements en nature), valorisé au prix de collecte.
+  // Stock en nature (produits agricoles en stock issus des remboursements en nature et règlements de récolte)
   const stockNatureA = (limite: number) => {
     const knownCampagneIds = new Set(raw.campagnes.map((c) => c.id))
+    const rembIdsIncluded = new Set<string>()
+
     let totalNature = somme(raw.campagnes, (c) => {
-      const entrees = somme(
-        raw.remboursements.filter((r) => {
-          if (r.type_remboursement !== 'nature' || !avant(r.date_paiement, limite)) return false
-          let cid = r.facture_id ? campagneDeFacture.get(r.facture_id) : undefined
-          if (!cid && r.document_type === 'campagne' && r.document_id) cid = r.document_id
-          if (!cid && r.produit_nature) {
-            const m = r.produit_nature.match(/\[CAMPAGNE:([^\]]+)\]/)
-            if (m) cid = m[1]
-          }
-          return cid === c.id
-        }),
-        (r) => n(r.quantite_nature)
-      )
-      const sorties = somme(
-        raw.sorties.filter((s) => s.campagne_id === c.id && avant(s.date_sortie, limite)),
-        (s) => n(s.quantite)
-      )
-      return Math.max(0, entrees - sorties) * (prixCollecte.get(c.id) || 0)
+      let qteEntrees = 0
+      let valEntrees = 0
+
+      // 1. Remboursements directs en nature
+      for (const r of raw.remboursements) {
+        if (r.type_remboursement !== 'nature' || !avant(r.date_paiement, limite)) continue
+        let cid = r.facture_id ? campagneDeFacture.get(r.facture_id) : undefined
+        if (!cid && r.document_type === 'campagne' && r.document_id) cid = r.document_id
+        if (!cid && r.produit_nature) {
+          const m = r.produit_nature.match(/\[CAMPAGNE:([^\]]+)\]/)
+          if (m) cid = m[1]
+        }
+        if (cid === c.id) {
+          if (r.id) rembIdsIncluded.add(r.id)
+          const q = n(r.quantite_nature)
+          qteEntrees += q
+          valEntrees += n(r.montant_fcfa) > 0 ? n(r.montant_fcfa) : q * (prixCollecte.get(c.id) || 0)
+        }
+      }
+
+      // 2. Paiements clients en nature (prestations, etc.)
+      for (const pc of raw.paiementsClients || []) {
+        if (!avant(pc.date_paiement, limite)) continue
+        const motifStr = String(pc.motif || '')
+        if (!motifStr.includes('[MODE:nature]')) continue
+        const rembIdMatch = motifStr.match(/\[REMB_ID:([^\]]+)\]/)
+        if (rembIdMatch && rembIdMatch[1] && rembIdsIncluded.has(rembIdMatch[1].trim())) {
+          continue
+        }
+        const cMatch = motifStr.match(/\[CAMPAGNE:([^\]]+)\]/)
+        if (cMatch && cMatch[1] === c.id) {
+          const qMatch = motifStr.match(/\[QTE:([^\]]+)\]/)
+          const q = qMatch ? n(qMatch[1]) : 0
+          qteEntrees += q
+          valEntrees += n(pc.montant) > 0 ? n(pc.montant) : q * (prixCollecte.get(c.id) || 0)
+        }
+      }
+
+      // Sorties (ventes et ristournes)
+      let qteSorties = 0
+      let valSorties = 0
+      for (const s of raw.sorties) {
+        if (s.campagne_id === c.id && avant(s.date_sortie, limite)) {
+          const q = n(s.quantite)
+          qteSorties += q
+          valSorties += q * (prixCollecte.get(c.id) || n(s.prix_unitaire))
+        }
+      }
+
+      const qteRestante = Math.max(0, qteEntrees - qteSorties)
+      if (qteRestante <= 0) return 0
+
+      if (qteEntrees > 0 && valEntrees > 0) {
+        return Math.max(0, valEntrees - valSorties)
+      }
+      return qteRestante * (prixCollecte.get(c.id) || 0)
     })
 
     // Remboursements en nature hors campagne ou sur campagne non configurée
-    const orphelins = raw.remboursements.filter((r) => {
-      if (r.type_remboursement !== 'nature' || !avant(r.date_paiement, limite)) return false
+    for (const r of raw.remboursements) {
+      if (r.type_remboursement !== 'nature' || !avant(r.date_paiement, limite)) continue
       let cid = r.facture_id ? campagneDeFacture.get(r.facture_id) : undefined
       if (!cid && r.document_type === 'campagne' && r.document_id) cid = r.document_id
       if (!cid && r.produit_nature) {
         const m = r.produit_nature.match(/\[CAMPAGNE:([^\]]+)\]/)
         if (m) cid = m[1]
       }
-      return !cid || !knownCampagneIds.has(cid)
-    })
-    if (orphelins.length > 0) {
-      totalNature += somme(orphelins, (r) => n(r.montant_fcfa))
+      if (!cid || !knownCampagneIds.has(cid)) {
+        totalNature += n(r.montant_fcfa) > 0 ? n(r.montant_fcfa) : n(r.quantite_nature) * 100
+      }
+    }
+
+    // Paiements clients nature orphelins (sans campagne configurée)
+    for (const pc of raw.paiementsClients || []) {
+      if (!avant(pc.date_paiement, limite)) continue
+      const motifStr = String(pc.motif || '')
+      if (!motifStr.includes('[MODE:nature]')) continue
+      const cMatch = motifStr.match(/\[CAMPAGNE:([^\]]+)\]/)
+      const cid = cMatch ? cMatch[1] : null
+      if (!cid || !knownCampagneIds.has(cid)) {
+        const rembIdMatch = motifStr.match(/\[REMB_ID:([^\]]+)\]/)
+        if (!rembIdMatch || !rembIdsIncluded.has(rembIdMatch[1].trim())) {
+          totalNature += n(pc.montant)
+        }
+      }
     }
 
     return totalNature
   }
 
-  // Stock total de fin d'année (intrants + produits)
+  // Stock total de fin d'année (intrants + produits de remboursement)
   const stockIntrants = stockIntrantsA(fin)
   const stockNature = stockNatureA(fin)
   const stockTotal = stockIntrants + stockNature
@@ -245,6 +315,8 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
 
   const actif = {
     immobilisations: ligne(immoBrut, immoAmo),
+    stocks_intrants: ligne(stockIntrants),
+    stocks_remboursement: ligne(stockNature),
     stocks: ligne(stockTotal),
     creances: ligne(creancesMembres + creancesClients),
     disponibilites: ligne(disponibilites),

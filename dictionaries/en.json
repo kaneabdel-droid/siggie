@@ -1470,7 +1470,9 @@
     },
     "rows": {
       "immobilisations": "Fixed assets",
-      "stocks": "Stocks",
+      "stocks_intrants": "Input stocks",
+      "stocks_remboursement": "Repayment harvest stock (in-kind)",
+      "stocks": "Total stocks",
       "creances": "Receivables",
       "disponibilites": "Cash & bank",
       "total_actif": "Total Assets",
@@ -1496,6 +1498,8 @@
     },
     "notes": {
       "immobilisations": "Equipment: acquisition cost, cumulative straight-line depreciation",
+      "stocks_intrants": "Inputs in stock at latest known cost",
+      "stocks_remboursement": "Harvest products collected as in-kind repayments and share of harvest at collection price",
       "stocks": "All stocks: inputs (latest price) + in-kind products (collection price)",
       "creances": "Customer accounts balance: per member, invoices - repayments + rebates (if positive), plus external customers",
       "disponibilites": "Balance of treasury accounts",

@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import Link from 'next/link'
-import { ArrowLeft, Users, PackageOpen, Banknote, BarChart3, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Users, PackageOpen, Banknote, BarChart3, TrendingUp, Wheat, Layers } from 'lucide-react'
 import { Fragment } from 'react'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { getDictionary, getLocale } from '@/dictionaries'
@@ -40,6 +40,9 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     { data: campagneIntrantsData },
     { data: distributionsData },
     { data: facturesData },
+    { data: rembNatureData },
+    { data: sortiesNatureData },
+    { data: paiementsClientsData },
   ] = await Promise.all([
     getTenantContext(),
     // 2. Counts (Members)
@@ -60,7 +63,11 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
       membres (prenom, nom, code_membre)
     `).eq('campagne_id', id),
     // 5. Factures / Remboursements
-    supabase.from('factures').select('membre_id, montant_paye, montant_interet, membres (prenom, nom, code_membre)').eq('campagne_id', id),
+    supabase.from('factures').select('id, membre_id, montant_paye, montant_interet, membres (prenom, nom, code_membre)').eq('campagne_id', id),
+    // 6. Remboursements en nature & sorties pour le stock de la campagne
+    supabase.from('remboursements').select('id, quantite_nature, produit_nature, montant_fcfa, date_paiement, facture_id').eq('type_remboursement', 'nature'),
+    supabase.from('sorties_stock_nature').select('id, type_sortie, quantite, prix_unitaire, date_sortie').eq('campagne_id', id),
+    supabase.from('paiements_clients').select('id, montant, date_paiement, motif'),
   ])
 
   const gieName = tenant?.gieName || 'Mon GIE'
@@ -160,6 +167,52 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
   const totalMembresServis = membresServis.size
   const margeNette = totalValeurDistribuee - totalCoutAchat
 
+  // --- Compute Stock de Remboursement (Collecte en Nature) ---
+  const facturesCampagneIds = new Set(facturesData?.map((f: any) => f.id) || [])
+  let rembNatureQte = 0
+  let rembNatureVal = 0
+  const rembIdsIncluded = new Set<string>()
+
+  for (const r of (rembNatureData || []) as any[]) {
+    const prodStr = String(r.produit_nature || '')
+    const campMatch = prodStr.match(/\[CAMPAGNE:([^\]]+)\]/)
+    const isThisCamp = campMatch ? campMatch[1].trim() === id : (r.facture_id && facturesCampagneIds.has(r.facture_id))
+    if (!isThisCamp) continue
+
+    rembIdsIncluded.add(r.id)
+    const q = Number(r.quantite_nature || 0)
+    rembNatureQte += q
+    rembNatureVal += Number(r.montant_fcfa || 0) > 0 ? Number(r.montant_fcfa) : q * Number(campagne.prix_collecte || 0)
+  }
+
+  for (const pc of (paiementsClientsData || []) as any[]) {
+    const motifStr = String(pc.motif || '')
+    if (!motifStr.includes('[MODE:nature]')) continue
+    const rembIdMatch = motifStr.match(/\[REMB_ID:([^\]]+)\]/)
+    if (rembIdMatch && rembIdMatch[1] && rembIdsIncluded.has(rembIdMatch[1].trim())) continue
+
+    const campMatch = motifStr.match(/\[CAMPAGNE:([^\]]+)\]/)
+    if (!campMatch || campMatch[1].trim() !== id) continue
+
+    const qMatch = motifStr.match(/\[QTE:([^\]]+)\]/)
+    const q = qMatch ? Number(qMatch[1]) : 0
+    rembNatureQte += q
+    rembNatureVal += Number(pc.montant || 0) > 0 ? Number(pc.montant) : q * Number(campagne.prix_collecte || 0)
+  }
+
+  let sortiesNatureQte = 0
+  let sortiesNatureVal = 0
+  for (const s of (sortiesNatureData || []) as any[]) {
+    const q = Number(s.quantite || 0)
+    sortiesNatureQte += q
+    sortiesNatureVal += q * (Number(campagne.prix_collecte || 0) || Number(s.prix_unitaire || 0))
+  }
+
+  const stockNatureRestantQte = Math.max(0, rembNatureQte - sortiesNatureQte)
+  const stockNatureRestantVal = rembNatureQte > 0 && rembNatureVal > 0
+    ? Math.max(0, rembNatureVal - sortiesNatureVal)
+    : stockNatureRestantQte * Number(campagne.prix_collecte || 0)
+
   // Convert Maps to Arrays for rendering
   const productList = Array.from(productStats.entries()).map(([iId, stats]) => {
     const prixAchat = intrantInfoMap.get(iId)?.prix_unitaire || 0
@@ -226,7 +279,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <div className="overflow-hidden rounded-lg bg-surface p-4 shadow-sm border border-surface-border flex flex-col items-center justify-center text-center gap-1 hover:border-primary transition-colors cursor-default">
           <div className="rounded-md bg-secondary/20 p-2 shrink-0">
             <Users className="h-5 w-5 text-secondary" aria-hidden="true" />
@@ -286,7 +339,75 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
             </dd>
           </div>
         </div>
+
+        <div className="overflow-hidden rounded-lg bg-surface p-4 shadow-sm border border-surface-border flex flex-col items-center justify-center text-center gap-1 hover:border-primary transition-colors cursor-default">
+          <div className="rounded-md bg-warning/20 p-2 shrink-0">
+            <Wheat className="h-5 w-5 text-warning" aria-hidden="true" />
+          </div>
+          <div className="w-full mt-1">
+            <dt className="text-xs font-medium text-foreground-muted min-h-[2rem] flex items-center justify-center leading-tight">Stock Remboursement</dt>
+            <dd className="mt-1 text-base font-bold tracking-tight text-warning">
+              {stockNatureRestantVal.toLocaleString(dateLocale)} <span className="text-xs font-normal text-foreground-muted">{unite.trim()}</span>
+            </dd>
+          </div>
+        </div>
       </div>
+
+      {/* Détail du Stock de Remboursement si entrées ou produit défini */}
+      {(rembNatureQte > 0 || rembNatureVal > 0 || Boolean(campagne.produit_collecte)) && (
+        <div className="overflow-hidden rounded-lg bg-surface border border-surface-border p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-surface-border pb-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-md bg-warning/20 p-2">
+                <Wheat className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Stock de Remboursement & Collecte en Nature</h3>
+                <p className="text-xs text-foreground-muted">
+                  Suivi des remboursements en nature reçus des membres et règlements de récolte
+                </p>
+              </div>
+            </div>
+            {campagne.produit_collecte && (
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                Produit : {campagne.produit_collecte} {Number(campagne.prix_collecte || 0) > 0 ? `(${Number(campagne.prix_collecte).toLocaleString(dateLocale)} FCFA/unité)` : ''}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div className="rounded-lg bg-background/50 p-3 border border-surface-border">
+              <span className="text-xs text-foreground-muted block">Entrées Récoltées (Remboursements)</span>
+              <span className="text-lg font-bold text-success block mt-1">
+                {rembNatureVal.toLocaleString(dateLocale)} {unite.trim()}
+              </span>
+              <span className="text-xs text-foreground-muted">
+                {rembNatureQte.toLocaleString(dateLocale)} unité(s) / kg
+              </span>
+            </div>
+
+            <div className="rounded-lg bg-background/50 p-3 border border-surface-border">
+              <span className="text-xs text-foreground-muted block">Sorties & Ventes Réalisées</span>
+              <span className="text-lg font-bold text-danger block mt-1">
+                {sortiesNatureVal.toLocaleString(dateLocale)} {unite.trim()}
+              </span>
+              <span className="text-xs text-foreground-muted">
+                {sortiesNatureQte.toLocaleString(dateLocale)} unité(s) vendue(s)
+              </span>
+            </div>
+
+            <div className="rounded-lg bg-warning/10 p-3 border border-warning/30">
+              <span className="text-xs font-semibold text-warning block">Stock Actuel Restant</span>
+              <span className="text-lg font-bold text-warning block mt-1">
+                {stockNatureRestantVal.toLocaleString(dateLocale)} {unite.trim()}
+              </span>
+              <span className="text-xs text-foreground-muted">
+                {stockNatureRestantQte.toLocaleString(dateLocale)} en magasin
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Table By Product */}

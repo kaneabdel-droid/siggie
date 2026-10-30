@@ -144,17 +144,23 @@ export default function BilanAnnuelPdfButton({
       const bilanRows = (side: 'actif' | 'passif', keys: string[]) => {
         const cur = n[side] as unknown as Record<string, Ligne>
         const prev = n1[side] as unknown as Record<string, Ligne>
-        const ligne = (k: string, label: string, bold = false) => {
-          const cells = [label, m(cur[k].brut), m(cur[k].amo), m(cur[k].net), m(prev[k].net)]
+        const ligne = (k: string, label: string, bold = false, isSub = false) => {
+          const rowCur = cur[k] || { brut: 0, amo: 0, net: 0 }
+          const rowPrev = prev[k] || { brut: 0, amo: 0, net: 0 }
+          const displayLabel = isSub ? `   ↳ ${label}` : label
+          const cells = [displayLabel, m(rowCur.brut), m(rowCur.amo), m(rowCur.net), m(rowPrev.net)]
           return bold ? cells.map((content) => ({ content, styles: { fontStyle: 'bold' as const } })) : cells
         }
-        return [...keys.map((k) => ligne(k, t.rows[k])), ligne('total', t.rows[`total_${side}`], true)]
+        return [
+          ...keys.map((k) => ligne(k, t.rows[k] || k, k === 'stocks', k === 'stocks_intrants' || k === 'stocks_remboursement')),
+          ligne('total', t.rows[`total_${side}`], true)
+        ]
       }
       const bilanHead = [[t.cols.rubrique, t.cols.brut, t.cols.amo, t.cols.net, t.cols.net_n1]]
       const colStyles = { 0: { cellWidth: 62 }, 1: { halign: 'right' as const }, 2: { halign: 'right' as const }, 3: { halign: 'right' as const }, 4: { halign: 'right' as const } }
 
       titre(`${t.actif_title} ${annee}`)
-      autoTable(doc, { ...style, startY: y, head: bilanHead, body: bilanRows('actif', ['immobilisations', 'stocks', 'creances', 'disponibilites']), columnStyles: colStyles })
+      autoTable(doc, { ...style, startY: y, head: bilanHead, body: bilanRows('actif', ['immobilisations', 'stocks_intrants', 'stocks_remboursement', 'stocks', 'creances', 'disponibilites']), columnStyles: colStyles })
       suite()
 
       titre(`${t.passif_title} ${annee}`)

@@ -1473,7 +1473,9 @@
     },
     "rows": {
       "immobilisations": "Immobilisations",
-      "stocks": "Stocks",
+      "stocks_intrants": "Stocks d'intrants",
+      "stocks_remboursement": "Stock de remboursement (produits)",
+      "stocks": "Total des stocks",
       "creances": "Créances",
       "disponibilites": "Disponibilités",
       "total_actif": "Total Actif",
@@ -1499,6 +1501,8 @@
     },
     "notes": {
       "immobilisations": "Matériel : valeur d'acquisition, amortissement linéaire cumulé",
+      "stocks_intrants": "Stock d'intrants en magasin valorisé au dernier prix connu",
+      "stocks_remboursement": "Stock de produits agricoles récoltés issus des remboursements en nature et parts de récolte au prix de collecte",
       "stocks": "Tous les stocks : intrants (au dernier prix) + produits en nature (au prix de collecte)",
       "creances": "Solde des comptes clients : par membre, factures - remboursements + ristournes (si positif), plus clients externes",
       "disponibilites": "Solde des comptes de trésorerie",

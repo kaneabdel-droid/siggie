@@ -39,7 +39,7 @@ export async function getBilanAnnuel(annee: number): Promise<BilanAnnuelData | {
       fetchAll<BilanRaw['remboursements'][number]>(supabase, 'remboursements', 'id, facture_id, membre_id, type_remboursement, montant_fcfa, quantite_nature, date_paiement, produit_nature'),
       fetchAll<BilanRaw['sorties'][number]>(supabase, 'sorties_stock_nature', 'id, campagne_id, membre_id, type_sortie, tiers_type, quantite, prix_unitaire, date_sortie'),
       fetchAll<BilanRaw['campagnes'][number]>(supabase, 'campagnes', 'id, prix_collecte'),
-      fetchAll<BilanRaw['paiementsClients'][number]>(supabase, 'paiements_clients', 'id, montant, date_paiement'),
+      fetchAll<BilanRaw['paiementsClients'][number]>(supabase, 'paiements_clients', 'id, montant, date_paiement, motif'),
       fetchAll<BilanRaw['materiels'][number]>(supabase, 'materiels', 'id, valeur_acquisition, duree_vie_economique, date_acquisition'),
       fetchAll<BilanRaw['prestations'][number]>(supabase, 'materiel_prestations', '*'),
       fetchAll<BilanRaw['consommations'][number]>(supabase, 'materiel_consommations', 'id, montant_total, date_consommation'),

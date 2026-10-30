@@ -20,6 +20,11 @@ export async function getGlobalStats() {
     { data: materiels },
     { data: prestations },
     { data: consommations },
+    { data: intrants },
+    { data: remboursementsData },
+    { data: paiementsClientsData },
+    { data: sortiesData },
+    { data: campagnesData },
   ] = await Promise.all([
     // 1. Trésorerie : Solde des comptes
     supabase.from('comptes').select('solde_initial'),
@@ -33,6 +38,12 @@ export async function getGlobalStats() {
     supabase.from('materiels').select('id, valeur_acquisition, duree_vie_economique, date_acquisition'),
     supabase.from('materiel_prestations').select('montant_facture'),
     supabase.from('materiel_consommations').select('montant_total'),
+    // 5. Stocks (Intrants & Remboursements en Nature)
+    supabase.from('intrants').select('quantite_stock, prix_unitaire'),
+    supabase.from('remboursements').select('id, montant_fcfa, quantite_nature, type_remboursement, produit_nature, facture_id'),
+    supabase.from('paiements_clients').select('id, montant, motif'),
+    supabase.from('sorties_stock_nature').select('quantite, prix_unitaire'),
+    supabase.from('campagnes').select('id, prix_collecte'),
   ])
 
   let soldeTresorerie = (comptes || []).reduce((sum, c) => sum + (c.solde_initial || 0), 0)
@@ -82,6 +93,32 @@ export async function getGlobalStats() {
 
   const rentabiliteMateriel = totalRecettesMateriel - totalDepensesMateriel - totalAmortissement
 
+  // 5. État des Stocks (Intrants & Remboursements)
+  const stockIntrants = (intrants || []).reduce(
+    (sum, i) => sum + Math.max(0, Number(i.quantite_stock || 0)) * Number(i.prix_unitaire || 0),
+    0
+  )
+
+  let stockRemboursement = 0
+  const rembIdsIncluded = new Set<string>()
+  for (const r of (remboursementsData || []) as any[]) {
+    if (r.type_remboursement !== 'nature') continue
+    rembIdsIncluded.add(r.id)
+    stockRemboursement += Number(r.montant_fcfa || 0)
+  }
+  for (const pc of (paiementsClientsData || []) as any[]) {
+    const motifStr = String(pc.motif || '')
+    if (!motifStr.includes('[MODE:nature]')) continue
+    const rembIdMatch = motifStr.match(/\[REMB_ID:([^\]]+)\]/)
+    if (rembIdMatch && rembIdMatch[1] && rembIdsIncluded.has(rembIdMatch[1].trim())) continue
+    stockRemboursement += Number(pc.montant || 0)
+  }
+  const sortiesVal = (sortiesData || []).reduce(
+    (sum, s) => sum + Number(s.quantite || 0) * Number(s.prix_unitaire || 0),
+    0
+  )
+  stockRemboursement = Math.max(0, stockRemboursement - sortiesVal)
+
   return {
     tresorerie: {
       soldeActuel: soldeTresorerie,
@@ -98,6 +135,11 @@ export async function getGlobalStats() {
       totalRecettes: totalRecettesMateriel,
       totalDepenses: totalDepensesMateriel,
       amortissementCumule: totalAmortissement
+    },
+    stocks: {
+      total: stockIntrants + stockRemboursement,
+      intrants: stockIntrants,
+      remboursement: stockRemboursement,
     }
   }
 }

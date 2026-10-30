@@ -6,7 +6,10 @@ import {
   TrendingDown,
   AlertTriangle,
   Tractor,
-  Wallet
+  Wallet,
+  Package,
+  Layers,
+  Wheat
 } from 'lucide-react'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { useUnite } from '@/components/DeviseProvider'
@@ -14,7 +17,8 @@ import { useUnite } from '@/components/DeviseProvider'
 type StatsProps = {
   tresorerie: { soldeActuel: number, totalEntrees: number, totalSorties: number },
   creances: { facturesImpayees: number, creditsEnCours: number, totalCreances: number },
-  materiel: { rentabiliteNette: number, totalRecettes: number, totalDepenses: number, amortissementCumule: number }
+  materiel: { rentabiliteNette: number, totalRecettes: number, totalDepenses: number, amortissementCumule: number },
+  stocks?: { total: number, intrants: number, remboursement: number }
 }
 
 export default function BilansClient({ stats, dict, gieName }: { stats: StatsProps, dict: any, gieName: string }) {
@@ -174,6 +178,56 @@ export default function BilansClient({ stats, dict, gieName }: { stats: StatsPro
           </div>
         </div>
       </div>
+
+      {/* 4. État des Stocks (Intrants & Remboursements) */}
+      {stats.stocks && (
+        <div>
+          <h3 className="text-lg font-medium text-foreground mb-4 mt-8">État des Stocks (Intrants & Remboursements)</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="bg-surface border border-surface-border overflow-hidden rounded-lg shadow-sm p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Package className="h-6 w-6 text-foreground-muted" aria-hidden="true" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground-muted truncate">Total des Stocks</p>
+                  <p className="text-2xl font-semibold text-foreground">
+                    {stats.stocks.total.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-surface border border-surface-border overflow-hidden rounded-lg shadow-sm p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Layers className="h-6 w-6 text-primary" aria-hidden="true" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground-muted truncate">Stock d&apos;Intrants</p>
+                  <p className="text-2xl font-semibold text-primary">
+                    {stats.stocks.intrants.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-surface border border-surface-border overflow-hidden rounded-lg shadow-sm p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Wheat className="h-6 w-6 text-warning" aria-hidden="true" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground-muted truncate">Stock de Remboursement (Produits)</p>
+                  <p className="text-2xl font-semibold text-warning">
+                    {stats.stocks.remboursement.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}{unite}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
