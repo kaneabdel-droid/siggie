@@ -30,7 +30,26 @@ export default async function IntrantsPage({
     queryBuilder = queryBuilder.or(`nom.ilike.%${query}%,type_intrant.ilike.%${query}%`)
   }
 
-  const { data: intrants, error } = await queryBuilder
+  const { data: rawIntrants, error } = await queryBuilder
+
+  // Déduplication des intrants pour éviter tout doublon dans l'affichage
+  const uniqueIntrantsMap = new Map<string, any>()
+  for (const item of rawIntrants || []) {
+    const key = `${(item.nom || '').trim().toLowerCase()}___${(item.type_intrant || '').trim().toLowerCase()}`
+    const existing = uniqueIntrantsMap.get(key)
+    if (!existing) {
+      uniqueIntrantsMap.set(key, { ...item })
+    } else {
+      existing.quantite_stock = Number(existing.quantite_stock || 0) + Number(item.quantite_stock || 0)
+      if ((!existing.prix_unitaire || existing.prix_unitaire === 0) && item.prix_unitaire) {
+        existing.prix_unitaire = item.prix_unitaire
+      }
+      if (!existing.fournisseur && item.fournisseur) {
+        existing.fournisseur = item.fournisseur
+      }
+    }
+  }
+  const intrants = Array.from(uniqueIntrantsMap.values())
 
   // Calculs des KPIs
   const totalValue = intrants?.reduce((sum, intrant) => sum + (intrant.quantite_stock * intrant.prix_unitaire), 0) || 0

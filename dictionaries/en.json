@@ -770,6 +770,7 @@
       "overview": "Overview",
       "releve_membre": "Member Statement",
       "releve_client": "Customer Statement",
+      "releve_fournisseur": "Supplier Statement",
       "suivi_budgetaire": "Budget Tracking",
       "bilan_annuel": "Annual Balance Sheet"
     },
@@ -1413,6 +1414,39 @@
         "motif": "Reason (Optional)",
         "motif_placeholder": "E.g.: Partial settlement",
         "submit": "Record the payment"
+      }
+    },
+    "releve_fournisseur": {
+      "no_fournisseurs": "No supplier registered.",
+      "title": "Supplier Statement & Ledger",
+      "desc": "General Ledger of purchases, debts and supplier settlements, with progressive balance.",
+      "select_fournisseur": "Select a supplier",
+      "add_fournisseur": "New Supplier",
+      "add_payment": "Record a settlement",
+      "loading": "Loading supplier statement...",
+      "current_balance": "Outstanding balance (debt)",
+      "headers": {
+        "date": "Date",
+        "nature": "Nature",
+        "designation": "Designation",
+        "debit": "Billed (Debt +)",
+        "credit": "Settled (Payment -)",
+        "balance": "Outstanding Balance"
+      },
+      "new_fournisseur_form": {
+        "title": "New Supplier",
+        "name": "Supplier name",
+        "name_placeholder": "E.g.: SENCHIM, Sahel Agro...",
+        "phone": "Phone (Optional)",
+        "submit": "Save supplier"
+      },
+      "payment_form": {
+        "title": "Record a supplier payment",
+        "amount": "Disbursed amount (FCFA)",
+        "date": "Date",
+        "account": "Cash/Bank account",
+        "motif": "Reason (Optional)",
+        "submit": "Validate disbursement"
       }
     }
   },

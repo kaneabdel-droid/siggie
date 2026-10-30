@@ -23,11 +23,27 @@ export async function addIntrant(formData: FormData) {
 
   // Le fournisseur et le prix sont désormais renseignés lors du premier achat
   // (voir buyIntrant) plutôt qu'à la création de la fiche produit.
-  const typeIntrant = formData.get('type_intrant') as string
+  const nom = (formData.get('nom') as string)?.trim()
+  if (!nom) return { error: "Le nom de l'intrant est requis." }
+
+  const typeIntrant = (formData.get('type_intrant') as string)?.trim() || 'engrais'
+
+  // Vérifier les doublons pour ce GIE (insensible à la casse)
+  const { data: existing } = await supabase
+    .from('intrants')
+    .select('id, nom')
+    .eq('gie_id', userData.gie_id)
+    .ilike('nom', nom)
+    .limit(1)
+
+  if (existing && existing.length > 0) {
+    return { error: `Un intrant nommé "${nom}" existe déjà dans votre catalogue.` }
+  }
+
   const data = {
     gie_id: userData.gie_id,
     type_intrant: typeIntrant,
-    nom: formData.get('nom'),
+    nom,
     fournisseur: null,
     quantite_stock: isStockableType(typeIntrant) ? (parseFloat(formData.get('quantite_stock') as string) || 0) : 0,
     prix_unitaire: 0,
@@ -50,10 +66,35 @@ export async function updateIntrant(id: string, formData: FormData) {
   if (denied) return denied as never
   const supabase = await createClient()
 
-  const typeIntrant = formData.get('type_intrant') as string
+  const nom = (formData.get('nom') as string)?.trim()
+  if (!nom) return { error: "Le nom de l'intrant est requis." }
+
+  const typeIntrant = (formData.get('type_intrant') as string)?.trim() || 'engrais'
+
+  // Récupérer le gie_id
+  const { data: current } = await supabase
+    .from('intrants')
+    .select('gie_id')
+    .eq('id', id)
+    .single()
+
+  if (current?.gie_id) {
+    const { data: existing } = await supabase
+      .from('intrants')
+      .select('id, nom')
+      .eq('gie_id', current.gie_id)
+      .neq('id', id)
+      .ilike('nom', nom)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      return { error: `Un autre intrant nommé "${nom}" existe déjà.` }
+    }
+  }
+
   const data = {
     type_intrant: typeIntrant,
-    nom: formData.get('nom'),
+    nom,
     fournisseur: formData.get('fournisseur') || null,
     quantite_stock: isStockableType(typeIntrant) ? (parseFloat(formData.get('quantite_stock') as string) || 0) : 0,
     prix_unitaire: parseFloat(formData.get('prix_unitaire') as string) || 0,

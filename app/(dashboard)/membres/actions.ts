@@ -33,7 +33,7 @@ export async function addMembre(formData: FormData) {
     codeMembre = `M-${String(nextIndex).padStart(3, '0')}`
   }
 
-  const data = {
+  const data: Record<string, any> = {
     gie_id: userData.gie_id,
     code_membre: codeMembre,
     nom: formData.get('nom'),
@@ -106,5 +106,143 @@ export async function deleteMembre(id: string) {
   }
 
   revalidatePath('/membres')
+  return { success: true }
+}
+
+export async function uploadJustificatifSolde(membreId: string, formData: FormData) {
+  const denied = await requirePermission('membres', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const file = formData.get('file') as File | null
+  if (!file || file.size === 0) {
+    return { error: "Veuillez sélectionner un fichier (PDF, PNG ou CSV)." }
+  }
+
+  const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg', '.csv']
+  const originalName = file.name
+  const dotIdx = originalName.lastIndexOf('.')
+  const ext = dotIdx >= 0 ? originalName.slice(dotIdx).toLowerCase() : ''
+  if (!allowedExtensions.includes(ext)) {
+    return { error: `Format non supporté (${ext || 'inconnu'}). Formats acceptés : PDF, PNG, JPG, CSV.` }
+  }
+
+  const cleanBase = (dotIdx >= 0 ? originalName.slice(0, dotIdx) : originalName)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+  const fileName = `${Date.now()}_${cleanBase}${ext}`
+  const storagePath = `${membreId}/${fileName}`
+
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+
+  const { error: uploadError } = await supabase.storage
+    .from('justificatifs')
+    .upload(storagePath, buffer, {
+      contentType: file.type || (ext === '.csv' ? 'text/csv' : ext === '.pdf' ? 'application/pdf' : 'image/png'),
+      upsert: true,
+    })
+
+  if (uploadError) {
+    console.error("Erreur upload justificatif:", uploadError)
+    return { error: `Erreur d'enregistrement : ${uploadError.message}` }
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from('justificatifs')
+    .getPublicUrl(storagePath)
+
+  const publicUrl = publicUrlData?.publicUrl || ''
+
+  try {
+    await supabase
+      .from('membres')
+      .update({
+        justificatif_solde_initial: publicUrl,
+        justificatif_nom: originalName,
+      })
+      .eq('id', membreId)
+  } catch {
+    // Laisser passer si la colonne n'est pas encore migrée
+  }
+
+  revalidatePath('/membres')
+  revalidatePath('/bilans/releve-membre')
+  return { success: true, url: publicUrl, fileName: originalName, storagePath }
+}
+
+export async function getJustificatifsMembre(membreId: string) {
+  const supabase = await createClient()
+
+  const { data: files, error } = await supabase.storage
+    .from('justificatifs')
+    .list(membreId, {
+      sortBy: { column: 'created_at', order: 'desc' },
+    })
+
+  if (error || !files || files.length === 0) {
+    try {
+      const { data: m } = await supabase
+        .from('membres')
+        .select('justificatif_solde_initial, justificatif_nom')
+        .eq('id', membreId)
+        .single()
+      if (m?.justificatif_solde_initial) {
+        return {
+          files: [{
+            name: m.justificatif_nom || 'justificatif',
+            storageName: m.justificatif_nom || 'justificatif',
+            storagePath: `${membreId}/${m.justificatif_nom || 'justificatif'}`,
+            url: m.justificatif_solde_initial,
+            created_at: new Date().toISOString(),
+          }]
+        }
+      }
+    } catch {}
+    return { files: [] }
+  }
+
+  const items = files.map((f) => {
+    const { data } = supabase.storage
+      .from('justificatifs')
+      .getPublicUrl(`${membreId}/${f.name}`)
+    const cleanDisplayName = f.name.replace(/^\d+_/, '')
+    return {
+      name: cleanDisplayName || f.name,
+      storageName: f.name,
+      storagePath: `${membreId}/${f.name}`,
+      url: data.publicUrl,
+      created_at: f.created_at,
+      size: (f.metadata as any)?.size,
+    }
+  })
+
+  return { files: items }
+}
+
+export async function deleteJustificatifMembre(membreId: string, storageName: string) {
+  const denied = await requirePermission('membres', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const storagePath = `${membreId}/${storageName}`
+  await supabase.storage.from('justificatifs').remove([storagePath])
+
+  try {
+    await supabase
+      .from('membres')
+      .update({
+        justificatif_solde_initial: null,
+        justificatif_nom: null,
+      })
+      .eq('id', membreId)
+  } catch {}
+
+  revalidatePath('/membres')
+  revalidatePath('/bilans/releve-membre')
   return { success: true }
 }

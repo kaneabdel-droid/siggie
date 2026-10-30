@@ -174,7 +174,7 @@ export async function getReleveClient(clientId: string) {
     (client as any).code_client = `CLI-${client.id ? client.id.slice(0, 4).toUpperCase() : '001'}`
   }
 
-  const [ventesRes, prestationsRes, paiementsRes, remboursementsRes] = await Promise.all([
+  const [ventesRes, prestationsRes, paiementsRes, remboursementsRes, transactionsRes] = await Promise.all([
     supabase
       .from('sorties_stock_nature')
       .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, campagnes(nom, produit_collecte)')
@@ -191,6 +191,10 @@ export async function getReleveClient(clientId: string) {
       .from('remboursements')
       .select('id, montant_fcfa, type_remboursement, quantite_nature, produit_nature, date_paiement, reference_piece')
       .eq('client_id', clientId),
+    supabase
+      .from('transactions')
+      .select('id, montant, date_transaction, motif, type_piece, type_transaction')
+      .eq('type_transaction', 'entree'),
   ])
 
   if (ventesRes.error) return { error: ventesRes.error.message }
@@ -322,6 +326,30 @@ export async function getReleveClient(clientId: string) {
       unite: r.quantite_nature ? rUnite : null,
       prix_unitaire: r.quantite_nature && Number(r.quantite_nature) > 0 ? Math.round(Number(r.montant_fcfa || 0) / Number(r.quantite_nature)) : null,
       montant: Number(r.montant_fcfa || 0),
+    })
+  }
+
+  for (const tx of (transactionsRes.data || []) as any[]) {
+    const txMotif = String(tx.motif || '').toLowerCase()
+    const isDirectMatch = txMotif.includes(clientNomLower) || txMotif.includes(`tiers:${clientNomLower}`)
+    if (!isDirectMatch) continue
+
+    // Éviter le double comptage si déjà comptabilisé dans paiements_clients
+    const alreadyInPaiements = (paiementsRes.data || []).some((pc: any) => {
+      return Number(pc.montant || 0) === Number(tx.montant || 0)
+    })
+    if (alreadyInPaiements) continue
+
+    const cleanMotif = String(tx.motif || '').replace(/\[[^\]]*\]/g, '').trim()
+    mouvements.push({
+      id: `tx-${tx.id}`,
+      date: tx.date_transaction || new Date().toISOString().slice(0, 10),
+      type: 'paiement',
+      designation: cleanMotif ? `Règlement Trésorerie (${cleanMotif})` : 'Règlement Trésorerie (Caisse/Banque)',
+      quantite: null,
+      unite: null,
+      prix_unitaire: null,
+      montant: Number(tx.montant || 0),
     })
   }
 

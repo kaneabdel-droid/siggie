@@ -21,12 +21,14 @@ import {
   Wheat,
   Eye,
   Check,
-  RotateCcw
+  RotateCcw,
+  Paperclip
 } from 'lucide-react'
 import { getFicheMembre } from '@/app/(dashboard)/bilans/releve-membre/actions'
 import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
 import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
 import { useUnite } from '@/components/DeviseProvider'
+import JustificatifSoldeModal from '@/components/JustificatifSoldeModal'
 
 type MembreData = {
   id: string
@@ -186,6 +188,21 @@ export default function FicheMembreModal({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                <JustificatifSoldeModal
+                  membreId={membre.id}
+                  membreNom={`${membre.nom} ${membre.prenom}`}
+                  soldeInitial={membre.solde_initial}
+                  triggerButton={
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface hover:bg-background text-foreground border border-surface-border transition-colors cursor-pointer"
+                      title="Importer ou consulter le justificatif du solde initial (PDF, PNG, CSV)"
+                    >
+                      <Paperclip className="h-4 w-4 text-primary" />
+                      <span className="hidden sm:inline">Justificatif Solde Initial</span>
+                    </button>
+                  }
+                />
                 <button
                   type="button"
                   onClick={handlePrint}
@@ -714,6 +731,19 @@ export default function FicheMembreModal({
                                           {item.type === 'remboursement' ? 'Paiement' : item.type === 'facture' ? 'Facture' : item.type === 'prestation' ? 'Prestation' : 'Report'}
                                         </span>
                                         <span className="text-xs sm:text-sm">{item.libelle}</span>
+                                        {item.type === 'solde_initial' && (
+                                          <JustificatifSoldeModal
+                                            membreId={membre.id}
+                                            membreNom={`${membre.nom} ${membre.prenom}`}
+                                            soldeInitial={membre.solde_initial}
+                                            triggerButton={
+                                              <span className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline cursor-pointer ml-1.5 font-sans font-normal">
+                                                <Paperclip className="w-3 h-3" />
+                                                <span>Justificatif</span>
+                                              </span>
+                                            }
+                                          />
+                                        )}
                                       </div>
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono font-semibold text-foreground whitespace-nowrap">

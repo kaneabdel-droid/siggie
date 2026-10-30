@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 import { getCreditType } from '@/lib/credits-types'
+import { reconcilierPrestationsEtPaiements } from '@/lib/recouvrement-reconciliation'
 
 export async function getFactures() {
   const supabase = await createClient()
@@ -11,7 +12,7 @@ export async function getFactures() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Non authentifié")
 
-  const [facturesRes, prestationsRes, ventesRes, membresRes, clientsRes, paiementsClientsRes] = await Promise.all([
+  const [facturesRes, prestationsRes, ventesRes, membresRes, clientsRes, paiementsClientsRes, transactionsRes, remboursementsRes] = await Promise.all([
     supabase
       .from('factures')
       .select(`
@@ -39,7 +40,9 @@ export async function getFactures() {
       .order('date_sortie', { ascending: false }),
     supabase.from('membres').select('id, nom, prenom, code_membre, telephone, village'),
     supabase.from('clients_externes').select('id, nom, telephone'),
-    supabase.from('paiements_clients').select('id, client_id, montant, motif'),
+    supabase.from('paiements_clients').select('id, client_id, montant, motif, date_paiement'),
+    supabase.from('transactions').select('id, date_transaction, type_transaction, type_piece, montant, motif, compte_id, campagne_id'),
+    supabase.from('remboursements').select('id, montant_fcfa, type_remboursement, facture_id, membre_id, date_paiement'),
   ])
 
   if (facturesRes.error) return { error: facturesRes.error.message }
@@ -69,6 +72,16 @@ export async function getFactures() {
     clientsByName.set(String(c.nom || '').trim().toLowerCase(), c)
   }
 
+  const reconciledPrestations = reconcilierPrestationsEtPaiements({
+    prestations: prestationsRes.data || [],
+    paiementsClients: paiementsClientsRes.data || [],
+    transactions: transactionsRes.data || [],
+    remboursements: remboursementsRes.data || [],
+    clientsMap: clientsById,
+  })
+  const recMap = new Map<string, any>()
+  reconciledPrestations.forEach((r) => recMap.set(r.prestationId, r))
+
   const facturesCampagne = (facturesRes.data || []).map((f: any) => ({
     ...f,
     type_document: 'campagne' as const,
@@ -94,8 +107,11 @@ export async function getFactures() {
 
     const montant = Number(p.montant_facture || 0)
     const paidFromTags = paidByDocKey.get(`prestation:${p.id}`) || 0
-    const montantPaye = Math.max(Number(p.montant_paye || 0), paidFromTags)
-    const statut = p.statut_paiement || (montantPaye >= montant && montant > 0 ? 'payee' : montantPaye > 0 ? 'partiellement_paye' : 'impayee')
+    const rec = recMap.get(p.id)
+    const montantPaye = rec ? rec.montantPaye : Math.max(Number(p.montant_paye || 0), paidFromTags)
+    const statut = rec
+      ? rec.statut
+      : (p.statut_paiement || (montantPaye >= montant && montant > 0 ? 'payee' : montantPaye > 0 ? 'partiellement_paye' : 'impayee'))
     const qte = Number(p.quantite_traitee || p.superficie || 0)
     const uniteStr = p.unite === 'autre' ? (p.unite_autre || '') : (p.unite || 'ha')
 

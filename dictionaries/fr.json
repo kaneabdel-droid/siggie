@@ -773,6 +773,7 @@
       "overview": "Vue d'ensemble",
       "releve_membre": "Relevé Membre",
       "releve_client": "Relevé Client",
+      "releve_fournisseur": "Relevé Fournisseur",
       "suivi_budgetaire": "Suivi Budgétaire",
       "bilan_annuel": "Bilan annuel"
     },
@@ -1416,6 +1417,39 @@
         "motif": "Motif (Optionnel)",
         "motif_placeholder": "Ex: Règlement partiel",
         "submit": "Enregistrer le paiement"
+      }
+    },
+    "releve_fournisseur": {
+      "no_fournisseurs": "Aucun fournisseur enregistré.",
+      "title": "Suivi & Relevé Fournisseur",
+      "desc": "Grand Livre des achats, dettes et règlements fournisseurs, avec solde progressif.",
+      "select_fournisseur": "Choisir un fournisseur",
+      "add_fournisseur": "Nouveau Fournisseur",
+      "add_payment": "Enregistrer un règlement",
+      "loading": "Chargement du relevé fournisseur...",
+      "current_balance": "Solde restant dû (dette)",
+      "headers": {
+        "date": "Date",
+        "nature": "Nature",
+        "designation": "Désignation",
+        "debit": "Facturé (Dette +)",
+        "credit": "Réglé (Paiement -)",
+        "balance": "Solde Restant Dû"
+      },
+      "new_fournisseur_form": {
+        "title": "Nouveau Fournisseur",
+        "name": "Nom du fournisseur",
+        "name_placeholder": "Ex: SENCHIM, Sahel Agro...",
+        "phone": "Téléphone (Optionnel)",
+        "submit": "Enregistrer le fournisseur"
+      },
+      "payment_form": {
+        "title": "Enregistrer un règlement fournisseur",
+        "amount": "Montant décaissé (FCFA)",
+        "date": "Date",
+        "account": "Compte de trésorerie",
+        "motif": "Motif (Optionnel)",
+        "submit": "Valider le décaissement"
       }
     }
   },

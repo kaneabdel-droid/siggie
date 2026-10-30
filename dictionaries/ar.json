@@ -770,6 +770,7 @@
       "overview": "نظرة عامة",
       "releve_membre": "كشف العضو",
       "releve_client": "كشف العميل",
+      "releve_fournisseur": "كشف المورد",
       "suivi_budgetaire": "المتابعة المالية",
       "bilan_annuel": "الميزانية السنوية"
     },
@@ -1412,6 +1413,39 @@
         "motif": "السبب (اختياري)",
         "motif_placeholder": "مثال: تسديد جزئي",
         "submit": "تسجيل الدفعة"
+      }
+    },
+    "releve_fournisseur": {
+      "no_fournisseurs": "لا يوجد مورد مسجل.",
+      "title": "متابعة وكشف حساب المورد",
+      "desc": "دفتر الأستاذ للمشتريات والديون والتسديدات للموردين مع الرصيد التراكمي.",
+      "select_fournisseur": "اختر موردًا",
+      "add_fournisseur": "مورد جديد",
+      "add_payment": "تسجيل دفعة مورد",
+      "loading": "جارٍ تحميل كشف المورد...",
+      "current_balance": "الرصيد المستحق (دين)",
+      "headers": {
+        "date": "التاريخ",
+        "nature": "النوع",
+        "designation": "البيان",
+        "debit": "الفاتورة (دين +)",
+        "credit": "المدفوع (تسديد -)",
+        "balance": "الرصيد المتبقي"
+      },
+      "new_fournisseur_form": {
+        "title": "مورد جديد",
+        "name": "اسم المورد",
+        "name_placeholder": "مثال: سنشيم، الساحل أغرو...",
+        "phone": "الهاتف (اختياري)",
+        "submit": "حفظ المورد"
+      },
+      "payment_form": {
+        "title": "تسجيل تسديد للمورد",
+        "amount": "المبلغ المصروف (فرنك)",
+        "date": "التاريخ",
+        "account": "حساب الخزينة",
+        "motif": "السبب (اختياري)",
+        "submit": "تأكيد الصرف"
       }
     }
   },

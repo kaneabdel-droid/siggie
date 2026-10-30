@@ -6,6 +6,7 @@ import CreateMembreButton from './CreateMembreButton'
 import MembreRowActions from './MembreRowActions'
 import ClientsListTab from './ClientsListTab'
 import FicheMembreModal from '@/components/FicheMembreModal'
+import JustificatifSoldeModal from '@/components/JustificatifSoldeModal'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getClients } from '@/app/(dashboard)/bilans/releve-client/actions'
 import { getTenantContext } from '@/utils/supabase/tenant'
@@ -195,13 +196,20 @@ export default async function MembresPage({
                           {membre.superficie ? Number(membre.superficie).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 }) : '-'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-right">
-                          {membre.solde_initial ? (
-                            <span className={Number(membre.solde_initial) > 0 ? 'text-danger font-medium' : Number(membre.solde_initial) < 0 ? 'text-success font-medium' : 'text-foreground-muted'}>
-                              {Number(membre.solde_initial).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} F
-                            </span>
-                          ) : (
-                            <span className="text-foreground-muted">0 F</span>
-                          )}
+                          <div className="flex items-center justify-end gap-1.5">
+                            {membre.solde_initial ? (
+                              <span className={Number(membre.solde_initial) > 0 ? 'text-danger font-medium' : Number(membre.solde_initial) < 0 ? 'text-success font-medium' : 'text-foreground-muted'}>
+                                {Number(membre.solde_initial).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} F
+                              </span>
+                            ) : (
+                              <span className="text-foreground-muted">0 F</span>
+                            )}
+                            <JustificatifSoldeModal
+                              membreId={membre.id}
+                              membreNom={`${membre.prenom} ${membre.nom}`}
+                              soldeInitial={membre.solde_initial}
+                            />
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">
                           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${

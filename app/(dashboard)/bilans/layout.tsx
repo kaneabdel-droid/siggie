@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { LayoutDashboard, User, Users, ClipboardList, Scale, GitCompare } from 'lucide-react'
+import { LayoutDashboard, User, Users, ClipboardList, Scale, GitCompare, Truck } from 'lucide-react'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { getDictionary, getLocale } from '@/dictionaries'
 
@@ -44,6 +44,13 @@ export default async function BilansLayout({
         >
           <Users className="w-4 h-4 text-secondary" />
           {dict.bilans.tabs.releve_client}
+        </Link>
+        <Link
+          href="/bilans/releve-fournisseur"
+          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
+        >
+          <Truck className="w-4 h-4 text-amber-500" />
+          {dict.bilans.tabs.releve_fournisseur || "Relevé Fournisseur"}
         </Link>
         <Link
           href="/bilans"

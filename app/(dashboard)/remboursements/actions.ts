@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
+import { reconcilierPrestationsEtPaiements } from '@/lib/recouvrement-reconciliation'
 
 export async function getFacturesPourRemboursement() {
   const supabase = await createClient()
@@ -10,7 +11,7 @@ export async function getFacturesPourRemboursement() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Non authentifié")
 
-  const [facturesCampagneRes, prestationsRes, ventesRes, clientsRes, paiementsClientsRes] = await Promise.all([
+  const [facturesCampagneRes, prestationsRes, ventesRes, clientsRes, paiementsClientsRes, transactionsRes, remboursementsRes] = await Promise.all([
     supabase
       .from('factures')
       .select(`
@@ -42,6 +43,8 @@ export async function getFacturesPourRemboursement() {
     supabase
       .from('paiements_clients')
       .select('id, client_id, montant, date_paiement, motif'),
+    supabase.from('transactions').select('id, date_transaction, type_transaction, type_piece, montant, motif, compte_id, campagne_id'),
+    supabase.from('remboursements').select('id, montant_fcfa, type_remboursement, facture_id, membre_id, date_paiement'),
   ])
 
   if (facturesCampagneRes.error) return { error: facturesCampagneRes.error.message }
@@ -92,6 +95,16 @@ export async function getFacturesPourRemboursement() {
     })
   }
 
+  const reconciledPrestations = reconcilierPrestationsEtPaiements({
+    prestations: prestationsRes.data || [],
+    paiementsClients: paiementsClientsRes.data || [],
+    transactions: transactionsRes.data || [],
+    remboursements: remboursementsRes.data || [],
+    clientsMap: clientMap,
+  })
+  const recMap = new Map<string, any>()
+  reconciledPrestations.forEach((r) => recMap.set(r.prestationId, r))
+
   // 2. Prestations Matériel (membres et clients)
   for (const p of prestationsRes.data || []) {
     const isMembre = p.tiers_type === 'membre' || (p.membre_id && !p.client_id)
@@ -103,9 +116,13 @@ export async function getFacturesPourRemboursement() {
 
     const montantTotal = Number(p.montant_facture || 0)
     const paidFromTags = paidByDocKey.get(`prestation:${p.id}`) || 0
-    const montantPaye = Math.max(Number(p.montant_paye || 0), paidFromTags)
+    const rec = recMap.get(p.id)
+    const montantPaye = rec ? rec.montantPaye : Math.max(Number(p.montant_paye || 0), paidFromTags)
     const totalDu = montantTotal
-    const reste = totalDu - montantPaye
+    const reste = Math.max(0, totalDu - montantPaye)
+    const statut = rec
+      ? rec.statut
+      : (p.statut_paiement || (reste <= 0 ? 'payee' : (montantPaye > 0 ? 'partiellement_paye' : 'impayee')))
 
     const clientData = clientFound || {
       id: p.client_id || '',
