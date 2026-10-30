@@ -26,7 +26,7 @@ export default async function JournauxPage({
     supabase.from('campagnes').select('id, nom, statut').order('date_debut', { ascending: false }),
     supabase.from('clients_externes').select('id, nom, telephone').order('nom', { ascending: true }),
     supabase.from('membres').select('id, nom, prenom, code_membre').order('nom', { ascending: true }),
-    supabase.from('materiels').select('id, nom, code_materiel').order('nom', { ascending: true }),
+    supabase.from('materiels').select('id, nom, type_materiel').order('nom', { ascending: true }),
   ])
   const locale = await getLocale()
   const dict = await getDictionary(locale)

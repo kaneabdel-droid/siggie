@@ -19,17 +19,20 @@ type Transaction = {
 }
 
 type Campagne = { id: string; nom: string; statut: string }
+type MaterielItem = { id: string; nom: string; type_materiel?: string | null }
 
 export default function TransactionRowActions({
   transaction,
   imputations,
   campagnes,
+  materiels = [],
   onSuccess,
   dict,
 }: {
   transaction: Transaction
   imputations: any[]
   campagnes: Campagne[]
+  materiels?: MaterielItem[]
   onSuccess: () => void
   dict: any
 }) {
@@ -43,6 +46,8 @@ export default function TransactionRowActions({
     setLoading(true)
     const formData = new FormData(e.currentTarget)
 
+    const matNom = (formData.get('materiel_nom') as string) || undefined
+
     const res = await updateTransaction(transaction.id, {
       type_transaction: formData.get('type_transaction') as string,
       montant: Number(formData.get('montant')),
@@ -52,6 +57,7 @@ export default function TransactionRowActions({
       reference_piece: (formData.get('reference_piece') as string)?.trim() || undefined,
       imputation_id: (formData.get('imputation_id') as string) || undefined,
       campagne_id: (formData.get('campagne_id') as string) || undefined,
+      materiel_nom: matNom,
     })
     setLoading(false)
     if (res?.error) {
@@ -165,9 +171,34 @@ export default function TransactionRowActions({
                       ))}
                     </select>
                   </div>
+                  {materiels && materiels.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-foreground">Affectation Matériel</label>
+                      <select
+                        name="materiel_nom"
+                        defaultValue={(transaction as any).materiel_nom || ''}
+                        className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
+                      >
+                        <option value="">-- Aucun matériel spécifique --</option>
+                        {materiels.map((m) => (
+                          <option key={m.id} value={m.nom}>
+                            🚜 {m.nom} {m.type_materiel ? `(${m.type_materiel})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-foreground">{t.form.reason_label}</label>
-                    <input type="text" name="motif" defaultValue={transaction.motif} required placeholder={t.form.reason_placeholder} className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2" />
+                    <input
+                      type="text"
+                      name="motif"
+                      defaultValue={(transaction as any).motif_affiche || transaction.motif?.replace(/\[(TIERS|MATERIEL|REF):.*?\]/g, '').trim()}
+                      required
+                      placeholder={t.form.reason_placeholder}
+                      className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
+                    />
                   </div>
                 </form>
               </div>

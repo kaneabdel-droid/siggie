@@ -244,6 +244,7 @@ export async function updateTransaction(
     campagne_id?: string
     date_transaction?: string
     reference_piece?: string
+    materiel_nom?: string
   }
 ) {
   const denied = await requirePermission('tresorerie', 'update')
@@ -253,10 +254,13 @@ export async function updateTransaction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Non authentifié" }
 
-  // Conserver ou actualiser la référence dans le motif
-  let safeMotif = data.motif.replace(/\[REF:.*?\]/g, '').trim()
+  // Conserver ou actualiser la référence et le matériel dans le motif
+  let safeMotif = data.motif.replace(/\[REF:.*?\]/g, '').replace(/\[MATERIEL:.*?\]/g, '').trim()
   if (data.reference_piece?.trim()) {
     safeMotif = `${safeMotif} [REF:${data.reference_piece.trim()}]`
+  }
+  if (data.materiel_nom?.trim()) {
+    safeMotif = `${safeMotif} [MATERIEL:${data.materiel_nom.trim()}]`
   }
 
   const updatePayload: any = {

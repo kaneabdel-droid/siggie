@@ -125,6 +125,7 @@ export default function JournalClient({
             clients={clients}
             membres={membres}
             materiels={materiels}
+            isCaisseMateriel={isCaisseMateriel}
             onSuccess={fetchJournal}
             dict={dict}
           />
@@ -263,7 +264,14 @@ export default function JournalClient({
                       {ligne.solde.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                     </td>
                     <td className="relative whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <TransactionRowActions transaction={ligne} imputations={imputations} campagnes={campagnes} onSuccess={fetchJournal} dict={dict} />
+                      <TransactionRowActions
+                        transaction={ligne}
+                        imputations={imputations}
+                        campagnes={campagnes}
+                        materiels={materiels}
+                        onSuccess={fetchJournal}
+                        dict={dict}
+                      />
                     </td>
                   </tr>
                 )

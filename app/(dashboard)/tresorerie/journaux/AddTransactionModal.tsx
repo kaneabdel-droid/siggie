@@ -8,7 +8,7 @@ type Campagne = { id: string; nom: string; statut: string }
 type Compte = { id: string; nom: string; type_compte?: string }
 type ClientItem = { id: string; nom: string; telephone?: string | null }
 type MembreItem = { id: string; nom: string; prenom?: string | null; code_membre?: string | null }
-type MaterielItem = { id: string; nom: string; code_materiel?: string | null }
+type MaterielItem = { id: string; nom: string; type_materiel?: string | null; code_materiel?: string | null }
 
 export default function AddTransactionModal({
   compteId,
@@ -18,6 +18,7 @@ export default function AddTransactionModal({
   clients = [],
   membres = [],
   materiels = [],
+  isCaisseMateriel,
   onSuccess,
   dict,
 }: {
@@ -28,6 +29,7 @@ export default function AddTransactionModal({
   clients?: ClientItem[]
   membres?: MembreItem[]
   materiels?: MaterielItem[]
+  isCaisseMateriel?: boolean
   onSuccess: () => void
   dict: any
 }) {
@@ -45,6 +47,12 @@ export default function AddTransactionModal({
   const t = dict?.tresorerie_pages?.journaux?.form || {}
   const campagneEnCours = campagnes.find((c) => c.statut === 'en_cours')
   const otherComptes = comptes.filter((c) => c.id !== compteId)
+  const currentCompte = comptes.find((c) => c.id === compteId)
+  const isCaisseMat = Boolean(
+    isCaisseMateriel ||
+    (currentCompte?.nom || '').toLowerCase().includes('matériel') ||
+    (currentCompte?.nom || '').toLowerCase().includes('materiel')
+  )
 
   function resetForm() {
     setDateTransaction(new Date().toISOString().split('T')[0])
@@ -340,27 +348,43 @@ export default function AddTransactionModal({
               </div>
 
               {/* Répartition / Affectation Matériel */}
-              <div>
-                <label htmlFor="materiel_id" className="block text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-foreground-muted" />
-                  <span>Affectation Matériel (Optionnel)</span>
-                </label>
+              <div className={`rounded-xl border p-3.5 space-y-2 ${isCaisseMat ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20' : 'border-surface-border bg-background/30'}`}>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="materiel_id" className="block text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-primary" />
+                    <span>Affectation Matériel {isCaisseMat ? '(Recommandé pour la Caisse Matériel)' : '(Optionnel)'}</span>
+                  </label>
+                  {isCaisseMat && (
+                    <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      Caisse Matériel
+                    </span>
+                  )}
+                </div>
+
                 <select
                   id="materiel_id"
+                  name="materiel_id"
                   value={selectedMaterielId}
                   onChange={(e) => setSelectedMaterielId(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                  className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-medium"
                 >
                   <option value="">-- Aucun matériel spécifique --</option>
                   {materiels.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.nom} {m.code_materiel ? `(${m.code_materiel})` : ''}
+                      🚜 {m.nom} {m.type_materiel ? `(${m.type_materiel})` : ''}
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-foreground-muted">
-                  Permet le suivi de la répartition des dépenses et recettes par matériel.
-                </p>
+
+                {materiels.length === 0 ? (
+                  <p className="text-xs text-amber-600 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                    Aucun matériel enregistré pour le moment. Vous pouvez enregistrer vos engins dans le menu <strong>Matériel → Inventaire</strong>.
+                  </p>
+                ) : (
+                  <p className="text-xs text-foreground-muted">
+                    Affecte cette recette ou dépense à un engin pour le calcul de la rentabilité et le suivi de la répartition dans le journal.
+                  </p>
+                )}
               </div>
 
               {/* Campagne */}
