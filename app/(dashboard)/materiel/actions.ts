@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getCreditType, getCreditMaterielId, getCreditEquipementNom } from '@/lib/credits-types'
 
 export async function getMateriels() {
   const supabase = await createClient()
@@ -470,6 +471,13 @@ export async function getRentabiliteMateriels() {
     .select('materiel_id, montant_total')
     .eq('gie_id', userData.gie_id)
 
+  // Récupérer les crédits d'équipement validés du GIE
+  const { data: credits } = await supabase
+    .from('credits')
+    .select('*')
+    .eq('gie_id', userData.gie_id)
+    .eq('statut', 'valide')
+
   // Agréger les données par matériel
   const rentabilite = (materiels || []).map(mat => {
     const recettes = (prestations || [])
@@ -479,6 +487,46 @@ export async function getRentabiliteMateriels() {
     const depenses = (consommations || [])
       .filter(c => c.materiel_id === mat.id)
       .reduce((sum, c) => sum + (c.montant_total || 0), 0)
+
+    // Crédits d'équipement rattachés à ce matériel
+    const creditsLies = (credits || []).filter((c) => {
+      if (getCreditType(c) !== 'equipement') return false
+      const matId = getCreditMaterielId(c)
+      if (matId && matId === mat.id) return true
+      const equipNom = getCreditEquipementNom(c)
+      if (equipNom && mat.nom) {
+        const nNorm = equipNom.trim().toLowerCase()
+        const mNorm = mat.nom.trim().toLowerCase()
+        if (nNorm === mNorm || nNorm.includes(mNorm) || mNorm.includes(nNorm)) return true
+      }
+      return false
+    })
+
+    // Intérêts annuels du crédit équipement : Montant accordé × Taux d'intérêt annuel
+    const interet_annuel_credit = creditsLies.reduce((sum, c) => {
+      const montant = Number(c.montant_accorde) || 0
+      const taux = Number(c.taux_interet) || 0
+      return sum + (montant * (taux / 100))
+    }, 0)
+
+    // Intérêts cumulés du crédit équipement depuis l'acquisition
+    const interet_cumule_credit = creditsLies.reduce((sum, c) => {
+      const montant = Number(c.montant_accorde) || 0
+      const taux = Number(c.taux_interet) || 0
+      const annuel = montant * (taux / 100)
+      const dureeMois = Number(c.duree_credit) || 36
+      const maxTotalInteret = annuel * (dureeMois / 12)
+
+      const dateDebutStr = c.date_demande || mat.date_acquisition
+      if (!dateDebutStr) return sum + annuel
+
+      const dateDebut = new Date(dateDebutStr).getTime()
+      if (Number.isNaN(dateDebut)) return sum + annuel
+
+      const anneesEcoulees = Math.max(0, (Date.now() - dateDebut) / (1000 * 60 * 60 * 24 * 365.25))
+      const cumule = Math.min(maxTotalInteret, annuel * anneesEcoulees)
+      return sum + cumule
+    }, 0)
 
     // Calcul de l'amortissement annuel linéaire basique
     // Amortissement = Valeur / Durée de vie
@@ -499,15 +547,22 @@ export async function getRentabiliteMateriels() {
       )
     }
 
-    const solde_net = recettes - depenses
+    const solde_brut = recettes - depenses
+    // Solde net incluant la charge financière des intérêts du crédit équipement
+    const solde_net = solde_brut - interet_cumule_credit
+    // Résultat net après dotations aux amortissements et charges financières
     const solde_apres_amortissement = solde_net - amortissement_cumule
 
     return {
       ...mat,
       recettes,
       depenses,
+      credits_lies_count: creditsLies.length,
+      interet_annuel_credit,
+      interet_cumule_credit,
       amortissement_annuel,
       amortissement_cumule,
+      solde_brut,
       solde_net,
       solde_apres_amortissement
     }

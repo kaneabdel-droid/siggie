@@ -37,3 +37,4 @@ export default function SupprimerTousEchouesButton({ count }: { count: number })
     </div>
   )
 }
+

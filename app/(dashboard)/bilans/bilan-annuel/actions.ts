@@ -36,7 +36,7 @@ export async function getBilanAnnuel(annee: number): Promise<BilanAnnuelData | {
       fetchAll<BilanRaw['achats'][number]>(supabase, 'achats_intrants', 'id, intrant_id, quantite, prix_unitaire, date_achat'),
       fetchAll<BilanRaw['distributions'][number]>(supabase, 'distribution_intrants', 'id, intrant_id, quantite, date_distribution'),
       fetchAll<BilanRaw['factures'][number]>(supabase, 'factures', 'id, membre_id, campagne_id, montant_total, montant_interet, date_emission'),
-      fetchAll<BilanRaw['remboursements'][number]>(supabase, 'remboursements', 'id, facture_id, membre_id, type_remboursement, montant_fcfa, quantite_nature, date_paiement'),
+      fetchAll<BilanRaw['remboursements'][number]>(supabase, 'remboursements', 'id, facture_id, membre_id, type_remboursement, montant_fcfa, quantite_nature, date_paiement, document_id, document_type, produit_nature'),
       fetchAll<BilanRaw['sorties'][number]>(supabase, 'sorties_stock_nature', 'id, campagne_id, membre_id, type_sortie, tiers_type, quantite, prix_unitaire, date_sortie'),
       fetchAll<BilanRaw['campagnes'][number]>(supabase, 'campagnes', 'id, prix_collecte'),
       fetchAll<BilanRaw['paiementsClients'][number]>(supabase, 'paiements_clients', 'id, montant, date_paiement'),
@@ -45,7 +45,7 @@ export async function getBilanAnnuel(annee: number): Promise<BilanAnnuelData | {
       fetchAll<BilanRaw['consommations'][number]>(supabase, 'materiel_consommations', 'id, montant_total, date_consommation'),
       fetchAll<BilanRaw['comptes'][number]>(supabase, 'comptes', 'id, solde_initial'),
       fetchAll<BilanRaw['transactions'][number]>(supabase, 'transactions', 'id, type_transaction, montant, date_transaction, type_piece, credit_id'),
-      fetchAll<BilanRaw['credits'][number]>(supabase, 'credits', 'id, statut, montant_accorde, taux_interet, duree_credit, date_demande'),
+      fetchAll<BilanRaw['credits'][number]>(supabase, 'credits', 'id, statut, montant_accorde, taux_interet, duree_credit, date_demande, type_credit, but_credit, equipement_nom, materiel_id'),
       fetchAll<BilanRaw['ristournes'][number]>(supabase, 'ristournes', 'id, membre_id, montant, date_ristourne'),
       supabase.from('bilan_saisies').select('annee, rubrique, montant').in('annee', [annee, annee - 1]),
     ])

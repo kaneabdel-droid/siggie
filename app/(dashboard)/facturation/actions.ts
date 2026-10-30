@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
+import { getCreditType } from '@/lib/credits-types'
 
 export async function getFactures() {
   const supabase = await createClient()
@@ -208,16 +209,18 @@ export async function calculerInteret(campagneId: string, methode: 'superficie' 
 
   const { data: credits } = await supabase
     .from('credits')
-    .select('montant_accorde, taux_interet, duree_credit')
+    .select('montant_accorde, taux_interet, duree_credit, type_credit, but_credit')
     .eq('campagne_id', campagneId)
     .eq('statut', 'valide')
 
-  const totalInteret = (credits || []).reduce((sum, c) => {
-    const montant = Number(c.montant_accorde) || 0
-    const taux = Number(c.taux_interet) || 0
-    const duree = Number(c.duree_credit) || 0
-    return sum + montant * (taux / 100) * (duree / 12)
-  }, 0)
+  const totalInteret = (credits || [])
+    .filter((c) => getCreditType(c) === 'campagne')
+    .reduce((sum, c) => {
+      const montant = Number(c.montant_accorde) || 0
+      const taux = Number(c.taux_interet) || 0
+      const duree = Number(c.duree_credit) || 0
+      return sum + montant * (taux / 100) * (duree / 12)
+    }, 0)
 
   if (totalInteret <= 0) {
     return { error: "Aucun intérêt à répartir : aucun crédit validé avec taux et durée renseignés pour cette campagne." }

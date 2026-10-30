@@ -73,7 +73,7 @@ export default function BilanAnnuelClient({ annee, annees, n, n1, devise, canEdi
     { key: 'capital', note: t.notes.capital },
     { key: 'resultat', note: t.notes.resultat_passif },
     { key: 'subventions', note: t.notes.a_saisir, saisie: 'subventions' as const },
-    { key: 'emprunts', note: t.notes.a_saisir, saisie: 'emprunts' as const },
+    { key: 'emprunts', note: t.notes.emprunts || t.notes.a_saisir, saisie: 'emprunts' as const },
     { key: 'dettes', note: t.notes.dettes },
     { key: 'credits_tresorerie', note: t.notes.credits_tresorerie },
   ] as const
