@@ -241,8 +241,8 @@ export async function getReleveClient(clientId: string) {
           ? Number(p.prix_unitaire_part)
           : null
         : p.tarif_unitaire != null
-        ? Number(p.tarif_unitaire)
-        : null
+          ? Number(p.tarif_unitaire)
+          : null
 
     mouvements.push({
       id: `prestation-${p.id}`,

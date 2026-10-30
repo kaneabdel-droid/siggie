@@ -178,12 +178,6 @@ export default async function MembresPage({
                                 </button>
                               }
                             />
-                            <FicheMembreModal
-                              membre={membre}
-                              gieName={tenant?.gieName || 'Mon GIE'}
-                              dict={dict}
-                              locale={locale}
-                            />
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-foreground-muted">
@@ -228,11 +222,10 @@ export default async function MembresPage({
                               triggerButton={
                                 <button
                                   type="button"
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-surface hover:bg-background text-foreground border border-surface-border shadow-2xs transition-colors cursor-pointer"
-                                  title="Consulter toutes les données et relevé du membre"
+                                  className="p-1.5 text-foreground-muted hover:text-primary hover:bg-background rounded-md border border-surface-border shadow-2xs transition-colors cursor-pointer"
+                                  title="Consulter la fiche & relevé du membre"
                                 >
-                                  <Eye className="w-3.5 h-3.5 text-primary" />
-                                  <span>Fiche & Relevé</span>
+                                  <Eye className="w-4 h-4" />
                                 </button>
                               }
                             />

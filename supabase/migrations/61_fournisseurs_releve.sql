@@ -17,3 +17,4 @@ ON public.fournisseurs_externes FOR ALL
 USING (gie_id IN (SELECT gie_id FROM public.utilisateurs WHERE id = auth.uid()));
 
 CREATE INDEX IF NOT EXISTS idx_fournisseurs_externes_gie_id ON public.fournisseurs_externes(gie_id);
+

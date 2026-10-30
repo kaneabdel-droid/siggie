@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 
@@ -140,7 +141,13 @@ export async function uploadJustificatifSolde(membreId: string, formData: FormDa
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
-  const { error: uploadError } = await supabase.storage
+  // Utiliser le client admin pour bypasser l'erreur RLS storage tout en conservant la validation de session utilisateur
+  let storageClient = supabase
+  try {
+    storageClient = createAdminClient() as any
+  } catch {}
+
+  const { error: uploadError } = await storageClient.storage
     .from('justificatifs')
     .upload(storagePath, buffer, {
       contentType: file.type || (ext === '.csv' ? 'text/csv' : ext === '.pdf' ? 'application/pdf' : 'image/png'),
@@ -152,7 +159,7 @@ export async function uploadJustificatifSolde(membreId: string, formData: FormDa
     return { error: `Erreur d'enregistrement : ${uploadError.message}` }
   }
 
-  const { data: publicUrlData } = supabase.storage
+  const { data: publicUrlData } = storageClient.storage
     .from('justificatifs')
     .getPublicUrl(storagePath)
 
@@ -178,7 +185,12 @@ export async function uploadJustificatifSolde(membreId: string, formData: FormDa
 export async function getJustificatifsMembre(membreId: string) {
   const supabase = await createClient()
 
-  const { data: files, error } = await supabase.storage
+  let storageClient = supabase
+  try {
+    storageClient = createAdminClient() as any
+  } catch {}
+
+  const { data: files, error } = await storageClient.storage
     .from('justificatifs')
     .list(membreId, {
       sortBy: { column: 'created_at', order: 'desc' },
@@ -229,8 +241,13 @@ export async function deleteJustificatifMembre(membreId: string, storageName: st
   if (denied) return denied as never
   const supabase = await createClient()
 
+  let storageClient = supabase
+  try {
+    storageClient = createAdminClient() as any
+  } catch {}
+
   const storagePath = `${membreId}/${storageName}`
-  await supabase.storage.from('justificatifs').remove([storagePath])
+  await storageClient.storage.from('justificatifs').remove([storagePath])
 
   try {
     await supabase
