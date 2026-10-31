@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getReleveFournisseur, FournisseurSummary, MouvementFournisseur } from './actions'
 import AddFournisseurModal from './AddFournisseurModal'
 import AddPaiementFournisseurModal from './AddPaiementFournisseurModal'
@@ -36,7 +37,25 @@ export default function ReleveFournisseurClient({
 }) {
   const unite = useUnite()
   const [fournisseurs, setFournisseurs] = useState<FournisseurSummary[]>(initialFournisseurs)
-  const [selectedFournisseur, setSelectedFournisseur] = useState(initialFournisseurs[0]?.id || '')
+  const searchParams = useSearchParams()
+  const urlParam = searchParams.get('fournisseurId') || searchParams.get('search')
+  const matchedInitial = useMemo(() => {
+    if (!urlParam) return null
+    const paramLow = decodeURIComponent(urlParam).toLowerCase().trim()
+    return initialFournisseurs.find((f) => {
+      const fNom = f.nom.toLowerCase()
+      const fCode = (f.code_fournisseur || '').toLowerCase()
+      return f.id === urlParam || fNom === paramLow || fCode === paramLow || fNom.includes(paramLow) || paramLow.includes(fNom)
+    })
+  }, [urlParam, initialFournisseurs])
+  const [selectedFournisseur, setSelectedFournisseur] = useState(
+    matchedInitial ? matchedInitial.id : (initialFournisseurs[0]?.id || '')
+  )
+  useEffect(() => {
+    if (matchedInitial && matchedInitial.id !== selectedFournisseur) {
+      setSelectedFournisseur(matchedInitial.id)
+    }
+  }, [matchedInitial, selectedFournisseur])
   const [searchTerm, setSearchTerm] = useState('')
   const [journal, setJournal] = useState<MouvementFournisseur[]>([])
   const [fournisseurDetails, setFournisseurDetails] = useState<any>(null)

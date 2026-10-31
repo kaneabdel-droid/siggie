@@ -4,6 +4,10 @@ import { useState } from 'react'
 import {
   Edit,
   Trash2,
+  Bookmark,
+  Coins,
+  Info,
+  CheckCircle2,
   Calendar,
   User,
   Truck,
@@ -76,6 +80,7 @@ export default function TransactionRowActions({
   const [selectedDestinationCompteId, setSelectedDestinationCompteId] = useState('')
   const [customTiersNom, setCustomTiersNom] = useState('')
   const [selectedMaterielId, setSelectedMaterielId] = useState('')
+  const [imputationId, setImputationId] = useState('')
   const [campagneId, setCampagneId] = useState('')
   const [motif, setMotif] = useState('')
   const [typePiece, setTypePiece] = useState('')
@@ -118,6 +123,7 @@ export default function TransactionRowActions({
 
     setTypePiece(transaction.type_piece || '')
     setReferencePiece(transaction.reference_piece || '')
+    setImputationId(transaction.imputation_id || '')
     setCampagneId(transaction.campagne_id || '')
 
     // Resolve materiel
@@ -255,6 +261,7 @@ export default function TransactionRowActions({
       date_transaction: dateTransaction,
       type_piece: tiersType === 'compte_transfert' ? 'virement_interne' : (typePiece || undefined),
       reference_piece: referencePiece || undefined,
+      imputation_id: imputationId || undefined,
       campagne_id: campagneId || undefined,
       tiers_type: tiersType,
       tiers_nom: tiersNom,
@@ -524,12 +531,20 @@ export default function TransactionRowActions({
 
                         {isRemboursement && (
                           <div className="pt-2 border-t border-primary/20 space-y-3">
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-semibold text-foreground block">
-                                Affectation du remboursement :
+                            <div>
+                              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-2">
+                                <Coins className="w-3.5 h-3.5 text-primary" />
+                                <span>Affectation du remboursement :</span>
                               </label>
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <label className="flex items-center gap-2 text-xs bg-background p-2.5 rounded-lg border border-surface-border cursor-pointer flex-1">
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <label
+                                  className={`flex items-start gap-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                                    modeRemboursement === 'total'
+                                      ? 'border-primary bg-primary/15 ring-1 ring-primary/40 shadow-xs'
+                                      : 'border-surface-border bg-background hover:bg-surface'
+                                  }`}
+                                >
                                   <input
                                     type="radio"
                                     name={`edit_mode_remboursement_${transaction.id}`}
@@ -538,27 +553,35 @@ export default function TransactionRowActions({
                                       setModeRemboursement('total')
                                       setMontantRemboursement(montant)
                                     }}
-                                    className="text-primary focus:ring-primary"
+                                    className="mt-0.5 text-primary focus:ring-primary shrink-0"
                                   />
-                                  <div>
-                                    <span className="font-semibold text-foreground">Remboursement total</span>
-                                    <span className="block text-[11px] text-foreground-muted">
-                                      {montant ? `Tout le montant (${Number(montant).toLocaleString()} FCFA)` : 'La totalité du versement'}
+                                  <div className="min-w-0 flex-1">
+                                    <span className="font-bold text-foreground block">Remboursement total</span>
+                                    <span className="text-[11px] text-foreground-muted block mt-0.5 font-medium">
+                                      {montant
+                                        ? `Tout le montant (${Number(montant).toLocaleString()} FCFA)`
+                                        : 'La totalité du versement'}
                                     </span>
                                   </div>
                                 </label>
 
-                                <label className="flex items-center gap-2 text-xs bg-background p-2.5 rounded-lg border border-surface-border cursor-pointer flex-1">
+                                <label
+                                  className={`flex items-start gap-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                                    modeRemboursement === 'partiel'
+                                      ? 'border-primary bg-primary/15 ring-1 ring-primary/40 shadow-xs'
+                                      : 'border-surface-border bg-background hover:bg-surface'
+                                  }`}
+                                >
                                   <input
                                     type="radio"
                                     name={`edit_mode_remboursement_${transaction.id}`}
                                     checked={modeRemboursement === 'partiel'}
                                     onChange={() => setModeRemboursement('partiel')}
-                                    className="text-primary focus:ring-primary"
+                                    className="mt-0.5 text-primary focus:ring-primary shrink-0"
                                   />
-                                  <div>
-                                    <span className="font-semibold text-foreground">Remboursement partiel</span>
-                                    <span className="block text-[11px] text-foreground-muted">
+                                  <div className="min-w-0 flex-1">
+                                    <span className="font-bold text-foreground block">Remboursement partiel</span>
+                                    <span className="text-[11px] text-foreground-muted block mt-0.5 font-medium">
                                       Le reste créditera le compte membre
                                     </span>
                                   </div>
@@ -567,7 +590,7 @@ export default function TransactionRowActions({
                             </div>
 
                             {modeRemboursement === 'partiel' && (
-                              <div className="space-y-2 bg-background/80 p-3 rounded-lg border border-surface-border">
+                              <div className="space-y-2 bg-background p-3 rounded-xl border border-surface-border shadow-2xs">
                                 <label
                                   htmlFor={`edit_montant_remb_${transaction.id}`}
                                   className="block text-xs font-semibold text-foreground"
@@ -581,18 +604,18 @@ export default function TransactionRowActions({
                                   max={Number(montant) || undefined}
                                   value={montantRemboursement}
                                   onChange={(e) => setMontantRemboursement(e.target.value)}
-                                  placeholder="Ex: 30000"
-                                  className="w-full rounded-md border border-surface-border bg-background px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                  placeholder="Ex: 50000"
+                                  className="w-full rounded-md border border-surface-border bg-surface px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
                                 />
                                 {(() => {
                                   const mTotal = Number(montant) || 0
                                   const mRemb = Number(montantRemboursement) || 0
                                   const reliquat = mTotal - mRemb
                                   return (
-                                    <div className="text-[11px] space-y-1 pt-1 border-t border-surface-border/50">
+                                    <div className="text-[11px] space-y-1 pt-1.5 border-t border-surface-border/50">
                                       <div className="flex justify-between text-primary font-medium">
                                         <span>Remboursement déduit de la dette :</span>
-                                        <span>{mRemb.toLocaleString()} FCFA</span>
+                                        <span className="font-mono font-bold">{mRemb.toLocaleString()} FCFA</span>
                                       </div>
                                       <div
                                         className={`flex justify-between font-semibold ${
@@ -600,9 +623,9 @@ export default function TransactionRowActions({
                                         }`}
                                       >
                                         <span>Reliquat au crédit du compte membre :</span>
-                                        <span>
+                                        <span className="font-mono font-bold">
                                           {reliquat >= 0
-                                            ? `${reliquat.toLocaleString()} FCFA`
+                                            ? `+${reliquat.toLocaleString()} FCFA`
                                             : 'Erreur: dépasse le versement !'}
                                         </span>
                                       </div>
@@ -613,11 +636,13 @@ export default function TransactionRowActions({
                             )}
 
                             {modeRemboursement === 'total' && (
-                              <p className="text-[11px] text-primary bg-primary/10 p-2 rounded-md">
-                                ✓ L'intégralité du versement de{' '}
-                                <strong>{montant ? Number(montant).toLocaleString() : 0} FCFA</strong> sera déduite
-                                de la créance de campagne du membre.
-                              </p>
+                              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 shadow-2xs">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span>
+                                  ✓ L&apos;intégralité du versement de{' '}
+                                  <strong>{montant ? Number(montant).toLocaleString() : 0} FCFA</strong> sera déduite de la créance de campagne du membre.
+                                </span>
+                              </div>
                             )}
                           </div>
                         )}
@@ -772,6 +797,31 @@ export default function TransactionRowActions({
                   {campagnes.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nom} {c.statut === 'en_cours' ? '(En cours)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+                            {/* Imputation budgétaire */}
+              <div>
+                <label
+                  htmlFor={`imputation_id_${transaction.id}`}
+                  className="block text-sm font-medium text-foreground flex items-center gap-1.5"
+                >
+                  <Bookmark className="w-4 h-4 text-primary" />
+                  <span>Imputation budgétaire (Optionnel)</span>
+                </label>
+                <select
+                  name="imputation_id"
+                  id={`imputation_id_${transaction.id}`}
+                  value={imputationId}
+                  onChange={(e) => setImputationId(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                >
+                  <option value="">-- Aucune imputation budgétaire --</option>
+                  {imputations.map((imp) => (
+                    <option key={imp.id} value={imp.id}>
+                      {imp.code ? `[${imp.code}] ` : ''}{imp.libelle || imp.nom}
                     </option>
                   ))}
                 </select>

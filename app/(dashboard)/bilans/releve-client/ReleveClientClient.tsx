@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Search, X, RotateCcw } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import { getReleveClient } from './actions'
 import AddClientModal from './AddClientModal'
 import AddPaiementClientModal from './AddPaiementClientModal'
@@ -26,7 +27,24 @@ export default function ReleveClientClient({
 }) {
   const unite = useUnite()
   const [clients, setClients] = useState<Client[]>(initialClients)
-  const [selectedClient, setSelectedClient] = useState(initialClients[0]?.id || '')
+  const searchParams = useSearchParams()
+  const urlClientParam = searchParams.get('clientId') || searchParams.get('search')
+  const matchedInitial = useMemo(() => {
+    if (!urlClientParam) return null
+    const paramLow = decodeURIComponent(urlClientParam).toLowerCase().trim()
+    return initialClients.find((c) => {
+      const cNom = c.nom.toLowerCase()
+      return c.id === urlClientParam || cNom === paramLow || cNom.includes(paramLow) || paramLow.includes(cNom)
+    })
+  }, [urlClientParam, initialClients])
+  const [selectedClient, setSelectedClient] = useState(
+    matchedInitial ? matchedInitial.id : (initialClients[0]?.id || '')
+  )
+  useEffect(() => {
+    if (matchedInitial && matchedInitial.id !== selectedClient) {
+      setSelectedClient(matchedInitial.id)
+    }
+  }, [matchedInitial, selectedClient])
   const [journal, setJournal] = useState<any[]>([])
   const [soldeActuel, setSoldeActuel] = useState(0)
   const [loading, setLoading] = useState(false)

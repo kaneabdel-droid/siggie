@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { getJournal } from '../actions'
 import AddTransactionModal from './AddTransactionModal'
 import TransactionRowActions from './TransactionRowActions'
@@ -21,6 +22,10 @@ import {
   Layers,
   Wallet,
   Landmark,
+  ExternalLink,
+  UserCheck,
+  Building2,
+  ArrowRightLeft,
 } from 'lucide-react'
 import { useUnite } from '@/components/DeviseProvider'
 
@@ -235,6 +240,59 @@ export default function JournalClient({
 
   // Compte effectif pour AddTransactionModal (si 'all', prendre le 1er compte)
   const effectiveModalCompteId = isAllJournaux ? (comptes[0]?.id || '') : selectedCompte
+
+  const getTiersLink = (ligne: any): { url: string; label: string; kind: 'membre' | 'client' | 'fournisseur' | 'compte' } | null => {
+    const rawTiers = String(ligne.tiers_affiche || ligne.tiers_nom || '').trim()
+    if (!rawTiers || rawTiers === '-') return null
+
+    if (ligne.type_piece === 'virement_interne') {
+      const targetC = comptes.find((c) => c.nom.toLowerCase() === rawTiers.toLowerCase())
+      if (targetC) {
+        return {
+          url: `/tresorerie/journaux?compteId=${targetC.id}`,
+          label: `Consulter le journal de ${targetC.nom}`,
+          kind: 'compte',
+        }
+      }
+    }
+
+    const lower = rawTiers.toLowerCase()
+    const matchingMembre = membres.find((m) => {
+      const full = `${m.prenom || ''} ${m.nom}`.trim().toLowerCase()
+      const code = (m.code_membre || '').toLowerCase()
+      return (
+        full === lower ||
+        m.nom.toLowerCase() === lower ||
+        (code && lower.includes(code)) ||
+        lower.includes(full)
+      )
+    })
+    if (matchingMembre) {
+      return {
+        url: `/bilans/releve-membre?membreId=${matchingMembre.id}`,
+        label: `Consulter le relevé membre de ${matchingMembre.prenom || ''} ${matchingMembre.nom}`,
+        kind: 'membre',
+      }
+    }
+
+    const matchingClient = clients.find((c) => {
+      const cNom = c.nom.toLowerCase()
+      return cNom === lower || lower.includes(cNom)
+    })
+    if (matchingClient) {
+      return {
+        url: `/bilans/releve-client?clientId=${matchingClient.id}`,
+        label: `Consulter le journal client de ${matchingClient.nom}`,
+        kind: 'client',
+      }
+    }
+
+    return {
+      url: `/bilans/releve-fournisseur?fournisseurId=${encodeURIComponent(rawTiers)}`,
+      label: `Consulter le relevé fournisseur de ${rawTiers}`,
+      kind: 'fournisseur',
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -570,10 +628,61 @@ export default function JournalClient({
                     </td>
 
                     <td className="whitespace-nowrap px-6 py-4 text-xs">
-                      <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-background text-foreground border border-surface-border">
-                        <User className="w-3 h-3 text-primary" />
-                        <span>{ligne.tiers_affiche || '-'}</span>
-                      </span>
+                      {(() => {
+                        const tiersLink = getTiersLink(ligne)
+                        const tiersText = ligne.tiers_affiche || '-'
+
+                        if (!tiersLink || tiersText === '-') {
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-background text-foreground-muted border border-surface-border">
+                              <User className="w-3 h-3 text-foreground-muted" />
+                              <span>-</span>
+                            </span>
+                          )
+                        }
+
+                        const getKindIcon = () => {
+                          switch (tiersLink.kind) {
+                            case 'membre':
+                              return <UserCheck className="w-3.5 h-3.5 text-primary" />
+                            case 'client':
+                              return <User className="w-3.5 h-3.5 text-emerald-600" />
+                            case 'compte':
+                              return <ArrowRightLeft className="w-3.5 h-3.5 text-secondary" />
+                            case 'fournisseur':
+                            default:
+                              return <Building2 className="w-3.5 h-3.5 text-amber-600" />
+                          }
+                        }
+
+                        const getKindBadgeClass = () => {
+                          switch (tiersLink.kind) {
+                            case 'membre':
+                              return 'hover:border-primary/50 hover:bg-primary/5 text-foreground hover:text-primary'
+                            case 'client':
+                              return 'hover:border-emerald-500/50 hover:bg-emerald-500/5 text-foreground hover:text-emerald-600'
+                            case 'compte':
+                              return 'hover:border-secondary/50 hover:bg-secondary/5 text-foreground hover:text-secondary'
+                            case 'fournisseur':
+                            default:
+                              return 'hover:border-amber-500/50 hover:bg-amber-500/5 text-foreground hover:text-amber-600'
+                          }
+                        }
+
+                        return (
+                          <Link
+                            href={tiersLink.url}
+                            className={`group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium bg-background border border-surface-border transition-all shadow-2xs ${getKindBadgeClass()}`}
+                            title={tiersLink.label}
+                          >
+                            {getKindIcon()}
+                            <span className="font-semibold underline-offset-2 group-hover:underline">
+                              {tiersText}
+                            </span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-40 group-hover:opacity-100 transition-opacity ml-0.5" />
+                          </Link>
+                        )
+                      })()}
                     </td>
 
                     <td className="whitespace-nowrap px-6 py-4 text-xs text-right text-success font-bold font-mono">

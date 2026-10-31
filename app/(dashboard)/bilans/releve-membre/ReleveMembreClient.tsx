@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Search, X, RotateCcw } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import { getReleveMembre } from './actions'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { useUnite } from '@/components/DeviseProvider'
@@ -20,7 +21,31 @@ export default function ReleveMembreClient({
   gieName: string
 }) {
   const unite = useUnite()
-  const [selectedMembre, setSelectedMembre] = useState(membres[0]?.id || '')
+  const searchParams = useSearchParams()
+  const urlMembreParam = searchParams.get('membreId') || searchParams.get('search')
+  const matchedInitial = useMemo(() => {
+    if (!urlMembreParam) return null
+    const paramLow = decodeURIComponent(urlMembreParam).toLowerCase().trim()
+    return membres.find((m) => {
+      const full = `${m.prenom || ''} ${m.nom}`.trim().toLowerCase()
+      const code = (m.code_membre || '').toLowerCase()
+      return (
+        m.id === urlMembreParam ||
+        full === paramLow ||
+        m.nom.toLowerCase() === paramLow ||
+        (code && (code === paramLow || paramLow.includes(code))) ||
+        paramLow.includes(full)
+      )
+    })
+  }, [urlMembreParam, membres])
+  const [selectedMembre, setSelectedMembre] = useState(
+    matchedInitial ? matchedInitial.id : (membres[0]?.id || '')
+  )
+  useEffect(() => {
+    if (matchedInitial && matchedInitial.id !== selectedMembre) {
+      setSelectedMembre(matchedInitial.id)
+    }
+  }, [matchedInitial, selectedMembre])
   const [lignes, setLignes] = useState<any[]>([])
   const [soldeFinal, setSoldeFinal] = useState(0)
   const [loading, setLoading] = useState(false)
