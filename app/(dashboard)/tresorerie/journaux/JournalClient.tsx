@@ -26,6 +26,7 @@ import {
   UserCheck,
   Building2,
   ArrowRightLeft,
+  Bookmark,
 } from 'lucide-react'
 import { useUnite } from '@/components/DeviseProvider'
 
@@ -60,6 +61,14 @@ export default function JournalClient({
   const defaultCompte = initialCompteId || urlCompteId || (comptes.length > 0 ? comptes[0].id : 'all')
   const [selectedCompte, setSelectedCompte] = useState(defaultCompte)
   const [journal, setJournal] = useState<any[]>([])
+
+  const imputationsMap = useMemo(() => {
+    const map = new Map<string, any>()
+    for (const imp of imputations) {
+      map.set(imp.id, imp)
+    }
+    return map
+  }, [imputations])
   const [soldeInitial, setSoldeInitial] = useState(0)
   const [dateSoldeInitial, setDateSoldeInitial] = useState('')
   const [repartitionMateriel, setRepartitionMateriel] = useState<any[]>([])
@@ -624,6 +633,18 @@ export default function JournalClient({
                             <span>{ligne.materiel_nom}</span>
                           </span>
                         )}
+                        {ligne.imputation_id && imputationsMap.has(ligne.imputation_id) && (() => {
+                          const imp = imputationsMap.get(ligne.imputation_id)!
+                          return (
+                            <span
+                              className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300 border border-amber-500/25 shadow-2xs"
+                              title={`Rubrique : ${imp.libelle}`}
+                            >
+                              <Bookmark className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                              <span>{imp.compte || imp.libelle}</span>
+                            </span>
+                          )
+                        })()}
                       </div>
                     </td>
 

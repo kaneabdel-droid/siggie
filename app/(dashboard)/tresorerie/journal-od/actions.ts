@@ -301,3 +301,96 @@ export async function deleteOperationOD(id: string) {
 
   return { success: true }
 }
+
+export async function updateOperationOD(
+  id: string,
+  input: {
+    date_operation?: string
+    tiers?: string | null
+    reference_piece?: string | null
+    montant: number
+    libelle: string
+    type_operation: 'charge' | 'produit'
+    imputation_id?: string | null
+    imputation_libelle?: string | null
+    compte_id?: string | null
+  }
+) {
+  const denied = await requirePermission('tresorerie', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+
+  const montant = Number(input.montant || 0)
+  if (!montant || montant <= 0) return { error: "Veuillez renseigner un montant valide." }
+  if (!input.libelle?.trim()) return { error: "Le libellé de l'opération est obligatoire." }
+
+  const dateOp = input.date_operation || new Date().toISOString().slice(0, 10)
+  const tiers = input.tiers?.trim() || null
+  const ref = input.reference_piece?.trim() || null
+  const typeOp = input.type_operation === 'produit' ? 'produit' : 'charge'
+  const impLib = input.imputation_libelle?.trim() || 'Frais généraux'
+
+  // 1. Tenter la mise à jour dans la table journal_od
+  await supabase
+    .from('journal_od')
+    .update({
+      date_operation: dateOp,
+      tiers,
+      reference_piece: ref,
+      montant,
+      libelle: input.libelle.trim(),
+      type_operation: typeOp,
+      imputation_id: input.imputation_id || null,
+      imputation_libelle: impLib,
+      compte_id: input.compte_id || null,
+    })
+    .eq('id', id)
+    .eq('gie_id', userData.gie_id)
+
+  // 2. Tenter la mise à jour dans la table transactions (si l'OD y est synchronisée)
+  const metaTags = [
+    `[OD]`,
+    `[TYPE_OP:${typeOp}]`,
+    tiers ? `[TIERS:${tiers}]` : '',
+    ref ? `[REF:${ref}]` : '',
+    impLib ? `[IMPUTATION:${impLib}]` : '',
+  ].filter(Boolean).join(' ')
+
+  const safeMotif = `${input.libelle.trim()} ${metaTags}`.trim()
+  const typeTx = typeOp === 'produit' ? 'entree' : 'sortie'
+  const effectiveCompteId = input.compte_id || null
+
+  await supabase
+    .from('transactions')
+    .update({
+      compte_id: effectiveCompteId,
+      type_transaction: typeTx,
+      montant,
+      motif: safeMotif,
+      type_piece: 'od',
+      imputation_id: input.imputation_id || null,
+      date_transaction: dateOp,
+    })
+    .eq('id', id)
+    .eq('gie_id', userData.gie_id)
+
+  revalidatePath('/tresorerie/journal-od')
+  revalidatePath('/tresorerie/journaux')
+  revalidatePath('/tresorerie')
+  revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-fournisseur')
+  revalidatePath('/bilans/suivi-budgetaire')
+
+  return { success: true }
+}

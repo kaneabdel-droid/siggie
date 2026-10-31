@@ -695,15 +695,15 @@ export default function FicheMembreModal({
                           <p className="text-sm">Aucun mouvement comptable enregistré.</p>
                         </div>
                       ) : (
-                        <div className="overflow-hidden rounded-xl border border-surface-border shadow-xs">
-                          <table className="min-w-full divide-y divide-surface-border">
-                            <thead className="bg-background/60 text-xs font-semibold text-foreground-muted uppercase">
+                        <div className="overflow-x-auto rounded-xl border border-surface-border bg-surface shadow-xs">
+                          <table className="min-w-full divide-y divide-surface-border text-left">
+                            <thead className="bg-background/80 text-xs font-semibold text-foreground-muted uppercase tracking-wider">
                               <tr>
-                                <th className="px-4 py-3 text-left">Date</th>
-                                <th className="px-4 py-3 text-left">Opération / Libellé</th>
-                                <th className="px-4 py-3 text-right text-foreground">Débit (Facturé)</th>
-                                <th className="px-4 py-3 text-right text-success">Crédit (Remboursé)</th>
-                                <th className="px-4 py-3 text-right">Solde Dû</th>
+                                <th scope="col" className="w-28 px-4 py-3 text-left whitespace-nowrap">Date</th>
+                                <th scope="col" className="min-w-[280px] px-4 py-3 text-left">Opération / Libellé</th>
+                                <th scope="col" className="w-36 px-4 py-3 text-right text-foreground whitespace-nowrap">Débit (Facturé)</th>
+                                <th scope="col" className="w-36 px-4 py-3 text-right text-success whitespace-nowrap">Crédit (Remboursé)</th>
+                                <th scope="col" className="w-40 px-4 py-3 text-right text-foreground whitespace-nowrap bg-background/40 border-l border-surface-border">Solde Dû</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-surface-border bg-surface text-sm">
@@ -715,44 +715,48 @@ export default function FicheMembreModal({
                                     <td className="px-4 py-3 text-foreground-muted text-xs font-mono whitespace-nowrap">
                                       {item.date ? new Date(item.date).toLocaleDateString(dateLocale) : '-'}
                                     </td>
-                                    <td className="px-4 py-3 font-medium text-foreground">
-                                      <div className="flex items-center gap-2">
-                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold ${
+                                    <td className="px-4 py-3 text-foreground">
+                                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-bold shrink-0 ${
                                           item.type === 'remboursement'
-                                            ? 'bg-success/15 text-success'
+                                            ? 'bg-success/15 text-success border border-success/30'
                                             : item.type === 'facture'
-                                            ? 'bg-primary/15 text-primary'
+                                            ? 'bg-primary/15 text-primary border border-primary/30'
                                             : item.type === 'prestation'
-                                            ? 'bg-amber-500/15 text-amber-500'
+                                            ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
                                             : item.type === 'solde_initial'
-                                            ? 'bg-surface-border text-foreground-muted'
-                                            : 'bg-indigo-500/15 text-indigo-400'
+                                            ? 'bg-surface-border text-foreground-muted border border-surface-border'
+                                            : 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
                                         }`}>
                                           {item.type === 'remboursement' ? 'Paiement' : item.type === 'facture' ? 'Facture' : item.type === 'prestation' ? 'Prestation' : 'Report'}
                                         </span>
-                                        <span className="text-xs sm:text-sm">{item.libelle}</span>
+                                        <span className="text-xs sm:text-sm font-medium text-foreground">
+                                          {item.libelle}
+                                        </span>
                                         {item.type === 'solde_initial' && (
-                                          <JustificatifSoldeModal
-                                            membreId={membre.id}
-                                            membreNom={`${membre.nom} ${membre.prenom}`}
-                                            soldeInitial={membre.solde_initial}
-                                            triggerButton={
-                                              <span className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline cursor-pointer ml-1.5 font-sans font-normal">
-                                                <Paperclip className="w-3 h-3" />
-                                                <span>Justificatif</span>
-                                              </span>
-                                            }
-                                          />
+                                          <span className="shrink-0 ml-1">
+                                            <JustificatifSoldeModal
+                                              membreId={membre.id}
+                                              membreNom={`${membre.nom} ${membre.prenom}`}
+                                              soldeInitial={membre.solde_initial}
+                                              triggerButton={
+                                                <span className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline cursor-pointer font-sans font-medium bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                                                  <Paperclip className="w-3 h-3" />
+                                                  <span>Justificatif</span>
+                                                </span>
+                                              }
+                                            />
+                                          </span>
                                         )}
                                       </div>
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono font-semibold text-foreground whitespace-nowrap">
-                                      {isDebit ? `${Number(item.debit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '-'}
+                                      {isDebit ? `${Number(item.debit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '—'}
                                     </td>
                                     <td className="px-4 py-3 text-right font-mono font-semibold text-success whitespace-nowrap">
-                                      {isCredit ? `${Number(item.credit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '-'}
+                                      {isCredit ? `-${Number(item.credit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '—'}
                                     </td>
-                                    <td className="px-4 py-3 text-right font-mono font-bold whitespace-nowrap">
+                                    <td className="px-4 py-3 text-right font-mono font-bold whitespace-nowrap bg-background/20 border-l border-surface-border">
                                       <span className={item.soldeLigne > 0 ? 'text-danger' : item.soldeLigne < 0 ? 'text-indigo-400' : 'text-success'}>
                                         {Number(item.soldeLigne || 0).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                       </span>
@@ -761,18 +765,18 @@ export default function FicheMembreModal({
                                 )
                               })}
                             </tbody>
-                            <tfoot className="bg-background/80 border-t-2 border-surface-border font-bold text-sm">
+                            <tfoot className="bg-background/90 border-t-2 border-surface-border font-bold text-xs sm:text-sm">
                               <tr>
-                                <td colSpan={2} className="px-4 py-3.5 text-right uppercase text-xs tracking-wider text-foreground-muted">
+                                <td colSpan={2} className="px-4 py-3.5 text-right uppercase tracking-wider text-foreground-muted">
                                   Totaux du Compte
                                 </td>
-                                <td className="px-4 py-3.5 text-right font-mono text-foreground">
+                                <td className="px-4 py-3.5 text-right font-mono text-foreground whitespace-nowrap">
                                   {totalFacture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                 </td>
-                                <td className="px-4 py-3.5 text-right font-mono text-success">
+                                <td className="px-4 py-3.5 text-right font-mono text-success whitespace-nowrap">
                                   {totalPaye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                 </td>
-                                <td className="px-4 py-3.5 text-right font-mono text-base">
+                                <td className="px-4 py-3.5 text-right font-mono text-sm whitespace-nowrap bg-background/40 border-l border-surface-border">
                                   <span className={soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'}>
                                     {soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                   </span>

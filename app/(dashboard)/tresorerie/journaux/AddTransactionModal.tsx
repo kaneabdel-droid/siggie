@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, ArrowRightLeft, Calendar, User, Truck, Building2, UserCheck, AlertCircle, CheckCircle2, Coins, Info, Bookmark } from 'lucide-react'
 import { addTransaction } from '../actions'
 
@@ -60,6 +60,30 @@ export default function AddTransactionModal({
     (currentCompte?.nom || '').toLowerCase().includes('matériel') ||
     (currentCompte?.nom || '').toLowerCase().includes('materiel')
   )
+
+  // Groupement des imputations budgétaires par Rubrique (libelle) pour afficher les Postes (compte) sous chaque rubrique
+  const imputationsGrouped = useMemo(() => {
+    const groups: { rubrique: string; postes: any[] }[] = []
+    const map = new Map<string, any[]>()
+
+    for (const imp of imputations) {
+      const rubrique = (imp.libelle || 'Autres').trim()
+      if (!map.has(rubrique)) {
+        const arr: any[] = []
+        map.set(rubrique, arr)
+        groups.push({ rubrique, postes: arr })
+      }
+      map.get(rubrique)!.push(imp)
+    }
+
+    for (const g of groups) {
+      g.postes.sort((a, b) => (a.compte || a.libelle || '').localeCompare(b.compte || b.libelle || '', 'fr'))
+    }
+
+    groups.sort((a, b) => a.rubrique.localeCompare(b.rubrique, 'fr'))
+
+    return groups
+  }, [imputations])
 
   function resetForm() {
     setSelectedCompteId(compteId)
@@ -646,10 +670,14 @@ export default function AddTransactionModal({
                   className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                 >
                   <option value="">-- Aucune imputation budgétaire --</option>
-                  {imputations.map((imp) => (
-                    <option key={imp.id} value={imp.id}>
-                      {imp.code ? `[${imp.code}] ` : ''}{imp.libelle || imp.nom}
-                    </option>
+                  {imputationsGrouped.map((g) => (
+                    <optgroup key={g.rubrique} label={`📁 Rubrique : ${g.rubrique}`}>
+                      {g.postes.map((imp) => (
+                        <option key={imp.id} value={imp.id}>
+                          {imp.compte || imp.libelle}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

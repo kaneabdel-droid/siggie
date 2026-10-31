@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, CheckCircle2, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
 import { addOperationOD } from './actions'
 import { useUnite } from '@/components/DeviseProvider'
@@ -29,10 +29,36 @@ export default function AddOperationODModal({
   const [error, setError] = useState('')
 
   // Filtrer les imputations selon la nature (charge / produit)
-  const relevantImputations = imputations.filter((imp) => {
-    if (typeOp === 'charge') return imp.nature === 'depense' || !imp.nature
-    return imp.nature === 'recette' || !imp.nature
-  })
+  const relevantImputations = useMemo(() => {
+    return imputations.filter((imp) => {
+      if (typeOp === 'charge') return imp.nature === 'depense' || !imp.nature
+      return imp.nature === 'recette' || !imp.nature
+    })
+  }, [imputations, typeOp])
+
+  // Grouper les imputations par Rubrique (libelle) pour afficher les Postes (compte) sous chaque rubrique
+  const relevantImputationsGrouped = useMemo(() => {
+    const groups: { rubrique: string; postes: typeof relevantImputations }[] = []
+    const map = new Map<string, typeof relevantImputations>()
+
+    for (const imp of relevantImputations) {
+      const rubrique = (imp.libelle || 'Autres').trim()
+      if (!map.has(rubrique)) {
+        const arr: typeof relevantImputations = []
+        map.set(rubrique, arr)
+        groups.push({ rubrique, postes: arr })
+      }
+      map.get(rubrique)!.push(imp)
+    }
+
+    for (const g of groups) {
+      g.postes.sort((a, b) => (a.compte || a.libelle || '').localeCompare(b.compte || b.libelle || '', 'fr'))
+    }
+
+    groups.sort((a, b) => a.rubrique.localeCompare(b.rubrique, 'fr'))
+
+    return groups
+  }, [relevantImputations])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -241,7 +267,7 @@ export default function AddOperationODModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Imputation budgétaire existante
+                    Poste budgétaire (Classé par Rubrique)
                   </label>
                   <select
                     value={selectedImputationId}
@@ -251,11 +277,15 @@ export default function AddOperationODModal({
                     }}
                     className="w-full rounded-lg border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-xs"
                   >
-                    <option value="">Sélectionner une rubrique...</option>
-                    {relevantImputations.map((imp) => (
-                      <option key={imp.id} value={imp.id}>
-                        {imp.libelle} — {imp.compte}
-                      </option>
+                    <option value="">Sélectionner un poste...</option>
+                    {relevantImputationsGrouped.map((g) => (
+                      <optgroup key={g.rubrique} label={`📁 Rubrique : ${g.rubrique}`}>
+                        {g.postes.map((imp) => (
+                          <option key={imp.id} value={imp.id}>
+                            {imp.compte || imp.libelle}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </div>

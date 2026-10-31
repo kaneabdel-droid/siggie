@@ -15,9 +15,10 @@ import {
   Filter
 } from 'lucide-react'
 import AddOperationODModal from './AddOperationODModal'
+import EditOperationODModal from './EditOperationODModal'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { useUnite } from '@/components/DeviseProvider'
-import { deleteOperationOD, OperationOD } from './actions'
+import { deleteOperationOD, getOperationsOD, OperationOD } from './actions'
 
 export default function JournalODClient({
   initialOperations,
@@ -93,6 +94,15 @@ export default function JournalODClient({
     }
   }, [filteredOperations])
 
+  const refreshOperations = async () => {
+    const res = await getOperationsOD()
+    if (res?.operations) {
+      setOperations(res.operations)
+    } else {
+      window.location.reload()
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm("Voulez-vous supprimer cette écriture du journal OD ?")) return
     setDeletingId(id)
@@ -123,9 +133,7 @@ export default function JournalODClient({
           <AddOperationODModal
             imputations={imputations}
             comptes={comptes}
-            onCreated={() => {
-              window.location.reload()
-            }}
+            onCreated={refreshOperations}
           />
           {filteredOperations.length > 0 && (
             <PrintSectionButton sectionId="journal-od-print" label="Imprimer le Journal OD" />
@@ -317,15 +325,23 @@ export default function JournalODClient({
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right text-xs print:hidden">
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(op.id)}
-                          disabled={deletingId === op.id}
-                          className="p-1 text-foreground-muted hover:text-danger rounded hover:bg-danger/10 transition-colors"
-                          title="Supprimer cette écriture"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <EditOperationODModal
+                            operation={op}
+                            imputations={imputations}
+                            comptes={comptes}
+                            onUpdated={refreshOperations}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(op.id)}
+                            disabled={deletingId === op.id}
+                            className="p-1 text-foreground-muted hover:text-danger rounded hover:bg-danger/10 transition-colors"
+                            title="Supprimer cette écriture"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
