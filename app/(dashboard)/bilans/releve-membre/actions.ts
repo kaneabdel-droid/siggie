@@ -16,7 +16,7 @@ export async function getReleveMembre(membreId: string) {
 
   if (!membre) return { error: "Membre introuvable" }
 
-  const [facturesRes, prestationsRes, sortiesStockRes, ristournesRes] = await Promise.all([
+  const [facturesRes, prestationsRes, sortiesStockRes, ristournesRes, txRes, rembRes] = await Promise.all([
     supabase
       .from('factures')
       .select('id, montant_total, montant_interet, montant_paye, statut, date_emission, created_at, campagnes(id, nom, date_debut, produit_collecte, prix_collecte)')
@@ -38,6 +38,14 @@ export async function getReleveMembre(membreId: string) {
       .select('id, montant, date_ristourne, motif, created_at, comptes:compte_id(nom)')
       .eq('membre_id', membreId)
       .order('date_ristourne', { ascending: true }),
+    supabase
+      .from('transactions')
+      .select('id, date_transaction, type_transaction, montant, motif, type_piece, created_at, comptes(nom)')
+      .order('date_transaction', { ascending: true }),
+    supabase
+      .from('remboursements')
+      .select('id, montant_fcfa, date_paiement, reference_piece')
+      .eq('membre_id', membreId),
   ])
 
   if (facturesRes.error) return { error: facturesRes.error.message }
@@ -158,6 +166,71 @@ export async function getReleveMembre(membreId: string) {
     })
   }
 
+  // Mouvements de trésorerie directs (versements en caisse/banque, apports, avances hors remboursements factures)
+  const pNomReleve = membre.prenom ? membre.prenom.trim().toLowerCase() : ''
+  const nNomReleve = membre.nom ? membre.nom.trim().toLowerCase() : ''
+
+  const transactionsMembreReleve = ((txRes.data || []) as any[]).filter((tx) => {
+    const motifLow = String(tx.motif || '').toLowerCase()
+    const matchTiers = motifLow.match(/\[tiers:(.*?)\]/)
+    if (matchTiers) {
+      const tNom = matchTiers[1].trim()
+      if (tNom === nomComplet1 || tNom === nomComplet2) return true
+      if (pNomReleve && tNom.includes(pNomReleve) && nNomReleve && tNom.includes(nNomReleve)) return true
+      if (pNomReleve && tNom === pNomReleve) return true
+    }
+    if (pNomReleve && nNomReleve && motifLow.includes(pNomReleve) && motifLow.includes(nNomReleve)) return true
+    return false
+  })
+
+  for (const tx of transactionsMembreReleve) {
+    const isAlreadyInRembs = (rembRes.data || []).some((r: any) => {
+      const sameMontant = Number(r.montant_fcfa) === Number(tx.montant)
+      const rDate = r.date_paiement ? String(r.date_paiement).slice(0, 10) : ''
+      const tDate = tx.date_transaction ? String(tx.date_transaction).slice(0, 10) : ''
+      const sameDate = rDate && tDate && rDate === tDate
+      const refInMotif = r.reference_piece && tx.motif && String(tx.motif).toLowerCase().includes(String(r.reference_piece).toLowerCase())
+      return sameMontant && (sameDate || refInMotif)
+    })
+
+    if (isAlreadyInRembs) continue
+
+    const compte = Array.isArray(tx.comptes) ? tx.comptes[0] : tx.comptes
+    const compteDesc = compte?.nom ? ` · ${compte.nom}` : ''
+    const refMatch = String(tx.motif || '').match(/\[REF:(.*?)\]/)
+    const refDesc = refMatch ? ` (Réf: ${refMatch[1]})` : ''
+    const cleanMotif = String(tx.motif || '')
+      .replace(/\[REF:.*?\]/g, '')
+      .replace(/\[TIERS:.*?\]/g, '')
+      .replace(/\[CREDIT_MEMBRE:.*?\]/g, '')
+      .replace(/\[REMBOURSEMENT:.*?\]/g, '')
+      .trim()
+
+    if (tx.type_transaction === 'entree') {
+      operations.push({
+        id: `tx-entree-${tx.id}`,
+        type_ligne: 'facture_campagne',
+        campagne: `Versement trésorerie : ${cleanMotif || 'Versement membre'}${refDesc}${compteDesc}`,
+        date: tx.date_transaction || tx.created_at,
+        montant_facture: 0,
+        montant_paye: Number(tx.montant || 0),
+        montant_ristourne: 0,
+        raw: tx,
+      })
+    } else if (tx.type_transaction === 'sortie') {
+      operations.push({
+        id: `tx-sortie-${tx.id}`,
+        type_ligne: 'facture_campagne',
+        campagne: `Règlement / Avance trésorerie : ${cleanMotif || 'Sortie membre'}${refDesc}${compteDesc}`,
+        date: tx.date_transaction || tx.created_at,
+        montant_facture: Number(tx.montant || 0),
+        montant_paye: 0,
+        montant_ristourne: 0,
+        raw: tx,
+      })
+    }
+  }
+
   operations.sort((a, b) => {
     const ta = a.date ? new Date(a.date).getTime() : 0
     const tb = b.date ? new Date(b.date).getTime() : 0
@@ -190,7 +263,7 @@ export async function getFicheMembre(membreId: string) {
 
   if (!membre) return { error: "Membre introuvable" }
 
-  const [facturesRes, rembRes, prestationsRes, sortiesStockRes, ristournesRes] = await Promise.all([
+  const [facturesRes, rembRes, prestationsRes, sortiesStockRes, ristournesRes, txRes] = await Promise.all([
     supabase
       .from('factures')
       .select('id, montant_total, montant_interet, montant_paye, statut, date_emission, created_at, campagnes(id, nom, date_debut, produit_collecte, prix_collecte)')
@@ -217,6 +290,10 @@ export async function getFicheMembre(membreId: string) {
       .select('id, montant, date_ristourne, motif, created_at, comptes:compte_id(nom)')
       .eq('membre_id', membreId)
       .order('date_ristourne', { ascending: true }),
+    supabase
+      .from('transactions')
+      .select('id, date_transaction, type_transaction, montant, motif, type_piece, created_at, comptes(nom)')
+      .order('date_transaction', { ascending: true }),
   ])
 
   if (facturesRes.error) return { error: facturesRes.error.message }
@@ -342,6 +419,69 @@ export async function getFicheMembre(membreId: string) {
       credit: 0,
       raw: r,
     })
+  }
+
+  // Mouvements de trésorerie directs (versements en caisse/banque, apports, avances hors remboursements factures)
+  const pNomFiche = membre.prenom ? membre.prenom.trim().toLowerCase() : ''
+  const nNomFiche = membre.nom ? membre.nom.trim().toLowerCase() : ''
+
+  const transactionsMembreFiche = ((txRes.data || []) as any[]).filter((tx) => {
+    const motifLow = String(tx.motif || '').toLowerCase()
+    const matchTiers = motifLow.match(/\[tiers:(.*?)\]/)
+    if (matchTiers) {
+      const tNom = matchTiers[1].trim()
+      if (tNom === nomComplet1 || tNom === nomComplet2) return true
+      if (pNomFiche && tNom.includes(pNomFiche) && nNomFiche && tNom.includes(nNomFiche)) return true
+      if (pNomFiche && tNom === pNomFiche) return true
+    }
+    if (pNomFiche && nNomFiche && motifLow.includes(pNomFiche) && motifLow.includes(nNomFiche)) return true
+    return false
+  })
+
+  for (const tx of transactionsMembreFiche) {
+    const isAlreadyInRembs = (rembRes.data || []).some((r: any) => {
+      const sameMontant = Number(r.montant_fcfa) === Number(tx.montant)
+      const rDate = r.date_paiement ? String(r.date_paiement).slice(0, 10) : ''
+      const tDate = tx.date_transaction ? String(tx.date_transaction).slice(0, 10) : ''
+      const sameDate = rDate && tDate && rDate === tDate
+      const refInMotif = r.reference_piece && tx.motif && String(tx.motif).toLowerCase().includes(String(r.reference_piece).toLowerCase())
+      return sameMontant && (sameDate || refInMotif)
+    })
+
+    if (isAlreadyInRembs) continue
+
+    const compte = Array.isArray(tx.comptes) ? tx.comptes[0] : tx.comptes
+    const compteDesc = compte?.nom ? ` · ${compte.nom}` : ''
+    const refMatch = String(tx.motif || '').match(/\[REF:(.*?)\]/)
+    const refDesc = refMatch ? ` (Réf: ${refMatch[1]})` : ''
+    const cleanMotif = String(tx.motif || '')
+      .replace(/\[REF:.*?\]/g, '')
+      .replace(/\[TIERS:.*?\]/g, '')
+      .replace(/\[CREDIT_MEMBRE:.*?\]/g, '')
+      .replace(/\[REMBOURSEMENT:.*?\]/g, '')
+      .trim()
+
+    if (tx.type_transaction === 'entree') {
+      journal.push({
+        id: `tx-entree-${tx.id}`,
+        date: tx.date_transaction || tx.created_at,
+        type: 'remboursement',
+        libelle: `Versement trésorerie : ${cleanMotif || 'Versement membre'}${refDesc}${compteDesc}`,
+        debit: 0,
+        credit: Number(tx.montant || 0),
+        raw: tx,
+      })
+    } else if (tx.type_transaction === 'sortie') {
+      journal.push({
+        id: `tx-sortie-${tx.id}`,
+        date: tx.date_transaction || tx.created_at,
+        type: 'facture',
+        libelle: `Sortie / Avance trésorerie : ${cleanMotif || 'Sortie membre'}${refDesc}${compteDesc}`,
+        debit: Number(tx.montant || 0),
+        credit: 0,
+        raw: tx,
+      })
+    }
   }
 
   // Trier chronologiquement

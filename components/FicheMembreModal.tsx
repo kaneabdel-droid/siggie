@@ -136,7 +136,7 @@ export default function FicheMembreModal({
             <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-primary to-indigo-500 shrink-0" />
 
             {/* Header: Bien cadré et aligné */}
-            <div className="flex items-center justify-between p-5 border-b border-surface-border bg-background/50">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border bg-background/50 shrink-0">
               <div className="flex items-center gap-4 min-w-0">
                 <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center text-primary shadow-xs shrink-0 font-bold text-xl">
                   {membre.prenom ? membre.prenom[0] : ''}{membre.nom ? membre.nom[0] : ''}
@@ -223,207 +223,210 @@ export default function FicheMembreModal({
               </div>
             </div>
 
-            {/* Financial Summary Badges: 3 Cartes Équilibrées et Cadrées */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 p-5 bg-background/30 border-b border-surface-border">
-              {/* Carte 1 : Total Facturé */}
-              <div className="rounded-xl border border-surface-border bg-surface p-4 shadow-xs relative overflow-hidden flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">
-                    Total Facturé
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-background text-foreground-muted border border-surface-border">
-                    <FileText className="w-3 h-3 text-primary" />
-                    {factures.length} campagne{factures.length > 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="mt-2 text-2xl font-black font-mono text-foreground tracking-tight">
-                  {totalFacture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-bold text-foreground-muted font-sans">{unite}</span>
-                </div>
-                <div className="mt-1 text-[11px] text-foreground-muted">
-                  Intrants, labour, prestations et intérêts
-                </div>
-              </div>
+            {/* Conteneur principal défilable avec ascenseur pour accéder à toutes les données sans masquage */}
+            <div className="overflow-y-auto flex-1 flex flex-col min-h-0">
 
-              {/* Carte 2 : Total Remboursé */}
-              <div className="rounded-xl border border-success/30 bg-success/5 p-4 shadow-xs relative overflow-hidden flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-success uppercase tracking-wider">
-                    Total Remboursé / Payé
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-success/15 text-success border border-success/30">
-                    <CheckCircle2 className="w-3 h-3 text-success" />
-                    {remboursements.length} paiement{remboursements.length > 1 ? 's' : ''}
-                  </span>
+              {/* Financial Summary Badges: 3 Cartes Équilibrées et Cadrées */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 p-5 bg-background/30 border-b border-surface-border shrink-0">
+                {/* Carte 1 : Total Facturé */}
+                <div className="rounded-xl border border-surface-border bg-surface p-4 shadow-xs relative overflow-hidden flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">
+                      Total Facturé
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-background text-foreground-muted border border-surface-border">
+                      <FileText className="w-3 h-3 text-primary" />
+                      {factures.length} campagne{factures.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-2xl font-black font-mono text-foreground tracking-tight">
+                    {totalFacture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-bold text-foreground-muted font-sans">{unite}</span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-foreground-muted">
+                    Intrants, labour, prestations et intérêts
+                  </div>
                 </div>
-                <div className="mt-2 text-2xl font-black font-mono text-success tracking-tight">
-                  {totalPaye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-bold text-success/70 font-sans">{unite}</span>
-                </div>
-                <div className="mt-1 text-[11px] text-foreground-muted flex items-center justify-between">
-                  <span>Numéraire & pesées en nature</span>
-                  <span className="font-semibold text-success font-mono">{tauxRecouvrement}% soldé</span>
-                </div>
-              </div>
 
-              {/* Carte 3 : Solde Dû / Position */}
-              <div
-                className={`rounded-xl border p-4 shadow-xs relative overflow-hidden flex flex-col justify-between ${
-                  soldeActuel > 0
-                    ? 'border-danger/30 bg-danger/5'
-                    : soldeActuel < 0
-                    ? 'border-indigo-500/30 bg-indigo-500/5'
-                    : 'border-success/30 bg-success/5'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-xs font-semibold uppercase tracking-wider ${
+                {/* Carte 2 : Total Remboursé */}
+                <div className="rounded-xl border border-success/30 bg-success/5 p-4 shadow-xs relative overflow-hidden flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-success uppercase tracking-wider">
+                      Total Remboursé / Payé
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-success/15 text-success border border-success/30">
+                      <CheckCircle2 className="w-3 h-3 text-success" />
+                      {remboursements.length} paiement{remboursements.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-2xl font-black font-mono text-success tracking-tight">
+                    {totalPaye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} <span className="text-sm font-bold text-success/70 font-sans">{unite}</span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-foreground-muted flex items-center justify-between">
+                    <span>Numéraire & pesées en nature</span>
+                    <span className="font-semibold text-success font-mono">{tauxRecouvrement}% soldé</span>
+                  </div>
+                </div>
+
+                {/* Carte 3 : Solde Dû / Position */}
+                <div
+                  className={`rounded-xl border p-4 shadow-xs relative overflow-hidden flex flex-col justify-between ${
+                    soldeActuel > 0
+                      ? 'border-danger/30 bg-danger/5'
+                      : soldeActuel < 0
+                      ? 'border-indigo-500/30 bg-indigo-500/5'
+                      : 'border-success/30 bg-success/5'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-xs font-semibold uppercase tracking-wider ${
+                        soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'
+                      }`}
+                    >
+                      {soldeActuel > 0
+                        ? 'Reste Dû (À recouvrer)'
+                        : soldeActuel < 0
+                        ? 'Solde Créditeur (Surplus)'
+                        : 'Compte Soldé (À jour)'}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        soldeActuel > 0
+                          ? 'bg-danger/15 text-danger border border-danger/30'
+                          : soldeActuel < 0
+                          ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                          : 'bg-success/15 text-success border border-success/30'
+                      }`}
+                    >
+                      {soldeActuel > 0 ? (
+                        <>
+                          <AlertCircle className="w-3 h-3" />
+                          Impayé
+                        </>
+                      ) : soldeActuel < 0 ? (
+                        <>
+                          <RotateCcw className="w-3 h-3" />
+                          À ristourner
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Règle à jour
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <div
+                    className={`mt-2 text-2xl font-black font-mono tracking-tight ${
                       soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'
                     }`}
                   >
+                    {Math.abs(soldeActuel).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{' '}
+                    <span className="text-sm font-bold opacity-75 font-sans">{unite}</span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-foreground-muted">
                     {soldeActuel > 0
-                      ? 'Reste Dû (À recouvrer)'
+                      ? 'Montant net restant à percevoir'
                       : soldeActuel < 0
-                      ? 'Solde Créditeur (Surplus)'
-                      : 'Compte Soldé (À jour)'}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                      soldeActuel > 0
-                        ? 'bg-danger/15 text-danger border border-danger/30'
-                        : soldeActuel < 0
-                        ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
-                        : 'bg-success/15 text-success border border-success/30'
-                    }`}
-                  >
-                    {soldeActuel > 0 ? (
-                      <>
-                        <AlertCircle className="w-3 h-3" />
-                        Impayé
-                      </>
-                    ) : soldeActuel < 0 ? (
-                      <>
-                        <RotateCcw className="w-3 h-3" />
-                        À ristourner
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-3 h-3" />
-                        Règle à jour
-                      </>
-                    )}
-                  </span>
-                </div>
-                <div
-                  className={`mt-2 text-2xl font-black font-mono tracking-tight ${
-                    soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'
-                  }`}
-                >
-                  {Math.abs(soldeActuel).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{' '}
-                  <span className="text-sm font-bold opacity-75 font-sans">{unite}</span>
-                </div>
-                <div className="mt-1 text-[11px] text-foreground-muted">
-                  {soldeActuel > 0
-                    ? 'Montant net restant à percevoir'
-                    : soldeActuel < 0
-                    ? 'Surplus agricole à reverser au membre'
-                    : 'Aucune dette en cours sur ce compte'}
+                      ? 'Surplus agricole à reverser au membre'
+                      : 'Aucune dette en cours sur ce compte'}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Navigation Tabs Bar */}
-            <div className="px-5 border-b border-surface-border bg-surface flex items-center justify-between">
-              <nav className="flex space-x-1 sm:space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('factures')}
-                  className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                    activeTab === 'factures'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-foreground-muted hover:text-foreground'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Factures & Campagnes</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                    activeTab === 'factures' ? 'bg-primary/20 text-primary' : 'bg-surface-border/50 text-foreground-muted'
-                  }`}>
-                    {factures.length}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('remboursements')}
-                  className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                    activeTab === 'remboursements'
-                      ? 'border-success text-success'
-                      : 'border-transparent text-foreground-muted hover:text-foreground'
-                  }`}
-                >
-                  <Receipt className="w-4 h-4" />
-                  <span>Remboursements & Pesées</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                    activeTab === 'remboursements' ? 'bg-success/20 text-success' : 'bg-surface-border/50 text-foreground-muted'
-                  }`}>
-                    {remboursements.length}
-                  </span>
-                </button>
-
-                {prestations.length > 0 && (
+              {/* Navigation Tabs Bar - Reste collée en haut au défilement pour un accès permanent */}
+              <div className="sticky top-0 z-20 px-5 border-b border-surface-border bg-surface/95 backdrop-blur-xs flex items-center justify-between shrink-0 shadow-2xs">
+                <nav className="flex space-x-1 sm:space-x-4">
                   <button
                     type="button"
-                    onClick={() => setActiveTab('prestations')}
+                    onClick={() => setActiveTab('factures')}
                     className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                      activeTab === 'prestations'
-                        ? 'border-amber-500 text-amber-500'
+                      activeTab === 'factures'
+                        ? 'border-primary text-primary'
                         : 'border-transparent text-foreground-muted hover:text-foreground'
                     }`}
                   >
-                    <Tractor className="w-4 h-4" />
-                    <span>Prestations</span>
+                    <FileText className="w-4 h-4" />
+                    <span>Factures & Campagnes</span>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                      activeTab === 'prestations' ? 'bg-amber-500/20 text-amber-500' : 'bg-surface-border/50 text-foreground-muted'
+                      activeTab === 'factures' ? 'bg-primary/20 text-primary' : 'bg-surface-border/50 text-foreground-muted'
                     }`}>
-                      {prestations.length}
+                      {factures.length}
                     </span>
                   </button>
-                )}
 
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('releve')}
-                  className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                    activeTab === 'releve'
-                      ? 'border-indigo-500 text-indigo-400'
-                      : 'border-transparent text-foreground-muted hover:text-foreground'
-                  }`}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>Grand Livre (Relevé)</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                    activeTab === 'releve' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-surface-border/50 text-foreground-muted'
-                  }`}>
-                    {journal.length}
-                  </span>
-                </button>
-              </nav>
-
-              {activeTab === 'releve' && (
-                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-background hover:bg-surface text-foreground-muted hover:text-foreground border border-surface-border transition-colors cursor-pointer"
+                    onClick={() => setActiveTab('remboursements')}
+                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
+                      activeTab === 'remboursements'
+                        ? 'border-success text-success'
+                        : 'border-transparent text-foreground-muted hover:text-foreground'
+                    }`}
                   >
-                    <span>{sortOrder === 'asc' ? 'Chronologique ↑' : 'Anti-chrono ↓'}</span>
+                    <Receipt className="w-4 h-4" />
+                    <span>Remboursements & Pesées</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
+                      activeTab === 'remboursements' ? 'bg-success/20 text-success' : 'bg-surface-border/50 text-foreground-muted'
+                    }`}>
+                      {remboursements.length}
+                    </span>
                   </button>
-                </div>
-              )}
-            </div>
 
-            {/* Modal Body: Scrollable Content */}
-            <div className="p-5 overflow-y-auto flex-1 min-h-[300px]">
+                  {prestations.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('prestations')}
+                      className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
+                        activeTab === 'prestations'
+                          ? 'border-amber-500 text-amber-500'
+                          : 'border-transparent text-foreground-muted hover:text-foreground'
+                      }`}
+                    >
+                      <Tractor className="w-4 h-4" />
+                      <span>Prestations</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
+                        activeTab === 'prestations' ? 'bg-amber-500/20 text-amber-500' : 'bg-surface-border/50 text-foreground-muted'
+                      }`}>
+                        {prestations.length}
+                      </span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('releve')}
+                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
+                      activeTab === 'releve'
+                        ? 'border-indigo-500 text-indigo-400'
+                        : 'border-transparent text-foreground-muted hover:text-foreground'
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Grand Livre (Relevé)</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
+                      activeTab === 'releve' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-surface-border/50 text-foreground-muted'
+                    }`}>
+                      {journal.length}
+                    </span>
+                  </button>
+                </nav>
+
+                {activeTab === 'releve' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-background hover:bg-surface text-foreground-muted hover:text-foreground border border-surface-border transition-colors cursor-pointer"
+                    >
+                      <span>{sortOrder === 'asc' ? 'Chronologique ↑' : 'Anti-chrono ↓'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Body: Contenu affiché avec marge de sécurité */}
+              <div className="p-5 flex-1 pb-8">
               {loading && (
                 <div className="flex items-center justify-center py-16">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -701,9 +704,9 @@ export default function FicheMembreModal({
                               <tr>
                                 <th scope="col" className="w-28 px-4 py-3 text-left whitespace-nowrap">Date</th>
                                 <th scope="col" className="min-w-[280px] px-4 py-3 text-left">Opération / Libellé</th>
-                                <th scope="col" className="w-36 px-4 py-3 text-right text-foreground whitespace-nowrap">Débit (Facturé)</th>
-                                <th scope="col" className="w-36 px-4 py-3 text-right text-success whitespace-nowrap">Crédit (Remboursé)</th>
-                                <th scope="col" className="w-40 px-4 py-3 text-right text-foreground whitespace-nowrap bg-background/40 border-l border-surface-border">Solde Dû</th>
+                                <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right text-foreground whitespace-nowrap">Débit (Facturé)</th>
+                                <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right text-success whitespace-nowrap">Crédit (Remboursé)</th>
+                                <th scope="col" className="w-48 min-w-[160px] px-4 py-3 text-right text-foreground whitespace-nowrap bg-background/40 border-l border-surface-border">Solde Dû</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-surface-border bg-surface text-sm">
@@ -770,13 +773,13 @@ export default function FicheMembreModal({
                                 <td colSpan={2} className="px-4 py-3.5 text-right uppercase tracking-wider text-foreground-muted">
                                   Totaux du Compte
                                 </td>
-                                <td className="px-4 py-3.5 text-right font-mono text-foreground whitespace-nowrap">
+                                <td className="w-36 min-w-[130px] px-4 py-3.5 text-right font-mono text-foreground whitespace-nowrap">
                                   {totalFacture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                 </td>
-                                <td className="px-4 py-3.5 text-right font-mono text-success whitespace-nowrap">
+                                <td className="w-36 min-w-[130px] px-4 py-3.5 text-right font-mono text-success whitespace-nowrap">
                                   {totalPaye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                 </td>
-                                <td className="px-4 py-3.5 text-right font-mono text-sm whitespace-nowrap bg-background/40 border-l border-surface-border">
+                                <td className="w-48 min-w-[160px] px-4 py-3.5 text-right font-mono text-sm whitespace-nowrap bg-background/40 border-l border-surface-border">
                                   <span className={soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'}>
                                     {soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                   </span>
@@ -790,10 +793,11 @@ export default function FicheMembreModal({
                   )}
                 </>
               )}
+              </div>
             </div>
 
             {/* Footer: Action bar & summary */}
-            <div className="p-4 border-t border-surface-border bg-background/50 flex items-center justify-between gap-4 text-xs">
+            <div className="p-4 border-t border-surface-border bg-background/50 flex items-center justify-between gap-4 text-xs shrink-0">
               <div className="flex items-center gap-2 text-foreground-muted">
                 <span>Fiche membre SIGGIE •</span>
                 <span>{factures.length} campagnes, {remboursements.length} paiements</span>
