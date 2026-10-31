@@ -197,31 +197,39 @@ export async function addOperationOD(input: {
   const typeOp = input.type_operation === 'produit' ? 'produit' : 'charge'
   const impLib = input.imputation_libelle?.trim() || 'Frais généraux'
 
-  // 1. Tenter l'insertion dans la table journal_od
+  // 1. Tenter l'insertion dans la table journal_od si elle existe
   let insertedId: string | null = null
-  const { data: odInserted, error: odError } = await supabase
-    .from('journal_od')
-    .insert({
-      gie_id: userData.gie_id,
-      date_operation: dateOp,
-      tiers,
-      reference_piece: ref,
-      montant,
-      libelle: input.libelle.trim(),
-      type_operation: typeOp,
-      imputation_id: input.imputation_id || null,
-      imputation_libelle: impLib,
-      compte_id: input.compte_id || null,
-    })
-    .select('id')
-    .maybeSingle()
+  let tableOdExists = false
 
-  if (odInserted?.id) {
-    insertedId = odInserted.id
+  try {
+    const { data: odInserted, error: odError } = await supabase
+      .from('journal_od')
+      .insert({
+        gie_id: userData.gie_id,
+        date_operation: dateOp,
+        tiers,
+        reference_piece: ref,
+        montant,
+        libelle: input.libelle.trim(),
+        type_operation: typeOp,
+        imputation_id: input.imputation_id || null,
+        imputation_libelle: impLib,
+        compte_id: input.compte_id || null,
+      })
+      .select('id')
+      .maybeSingle()
+
+    if (odInserted?.id) {
+      insertedId = odInserted.id
+      tableOdExists = true
+    }
+  } catch (_) {
+    tableOdExists = false
   }
 
-  // 2. Si un compte de trésorerie est lié (décaissement ou encaissement réel), ou comme fallback dans transactions
-  if (input.compte_id || odError) {
+  // 2. Si un compte de trésorerie est lié (décaissement/encaissement direct) OU si journal_od n'existe pas :
+  // Sauvegarder dans transactions avec type_piece = 'od'
+  if (input.compte_id || !tableOdExists) {
     const metaTags = [
       `[OD]`,
       `[TYPE_OP:${typeOp}]`,
@@ -233,20 +241,13 @@ export async function addOperationOD(input: {
     const safeMotif = `${input.libelle.trim()} ${metaTags}`.trim()
     const typeTx = typeOp === 'produit' ? 'entree' : 'sortie'
 
-    // Si pas de compte_id et table journal_od absente, trouver le premier compte de caisse comme réceptacle technique
-    let effectiveCompteId = input.compte_id
-    if (!effectiveCompteId && odError) {
-      const { data: defaultCompte } = await supabase
-        .from('comptes')
-        .select('id')
-        .eq('gie_id', userData.gie_id)
-        .limit(1)
-        .maybeSingle()
-      effectiveCompteId = defaultCompte?.id || null
-    }
+    // IMPORTANT : Si aucun compte de trésorerie n'est sélectionné, compte_id reste NULL.
+    // Cela évite de déduire indûment le solde de la Caisse et contourne le trigger de solde insuffisant.
+    const effectiveCompteId = input.compte_id || null
 
-    if (effectiveCompteId) {
-      await supabase.from('transactions').insert({
+    const { data: insertedTx, error: txError } = await supabase
+      .from('transactions')
+      .insert({
         gie_id: userData.gie_id,
         compte_id: effectiveCompteId,
         type_transaction: typeTx,
@@ -256,6 +257,16 @@ export async function addOperationOD(input: {
         imputation_id: input.imputation_id || null,
         date_transaction: dateOp,
       })
+      .select('id')
+      .maybeSingle()
+
+    if (txError) {
+      console.error("Erreur enregistrement opération OD dans transactions:", txError)
+      return { error: txError.message || "Erreur lors de l'enregistrement de l'opération OD." }
+    }
+
+    if (!insertedId && insertedTx?.id) {
+      insertedId = insertedTx.id
     }
   }
 
@@ -263,6 +274,7 @@ export async function addOperationOD(input: {
   revalidatePath('/tresorerie/journaux')
   revalidatePath('/tresorerie')
   revalidatePath('/bilans')
+  revalidatePath('/bilans/releve-fournisseur')
   revalidatePath('/bilans/suivi-budgetaire')
 
   return { success: true, id: insertedId }
@@ -277,7 +289,7 @@ export async function deleteOperationOD(id: string) {
   if (!user) return { error: "Non authentifié" }
 
   // Supprimer de journal_od et de transactions si applicable
-  await Promise.all([
+  await Promise.allSettled([
     supabase.from('journal_od').delete().eq('id', id),
     supabase.from('transactions').delete().eq('id', id),
   ])
@@ -285,6 +297,7 @@ export async function deleteOperationOD(id: string) {
   revalidatePath('/tresorerie/journal-od')
   revalidatePath('/tresorerie/journaux')
   revalidatePath('/tresorerie')
+  revalidatePath('/bilans/releve-fournisseur')
 
   return { success: true }
 }

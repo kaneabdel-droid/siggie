@@ -19,7 +19,7 @@ export interface MouvementFournisseur {
   id: string
   date: string
   type: 'dette' | 'reglement'
-  nature: 'achat_intrant' | 'consommation_materiel' | 'acquisition_materiel' | 'reglement_tresorerie' | 'autre'
+  nature: 'achat_intrant' | 'consommation_materiel' | 'acquisition_materiel' | 'reglement_tresorerie' | 'od_charge' | 'od_reglement' | 'autre'
   designation: string
   quantite: number | null
   unite?: string | null
@@ -341,21 +341,52 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
   let telephone: string | null = null
   let adresse: string | null = null
   let codeFournisseur = 'FRN-001'
+  let resolvedId = fournisseurNomOrId
 
-  // Vérifier si c'est un UUID dans fournisseurs_externes
-  const { data: fExt } = await supabase
-    .from('fournisseurs_externes')
-    .select('id, nom, telephone, adresse, code_fournisseur')
-    .or(`id.eq.${fournisseurNomOrId},nom.ilike.${fournisseurNomOrId}`)
-    .maybeSingle()
+  // 1. Vérifier si c'est dans fournisseurs_externes
+  try {
+    const { data: fExt } = await supabase
+      .from('fournisseurs_externes')
+      .select('id, nom, telephone, adresse, code_fournisseur')
+      .or(`id.eq.${fournisseurNomOrId},nom.ilike.${fournisseurNomOrId}`)
+      .maybeSingle()
 
-  if (fExt) {
-    targetNom = fExt.nom
-    telephone = fExt.telephone || null
-    adresse = fExt.adresse || null
-    codeFournisseur = fExt.code_fournisseur || 'FRN-001'
-  } else if (targetNom.startsWith('fournisseur-')) {
-    targetNom = decodeURIComponent(targetNom.replace('fournisseur-', ''))
+    if (fExt) {
+      targetNom = fExt.nom
+      telephone = fExt.telephone || null
+      adresse = fExt.adresse || null
+      codeFournisseur = fExt.code_fournisseur || 'FRN-001'
+      resolvedId = fExt.id
+    }
+  } catch (_) {}
+
+  // 2. Si non trouvé dans fExt, chercher dans clients_externes (fournisseurs créés)
+  if (targetNom === fournisseurNomOrId.trim()) {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fournisseurNomOrId)
+    let cQuery = supabase.from('clients_externes').select('id, nom, telephone').eq('gie_id', userData.gie_id)
+    if (isUUID) {
+      cQuery = cQuery.eq('id', fournisseurNomOrId)
+    } else {
+      cQuery = cQuery.or(`nom.ilike.[FOURNISSEUR] ${fournisseurNomOrId},nom.ilike.${fournisseurNomOrId}`)
+    }
+    const { data: cExt } = await cQuery.maybeSingle()
+    if (cExt) {
+      const rawNom = cExt.nom || ''
+      targetNom = rawNom.replace(/^\[FOURNISSEUR\]\s*/i, '').trim()
+      resolvedId = cExt.id
+      codeFournisseur = `FRN-${cExt.id.slice(0, 4).toUpperCase()}`
+      if (cExt.telephone) {
+        if (cExt.telephone.includes('|')) {
+          const parts = cExt.telephone.split('|')
+          telephone = parts[0]?.trim() || null
+          adresse = parts[1]?.trim() || null
+        } else {
+          telephone = cExt.telephone.trim()
+        }
+      }
+    } else if (targetNom.startsWith('fournisseur-')) {
+      targetNom = decodeURIComponent(targetNom.replace('fournisseur-', ''))
+    }
   }
 
   const targetNomLower = targetNom.toLowerCase()
@@ -378,9 +409,8 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
       .eq('gie_id', userData.gie_id),
     supabase
       .from('transactions')
-      .select('id, montant, date_transaction, motif, type_piece, type_transaction, compte_id, reference_piece')
+      .select('id, montant, date_transaction, motif, type_piece, type_transaction, compte_id')
       .eq('gie_id', userData.gie_id)
-      .eq('type_transaction', 'sortie')
       .order('date_transaction', { ascending: true }),
     supabase
       .from('comptes')
@@ -479,10 +509,11 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
     })
   }
 
-  // D. Règlements de trésorerie (Sorties de caisse / banque)
+  // D. Mouvements de trésorerie et Journal OD (Règlements vs Charges engagées)
   for (const tx of transactionsRes.data || []) {
     const motifStr = String(tx.motif || '')
     const motifLower = motifStr.toLowerCase()
+    const isOD = tx.type_piece === 'od' || motifLower.includes('[od]')
 
     const matchTiers = motifLower.includes(`[tiers:${targetNomLower}]`) || motifLower.includes(`tiers:${targetNomLower}`)
     const matchName = motifLower.includes(targetNomLower)
@@ -493,30 +524,95 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
     }
 
     const cleanMotif = motifStr.replace(/\[[^\]]*\]/g, '').trim()
-    const compteNom = tx.compte_id ? (comptesMap.get(tx.compte_id) || 'Compte') : 'Caisse / Banque'
+    const compteNom = tx.compte_id ? (comptesMap.get(tx.compte_id) || 'Compte') : (isOD ? 'Journal OD (Opération diverse)' : 'Caisse / Banque')
     const montant = Number(tx.montant || 0)
 
     // Extraire numéro de référence ou de pièce si présent
     const refMatch = motifStr.match(/\[REF:([^\]]+)\]/)
-    const pieceRef = refMatch ? refMatch[1].trim() : (tx.reference_piece || null)
+    const pieceRef = refMatch ? refMatch[1].trim() : null
 
-    mouvements.push({
-      id: `tx-${tx.id}`,
-      date: tx.date_transaction || new Date().toISOString().slice(0, 10),
-      type: 'reglement',
-      nature: 'reglement_tresorerie',
-      designation: cleanMotif ? `Règlement fournisseur : ${cleanMotif}` : `Règlement fournisseur (${compteNom})`,
-      quantite: null,
-      unite: null,
-      prix_unitaire: null,
-      montant,
-      debit: 0,
-      credit: montant,
-      solde: 0,
-      piece_ref: pieceRef,
-      compte_nom: compteNom,
-      raw: tx,
-    })
+    if (isOD) {
+      // Une écriture au Journal OD rattachée à ce fournisseur :
+      // - Si c'est une CHARGE (achat, facture, prestation reçue à crédit) => C'est une DETTE (débit)
+      // - Si c'est un PRODUIT (avoir fournisseur, escompte, annulation) => C'est une réduction de dette (crédit)
+      const isProduit = motifLower.includes('[type_op:produit]')
+      if (isProduit) {
+        mouvements.push({
+          id: `od-${tx.id}`,
+          date: tx.date_transaction || new Date().toISOString().slice(0, 10),
+          type: 'reglement',
+          nature: 'reglement_tresorerie',
+          designation: cleanMotif ? `Avoir / Régularisation OD : ${cleanMotif}` : `Opération diverse (Avoir fournisseur)`,
+          quantite: null,
+          unite: null,
+          prix_unitaire: null,
+          montant,
+          debit: 0,
+          credit: montant,
+          solde: 0,
+          piece_ref: pieceRef,
+          compte_nom: compteNom,
+          raw: tx,
+        })
+      } else {
+        mouvements.push({
+          id: `od-${tx.id}`,
+          date: tx.date_transaction || new Date().toISOString().slice(0, 10),
+          type: 'dette',
+          nature: 'od_charge',
+          designation: cleanMotif ? `Charge / Facture OD : ${cleanMotif}` : `Opération diverse (Dette fournisseur)`,
+          quantite: null,
+          unite: null,
+          prix_unitaire: null,
+          montant,
+          debit: montant,
+          credit: 0,
+          solde: 0,
+          piece_ref: pieceRef,
+          compte_nom: compteNom,
+          raw: tx,
+        })
+      }
+    } else {
+      // Règlement réel de trésorerie (Caisse / Banque)
+      if (tx.type_transaction === 'sortie') {
+        mouvements.push({
+          id: `tx-${tx.id}`,
+          date: tx.date_transaction || new Date().toISOString().slice(0, 10),
+          type: 'reglement',
+          nature: 'reglement_tresorerie',
+          designation: cleanMotif ? `Règlement fournisseur : ${cleanMotif}` : `Règlement fournisseur (${compteNom})`,
+          quantite: null,
+          unite: null,
+          prix_unitaire: null,
+          montant,
+          debit: 0,
+          credit: montant,
+          solde: 0,
+          piece_ref: pieceRef,
+          compte_nom: compteNom,
+          raw: tx,
+        })
+      } else if (tx.type_transaction === 'entree') {
+        mouvements.push({
+          id: `tx-${tx.id}`,
+          date: tx.date_transaction || new Date().toISOString().slice(0, 10),
+          type: 'reglement',
+          nature: 'reglement_tresorerie',
+          designation: cleanMotif ? `Remboursement reçu du fournisseur : ${cleanMotif}` : `Remboursement fournisseur (${compteNom})`,
+          quantite: null,
+          unite: null,
+          prix_unitaire: null,
+          montant,
+          debit: 0,
+          credit: montant,
+          solde: 0,
+          piece_ref: pieceRef,
+          compte_nom: compteNom,
+          raw: tx,
+        })
+      }
+    }
   }
 
   // Trier chronologiquement (date croissante)
@@ -543,7 +639,7 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
 
   return {
     fournisseur: {
-      id: fExt?.id || `fournisseur-${encodeURIComponent(targetNomLower)}`,
+      id: resolvedId || `fournisseur-${encodeURIComponent(targetNomLower)}`,
       nom: targetNom,
       telephone,
       adresse,

@@ -12,9 +12,17 @@ export async function getClients() {
     ? await supabase.from('utilisateurs').select('gie_id').eq('id', user.id).maybeSingle()
     : { data: null }
 
-  let clientsRes: any = await supabase.from('clients_externes').select('id, nom, telephone, code_client').order('nom', { ascending: true })
+  let clientsRes: any = await supabase
+    .from('clients_externes')
+    .select('id, nom, telephone, code_client')
+    .not('nom', 'ilike', '[FOURNISSEUR]%')
+    .order('nom', { ascending: true })
   if (clientsRes.error && (clientsRes.error.message?.includes('code_client') || clientsRes.error.code === '42703')) {
-    clientsRes = await supabase.from('clients_externes').select('id, nom, telephone').order('nom', { ascending: true })
+    clientsRes = await supabase
+      .from('clients_externes')
+      .select('id, nom, telephone')
+      .not('nom', 'ilike', '[FOURNISSEUR]%')
+      .order('nom', { ascending: true })
   }
 
   const [membresRes, prestationsRes, sortiesRes] = await Promise.all([
@@ -25,10 +33,12 @@ export async function getClients() {
 
   if (clientsRes.error) return { error: clientsRes.error.message }
 
-  const clients = (clientsRes.data || []).map((c: any, idx: number) => ({
-    ...c,
-    code_client: c.code_client || `CLI-${c.id ? c.id.slice(0, 4).toUpperCase() : String(idx + 1).padStart(3, '0')}`,
-  }))
+  const clients = (clientsRes.data || [])
+    .filter((c: any) => !c.nom?.startsWith('[FOURNISSEUR]'))
+    .map((c: any, idx: number) => ({
+      ...c,
+      code_client: c.code_client || `CLI-${c.id ? c.id.slice(0, 4).toUpperCase() : String(idx + 1).padStart(3, '0')}`,
+    }))
   const existingClientNames = new Set(clients.map((c: any) => c.nom.trim().toLowerCase()))
   const memberNames = new Set(
     (membresRes.data || []).flatMap((m) => [
@@ -169,7 +179,7 @@ export async function getReleveClient(clientId: string) {
   }
 
   const client = clientRes.data
-  if (!client) return { error: "Client introuvable" }
+  if (!client || client.nom?.startsWith('[FOURNISSEUR]')) return { error: "Client introuvable" }
   if (!(client as any).code_client) {
     (client as any).code_client = `CLI-${client.id ? client.id.slice(0, 4).toUpperCase() : '001'}`
   }
