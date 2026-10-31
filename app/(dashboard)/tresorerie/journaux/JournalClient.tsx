@@ -591,9 +591,13 @@ export default function JournalClient({
                     <td className="relative whitespace-nowrap px-6 py-4 text-right text-xs font-medium print:hidden">
                       <TransactionRowActions
                         transaction={ligne}
+                        comptes={comptes}
                         imputations={imputations}
                         campagnes={campagnes}
+                        clients={clients}
+                        membres={membres}
                         materiels={materiels}
+                        isCaisseMateriel={isCaisseMateriel}
                         onSuccess={fetchJournal}
                         dict={dict}
                       />

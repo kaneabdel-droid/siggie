@@ -35,8 +35,8 @@ export async function getComptes() {
         else if (t.type_transaction === 'sortie') solde -= Number(t.montant)
       }
     }
-    return { 
-      ...compte, 
+    return {
+      ...compte,
       solde_courant: solde,
       date_solde_initial: '01/01/2026',
     }
@@ -58,7 +58,7 @@ export async function addCompte(nom: string, type_compte: string, solde_initial:
     .select('gie_id')
     .eq('id', user.id)
     .single()
-    
+
   if (!userData) return { error: "Utilisateur introuvable" }
 
   const { error } = await supabase
@@ -301,15 +301,13 @@ export async function addTransaction(data: {
 
   revalidatePath('/tresorerie')
   revalidatePath('/tresorerie/journaux')
-  revalidatePath('/remboursements')
-  revalidatePath('/bilans/releve-membre')
-  revalidatePath('/membres')
   return { success: true }
 }
 
 export async function updateTransaction(
   id: string,
   data: {
+    compte_id?: string
     type_transaction: string
     montant: number
     motif: string
@@ -318,7 +316,15 @@ export async function updateTransaction(
     campagne_id?: string
     date_transaction?: string
     reference_piece?: string
+    tiers_type?: string
+    tiers_nom?: string
+    tiers_id?: string
+    compte_destination_id?: string
+    materiel_id?: string
     materiel_nom?: string
+    is_remboursement?: boolean
+    mode_remboursement?: 'total' | 'partiel'
+    montant_remboursement?: number
   }
 ) {
   const denied = await requirePermission('tresorerie', 'update')
@@ -328,13 +334,117 @@ export async function updateTransaction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Non authentifié" }
 
-  // Conserver ou actualiser la référence et le matériel dans le motif
-  let safeMotif = data.motif.replace(/\[REF:.*?\]/g, '').replace(/\[MATERIEL:.*?\]/g, '').trim()
-  if (data.reference_piece?.trim()) {
-    safeMotif = `${safeMotif} [REF:${data.reference_piece.trim()}]`
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+
+  // 1. Récupérer l'ancienne transaction pour conserver les métadonnées existantes si non spécifiées
+  const { data: existingTx } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  // 2. Nettoyer le motif de tous les tags pour reconstruire proprement
+  let safeMotif = (data.motif || '')
+    .replace(/\[REF:.*?\]/g, '')
+    .replace(/\[TIERS:.*?\]/g, '')
+    .replace(/\[MATERIEL:.*?\]/g, '')
+    .replace(/\[REMBOURSEMENT:.*?\]/g, '')
+    .replace(/\[CREDIT_MEMBRE:.*?\]/g, '')
+    .trim()
+
+  if (!safeMotif) safeMotif = 'Opération'
+
+  // Référence
+  const ref = data.reference_piece?.trim()
+  if (ref) {
+    safeMotif = `${safeMotif} [REF:${ref}]`
   }
-  if (data.materiel_nom?.trim()) {
-    safeMotif = `${safeMotif} [MATERIEL:${data.materiel_nom.trim()}]`
+
+  // Tiers (priorité au tiers passé, sinon ancien tag tiers dans existingTx.motif)
+  let finalTiersNom = data.tiers_nom?.trim()
+  if (!finalTiersNom && existingTx?.motif) {
+    const matchOldTiers = String(existingTx.motif).match(/\[TIERS:(.*?)\]/)
+    if (matchOldTiers) finalTiersNom = matchOldTiers[1].trim()
+  }
+  if (finalTiersNom) {
+    safeMotif = `${safeMotif} [TIERS:${finalTiersNom}]`
+  }
+
+  // Matériel
+  let finalMatNom = data.materiel_nom?.trim()
+  if (!finalMatNom && existingTx?.motif) {
+    const matchOldMat = String(existingTx.motif).match(/\[MATERIEL:(.*?)\]/)
+    if (matchOldMat) finalMatNom = matchOldMat[1].trim()
+  }
+  if (finalMatNom) {
+    safeMotif = `${safeMotif} [MATERIEL:${finalMatNom}]`
+  }
+
+  // Gestion versement / remboursement membre
+  const dateTx = data.date_transaction || existingTx?.date_transaction || new Date().toISOString().slice(0, 10)
+  const montantTotal = Number(data.montant || 0)
+
+  if (data.type_transaction === 'entree' && data.tiers_type === 'membre') {
+    if (data.is_remboursement) {
+      const numRemb = data.mode_remboursement === 'partiel'
+        ? Math.min(Number(data.montant_remboursement || 0), montantTotal)
+        : montantTotal
+      const reliquatCredit = montantTotal - numRemb
+
+      safeMotif = `${safeMotif} [REMBOURSEMENT:${numRemb}]`
+      if (reliquatCredit > 0) {
+        safeMotif = `${safeMotif} [CREDIT_MEMBRE:${reliquatCredit}]`
+      }
+
+      if (numRemb > 0 && data.tiers_id) {
+        // Mettre à jour ou insérer dans remboursements
+        const { data: existingRembs } = await supabase
+          .from('remboursements')
+          .select('id, facture_id, montant_fcfa')
+          .eq('gie_id', userData.gie_id)
+          .eq('membre_id', data.tiers_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        if (existingRembs && existingRembs.length > 0) {
+          const rItem = existingRembs[0]
+          const diff = numRemb - Number(rItem.montant_fcfa || 0)
+          await supabase.from('remboursements').update({
+            montant_fcfa: numRemb,
+            date_paiement: dateTx,
+            reference_piece: ref || null,
+          }).eq('id', rItem.id)
+
+          if (rItem.facture_id && diff !== 0) {
+            const { data: fac } = await supabase
+              .from('factures')
+              .select('id, montant_total, montant_interet, montant_paye')
+              .eq('id', rItem.facture_id)
+              .single()
+
+            if (fac) {
+              const totalDu = Number(fac.montant_total || 0) + Number(fac.montant_interet || 0)
+              const newPaye = Math.max(0, Number(fac.montant_paye || 0) + diff)
+              let newStatut = 'impayee'
+              if (newPaye > 0) newStatut = 'partiellement_paye'
+              if (newPaye >= totalDu) newStatut = 'payee'
+              await supabase.from('factures').update({
+                montant_paye: newPaye,
+                statut: newStatut,
+              }).eq('id', fac.id)
+            }
+          }
+        }
+      }
+    } else {
+      safeMotif = `${safeMotif} [CREDIT_MEMBRE:${montantTotal}]`
+    }
   }
 
   const updatePayload: any = {
@@ -344,7 +454,11 @@ export async function updateTransaction(
     type_piece: data.type_piece || null,
     imputation_id: data.imputation_id || null,
     campagne_id: data.campagne_id || null,
-    date_transaction: data.date_transaction || new Date().toISOString().slice(0, 10),
+    date_transaction: dateTx,
+  }
+
+  if (data.compte_id) {
+    updatePayload.compte_id = data.compte_id
   }
 
   const { error } = await supabase
@@ -465,7 +579,7 @@ export async function getJournal(compteId: string) {
 
   // Map to calculate equipment breakdown
   const matMap = new Map<string, { nom: string; entrees: number; sorties: number }>()
-  
+
   const journal = sortedTxs.map(tx => {
     let entree = null
     let sortie = null
@@ -510,6 +624,8 @@ export async function getJournal(compteId: string) {
       .replace(/\[TIERS:.*?\]/g, '')
       .replace(/\[MATERIEL:.*?\]/g, '')
       .replace(/\[REF:.*?\]/g, '')
+      .replace(/\[REMBOURSEMENT:.*?\]/g, '')
+      .replace(/\[CREDIT_MEMBRE:.*?\]/g, '')
       .trim()
 
     const compteTransactionNom = tx.compte_id ? (comptesMap.get(tx.compte_id) || 'Compte') : null
@@ -519,6 +635,7 @@ export async function getJournal(compteId: string) {
       date_effective: tx.date_transaction || (tx.created_at ? tx.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
       motif_affiche: cleanMotif,
       tiers_affiche: tiersNom || '-',
+      tiers_nom: tiersNom,
       materiel_nom: materielNom,
       reference_piece: referencePiece,
       compte_nom: compteTransactionNom,
@@ -533,9 +650,9 @@ export async function getJournal(compteId: string) {
     net: m.entrees - m.sorties
   }))
 
-  return { 
-    journal: journal.reverse(), 
-    soldeInitial: soldeInitialCumule, 
+  return {
+    journal: journal.reverse(),
+    soldeInitial: soldeInitialCumule,
     dateSoldeInitial,
     compteNom,
     compteType,
@@ -562,7 +679,7 @@ export async function getRapprochement(campagneId: string) {
     .eq('credit_id', credit.id)
 
   const montantAccorde = Number(credit.montant_accorde || 0)
-  
+
   let totalPaiementsFournisseurs = 0
   let totalRetraits = 0
 

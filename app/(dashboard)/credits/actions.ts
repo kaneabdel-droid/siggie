@@ -25,7 +25,7 @@ export async function addCredit(formData: FormData) {
     .select('gie_id')
     .eq('id', user.id)
     .single()
-    
+
   if (!userData) throw new Error("Utilisateur introuvable")
 
   const typeCredit = ((formData.get('type_credit') as string) || 'campagne') as 'campagne' | 'equipement'
@@ -185,7 +185,7 @@ export async function updateCreditStatus(
       if (effectiveDateAcq) {
         data.date_demande = effectiveDateAcq
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   const { error } = await supabase
@@ -302,7 +302,7 @@ export async function addDecaissementCredit(formData: FormData) {
     .select('gie_id')
     .eq('id', user.id)
     .single()
-    
+
   if (!userData) throw new Error("Utilisateur introuvable")
 
   const data = {

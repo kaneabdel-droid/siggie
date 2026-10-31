@@ -111,8 +111,8 @@ export async function getFacturesPourRemboursement() {
     const clientFound = p.client_id
       ? clientMap.get(p.client_id)
       : p.client_nom
-      ? clientByName.get(p.client_nom.trim().toLowerCase())
-      : null
+        ? clientByName.get(p.client_nom.trim().toLowerCase())
+        : null
 
     const montantTotal = Number(p.montant_facture || 0)
     const paidFromTags = paidByDocKey.get(`prestation:${p.id}`) || 0
@@ -157,8 +157,8 @@ export async function getFacturesPourRemboursement() {
     const clientFound = v.client_id
       ? clientMap.get(v.client_id)
       : v.tiers_nom
-      ? clientByName.get(v.tiers_nom.trim().toLowerCase())
-      : null
+        ? clientByName.get(v.tiers_nom.trim().toLowerCase())
+        : null
 
     const montantTotal = Number(v.quantite || 0) * Number(v.prix_unitaire || 0)
     const paidFromTags = paidByDocKey.get(`vente_stock:${v.id}`) || 0
@@ -442,7 +442,7 @@ export async function enregistrerRemboursement(
 
       await supabase
         .from('factures')
-        .update({ 
+        .update({
           montant_paye: nouveauMontantPaye,
           statut: nouveauStatut
         })
@@ -498,6 +498,6 @@ export async function enregistrerRemboursement(
   revalidatePath('/bilans/releve-client')
   revalidatePath('/bilans/bilan-annuel')
   revalidatePath('/dashboard')
-  
+
   return { success: true }
 }
