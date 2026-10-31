@@ -65,9 +65,7 @@ export default function BilanAnnuelClient({ annee, annees, n, n1, devise, canEdi
 
   const actifRows = [
     { key: 'immobilisations', note: t.notes.immobilisations },
-    { key: 'stocks_intrants', note: t.notes.stocks_intrants, isSubItem: true },
-    { key: 'stocks_remboursement', note: t.notes.stocks_remboursement, isSubItem: true },
-    { key: 'stocks', note: t.notes.stocks, isTotal: true },
+    { key: 'stocks', note: t.notes.stocks },
     { key: 'creances', note: t.notes.creances },
     { key: 'disponibilites', note: t.notes.disponibilites },
   ] as const
@@ -115,18 +113,14 @@ export default function BilanAnnuelClient({ annee, annees, n, n1, devise, canEdi
             </thead>
             <tbody className="divide-y divide-surface-border">
               {rows.map((r) => {
-                const isSub = Boolean((r as any).isSubItem)
-                const isTot = Boolean((r as any).isTotal)
                 const rowCur = cur[r.key] || { brut: 0, amo: 0, net: 0 }
                 const rowPrev = prev[r.key] || { brut: 0, amo: 0, net: 0 }
                 return (
-                  <tr key={r.key} className={isTot ? 'bg-surface-border/20 font-semibold' : ''}>
-                    <td className={`px-3 py-2 text-foreground ${isSub ? 'pl-7 text-xs text-foreground-muted' : ''}`}>
-                      {isSub ? `↳ ${t.rows[r.key] || r.key}` : (t.rows[r.key] || r.key)}
-                    </td>
+                  <tr key={r.key}>
+                    <td className="px-3 py-2 text-foreground">{t.rows[r.key] || r.key}</td>
                     <td className={tdNum}>{r.saisie ? saisie(r.saisie, rowCur.brut) : fmt(rowCur.brut)}</td>
                     <td className={tdNum}>{fmt(rowCur.amo)}</td>
-                    <td className={`${tdNum} font-medium ${isSub ? 'text-foreground-muted' : 'text-foreground'}`}>{fmt(rowCur.net)}</td>
+                    <td className={`${tdNum} font-medium text-foreground`}>{fmt(rowCur.net)}</td>
                     <td className={`${tdNum} text-foreground-muted`}>{fmt(rowPrev.net)}</td>
                     <td className={tdNote}>{r.note}</td>
                   </tr>

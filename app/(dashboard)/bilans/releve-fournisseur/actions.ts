@@ -49,15 +49,48 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
 
   // 1. Essayer de charger la table fournisseurs_externes si elle existe
   let tableFournisseurs: any[] = []
-  const tableRes = await supabase
-    .from('fournisseurs_externes')
-    .select('id, nom, telephone, adresse, code_fournisseur, solde_initial')
-    .eq('gie_id', userData.gie_id)
-    .order('nom', { ascending: true })
+  try {
+    const tableRes = await supabase
+      .from('fournisseurs_externes')
+      .select('id, nom, telephone, adresse, code_fournisseur, solde_initial')
+      .eq('gie_id', userData.gie_id)
+      .order('nom', { ascending: true })
 
-  if (!tableRes.error && tableRes.data) {
-    tableFournisseurs = tableRes.data
-  }
+    if (!tableRes.error && tableRes.data) {
+      tableFournisseurs = tableRes.data
+    }
+  } catch (_) {}
+
+  // 1b. Charger les fournisseurs enregistrés de façon pérenne dans clients_externes (tagués [FOURNISSEUR])
+  try {
+    const clientsRes = await supabase
+      .from('clients_externes')
+      .select('id, nom, telephone')
+      .eq('gie_id', userData.gie_id)
+      .ilike('nom', '[FOURNISSEUR]%')
+      .order('nom', { ascending: true })
+
+    if (clientsRes.data) {
+      for (const cf of clientsRes.data) {
+        const cleanNom = cf.nom.replace(/^\[FOURNISSEUR\]\s*/i, '').trim()
+        let tel = cf.telephone
+        let adr = null
+        if (tel && tel.includes('|')) {
+          const parts = tel.split('|').map((s: string) => s.trim())
+          tel = parts[0] || null
+          adr = parts[1] || null
+        }
+        tableFournisseurs.push({
+          id: cf.id,
+          nom: cleanNom,
+          telephone: tel,
+          adresse: adr,
+          code_fournisseur: null,
+          solde_initial: 0,
+        })
+      }
+    }
+  } catch (_) {}
 
   // 2. Découvrir dynamiquement tous les fournisseurs mentionnés dans les achats, consommations et règlements
   const [achatsRes, consommationsRes, materielsRes, transactionsRes] = await Promise.all([
@@ -75,7 +108,7 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
       .eq('gie_id', userData.gie_id),
     supabase
       .from('transactions')
-      .select('motif, montant, type_transaction, type_piece')
+      .select('id, motif, montant, type_transaction, type_piece')
       .eq('gie_id', userData.gie_id),
   ])
 
@@ -90,7 +123,7 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
     total_regle: number
   }>()
 
-  // Initialiser avec la table si présente
+  // Initialiser avec les fournisseurs enregistrés
   tableFournisseurs.forEach((f, idx) => {
     const key = f.nom.trim().toLowerCase()
     fournisseursMap.set(key, {
@@ -164,11 +197,11 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
     item.total_dette += Number(m.valeur_acquisition || 0)
   }
 
-  // Agréger les règlements trésorerie (sorties) vers ces fournisseurs
+  // Agréger les règlements et charges de trésorerie / OD
   for (const tx of transactionsRes.data || []) {
-    if (tx.type_transaction !== 'sortie') continue
     const motifStr = String(tx.motif || '')
     const motifLower = motifStr.toLowerCase()
+    const isOD = tx.type_piece === 'od' || motifLower.includes('[od]')
 
     // Vérifier si un des fournisseurs est mentionné dans le motif ou le tag [TIERS:nom]
     for (const [key, item] of fournisseursMap.entries()) {
@@ -177,7 +210,21 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
       const isFournisseurPiece = tx.type_piece === 'facture_fournisseur' || tx.type_piece === 'reglement_fournisseur'
 
       if (matchTiers || (matchName && (isFournisseurPiece || motifLower.includes('fournisseur') || motifLower.includes('achat') || motifLower.includes('règlement') || motifLower.includes('paiement')))) {
-        item.total_regle += Number(tx.montant || 0)
+        if (isOD) {
+          // IMPORTANT: Une charge au Journal OD (facture fournisseur, charge diverse) avec ce fournisseur en tiers
+          // est une DETTE (augmentation de ce qui est dû), JAMAIS un règlement de trésorerie !
+          if (motifLower.includes('[type_op:charge]') || tx.type_transaction === 'sortie') {
+            item.total_dette += Number(tx.montant || 0)
+          } else if (motifLower.includes('[type_op:produit]') || tx.type_transaction === 'entree') {
+            // Avoir fournisseur / produit divers
+            item.total_regle += Number(tx.montant || 0)
+          }
+        } else {
+          // Transaction normale de trésorerie (Caisse / Banque) : sortie = paiement / règlement
+          if (tx.type_transaction === 'sortie') {
+            item.total_regle += Number(tx.montant || 0)
+          }
+        }
         break
       }
     }
@@ -210,45 +257,62 @@ export async function addFournisseur(nom: string, telephone?: string, adresse?: 
   if (!userData) return { error: "Utilisateur introuvable" }
   if (!nom.trim()) return { error: "Le nom du fournisseur est obligatoire." }
 
-  // Générer un code fournisseur
-  const { data: countData } = await supabase
-    .from('fournisseurs_externes')
-    .select('id', { count: 'exact', head: true })
-    .eq('gie_id', userData.gie_id)
+  const cleanNom = nom.trim()
+  const telStr = telephone?.trim() || ''
+  const adrStr = adresse?.trim() || ''
+  const combinedTel = telStr && adrStr ? `${telStr} | ${adrStr}` : (telStr || adrStr || null)
 
-  const nextNum = (countData ? Number(countData) : 0) + 1
-  const codeFournisseur = `FRN-${String(nextNum).padStart(3, '0')}`
+  // 1. Tenter d'abord dans la table fournisseurs_externes si elle existe
+  try {
+    const { data: insertedExt } = await supabase
+      .from('fournisseurs_externes')
+      .insert({
+        gie_id: userData.gie_id,
+        nom: cleanNom,
+        telephone: telStr || null,
+        adresse: adrStr || null,
+      })
+      .select('id, nom, telephone, adresse, code_fournisseur')
+      .maybeSingle()
 
-  const { data: inserted, error } = await supabase
-    .from('fournisseurs_externes')
+    if (insertedExt?.id) {
+      revalidatePath('/bilans/releve-fournisseur')
+      return {
+        success: true,
+        fournisseur: {
+          ...insertedExt,
+          total_dette: 0,
+          total_regle: 0,
+          solde_actuel: 0,
+        }
+      }
+    }
+  } catch (_) {}
+
+  // 2. Persistance garantie et pérenne dans clients_externes (avec tag [FOURNISSEUR])
+  // Permet de persister immédiatement sans dépendre d'une migration DDL manquante
+  const { data: insertedClient, error: clientError } = await supabase
+    .from('clients_externes')
     .insert({
       gie_id: userData.gie_id,
-      nom: nom.trim(),
-      telephone: telephone?.trim() || null,
-      adresse: adresse?.trim() || null,
-      code_fournisseur: codeFournisseur,
+      nom: `[FOURNISSEUR] ${cleanNom}`,
+      telephone: combinedTel,
     })
-    .select('id, nom, telephone, adresse, code_fournisseur')
+    .select('id, nom, telephone')
     .single()
 
-  if (error) {
-    // Si la table n'existe pas encore dans le cache, retourner un objet avec identifiant virtuel propre
-    const virtualSupplier = {
-      id: `fournisseur-${encodeURIComponent(nom.trim().toLowerCase())}`,
-      nom: nom.trim(),
-      telephone: telephone?.trim() || null,
-      adresse: adresse?.trim() || null,
-      code_fournisseur: codeFournisseur,
-      total_dette: 0,
-      total_regle: 0,
-      solde_actuel: 0,
-    }
-    revalidatePath('/bilans/releve-fournisseur')
-    return { success: true, fournisseur: virtualSupplier }
+  if (clientError) {
+    console.error("Erreur ajout fournisseur dans clients_externes:", clientError)
+    return { error: clientError.message || "Erreur lors de l'enregistrement du fournisseur." }
   }
 
+  const generatedCode = `FRN-${insertedClient.id.slice(0, 4).toUpperCase()}`
   const fournisseur = {
-    ...inserted,
+    id: insertedClient.id,
+    nom: cleanNom,
+    telephone: telStr || null,
+    adresse: adrStr || null,
+    code_fournisseur: generatedCode,
     total_dette: 0,
     total_regle: 0,
     solde_actuel: 0,

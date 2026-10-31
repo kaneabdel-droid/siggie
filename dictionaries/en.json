@@ -1472,7 +1472,7 @@
       "immobilisations": "Fixed assets",
       "stocks_intrants": "Input stocks",
       "stocks_remboursement": "Repayment harvest stock (in-kind)",
-      "stocks": "Total stocks",
+      "stocks": "Stocks",
       "creances": "Receivables",
       "disponibilites": "Cash & bank",
       "total_actif": "Total Assets",
