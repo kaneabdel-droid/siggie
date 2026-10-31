@@ -1,5 +1,17 @@
 import Link from 'next/link'
-import { Building2, Wrench, Package, Wheat, GraduationCap, Handshake, ArrowUpRight, Clock, Bird } from 'lucide-react'
+import {
+  Building2,
+  Wrench,
+  Package,
+  Wheat,
+  GraduationCap,
+  Handshake,
+  ArrowUpRight,
+  Clock,
+  Bird,
+  BedDouble,
+  Activity,
+} from 'lucide-react'
 
 // Chaque produit DembaSolution a son propre projet Supabase et son propre espace
 // /admin — pas de portail unifié (une seule connexion, une seule session) pour
@@ -14,6 +26,22 @@ const produits = [
     href: '/admin/siggie',
     externe: false,
     icon: Building2,
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'D-HOTEL',
+    description: 'Gestion hôtelière complète — PMS chambres, POS restaurant/bar, MICE séminaires, gouvernance et RevPAR.',
+    href: 'https://hotel.dembasolution.com/admin',
+    externe: true,
+    icon: BedDouble,
+    statut: 'en_ligne' as const,
+  },
+  {
+    nom: 'D-SANTÉ',
+    description: 'Système hospitalier et clinique — DPI, consultations, triage, ordonnances QR, lits et tiers-payant IPM.',
+    href: 'https://sante.dembasolution.com/admin',
+    externe: true,
+    icon: Activity,
     statut: 'en_ligne' as const,
   },
   {

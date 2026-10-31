@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
+import { findDoublonRemboursement } from '@/lib/anti-doublons'
 
 export async function getComptes() {
   const supabase = await createClient()
@@ -241,6 +242,23 @@ export async function addTransaction(data: {
         const targetFacture = (facturesMembre || []).find(
           (f) => Number(f.montant_total || 0) + Number(f.montant_interet || 0) - Number(f.montant_paye || 0) > 0
         ) || facturesMembre?.[0]
+
+        // Vérification anti-doublon trésorerie vs remboursements
+        const doublon = await findDoublonRemboursement(supabase, {
+          gieId: userData.gie_id,
+          membreId: data.tiers_id,
+          montant: numRemb,
+          datePaiement: dateTx,
+          referencePiece: data.reference_piece?.trim() || null,
+          factureId: targetFacture?.id || null,
+          campagneId: data.campagne_id || targetFacture?.campagne_id || null,
+        })
+
+        if (doublon.isDoublon) {
+          return {
+            error: `Doublon évité : ce remboursement (${numRemb.toLocaleString('fr-FR')} FCFA) a déjà été enregistré (${doublon.reason}). Opération annulée pour éviter un double enregistrement.`
+          }
+        }
 
         // 1. Enregistrer dans la table remboursements avec la date de transaction choisie
         const { error: rembError } = await supabase.from('remboursements').insert({

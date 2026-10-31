@@ -9,7 +9,7 @@ import { repartirAuProrata } from '@/lib/intrants/repartition'
 
 type Campagne = { id: string; nom: string; statut?: string }
 type Membre = { id: string; prenom: string; nom: string; telephone?: string; code_membre?: string }
-type Intrant = { id: string; nom: string; type_intrant: string; quantite_stock: number; prix_unitaire: number }
+type Intrant = { id: string; nom: string; type_intrant: string; quantite_stock: number; prix_unitaire: number; description?: string | null }
 type CampagneMembre = { campagne_id: string; membre: Membre; superficie: number }
 type CampagneIntrant = { campagne_id: string; intrant_id: string; prix_facturation: number; quantite_prevue?: number | null }
 
@@ -90,10 +90,19 @@ export default function CreateDistributionModal({
     const superficies = enrolledCampagneMembres.map(cm => ({ membre_id: cm.membre.id, superficie: cm.superficie || 0 }))
     campagneIntrants
       .filter(ci => ci.campagne_id === selectedCampagneId && Number(ci.quantite_prevue) > 0)
-      .forEach(ci => parts.set(ci.intrant_id, repartirAuProrata(Number(ci.quantite_prevue), superficies)))
+      .forEach(ci => {
+        const matchingIntrant = intrants.find(i => i.id === ci.intrant_id)
+        parts.set(
+          ci.intrant_id,
+          repartirAuProrata(Number(ci.quantite_prevue), superficies, {
+            unite: matchingIntrant?.description,
+            nom: matchingIntrant?.nom,
+          })
+        )
+      })
     return parts
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCampagneId, campagneIntrants, campagneMembres])
+  }, [selectedCampagneId, campagneIntrants, campagneMembres, intrants])
 
   function quantiteParDefaut(intrant: Intrant, membreId: string): number | undefined {
     if (isSuperficieBasedType(intrant.type_intrant)) return superficieParMembre.get(membreId) || 0

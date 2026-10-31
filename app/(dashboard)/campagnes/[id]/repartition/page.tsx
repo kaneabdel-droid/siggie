@@ -17,7 +17,7 @@ type InscritRow = {
 type CampagneIntrantRow = {
   intrant_id: string
   quantite_prevue?: number | null
-  intrants: { nom: string; type_intrant: string; quantite_stock: number | null } | null
+  intrants: { nom: string; type_intrant: string; quantite_stock: number | null; description?: string | null } | null
 }
 
 export default async function CampagneRepartitionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -34,7 +34,7 @@ export default async function CampagneRepartitionPage({ params }: { params: Prom
     supabase.from('campagne_membres').select('membre_id, superficie, membres(prenom, nom, code_membre)').eq('campagne_id', id),
     // `*` plutôt qu'une liste de colonnes : la page reste lisible même si la
     // migration 37 (quantite_prevue) n'est pas encore appliquée.
-    supabase.from('campagne_intrants').select('*, intrants(nom, type_intrant, quantite_stock)').eq('campagne_id', id),
+    supabase.from('campagne_intrants').select('*, intrants(nom, type_intrant, quantite_stock, description)').eq('campagne_id', id),
     supabase.from('distribution_intrants').select('membre_id, intrant_id, quantite').eq('campagne_id', id),
   ])
 
@@ -58,12 +58,16 @@ export default async function CampagneRepartitionPage({ params }: { params: Prom
       intrant_id: ci.intrant_id,
       nom: ci.intrants!.nom,
       type: ci.intrants!.type_intrant,
+      description: ci.intrants!.description || null,
       stock: isStockableType(ci.intrants!.type_intrant) ? Number(ci.intrants!.quantite_stock) || 0 : null,
       quantitePrevue: Number(ci.quantite_prevue) || 0,
     }))
     .sort((a, b) => a.nom.localeCompare(b.nom))
 
-  const parts = new Map(intrants.map((i) => [i.intrant_id, repartirAuProrata(i.quantitePrevue, membres)]))
+  const parts = new Map(intrants.map((i) => [
+    i.intrant_id,
+    repartirAuProrata(i.quantitePrevue, membres, { unite: i.description, nom: i.nom })
+  ]))
   const dejaDistribue = new Map<string, number>()
   for (const d of distributions || []) {
     const key = `${d.membre_id}|${d.intrant_id}`

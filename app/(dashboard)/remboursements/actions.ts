@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 import { reconcilierPrestationsEtPaiements } from '@/lib/recouvrement-reconciliation'
+import { findDoublonRemboursement } from '@/lib/anti-doublons'
 
 export async function getFacturesPourRemboursement() {
   const supabase = await createClient()
@@ -308,6 +309,30 @@ export async function enregistrerRemboursement(
     : null
 
   const dateEffectuee = options?.datePaiement?.trim() || new Date().toISOString().slice(0, 10)
+
+  // Vérification anti-doublon stricte : même membre + même montant ET (même campagne OU même date OU même ref)
+  if (membreId) {
+    if (!effectiveCampagneId && docType === 'campagne') {
+      const { data: fCamp } = await supabase.from('factures').select('campagne_id').eq('id', rawId).maybeSingle()
+      effectiveCampagneId = fCamp?.campagne_id || null
+    }
+
+    const doublon = await findDoublonRemboursement(supabase, {
+      gieId: userData.gie_id,
+      membreId,
+      montant: montantFcfa,
+      datePaiement: dateEffectuee,
+      referencePiece: referencePiece?.trim() || null,
+      factureId: docType === 'campagne' ? rawId : null,
+      campagneId: effectiveCampagneId,
+    })
+
+    if (doublon.isDoublon) {
+      return {
+        error: `Doublon détecté : un remboursement identique de ${montantFcfa.toLocaleString('fr-FR')} FCFA a déjà été enregistré pour ce membre (${doublon.reason}). Opération annulée pour éviter un double comptage.`
+      }
+    }
+  }
 
   const rembInsertPayload: any = {
     gie_id: userData.gie_id,

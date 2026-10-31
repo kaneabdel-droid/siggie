@@ -75,9 +75,11 @@ export default function ClientNavbar({
                   {dict.landing.nav.pricing} <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 {pricingMenuOpen && (
-                  <div className="absolute left-0 top-full pt-2 w-44">
-                    <div className="bg-background border border-surface-border rounded-lg shadow-xl py-1">
-                      <Link href="/tarifs" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">SIGGIE</Link>
+                  <div className="absolute left-0 top-full pt-2 w-48 z-50">
+                    <div className="bg-background border border-surface-border rounded-xl shadow-xl py-1.5 backdrop-blur-md">
+                      <Link href="/tarifs" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5 font-semibold text-primary">SIGGIE</Link>
+                      <a href="https://hotel.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-HOTEL</a>
+                      <a href="https://sante.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-SANTÉ</a>
                       <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-QUINCA</a>
                       <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-INTRANTS</a>
                       <a href="https://d-agro.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-AGROBUSINESS</a>
@@ -131,9 +133,11 @@ export default function ClientNavbar({
                     {dict.landing.nav.login} <ChevronDown className="w-3.5 h-3.5" />
                   </button>
                   {loginMenuOpen && (
-                    <div className="absolute right-0 top-full pt-2 w-44">
-                      <div className="bg-background border border-surface-border rounded-lg shadow-xl py-1">
+                    <div className="absolute right-0 top-full pt-2 w-48 z-50">
+                      <div className="bg-background border border-surface-border rounded-xl shadow-xl py-1.5 backdrop-blur-md">
                         <Link href="/login" className="block px-4 py-2 text-sm font-semibold text-primary hover:bg-black/5">SIGGIE (Connexion)</Link>
+                        <a href="https://hotel.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-HOTEL</a>
+                        <a href="https://sante.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-SANTÉ</a>
                         <a href="https://d-quinca.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-QUINCA</a>
                         <a href="https://d-intrants.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-INTRANTS</a>
                         <a href="https://d-agro.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-AGROBUSINESS</a>
@@ -150,9 +154,11 @@ export default function ClientNavbar({
                     {dict.landing.nav.subscribe} <ChevronDown className="w-3.5 h-3.5" />
                   </button>
                   {subscribeMenuOpen && (
-                    <div className="absolute right-0 top-full pt-2 w-44">
-                      <div className="bg-background border border-surface-border rounded-lg shadow-xl py-1">
+                    <div className="absolute right-0 top-full pt-2 w-48 z-50">
+                      <div className="bg-background border border-surface-border rounded-xl shadow-xl py-1.5 backdrop-blur-md">
                         <Link href="/tarifs" className="block px-4 py-2 text-sm font-semibold text-primary hover:bg-black/5">SIGGIE (Tarifs)</Link>
+                        <a href="https://hotel.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-HOTEL</a>
+                        <a href="https://sante.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-SANTÉ</a>
                         <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-QUINCA</a>
                         <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-INTRANTS</a>
                         <a href="https://d-agro.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-foreground hover:bg-black/5">D-AGROBUSINESS</a>
@@ -218,13 +224,26 @@ export default function ClientNavbar({
           ) : (
             <>
               <a href="#produits" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">{dict.landing.nav.products}</a>
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center rounded-xl bg-primary py-2.5 text-sm font-bold text-white shadow-sm">
-                Connexion SIGGIE
-              </Link>
-              <div>
+              <div className="space-y-2">
+                <p className="text-base font-medium text-foreground">Connexion aux applications</p>
+                <div className="pl-4 space-y-2">
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-semibold text-primary">SIGGIE (GIE)</Link>
+                  <a href="https://hotel.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-HOTEL (Hôtellerie)</a>
+                  <a href="https://sante.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-SANTÉ (Médical)</a>
+                  <a href="https://d-quinca.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-QUINCA (Quincaillerie)</a>
+                  <a href="https://d-intrants.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-INTRANTS (Intrants)</a>
+                  <a href="https://d-agro.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-AGROBUSINESS</a>
+                  <a href="https://scholar.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-SCHOLAR (Scolaire)</a>
+                  <a href="https://d-pharma.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-PHARMA (Pharmacie)</a>
+                  <a href="https://d-ferme.dembasolution.com/login" target="_blank" rel="noopener noreferrer" className="block text-sm text-foreground hover:text-primary">D-FERME (Élevage)</a>
+                </div>
+              </div>
+              <div className="pt-2">
                 <p className="text-base font-medium text-foreground mb-2">{dict.landing.nav.pricing}</p>
                 <div className="pl-4 space-y-2">
                   <Link href="/tarifs" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-medium text-foreground-muted hover:text-primary">SIGGIE</Link>
+                  <a href="https://hotel.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-HOTEL</a>
+                  <a href="https://sante.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-SANTÉ</a>
                   <a href="https://d-quinca.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-QUINCA</a>
                   <a href="https://d-intrants.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-INTRANTS</a>
                   <a href="https://d-agro.dembasolution.com/tarifs" target="_blank" rel="noopener noreferrer" className="block text-sm font-medium text-foreground-muted hover:text-primary">D-AGROBUSINESS</a>

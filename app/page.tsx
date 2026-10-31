@@ -1,7 +1,26 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { ArrowRight, Package, Smartphone, Zap, Shield, MonitorSmartphone, TrendingUp, X, Users, Store, Wheat, Phone, Mail, GraduationCap, Handshake, Activity } from 'lucide-react'
+import {
+  ArrowRight,
+  Package,
+  Smartphone,
+  Zap,
+  Shield,
+  MonitorSmartphone,
+  TrendingUp,
+  X,
+  Users,
+  Store,
+  Wheat,
+  Phone,
+  Mail,
+  GraduationCap,
+  Handshake,
+  Activity,
+  BedDouble,
+  HeartPulse,
+} from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
 import LanguageSelector from '@/components/LanguageSelector'
 import ContactProspectForm from '@/components/ContactProspectForm'
@@ -15,7 +34,11 @@ function FacebookIcon({ className = 'w-4 h-4' }: { className?: string }) {
   )
 }
 
-export default async function LandingPage({ searchParams }: { searchParams?: Promise<{ message?: string }> }) {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ message?: string }>
+}) {
   const headerList = await headers()
   const host = headerList.get('host') || ''
   if (host.startsWith('siggie.') || host === 'siggie.dembasolution.com') {
@@ -34,7 +57,7 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
           {message}
         </div>
       )}
-      
+
       <ClientNavbar dict={dict} currentLang={locale} />
 
       <main>
@@ -43,7 +66,10 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="text-center max-w-4xl mx-auto animate-float">
               <h1 className="text-5xl md:text-7xl font-bold font-heading tracking-tight text-foreground mb-6">
-                {dict.landing.hero.title_1} <span className="text-primary inline-block animate-pulse-slow">{dict.landing.hero.title_2}</span>
+                {dict.landing.hero.title_1}{' '}
+                <span className="text-primary inline-block animate-pulse-slow">
+                  {dict.landing.hero.title_2}
+                </span>
               </h1>
               <p className="mt-4 text-xl md:text-2xl text-foreground-muted mb-10 leading-relaxed">
                 {dict.landing.hero.desc}
@@ -58,16 +84,35 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
         <section className="py-24 bg-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.features.title}</h2>
-              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">{dict.landing.features.desc}</p>
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">
+                {dict.landing.features.title}
+              </h2>
+              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">
+                {dict.landing.features.desc}
+              </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                { icon: Zap, title: dict.landing.features.f1_title, desc: dict.landing.features.f1_desc },
-                { icon: Shield, title: dict.landing.features.f2_title, desc: dict.landing.features.f2_desc },
-                { icon: MonitorSmartphone, title: dict.landing.features.f3_title, desc: dict.landing.features.f3_desc }
+                {
+                  icon: Zap,
+                  title: dict.landing.features.f1_title,
+                  desc: dict.landing.features.f1_desc,
+                },
+                {
+                  icon: Shield,
+                  title: dict.landing.features.f2_title,
+                  desc: dict.landing.features.f2_desc,
+                },
+                {
+                  icon: MonitorSmartphone,
+                  title: dict.landing.features.f3_title,
+                  desc: dict.landing.features.f3_desc,
+                },
               ].map((feature, i) => (
-                <div key={i} className="p-8 rounded-2xl bg-surface border border-surface-border hover:shadow-lg transition-all group">
+                <div
+                  key={i}
+                  className="p-8 rounded-2xl bg-surface border border-surface-border hover:shadow-lg transition-all group"
+                >
                   <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                     <feature.icon className="w-7 h-7 text-primary group-hover:text-white" />
                   </div>
@@ -83,92 +128,279 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
         <section id="produits" className="py-24 bg-surface">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.products.title}</h2>
-              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">{dict.landing.products.desc}</p>
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">
+                {dict.landing.products.title}
+              </h2>
+              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">
+                {dict.landing.products.desc}
+              </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Produit 1 : SIGGIE */}
               <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  {dict.landing.products.online_badge}
+                </div>
                 <Package className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-2xl font-bold mb-2">SIGGIE</h3>
-                <p className="text-foreground-muted mb-6">{dict.landing.products.siggie_desc}</p>
-                <Link href="/decouvrir-siggie" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link} <ArrowRight className="w-4 h-4" /></Link>
-                <Link href="/decouvrir-siggie#video" className="text-secondary font-semibold hover:underline flex items-center gap-1 mb-2">Vidéo de présentation (29 min) <ArrowRight className="w-4 h-4" /></Link>
-                <Link href="/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link} <ArrowRight className="w-4 h-4" /></Link>
+                <p className="text-foreground-muted mb-6">
+                  {dict.landing.products.siggie_desc}
+                </p>
+                <Link
+                  href="/decouvrir-siggie"
+                  className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  {dict.landing.products.discover_link}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/decouvrir-siggie#video"
+                  className="text-secondary font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  Vidéo de présentation (29 min){' '}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/tarifs"
+                  className="text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  {dict.landing.products.subscribe_link}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
 
-              {/* Produit 2 : D-QUINCA */}
+              {/* Produit 2 : D-HOTEL */}
+              <div className="relative overflow-hidden rounded-2xl bg-amber-500/5 border border-amber-500/20 shadow-lg p-8 animate-float hover:shadow-amber-500/30 transition-shadow">
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  Nouveau
+                </div>
+                <div className="absolute -right-6 -top-6 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl"></div>
+                <BedDouble className="w-10 h-10 text-amber-600 mb-4 animate-pulse-slow" />
+                <h3 className="text-2xl font-bold mb-2 text-amber-600">D-HOTEL</h3>
+                <p className="text-foreground-muted mb-6">
+                  Solution hôtelière intégrée : PMS planning des chambres, caisse tactile POS restaurant/bar, séminaires MICE, gouvernance et RevPAR.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href="https://hotel.dembasolution.com/decouvrir-dhotel"
+                    className="text-foreground font-semibold hover:underline flex items-center gap-1"
+                  >
+                    Découvrir & Démo interactive <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://hotel.dembasolution.com/guide"
+                    className="text-foreground-muted hover:text-foreground text-sm flex items-center gap-1"
+                  >
+                    Guide d&apos;utilisation <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://hotel.dembasolution.com/tarifs"
+                    className="text-amber-600 font-semibold hover:underline flex items-center gap-1"
+                  >
+                    Tarifs & Formules <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://hotel.dembasolution.com/login"
+                    className="text-xs font-medium text-slate-500 hover:text-foreground flex items-center gap-1"
+                  >
+                    Espace Connexion <ArrowRight className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Produit 3 : D-SANTÉ */}
+              <div className="relative overflow-hidden rounded-2xl bg-emerald-500/5 border border-emerald-500/20 shadow-lg p-8 animate-float hover:shadow-emerald-500/30 transition-shadow">
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  Nouveau
+                </div>
+                <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
+                <HeartPulse className="w-10 h-10 text-emerald-600 mb-4 animate-pulse-slow" />
+                <h3 className="text-2xl font-bold mb-2 text-emerald-600">D-SANTÉ</h3>
+                <p className="text-foreground-muted mb-6">
+                  Système clinique & hospitalier : Dossier Patient Informatisé (DPI), triage, ordonnances sécurisées QR, lits et tiers-payant IPM automatisé.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href="https://sante.dembasolution.com/decouvrir-dsante"
+                    className="text-foreground font-semibold hover:underline flex items-center gap-1"
+                  >
+                    Découvrir & Démo clinique <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://sante.dembasolution.com/guide"
+                    className="text-foreground-muted hover:text-foreground text-sm flex items-center gap-1"
+                  >
+                    Guide d&apos;utilisation <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://sante.dembasolution.com/tarifs"
+                    className="text-emerald-600 font-semibold hover:underline flex items-center gap-1"
+                  >
+                    Tarifs & Formules <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://sante.dembasolution.com/login"
+                    className="text-xs font-medium text-slate-500 hover:text-foreground flex items-center gap-1"
+                  >
+                    Espace Connexion <ArrowRight className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Produit 4 : D-QUINCA */}
               <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  {dict.landing.products.online_badge}
+                </div>
                 <Store className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-2xl font-bold mb-2">D-QUINCA</h3>
-                <p className="text-foreground-muted mb-6">{dict.landing.products.dquinca_desc}</p>
-                <a href="https://d-quinca.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_dquinca} <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://d-quinca.dembasolution.com/login" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dquinca} <ArrowRight className="w-4 h-4" /></a>
+                <p className="text-foreground-muted mb-6">
+                  {dict.landing.products.dquinca_desc}
+                </p>
+                <a
+                  href="https://d-quinca.dembasolution.com/"
+                  className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  {dict.landing.products.discover_link_dquinca}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://d-quinca.dembasolution.com/login"
+                  className="text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  {dict.landing.products.subscribe_link_dquinca}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
 
-              {/* Produit 3 : D-INTRANTS */}
+              {/* Produit 5 : D-INTRANTS */}
               <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  {dict.landing.products.online_badge}
+                </div>
                 <Package className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-2xl font-bold mb-2">D-INTRANTS</h3>
-                <p className="text-foreground-muted mb-6">{dict.landing.products.dintrants_desc}</p>
-                <a href="https://d-intrants.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_dintrants} <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://d-intrants.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dintrants} <ArrowRight className="w-4 h-4" /></a>
+                <p className="text-foreground-muted mb-6">
+                  {dict.landing.products.dintrants_desc}
+                </p>
+                <a
+                  href="https://d-intrants.dembasolution.com/"
+                  className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  {dict.landing.products.discover_link_dintrants}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://d-intrants.dembasolution.com/tarifs"
+                  className="text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  {dict.landing.products.subscribe_link_dintrants}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
 
-              {/* Produit 4 : D-AGROBUSINESS */}
+              {/* Produit 6 : D-AGROBUSINESS */}
               <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  {dict.landing.products.online_badge}
+                </div>
                 <Wheat className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-2xl font-bold mb-2">D-AGROBUSINESS</h3>
-                <p className="text-foreground-muted mb-6">{dict.landing.products.dagrobusiness_desc}</p>
-                <a href="https://d-agro.dembasolution.com/decouvrir-dagrobusiness" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_dagrobusiness} <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://d-agro.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dagrobusiness} <ArrowRight className="w-4 h-4" /></a>
+                <p className="text-foreground-muted mb-6">
+                  {dict.landing.products.dagrobusiness_desc}
+                </p>
+                <a
+                  href="https://d-agro.dembasolution.com/decouvrir-dagrobusiness"
+                  className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  {dict.landing.products.discover_link_dagrobusiness}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://d-agro.dembasolution.com/tarifs"
+                  className="text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  {dict.landing.products.subscribe_link_dagrobusiness}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
 
-              {/* Produit 5 : D-SCHOLAR */}
+              {/* Produit 7 : D-SCHOLAR */}
               <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  {dict.landing.products.online_badge}
+                </div>
                 <GraduationCap className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-2xl font-bold mb-2">D-SCHOLAR</h3>
-                <p className="text-foreground-muted mb-6">{dict.landing.products.dscholar_desc}</p>
-                <a href="https://scholar.dembasolution.com/decouvrir-dscholar" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_dscholar} <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://scholar.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.subscribe_link_dscholar} <ArrowRight className="w-4 h-4" /></a>
+                <p className="text-foreground-muted mb-6">
+                  {dict.landing.products.dscholar_desc}
+                </p>
+                <a
+                  href="https://scholar.dembasolution.com/decouvrir-dscholar"
+                  className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  {dict.landing.products.discover_link_dscholar}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://scholar.dembasolution.com/tarifs"
+                  className="text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  {dict.landing.products.subscribe_link_dscholar}{' '}
+                  <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
 
-              {/* Produit 6 : PCAS
-              <div className="relative overflow-hidden rounded-2xl bg-background border border-surface-border shadow-sm p-8">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">{dict.landing.products.online_badge}</div>
-                <Handshake className="w-10 h-10 text-primary mb-4" />
-                <h3 className="text-2xl font-bold mb-2">PCAS</h3>
-                <p className="text-foreground-muted mb-6">{dict.landing.products.pcas_desc}</p>
-                <a href="https://pcas.dembasolution.com/decouvrir-pcas" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">{dict.landing.products.discover_link_pcas} <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://pcas.dembasolution.com/demande-acces" className="text-primary font-semibold hover:underline flex items-center gap-1">{dict.landing.products.access_link_pcas} <ArrowRight className="w-4 h-4" /></a>
-              </div>
-              */}
-
-              {/* Produit 7 : D-PHARMA */}
+              {/* Produit 8 : D-PHARMA */}
               <div className="relative overflow-hidden rounded-2xl bg-primary/5 border border-primary/20 shadow-lg p-8 animate-float hover:shadow-primary/30 transition-shadow">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">Nouveau</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  Nouveau
+                </div>
                 <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
                 <Activity className="w-10 h-10 text-primary mb-4 animate-pulse-slow" />
                 <h3 className="text-2xl font-bold mb-2 text-primary">D-PHARMA</h3>
-                <p className="text-foreground-muted mb-6">Solution complète pour pharmacies : scan code-barres, stocks, facturation et interface labo/client.</p>
-                <a href="https://d-pharma.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir D-Pharma <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://d-pharma.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">Voir nos offres <ArrowRight className="w-4 h-4" /></a>
+                <p className="text-foreground-muted mb-6">
+                  Solution complète pour pharmacies : scan code-barres, stocks, facturation et interface labo/client.
+                </p>
+                <a
+                  href="https://d-pharma.dembasolution.com/"
+                  className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  Découvrir D-Pharma <ArrowRight className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://d-pharma.dembasolution.com/tarifs"
+                  className="text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  Voir nos offres <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
 
-              {/* Produit 8 : D-FERME */}
+              {/* Produit 9 : D-FERME */}
               <div className="relative overflow-hidden rounded-2xl bg-primary/5 border border-primary/20 shadow-lg p-8 animate-float hover:shadow-primary/30 transition-shadow">
-                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">Nouveau</div>
+                <div className="absolute top-0 right-0 bg-success text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  Nouveau
+                </div>
                 <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 font-bold text-xl">🐄</div>
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 font-bold text-xl">
+                  🐄
+                </div>
                 <h3 className="text-2xl font-bold mb-2 text-primary">D-FERME</h3>
-                <p className="text-foreground-muted mb-6">Solution multi-espèces (volailles, bovins, ruminants, porcins) : suivi des bandes, traçabilité par boucle, sécurité sanitaire et marges.</p>
-                <a href="https://d-ferme.dembasolution.com/" className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2">Découvrir D-Ferme <ArrowRight className="w-4 h-4" /></a>
-                <a href="https://d-ferme.dembasolution.com/tarifs" className="text-primary font-semibold hover:underline flex items-center gap-1">Voir nos offres <ArrowRight className="w-4 h-4" /></a>
+                <p className="text-foreground-muted mb-6">
+                  Solution multi-espèces (volailles, bovins, ruminants, porcins) : suivi des bandes, traçabilité par boucle, sécurité sanitaire et marges.
+                </p>
+                <a
+                  href="https://d-ferme.dembasolution.com/"
+                  className="text-foreground font-semibold hover:underline flex items-center gap-1 mb-2"
+                >
+                  Découvrir D-Ferme <ArrowRight className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://d-ferme.dembasolution.com/tarifs"
+                  className="text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  Voir nos offres <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
             </div>
           </div>
@@ -178,49 +410,80 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
         <section id="astuces" className="py-24 bg-surface border-t border-surface-border">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.tips.title}</h2>
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">
+                {dict.landing.tips.title}
+              </h2>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-               <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
-                 <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center mb-4"><Smartphone className="w-6 h-6 text-info" /></div>
-                 <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip1}</h4>
-                 <p className="text-foreground-muted">{dict.landing.tips.tip1_desc}</p>
-               </div>
-               <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
-                 <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center mb-4"><TrendingUp className="w-6 h-6 text-success" /></div>
-                 <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip2}</h4>
-                 <p className="text-foreground-muted">{dict.landing.tips.tip2_desc}</p>
-               </div>
-               <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
-                 <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mb-4"><Users className="w-6 h-6 text-warning" /></div>
-                 <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip3}</h4>
-                 <p className="text-foreground-muted">{dict.landing.tips.tip3_desc}</p>
-               </div>
+              <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
+                <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center mb-4">
+                  <Smartphone className="w-6 h-6 text-info" />
+                </div>
+                <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip1}</h4>
+                <p className="text-foreground-muted">{dict.landing.tips.tip1_desc}</p>
+              </div>
+              <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
+                <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center mb-4">
+                  <TrendingUp className="w-6 h-6 text-success" />
+                </div>
+                <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip2}</h4>
+                <p className="text-foreground-muted">{dict.landing.tips.tip2_desc}</p>
+              </div>
+              <div className="bg-background p-6 rounded-2xl border border-surface-border hover:shadow-md transition-all cursor-pointer">
+                <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="w-6 h-6 text-warning" />
+                </div>
+                <h4 className="font-bold text-xl mb-2">{dict.landing.tips.tip3}</h4>
+                <p className="text-foreground-muted">{dict.landing.tips.tip3_desc}</p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Nous contacter (prospects) */}
-        <section id="contact" className="py-24 bg-background border-t border-surface-border scroll-mt-16">
+        <section
+          id="contact"
+          className="py-24 bg-background border-t border-surface-border scroll-mt-16"
+        >
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">{dict.landing.contact.title}</h2>
-              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">{dict.landing.contact.desc}</p>
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-4">
+                {dict.landing.contact.title}
+              </h2>
+              <p className="text-lg text-foreground-muted max-w-2xl mx-auto">
+                {dict.landing.contact.desc}
+              </p>
             </div>
             <div className="space-y-6 max-w-4xl mx-auto">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="flex items-start gap-4 bg-surface p-6 rounded-2xl border border-surface-border">
-                  <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center"><Phone className="w-5 h-5 text-primary" /></div>
+                  <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Phone className="w-5 h-5 text-primary" />
+                  </div>
                   <div>
                     <p className="text-sm font-semibold">{dict.landing.contact.phone}</p>
-                    <a href="tel:+221708484298" dir="ltr" className="mt-1 block font-medium hover:text-primary transition-colors">+221 70 848 42 98</a>
+                    <a
+                      href="tel:+221708484298"
+                      dir="ltr"
+                      className="mt-1 block font-medium hover:text-primary transition-colors"
+                    >
+                      +221 70 848 42 98
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-start gap-4 bg-surface p-6 rounded-2xl border border-surface-border">
-                  <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center"><Mail className="w-5 h-5 text-primary" /></div>
+                  <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-primary" />
+                  </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{dict.landing.contact.email}</p>
-                    <a href="mailto:support@dembasolution.com" dir="ltr" className="mt-1 block font-medium hover:text-primary transition-colors">support@dembasolution.com</a>
+                    <a
+                      href="mailto:support@dembasolution.com"
+                      dir="ltr"
+                      className="mt-1 block font-medium hover:text-primary transition-colors"
+                    >
+                      support@dembasolution.com
+                    </a>
                   </div>
                 </div>
               </div>
@@ -232,14 +495,19 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
         </section>
 
         {/* Section Communauté & Page Facebook */}
-        <section id="facebook-communaute" className="py-20 bg-surface border-t border-surface-border">
+        <section
+          id="facebook-communaute"
+          className="py-20 bg-surface border-t border-surface-border"
+        >
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto text-center mb-10">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
                 <FacebookIcon className="w-4 h-4" />
                 Actualités & Réseau
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-3">Rejoignez-nous sur Facebook</h2>
+              <h2 className="text-3xl md:text-4xl font-bold font-heading mb-3">
+                Rejoignez-nous sur Facebook
+              </h2>
               <p className="text-foreground-muted text-base">
                 Suivez en direct le déploiement de nos solutions au Sénégal et en Afrique de l&apos;Ouest, nos conseils de gestion et les retours d&apos;expérience de nos utilisateurs.
               </p>
@@ -275,14 +543,17 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
             </div>
           </div>
         </section>
-
       </main>
 
       {/* Footer */}
       <footer className="bg-foreground text-background py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <span className="text-2xl font-bold font-heading text-background mb-4 block">DEMBA SOLUTION</span>
-          <p className="text-background/70 mb-8 max-w-md mx-auto">{dict.landing.footer.desc}</p>
+          <span className="text-2xl font-bold font-heading text-background mb-4 block">
+            DEMBA SOLUTION
+          </span>
+          <p className="text-background/70 mb-8 max-w-md mx-auto">
+            {dict.landing.footer.desc}
+          </p>
           <div className="flex justify-center items-center gap-6 mb-8">
             <LanguageSelector currentLang={locale} />
             <a
@@ -296,7 +567,9 @@ export default async function LandingPage({ searchParams }: { searchParams?: Pro
               <span>Facebook</span>
             </a>
           </div>
-          <p className="text-background/50 text-sm">© {new Date().getFullYear()} Demba Solution.</p>
+          <p className="text-background/50 text-sm">
+            © {new Date().getFullYear()} Demba Solution.
+          </p>
           <Link
             href="/admin"
             className="inline-block mt-3 text-sm text-background/70 underline underline-offset-2 hover:text-background transition-colors"
