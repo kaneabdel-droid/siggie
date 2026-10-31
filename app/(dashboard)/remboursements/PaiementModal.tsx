@@ -26,6 +26,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
   const [montantSaisi, setMontantSaisi] = useState<string>('')
   const [referencePiece, setReferencePiece] = useState<string>('')
   const [compteId, setCompteId] = useState<string>(comptes[0]?.id ?? '')
+  const [datePaiement, setDatePaiement] = useState<string>(new Date().toISOString().slice(0, 10))
   const d = dict?.remboursements_extra?.modal || {}
   const localeCode = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : 'fr-FR'
 
@@ -116,6 +117,7 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
         prixUnitaireNature: type === 'nature' ? prixUnitaire : null,
         typeDocument: facture.type_document || 'campagne',
         campagneId: facture.campagne_id || facture.campagne?.id || null,
+        datePaiement,
       }
     )
 
@@ -165,6 +167,20 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
             </div>
 
             <form id="paiement-form" onSubmit={handleSubmit} className="space-y-4">
+              {/* Date modifiable de l'opération */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1">
+                  Date de l&apos;opération / paiement *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={datePaiement}
+                  onChange={(e) => setDatePaiement(e.target.value)}
+                  className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-xs focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary text-sm font-medium"
+                />
+              </div>
+
               {type === 'espece' && (
                 <div>
                   {renderAmountInputHeader(d.amount_paid || 'Montant versé (FCFA)')}

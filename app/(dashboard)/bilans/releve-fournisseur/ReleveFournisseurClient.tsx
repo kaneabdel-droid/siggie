@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getReleveFournisseur, FournisseurSummary, MouvementFournisseur } from './actions'
 import AddFournisseurModal from './AddFournisseurModal'
 import AddPaiementFournisseurModal from './AddPaiementFournisseurModal'
@@ -17,7 +17,10 @@ import {
   Building2,
   Phone,
   MapPin,
-  Search
+  Search,
+  X,
+  RotateCcw,
+  Filter
 } from 'lucide-react'
 
 export default function ReleveFournisseurClient({
@@ -42,6 +45,10 @@ export default function ReleveFournisseurClient({
   const [soldeActuel, setSoldeActuel] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Filtres de recherche sur les écritures du Grand Livre
+  const [searchMouvement, setSearchMouvement] = useState('')
+  const [natureFilter, setNatureFilter] = useState<'all' | 'dette' | 'reglement'>('all')
 
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
 
@@ -74,11 +81,36 @@ export default function ReleveFournisseurClient({
   const selectedItem = fournisseurs.find((f) => f.id === selectedFournisseur)
   const currentNom = fournisseurDetails?.nom || selectedItem?.nom || ''
 
-  const filteredFournisseurs = fournisseurs.filter((f) =>
-    f.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (f.telephone && f.telephone.includes(searchTerm)) ||
-    f.code_fournisseur.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filtrage des écritures du Grand Livre
+  const filteredMouvements = useMemo(() => {
+    return journal.filter((m) => {
+      if (natureFilter !== 'all' && m.type !== natureFilter) {
+        return false
+      }
+      if (searchMouvement.trim()) {
+        const term = searchMouvement.toLowerCase().trim()
+        const desig = (m.designation || '').toLowerCase()
+        const ref = (m.piece_ref || '').toLowerCase()
+        const cp = (m.compte_nom || '').toLowerCase()
+        const montStr = String(m.montant || '')
+        const debStr = String(m.debit || '')
+        const credStr = String(m.credit || '')
+        const dateStr = String(m.date || '')
+
+        const matches =
+          desig.includes(term) ||
+          ref.includes(term) ||
+          cp.includes(term) ||
+          montStr.includes(term) ||
+          debStr.includes(term) ||
+          credStr.includes(term) ||
+          dateStr.includes(term)
+
+        if (!matches) return false
+      }
+      return true
+    })
+  }, [journal, natureFilter, searchMouvement])
 
   const formatAmount = (val: number) =>
     val.toLocaleString(dateLocale, { maximumFractionDigits: 0 })
@@ -266,14 +298,62 @@ export default function ReleveFournisseurClient({
           </div>
 
           <div className="overflow-hidden rounded-xl border border-surface-border bg-surface shadow-xs">
-            <div className="px-4 py-3 border-b border-surface-border bg-background flex items-center justify-between">
-              <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+            <div className="p-3 border-b border-surface-border bg-background flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
                 <FileSpreadsheet className="h-4 w-4 text-primary" />
-                Grand Livre des Mouvements ({journal.length} écriture{journal.length > 1 ? 's' : ''})
-              </h4>
-              <span className="text-xs text-foreground-muted">
-                Ordre antéchronologique (du plus récent au plus ancien)
-              </span>
+                <h4 className="font-semibold text-sm text-foreground">
+                  Grand Livre des Mouvements ({filteredMouvements.length} sur {journal.length} écriture{journal.length > 1 ? 's' : ''})
+                </h4>
+              </div>
+
+              {/* Filtre et Recherche */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 sm:w-64">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                    <Search className="h-3.5 w-3.5 text-foreground-muted" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchMouvement}
+                    onChange={(e) => setSearchMouvement(e.target.value)}
+                    placeholder="Filtrer désignation, réf, compte, montant..."
+                    className="w-full rounded-md border border-surface-border bg-surface py-1 pl-8 pr-7 text-xs text-foreground placeholder:text-foreground-muted focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                  />
+                  {searchMouvement && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchMouvement('')}
+                      className="absolute inset-y-0 right-0 flex items-center pr-2 text-foreground-muted hover:text-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={natureFilter}
+                  onChange={(e) => setNatureFilter(e.target.value as any)}
+                  className="rounded-md border border-surface-border bg-surface px-2.5 py-1 text-xs font-medium text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                >
+                  <option value="all">Toutes natures</option>
+                  <option value="dette">Factures / Dettes (+)</option>
+                  <option value="reglement">Règlements (-)</option>
+                </select>
+
+                {(searchMouvement || natureFilter !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchMouvement('')
+                      setNatureFilter('all')
+                    }}
+                    className="p-1 text-foreground-muted hover:text-foreground rounded border border-surface-border bg-surface shadow-2xs"
+                    title="Réinitialiser le filtre"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -301,7 +381,7 @@ export default function ReleveFournisseurClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border bg-surface">
-                  {journal.map((m) => {
+                  {filteredMouvements.map((m: MouvementFournisseur) => {
                     const isDette = m.type === 'dette'
                     return (
                       <tr key={m.id} className="hover:bg-surface-hover transition-colors">
@@ -350,10 +430,12 @@ export default function ReleveFournisseurClient({
                     )
                   })}
 
-                  {journal.length === 0 && (
+                  {filteredMouvements.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-foreground-muted italic">
-                        Aucune opération ou facture enregistrée pour ce fournisseur.
+                      <td colSpan={6} className="px-4 py-12 text-center text-foreground-muted italic text-xs">
+                        {searchMouvement || natureFilter !== 'all'
+                          ? "Aucun mouvement ne correspond à votre recherche."
+                          : "Aucune opération ou facture enregistrée pour ce fournisseur."}
                       </td>
                     </tr>
                   )}

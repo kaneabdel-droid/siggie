@@ -90,9 +90,13 @@ export async function addTransaction(data: {
   campagne_id?: string
   tiers_type?: string
   tiers_nom?: string
+  tiers_id?: string
   compte_destination_id?: string
   materiel_id?: string
   materiel_nom?: string
+  is_remboursement?: boolean
+  mode_remboursement?: 'total' | 'partiel'
+  montant_remboursement?: number
 }) {
   const denied = await requirePermission('tresorerie', 'create')
   if (denied) return denied as never
@@ -207,6 +211,73 @@ export async function addTransaction(data: {
     safeMotif = `${safeMotif} [MATERIEL:${data.materiel_nom.trim()}]`
   }
 
+  // Traitement automatique du versement membre : Remboursement vs Crédit compte membre
+  if (data.type_transaction === 'entree' && data.tiers_type === 'membre') {
+    const montantTotal = Number(data.montant || 0)
+    if (data.is_remboursement) {
+      const numRemb = data.mode_remboursement === 'partiel'
+        ? Math.min(Number(data.montant_remboursement || 0), montantTotal)
+        : montantTotal
+      const reliquatCredit = montantTotal - numRemb
+
+      safeMotif = `${safeMotif} [REMBOURSEMENT:${numRemb}]`
+      if (reliquatCredit > 0) {
+        safeMotif = `${safeMotif} [CREDIT_MEMBRE:${reliquatCredit}]`
+      }
+
+      if (numRemb > 0 && data.tiers_id) {
+        // Rechercher la facture impayée du membre rattachée à la campagne ou la plus récente
+        let fQuery = supabase
+          .from('factures')
+          .select('id, montant_total, montant_interet, montant_paye, campagne_id')
+          .eq('gie_id', userData.gie_id)
+          .eq('membre_id', data.tiers_id)
+
+        if (data.campagne_id) {
+          fQuery = fQuery.eq('campagne_id', data.campagne_id)
+        }
+
+        const { data: facturesMembre } = await fQuery.order('date_emission', { ascending: false })
+        const targetFacture = (facturesMembre || []).find(
+          (f) => Number(f.montant_total || 0) + Number(f.montant_interet || 0) - Number(f.montant_paye || 0) > 0
+        ) || facturesMembre?.[0]
+
+        // 1. Enregistrer dans la table remboursements avec la date de transaction choisie
+        const { error: rembError } = await supabase.from('remboursements').insert({
+          gie_id: userData.gie_id,
+          membre_id: data.tiers_id,
+          facture_id: targetFacture?.id || null,
+          type_remboursement: 'espece',
+          montant_fcfa: numRemb,
+          compte_id: data.compte_id,
+          date_paiement: dateTx,
+          reference_piece: data.reference_piece?.trim() || null,
+        })
+
+        if (rembError) {
+          console.error("Erreur enregistrement remboursement automatique:", rembError)
+        }
+
+        // 2. Mettre à jour la facture si trouvée
+        if (targetFacture) {
+          const totalDu = Number(targetFacture.montant_total || 0) + Number(targetFacture.montant_interet || 0)
+          const nouveauPaye = Number(targetFacture.montant_paye || 0) + numRemb
+          let nouveauStatut = 'impayee'
+          if (nouveauPaye > 0) nouveauStatut = 'partiellement_paye'
+          if (nouveauPaye >= totalDu) nouveauStatut = 'payee'
+
+          await supabase.from('factures').update({
+            montant_paye: nouveauPaye,
+            statut: nouveauStatut,
+          }).eq('id', targetFacture.id)
+        }
+      }
+    } else {
+      // Non coché : tout le versement est au crédit de son compte membre (avance / apport / épargne)
+      safeMotif = `${safeMotif} [CREDIT_MEMBRE:${montantTotal}]`
+    }
+  }
+
   // Insertion en utilisant exclusivement les colonnes réelles de la table transactions
   const { error } = await supabase
     .from('transactions')
@@ -230,6 +301,9 @@ export async function addTransaction(data: {
 
   revalidatePath('/tresorerie')
   revalidatePath('/tresorerie/journaux')
+  revalidatePath('/remboursements')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/membres')
   return { success: true }
 }
 
@@ -310,20 +384,72 @@ export async function deleteTransaction(id: string) {
 export async function getJournal(compteId: string) {
   const supabase = await createClient()
 
-  const { data: compte } = await supabase
-    .from('comptes')
-    .select('solde_initial, nom, type_compte')
-    .eq('id', compteId)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié" }
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
     .single()
 
-  if (!compte) return { error: "Compte introuvable" }
+  if (!userData) return { error: "Utilisateur introuvable" }
+
+  let targetComptes: { id: string; nom: string; type_compte: string; solde_initial: number }[] = []
+  let compteNom = 'Tous les comptes'
+  let compteType = 'consolidé'
+  let soldeInitialCumule = 0
+
+  if (compteId === 'all') {
+    const { data: allComptes } = await supabase
+      .from('comptes')
+      .select('id, nom, type_compte, solde_initial')
+      .eq('gie_id', userData.gie_id)
+      .order('nom', { ascending: true })
+
+    targetComptes = (allComptes || []).map((c: any) => ({
+      ...c,
+      solde_initial: Number(c.solde_initial || 0),
+    }))
+    soldeInitialCumule = targetComptes.reduce((acc, c) => acc + c.solde_initial, 0)
+  } else {
+    const { data: compte } = await supabase
+      .from('comptes')
+      .select('id, solde_initial, nom, type_compte')
+      .eq('id', compteId)
+      .single()
+
+    if (!compte) return { error: "Compte introuvable" }
+    targetComptes = [{
+      id: compte.id,
+      nom: compte.nom,
+      type_compte: compte.type_compte,
+      solde_initial: Number(compte.solde_initial || 0),
+    }]
+    compteNom = compte.nom
+    compteType = compte.type_compte
+    soldeInitialCumule = Number(compte.solde_initial || 0)
+  }
+
+  const comptesMap = new Map<string, string>()
+  for (const c of targetComptes) {
+    comptesMap.set(c.id, c.nom)
+  }
 
   const dateSoldeInitial = '01/01/2026'
 
-  const { data: transactions, error } = await supabase
+  let txQuery = supabase
     .from('transactions')
     .select('*')
-    .eq('compte_id', compteId)
+    .eq('gie_id', userData.gie_id)
+
+  if (compteId !== 'all') {
+    txQuery = txQuery.eq('compte_id', compteId)
+  } else {
+    txQuery = txQuery.not('compte_id', 'is', null)
+  }
+
+  const { data: transactions, error } = await txQuery
 
   if (error) return { error: error.message }
 
@@ -335,7 +461,7 @@ export async function getJournal(compteId: string) {
     return (a.created_at || '').localeCompare(b.created_at || '')
   })
 
-  let soldeCourant = Number(compte.solde_initial || 0)
+  let soldeCourant = soldeInitialCumule
 
   // Map to calculate equipment breakdown
   const matMap = new Map<string, { nom: string; entrees: number; sorties: number }>()
@@ -386,6 +512,8 @@ export async function getJournal(compteId: string) {
       .replace(/\[REF:.*?\]/g, '')
       .trim()
 
+    const compteTransactionNom = tx.compte_id ? (comptesMap.get(tx.compte_id) || 'Compte') : null
+
     return {
       ...tx,
       date_effective: tx.date_transaction || (tx.created_at ? tx.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
@@ -393,6 +521,7 @@ export async function getJournal(compteId: string) {
       tiers_affiche: tiersNom || '-',
       materiel_nom: materielNom,
       reference_piece: referencePiece,
+      compte_nom: compteTransactionNom,
       entree,
       sortie,
       solde: soldeCourant
@@ -406,10 +535,10 @@ export async function getJournal(compteId: string) {
 
   return { 
     journal: journal.reverse(), 
-    soldeInitial: compte.solde_initial, 
+    soldeInitial: soldeInitialCumule, 
     dateSoldeInitial,
-    compteNom: compte.nom,
-    compteType: compte.type_compte,
+    compteNom,
+    compteType,
     repartitionMateriel,
   }
 }

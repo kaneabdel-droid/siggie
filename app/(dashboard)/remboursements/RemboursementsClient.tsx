@@ -223,22 +223,28 @@ export default function RemboursementsClient({
               </div>
 
               <div className="space-y-4">
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 text-foreground">
+                    <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <Wallet className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <div className="font-bold text-foreground">Règlements en espèces & mobile money</div>
+                      <div className="text-foreground-muted">
+                        Les versements d&apos;espèces ou mobile money sont traités directement depuis les comptes de trésorerie (avec affectation automatique en remboursement).
+                      </div>
+                    </div>
+                  </div>
+                  <a
+                    href="/tresorerie/journaux"
+                    className="inline-flex items-center gap-1 font-semibold text-primary hover:underline whitespace-nowrap text-xs bg-surface px-2.5 py-1.5 rounded-md border border-surface-border shadow-2xs"
+                  >
+                    Aller en Trésorerie →
+                  </a>
+                </div>
+
                 <h4 className="font-medium text-foreground">{dict.remboursements.details.record_payment}</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <button
-                    onClick={() => setPaiementType('espece')}
-                    className="p-4 rounded-lg border-2 border-dashed border-secondary/50 hover:bg-secondary/5 hover:border-secondary flex flex-col items-center justify-center gap-2 transition-colors text-center"
-                  >
-                    <Wallet className="h-7 w-7 text-secondary" />
-                    <span className="font-semibold text-foreground text-sm">{dict.remboursements.details.cash || 'Espèces'}</span>
-                  </button>
-                  <button
-                    onClick={() => setPaiementType('cheque')}
-                    className="p-4 rounded-lg border-2 border-dashed border-info/50 hover:bg-info/5 hover:border-info flex flex-col items-center justify-center gap-2 transition-colors text-center"
-                  >
-                    <CreditCard className="h-7 w-7 text-info" />
-                    <span className="font-semibold text-foreground text-sm">Chèque / Banque</span>
-                  </button>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <button
                     onClick={() => setPaiementType('bon')}
                     className="p-4 rounded-lg border-2 border-dashed border-warning/50 hover:bg-warning/5 hover:border-warning flex flex-col items-center justify-center gap-2 transition-colors text-center"
@@ -252,6 +258,13 @@ export default function RemboursementsClient({
                   >
                     <Scale className="h-7 w-7 text-primary" />
                     <span className="font-semibold text-foreground text-sm">{dict.remboursements.details.nature || 'En Nature'}</span>
+                  </button>
+                  <button
+                    onClick={() => setPaiementType('cheque')}
+                    className="p-4 rounded-lg border-2 border-dashed border-info/50 hover:bg-info/5 hover:border-info flex flex-col items-center justify-center gap-2 transition-colors text-center"
+                  >
+                    <CreditCard className="h-7 w-7 text-info" />
+                    <span className="font-semibold text-foreground text-sm">Chèque / Banque</span>
                   </button>
                   <button
                     onClick={() => setPaiementType('autre')}

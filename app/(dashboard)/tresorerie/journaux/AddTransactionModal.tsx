@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ArrowRightLeft, Calendar, User, Truck, Building2, UserCheck, AlertCircle } from 'lucide-react'
+import { Plus, ArrowRightLeft, Calendar, User, Truck, Building2, UserCheck, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { addTransaction } from '../actions'
 
 type Campagne = { id: string; nom: string; statut: string }
@@ -35,19 +35,25 @@ export default function AddTransactionModal({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [selectedCompteId, setSelectedCompteId] = useState(compteId)
   const [dateTransaction, setDateTransaction] = useState(new Date().toISOString().split('T')[0])
   const [typeTransaction, setTypeTransaction] = useState<'entree' | 'sortie'>('sortie')
+  const [montant, setMontant] = useState('')
   const [tiersType, setTiersType] = useState<'client' | 'fournisseur' | 'membre' | 'compte_transfert' | 'autre'>('autre')
   const [selectedClientId, setSelectedClientId] = useState('')
   const [selectedMembreId, setSelectedMembreId] = useState('')
   const [selectedDestinationCompteId, setSelectedDestinationCompteId] = useState('')
   const [customTiersNom, setCustomTiersNom] = useState('')
   const [selectedMaterielId, setSelectedMaterielId] = useState('')
+  const [isRemboursement, setIsRemboursement] = useState(false)
+  const [modeRemboursement, setModeRemboursement] = useState<'total' | 'partiel'>('total')
+  const [montantRemboursement, setMontantRemboursement] = useState('')
 
   const t = dict?.tresorerie_pages?.journaux?.form || {}
   const campagneEnCours = campagnes.find((c) => c.statut === 'en_cours')
-  const otherComptes = comptes.filter((c) => c.id !== compteId)
-  const currentCompte = comptes.find((c) => c.id === compteId)
+  const effectiveCompteId = selectedCompteId || compteId
+  const otherComptes = comptes.filter((c) => c.id !== effectiveCompteId)
+  const currentCompte = comptes.find((c) => c.id === effectiveCompteId)
   const isCaisseMat = Boolean(
     isCaisseMateriel ||
     (currentCompte?.nom || '').toLowerCase().includes('matériel') ||
@@ -55,14 +61,19 @@ export default function AddTransactionModal({
   )
 
   function resetForm() {
+    setSelectedCompteId(compteId)
     setDateTransaction(new Date().toISOString().split('T')[0])
     setTypeTransaction('sortie')
+    setMontant('')
     setTiersType('autre')
     setSelectedClientId('')
     setSelectedMembreId('')
-    setSelectedDestinationCompteId(otherComptes[0]?.id || '')
+    setSelectedDestinationCompteId(comptes.filter((c) => c.id !== compteId)[0]?.id || '')
     setCustomTiersNom('')
     setSelectedMaterielId('')
+    setIsRemboursement(false)
+    setModeRemboursement('total')
+    setMontantRemboursement('')
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -70,11 +81,37 @@ export default function AddTransactionModal({
     setLoading(true)
     const formData = new FormData(e.currentTarget)
 
-    const montant = Number(formData.get('montant'))
+    const numericMontant = Number(formData.get('montant'))
+    if (!numericMontant || numericMontant <= 0) {
+      alert("Veuillez saisir un montant valide supérieur à 0.")
+      setLoading(false)
+      return
+    }
+
     const motif = (formData.get('motif') as string) || ''
     const type_piece = (formData.get('type_piece') as string) || undefined
     const reference_piece = (formData.get('reference_piece') as string)?.trim() || undefined
     const campagne_id = (formData.get('campagne_id') as string) || undefined
+
+    const isRemb = tiersType === 'membre' && typeTransaction === 'entree' ? isRemboursement : false
+    const numRemb = modeRemboursement === 'partiel'
+      ? Number(montantRemboursement || 0)
+      : numericMontant
+
+    if (isRemb) {
+      if (!selectedMembreId) {
+        alert("Veuillez sélectionner un membre pour enregistrer le remboursement.")
+        setLoading(false)
+        return
+      }
+      if (modeRemboursement === 'partiel') {
+        if (numRemb <= 0 || numRemb > numericMontant) {
+          alert(`Le montant du remboursement partiel doit être compris entre 1 et ${numericMontant.toLocaleString()} FCFA.`)
+          setLoading(false)
+          return
+        }
+      }
+    }
 
     // Resolve tiers name
     let tiersNom = ''
@@ -99,9 +136,9 @@ export default function AddTransactionModal({
     }
 
     const res = await addTransaction({
-      compte_id: compteId,
+      compte_id: effectiveCompteId,
       type_transaction: typeTransaction,
-      montant,
+      montant: numericMontant,
       motif,
       date_transaction: dateTransaction,
       type_piece: tiersType === 'compte_transfert' ? 'virement_interne' : type_piece,
@@ -109,9 +146,13 @@ export default function AddTransactionModal({
       campagne_id,
       tiers_type: tiersType,
       tiers_nom: tiersNom,
+      tiers_id: tiersType === 'membre' ? (selectedMembreId || undefined) : (tiersType === 'client' ? (selectedClientId || undefined) : undefined),
       compte_destination_id: tiersType === 'compte_transfert' ? selectedDestinationCompteId : undefined,
       materiel_id: selectedMaterielId || undefined,
       materiel_nom: matNom,
+      is_remboursement: isRemb,
+      mode_remboursement: modeRemboursement,
+      montant_remboursement: isRemb ? numRemb : 0,
     })
 
     setLoading(false)
@@ -154,6 +195,34 @@ export default function AddTransactionModal({
             </div>
 
             <form id="add-tx-form" onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Choix du compte / caisse si plusieurs comptes */}
+              {comptes.length > 1 && (
+                <div>
+                  <label htmlFor="modal_compte_id" className="block text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    <span>Compte / Caisse *</span>
+                  </label>
+                  <select
+                    id="modal_compte_id"
+                    value={effectiveCompteId}
+                    onChange={(e) => {
+                      setSelectedCompteId(e.target.value)
+                      const others = comptes.filter((c) => c.id !== e.target.value)
+                      if (selectedDestinationCompteId === e.target.value) {
+                        setSelectedDestinationCompteId(others[0]?.id || '')
+                      }
+                    }}
+                    className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-semibold"
+                  >
+                    {comptes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nom} ({c.type_compte || 'Compte'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Date de transaction (date du jour par défaut) */}
               <div>
                 <label htmlFor="date_transaction" className="block text-sm font-medium text-foreground flex items-center gap-1.5">
@@ -167,11 +236,11 @@ export default function AddTransactionModal({
                   required
                   value={dateTransaction}
                   onChange={(e) => setDateTransaction(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                  className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-mono"
                 />
               </div>
 
-              {/* Type d'opération */}
+              {/* Type d'opération et Montant */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="type_transaction" className="block text-sm font-medium text-foreground">
@@ -201,12 +270,14 @@ export default function AddTransactionModal({
                     required
                     min={1}
                     placeholder="Ex: 50000"
+                    value={montant}
+                    onChange={(e) => setMontant(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-mono font-bold"
                   />
                 </div>
               </div>
 
-              {/* Tiers à la place d'imputation */}
+              {/* Tiers & Contrepartie */}
               <div className="border border-surface-border rounded-xl p-3.5 bg-background/30 space-y-3">
                 <label className="block text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <User className="w-4 h-4 text-primary" />
@@ -259,22 +330,148 @@ export default function AddTransactionModal({
                 )}
 
                 {tiersType === 'membre' && (
-                  <div>
-                    <label className="block text-xs font-medium text-foreground-muted mb-1">
-                      Sélectionner le membre :
-                    </label>
-                    <select
-                      value={selectedMembreId}
-                      onChange={(e) => setSelectedMembreId(e.target.value)}
-                      className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-                    >
-                      <option value="">-- Choisir un membre --</option>
-                      {membres.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.prenom} {m.nom} {m.code_membre ? `[${m.code_membre}]` : ''}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-foreground-muted mb-1">
+                        Sélectionner le membre * :
+                      </label>
+                      <select
+                        value={selectedMembreId}
+                        onChange={(e) => setSelectedMembreId(e.target.value)}
+                        className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                      >
+                        <option value="">-- Choisir un membre --</option>
+                        {membres.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.prenom} {m.nom} {m.code_membre ? `[${m.code_membre}]` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Bloc interactif pour Versement d'un membre : Remboursement vs Crédit compte membre */}
+                    {typeTransaction === 'entree' && (
+                      <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5 space-y-3">
+                        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isRemboursement}
+                            onChange={(e) => {
+                              setIsRemboursement(e.target.checked)
+                              if (e.target.checked && modeRemboursement === 'total' && montant) {
+                                setMontantRemboursement(montant)
+                              }
+                            }}
+                            className="mt-0.5 h-4 w-4 rounded border-surface-border text-primary focus:ring-primary"
+                          />
+                          <div className="text-xs">
+                            <span className="font-bold text-foreground">
+                              Ce versement constitue-t-il un remboursement de campagne / crédit ?
+                            </span>
+                            <p className="text-foreground-muted mt-0.5">
+                              Si coché, une écriture de remboursement sera enregistrée et rattachée à la dette de campagne du membre.
+                            </p>
+                          </div>
+                        </label>
+
+                        {isRemboursement && (
+                          <div className="pt-2 border-t border-primary/20 space-y-3">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-foreground block">
+                                Affectation du remboursement :
+                              </label>
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <label className="flex items-center gap-2 text-xs bg-background p-2.5 rounded-lg border border-surface-border cursor-pointer flex-1">
+                                  <input
+                                    type="radio"
+                                    name="modal_mode_remboursement"
+                                    checked={modeRemboursement === 'total'}
+                                    onChange={() => {
+                                      setModeRemboursement('total')
+                                      setMontantRemboursement(montant)
+                                    }}
+                                    className="text-primary focus:ring-primary"
+                                  />
+                                  <div>
+                                    <span className="font-semibold text-foreground">Remboursement total</span>
+                                    <span className="block text-[11px] text-foreground-muted">
+                                      {montant ? `Tout le montant (${Number(montant).toLocaleString()} FCFA)` : 'La totalité du versement'}
+                                    </span>
+                                  </div>
+                                </label>
+
+                                <label className="flex items-center gap-2 text-xs bg-background p-2.5 rounded-lg border border-surface-border cursor-pointer flex-1">
+                                  <input
+                                    type="radio"
+                                    name="modal_mode_remboursement"
+                                    checked={modeRemboursement === 'partiel'}
+                                    onChange={() => setModeRemboursement('partiel')}
+                                    className="text-primary focus:ring-primary"
+                                  />
+                                  <div>
+                                    <span className="font-semibold text-foreground">Remboursement partiel</span>
+                                    <span className="block text-[11px] text-foreground-muted">
+                                      Le reste créditera le compte membre
+                                    </span>
+                                  </div>
+                                </label>
+                              </div>
+                            </div>
+
+                            {modeRemboursement === 'partiel' && (
+                              <div className="space-y-2 bg-background/80 p-3 rounded-lg border border-surface-border">
+                                <label htmlFor="modal_montant_remboursement" className="block text-xs font-semibold text-foreground">
+                                  Montant à mettre en remboursement (FCFA) *
+                                </label>
+                                <input
+                                  type="number"
+                                  id="modal_montant_remboursement"
+                                  min={1}
+                                  max={Number(montant) || undefined}
+                                  value={montantRemboursement}
+                                  onChange={(e) => setMontantRemboursement(e.target.value)}
+                                  placeholder="Ex: 30000"
+                                  className="w-full rounded-md border border-surface-border bg-background px-3 py-1.5 text-xs font-mono font-bold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                />
+                                {(() => {
+                                  const mTotal = Number(montant) || 0
+                                  const mRemb = Number(montantRemboursement) || 0
+                                  const reliquat = mTotal - mRemb
+                                  return (
+                                    <div className="text-[11px] space-y-1 pt-1 border-t border-surface-border/50">
+                                      <div className="flex justify-between text-primary font-medium">
+                                        <span>Remboursement déduit de la dette :</span>
+                                        <span>{mRemb.toLocaleString()} FCFA</span>
+                                      </div>
+                                      <div className={`flex justify-between font-semibold ${reliquat >= 0 ? 'text-emerald-600' : 'text-danger'}`}>
+                                        <span>Reliquat au crédit du compte membre :</span>
+                                        <span>
+                                          {reliquat >= 0
+                                            ? `${reliquat.toLocaleString()} FCFA`
+                                            : 'Erreur: dépasse le versement !'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            )}
+
+                            {modeRemboursement === 'total' && (
+                              <p className="text-[11px] text-primary bg-primary/10 p-2 rounded-md">
+                                ✓ L'intégralité du versement de <strong>{montant ? Number(montant).toLocaleString() : 0} FCFA</strong> sera déduite de la créance de campagne du membre.
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {!isRemboursement && (
+                          <p className="text-[11px] text-foreground-muted bg-background/50 p-2 rounded-md">
+                            ℹ️ Versement sans remboursement : l'intégralité de la somme ({montant ? `${Number(montant).toLocaleString()} FCFA` : 'versée'}) sera portée au crédit du compte du membre (avance / apport / épargne).
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

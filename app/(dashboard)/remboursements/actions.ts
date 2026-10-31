@@ -216,6 +216,7 @@ export async function enregistrerRemboursement(
     prixUnitaireNature?: number | null
     typeDocument?: 'campagne' | 'prestation' | 'vente_stock'
     campagneId?: string | null
+    datePaiement?: string | null
   }
 ) {
   const denied = await requirePermission('remboursements', 'create')
@@ -306,6 +307,8 @@ export async function enregistrerRemboursement(
     ? `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}] [UNITE:${uniteNature}]${!membreId && nomTiers ? ` [CLIENT:${nomTiers}]` : ''}${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
     : null
 
+  const dateEffectuee = options?.datePaiement?.trim() || new Date().toISOString().slice(0, 10)
+
   const rembInsertPayload: any = {
     gie_id: userData.gie_id,
     type_remboursement: type,
@@ -314,6 +317,7 @@ export async function enregistrerRemboursement(
     produit_nature: safeProduitNature,
     compte_id: compteId || null,
     reference_piece: referencePiece?.trim() || null,
+    date_paiement: dateEffectuee,
   }
 
   if (docType === 'campagne') {
@@ -383,7 +387,7 @@ export async function enregistrerRemboursement(
       montant: montantFcfa,
       motif: motifHumain,
       type_piece: typePiece,
-      date_transaction: new Date().toISOString().slice(0, 10),
+      date_transaction: dateEffectuee,
       campagne_id: effectiveCampagneId,
     })
 
@@ -416,7 +420,7 @@ export async function enregistrerRemboursement(
       gie_id: userData.gie_id,
       client_id: resolvedClientId,
       montant: montantFcfa,
-      date_paiement: new Date().toISOString().slice(0, 10),
+      date_paiement: dateEffectuee,
       motif: `${metaTags} ${motifHumain}`.trim(),
     })
   }

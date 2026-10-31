@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Search, X, RotateCcw } from 'lucide-react'
 import { getReleveClient } from './actions'
 import AddClientModal from './AddClientModal'
 import AddPaiementClientModal from './AddPaiementClientModal'
@@ -30,6 +31,8 @@ export default function ReleveClientClient({
   const [soldeActuel, setSoldeActuel] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'vente' | 'prestation' | 'paiement'>('all')
   const t = dict.bilans_pages.releve_client
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
 
@@ -57,6 +60,28 @@ export default function ReleveClientClient({
   }
 
   const selectedClientNom = clients.find((c) => c.id === selectedClient)?.nom || ''
+
+  const filteredMouvements = useMemo(() => {
+    return journal.filter((m) => {
+      if (typeFilter !== 'all' && m.type !== typeFilter) return false
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase().trim()
+        const desig = (m.designation || '').toLowerCase()
+        const mont = String(m.montant || '')
+        const dateStr = String(m.date || '')
+        const qteStr = String(m.quantite || '')
+        const typeStr = String(m.type || '')
+        const matches =
+          desig.includes(term) ||
+          mont.includes(term) ||
+          dateStr.includes(term) ||
+          qteStr.includes(term) ||
+          typeStr.includes(term)
+        if (!matches) return false
+      }
+      return true
+    })
+  }, [journal, typeFilter, searchTerm])
 
   return (
     <div className="space-y-6">
@@ -125,6 +150,58 @@ export default function ReleveClientClient({
             <dd className="mt-1 text-2xl font-semibold tracking-tight">{soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}</dd>
           </div>
 
+          {/* Barre de Recherche et Filtre du Relevé Client */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface border border-surface-border p-3 rounded-lg shadow-2xs">
+            <div className="relative flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Search className="h-4 w-4 text-foreground-muted" />
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher par désignation, date, montant..."
+                className="w-full rounded-md border border-surface-border bg-background py-1.5 pl-9 pr-8 text-xs text-foreground placeholder:text-foreground-muted focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-foreground-muted hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as any)}
+                className="rounded-md border border-surface-border bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+              >
+                <option value="all">Tous types</option>
+                <option value="vente">Ventes de stock</option>
+                <option value="prestation">Prestations matériel</option>
+                <option value="paiement">Paiements & règlements</option>
+              </select>
+
+              {(searchTerm || typeFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setTypeFilter('all')
+                  }}
+                  className="p-1.5 text-foreground-muted hover:text-foreground rounded-md border border-surface-border bg-background shadow-2xs"
+                  title="Réinitialiser"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="overflow-x-auto rounded-lg border border-surface-border bg-surface shadow">
             <table className="min-w-full divide-y divide-surface-border">
               <thead className="bg-background">
@@ -139,7 +216,7 @@ export default function ReleveClientClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border bg-surface">
-                {journal.map((m, idx) => {
+                {filteredMouvements.map((m, idx) => {
                   const isDebit = m.type === 'vente' || m.type === 'prestation'
                   const factureDoc =
                     m.type === 'prestation' && m.raw
@@ -200,7 +277,7 @@ export default function ReleveClientClient({
                     </tr>
                   )
                 })}
-                {journal.length === 0 && (
+                {filteredMouvements.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-4 text-center text-sm text-foreground-muted italic">
                       {t.empty}
