@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { enregistrerRemboursement } from './actions'
+import { executeOfflineSafe } from '@/lib/offline/offline-action-helper'
 import { useUnite } from '@/components/DeviseProvider'
 
 type PaiementModalProps = {
@@ -99,32 +100,61 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
       return
     }
 
-    const res = await enregistrerRemboursement(
-      facture.id,
-      facture.membre?.id || null,
-      type,
-      montantFcfa,
-      type === 'nature' ? qte : null,
-      type === 'nature' ? produitNature : null,
-      (type === 'espece' || type === 'cheque' || ((type === 'bon' || type === 'autre') && compteId)) ? compteId : null,
-      (type === 'cheque' || type === 'bon' || type === 'autre') ? referencePiece.trim() : null,
-      {
-        clientId: facture.client?.id || facture.client_id || null,
-        clientNom: facture.client_nom || facture.client?.nom || null,
-        origineStock,
-        variete,
-        uniteNature: type === 'nature' ? uniteEffective : null,
-        prixUnitaireNature: type === 'nature' ? prixUnitaire : null,
-        typeDocument: facture.type_document || 'campagne',
-        campagneId: facture.campagne_id || facture.campagne?.id || null,
-        datePaiement,
-      }
-    )
+    const res = await executeOfflineSafe({
+      actionType: 'remboursement',
+      label: `Remboursement ${facture.membre?.nom || facture.client_nom || 'Tiers'} — ${montantFcfa} ${unite}`,
+      payload: {
+        facture_id: facture.id,
+        membre_id: facture.membre?.id || null,
+        type,
+        montant: montantFcfa,
+        quantite_nature: type === 'nature' ? qte : null,
+        produit_nature: type === 'nature' ? produitNature : null,
+        compte_id: (type === 'espece' || type === 'cheque' || ((type === 'bon' || type === 'autre') && compteId)) ? compteId : null,
+        reference: (type === 'cheque' || type === 'bon' || type === 'autre') ? referencePiece.trim() : null,
+        date_remboursement: datePaiement,
+        extra: {
+          clientId: facture.client?.id || facture.client_id || null,
+          clientNom: facture.client_nom || facture.client?.nom || null,
+          origineStock,
+          variete,
+          uniteNature: type === 'nature' ? uniteEffective : null,
+          prixUnitaireNature: type === 'nature' ? prixUnitaire : null,
+          typeDocument: facture.type_document || 'campagne',
+          campagneId: facture.campagne_id || facture.campagne?.id || null,
+          datePaiement,
+        }
+      },
+      onlineAction: () => enregistrerRemboursement(
+        facture.id,
+        facture.membre?.id || null,
+        type,
+        montantFcfa,
+        type === 'nature' ? qte : null,
+        type === 'nature' ? produitNature : null,
+        (type === 'espece' || type === 'cheque' || ((type === 'bon' || type === 'autre') && compteId)) ? compteId : null,
+        (type === 'cheque' || type === 'bon' || type === 'autre') ? referencePiece.trim() : null,
+        {
+          clientId: facture.client?.id || facture.client_id || null,
+          clientNom: facture.client_nom || facture.client?.nom || null,
+          origineStock,
+          variete,
+          uniteNature: type === 'nature' ? uniteEffective : null,
+          prixUnitaireNature: type === 'nature' ? prixUnitaire : null,
+          typeDocument: facture.type_document || 'campagne',
+          campagneId: facture.campagne_id || facture.campagne?.id || null,
+          datePaiement,
+        }
+      )
+    })
 
     setLoading(false)
-    if (res?.error) {
+    if (!res.success && res.error) {
       alert(res.error)
     } else {
+      if (res.offline) {
+        alert("Paiement enregistré localement en mode hors-ligne ! Il sera automatiquement synchronisé dès la reconnexion.")
+      }
       onClose()
     }
   }

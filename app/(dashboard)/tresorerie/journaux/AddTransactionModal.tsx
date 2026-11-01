@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Plus, ArrowRightLeft, Calendar, User, Truck, Building2, UserCheck, AlertCircle, CheckCircle2, Coins, Info, Bookmark } from 'lucide-react'
 import { addTransaction } from '../actions'
+import { executeOfflineSafe } from '@/lib/offline/offline-action-helper'
 
 type Campagne = { id: string; nom: string; statut: string }
 type Compte = { id: string; nom: string; type_compte?: string }
@@ -161,7 +162,7 @@ export default function AddTransactionModal({
       if (mat) matNom = mat.nom
     }
 
-    const res = await addTransaction({
+    const payload = {
       compte_id: effectiveCompteId,
       type_transaction: typeTransaction,
       montant: numericMontant,
@@ -180,12 +181,22 @@ export default function AddTransactionModal({
       is_remboursement: isRemb,
       mode_remboursement: modeRemboursement,
       montant_remboursement: isRemb ? numRemb : 0,
+    }
+
+    const res = await executeOfflineSafe({
+      actionType: 'transaction_tresorerie',
+      label: `Écriture trésorerie — ${typeTransaction === 'entree' ? '+' : '-'}${numericMontant} (${motif})`,
+      payload,
+      onlineAction: () => addTransaction(payload)
     })
 
     setLoading(false)
-    if (res?.error) {
+    if (!res.success && res.error) {
       alert(res.error)
     } else {
+      if (res.offline) {
+        alert("Transaction enregistrée en local ! Elle sera synchronisée automatiquement lors du retour d'Internet.")
+      }
       setIsOpen(false)
       resetForm()
       onSuccess()

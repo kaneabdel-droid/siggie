@@ -13,12 +13,9 @@ import {
   Activity,
 } from 'lucide-react'
 
-// Chaque produit DembaSolution a son propre projet Supabase et son propre espace
-// /admin — pas de portail unifié (une seule connexion, une seule session) pour
-// l'instant, cf. plan D-QUINCA §0. Cette page est l'accueil de Demba Admin : un
-// point d'entrée unique qui renvoie vers l'espace admin de chaque produit ; passer
-// à un produit externe demande de s'y connecter avec ses propres identifiants
-// admin (même email possible, session distincte).
+// Portail unifié Demba Admin : grâce à l'identité admin partagée (SSO inter-produits
+// via le cookie .dembasolution.com), une seule connexion SuperAdmin donne accès
+// instantanément à l'ensemble des tableaux de bord de l'écosystème sans re-saisie.
 const produits = [
   {
     nom: 'SIGGIE',
@@ -106,10 +103,9 @@ const produits = [
 export default function AdminHomePage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold font-heading mb-2">Demba Admin</h1>
+      <h1 className="text-2xl font-bold font-heading mb-2">Demba Admin — Supervision Centrale</h1>
       <p className="text-sm text-foreground-muted mb-6">
-        Chaque produit a son propre espace d&apos;administration et son propre projet Supabase.
-        Un compte admin distinct est nécessaire pour chacun (même email possible).
+        Accédez à l&apos;espace d&apos;administration de chaque solution Demba. Grâce à la connexion unique SuperAdmin (SSO), votre session est partagée sur l&apos;ensemble des tableaux de bord.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
