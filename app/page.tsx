@@ -182,25 +182,25 @@ export default async function LandingPage({
                 </p>
                 <div className="flex flex-col gap-2">
                   <a
-                    href="https://hotel.dembasolution.com/decouvrir-dhotel"
+                    href="https://d-hotel.dembasolution.com/decouvrir-dhotel"
                     className="text-foreground font-semibold hover:underline flex items-center gap-1"
                   >
                     Découvrir & Démo interactive <ArrowRight className="w-4 h-4" />
                   </a>
                   <a
-                    href="https://hotel.dembasolution.com/guide"
+                    href="https://d-hotel.dembasolution.com/guide"
                     className="text-foreground-muted hover:text-foreground text-sm flex items-center gap-1"
                   >
                     Guide d&apos;utilisation <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                   <a
-                    href="https://hotel.dembasolution.com/tarifs"
+                    href="https://d-hotel.dembasolution.com/tarifs"
                     className="text-amber-600 font-semibold hover:underline flex items-center gap-1"
                   >
                     Tarifs & Formules <ArrowRight className="w-4 h-4" />
                   </a>
                   <a
-                    href="https://hotel.dembasolution.com/login"
+                    href="https://d-hotel.dembasolution.com/login"
                     className="text-xs font-medium text-slate-500 hover:text-foreground flex items-center gap-1"
                   >
                     Espace Connexion <ArrowRight className="w-3 h-3" />
@@ -221,25 +221,25 @@ export default async function LandingPage({
                 </p>
                 <div className="flex flex-col gap-2">
                   <a
-                    href="https://sante.dembasolution.com/decouvrir-dsante"
+                    href="https://d-sante.dembasolution.com/decouvrir-dsante"
                     className="text-foreground font-semibold hover:underline flex items-center gap-1"
                   >
                     Découvrir & Démo clinique <ArrowRight className="w-4 h-4" />
                   </a>
                   <a
-                    href="https://sante.dembasolution.com/guide"
+                    href="https://d-sante.dembasolution.com/guide"
                     className="text-foreground-muted hover:text-foreground text-sm flex items-center gap-1"
                   >
                     Guide d&apos;utilisation <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                   <a
-                    href="https://sante.dembasolution.com/tarifs"
+                    href="https://d-sante.dembasolution.com/tarifs"
                     className="text-emerald-600 font-semibold hover:underline flex items-center gap-1"
                   >
                     Tarifs & Formules <ArrowRight className="w-4 h-4" />
                   </a>
                   <a
-                    href="https://sante.dembasolution.com/login"
+                    href="https://d-sante.dembasolution.com/login"
                     className="text-xs font-medium text-slate-500 hover:text-foreground flex items-center gap-1"
                   >
                     Espace Connexion <ArrowRight className="w-3 h-3" />
