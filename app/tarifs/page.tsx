@@ -76,9 +76,14 @@ export default async function TarifsSiggiePage() {
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <span>{dict.landing.pricing.feature_all_medium}</span></li>
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-success" /> <strong>{dict.landing.pricing.feature_etats}</strong></li>
                 </ul>
-                <Link href="/checkout?plan=premium" className="w-full rounded-xl bg-background border-2 border-foreground text-foreground px-4 py-3 font-bold text-center hover:bg-foreground hover:text-background transition-colors">
-                  {dict.landing.pricing.choose_premium}
-                </Link>
+                <div className="space-y-2">
+                  <Link href="/checkout?plan=premium" className="w-full block rounded-xl bg-background border-2 border-foreground text-foreground px-4 py-3 font-bold text-center hover:bg-foreground hover:text-background transition-colors">
+                    {dict.landing.pricing.choose_premium}
+                  </Link>
+                  <Link href="/decouvrir-siggie" className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold text-primary hover:underline">
+                    Tester la démo Premium en direct →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
