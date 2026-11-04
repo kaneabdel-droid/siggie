@@ -232,7 +232,7 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
 
   const fournisseurs: FournisseurSummary[] = Array.from(fournisseursMap.values()).map((f) => ({
     ...f,
-    solde_actuel: Math.max(0, f.total_dette - f.total_regle),
+    solde_actuel: f.total_dette - f.total_regle,
   }))
 
   fournisseurs.sort((a, b) => a.nom.localeCompare(b.nom))
@@ -646,12 +646,12 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
       code_fournisseur: codeFournisseur,
       total_dette: totalDette,
       total_regle: totalRegle,
-      solde_actuel: Math.max(0, soldeProgressif),
+      solde_actuel: soldeProgressif,
     },
     journal: journal.reverse(), // Du plus récent au plus ancien pour l'affichage
     totalDette,
     totalRegle,
-    soldeActuel: Math.max(0, soldeProgressif),
+    soldeActuel: soldeProgressif,
   }
 }
 

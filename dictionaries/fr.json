@@ -137,7 +137,7 @@
       "credits": "Crédits bancaires",
       "facturation": "Facturation",
       "remboursements": "Remboursements",
-      "tresorerie": "Trésorerie",
+      "tresorerie": "Trésorerie & OD",
       "materiel": "Gestion du matériel (inventaire, prestations, consommations, rentabilité, amortissements)",
       "bilans": "Bilans & états de suivi budgétaire avancés"
     },
@@ -190,7 +190,7 @@
     "credits": "Crédits Bancaires",
     "facturation": "Facturation",
     "remboursements": "Remboursements",
-    "tresorerie": "Trésorerie",
+    "tresorerie": "Trésorerie & OD",
     "materiel": "Matériel",
     "bilans": "Bilans & Relevés",
     "abonnement": "Abonnement",
@@ -342,7 +342,7 @@
     }
   },
   "tresorerie": {
-    "title": "Trésorerie & Banque",
+    "title": "Trésorerie & OD",
     "desc": "Gérez vos comptes en banque, votre caisse, et rapprochez vos crédits de campagne.",
     "tabs": {
       "comptes": "Comptes (Soldes)",

@@ -137,7 +137,7 @@
       "credits": "Bank loans",
       "facturation": "Invoicing",
       "remboursements": "Repayments",
-      "tresorerie": "Treasury",
+      "tresorerie": "Treasury & OD",
       "materiel": "Equipment management (inventory, services, consumption, profitability, depreciation)",
       "bilans": "Advanced budget tracking statements"
     },
@@ -190,7 +190,7 @@
     "credits": "Bank Loans",
     "facturation": "Billing",
     "remboursements": "Repayments",
-    "tresorerie": "Cash Flow",
+    "tresorerie": "Treasury & OD",
     "materiel": "Equipment",
     "bilans": "Reports & Statements",
     "abonnement": "Subscription",
@@ -339,7 +339,7 @@
     }
   },
   "tresorerie": {
-    "title": "Treasury & Bank",
+    "title": "Treasury & OD",
     "desc": "Manage your bank accounts, cash desk, and reconcile your season credits.",
     "tabs": {
       "comptes": "Accounts (Balances)",

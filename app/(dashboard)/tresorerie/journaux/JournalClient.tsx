@@ -254,14 +254,18 @@ export default function JournalClient({
     const rawTiers = String(ligne.tiers_affiche || ligne.tiers_nom || '').trim()
     if (!rawTiers || rawTiers === '-') return null
 
-    if (ligne.type_piece === 'virement_interne') {
-      const targetC = comptes.find((c) => c.nom.toLowerCase() === rawTiers.toLowerCase())
-      if (targetC) {
-        return {
-          url: `/tresorerie/journaux?compteId=${targetC.id}`,
-          label: `Consulter le journal de ${targetC.nom}`,
-          kind: 'compte',
-        }
+    const lower = rawTiers.toLowerCase()
+
+    // 1. Si la contrepartie ou le tiers correspond à un autre compte de trésorerie (banque, caisse...)
+    const targetCompte = comptes.find((c) => {
+      const cNom = c.nom.toLowerCase().trim()
+      return cNom === lower || lower === cNom || lower.includes(cNom) || cNom.includes(lower)
+    })
+    if (targetCompte) {
+      return {
+        url: `/tresorerie/journaux?compteId=${targetCompte.id}`,
+        label: `Consulter le journal de ${targetCompte.nom}`,
+        kind: 'compte',
       }
     }
 

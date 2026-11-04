@@ -176,7 +176,13 @@ export default function ReleveFournisseurClient({
               {fournisseurs.length === 0 && <option value="">Aucun fournisseur</option>}
               {fournisseurs.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.nom} ({f.code_fournisseur}) - Reste: {formatAmount(f.solde_actuel)} {unite}
+                  {f.nom} ({f.code_fournisseur}) - {
+                    f.solde_actuel > 0
+                      ? `Reste dû: ${formatAmount(f.solde_actuel)} ${unite}`
+                      : f.solde_actuel < 0
+                        ? `Avance / Surplus: ${formatAmount(f.solde_actuel)} ${unite}`
+                        : `Compte soldé (0 ${unite.trim()})`
+                  }
                 </option>
               ))}
             </select>
@@ -312,7 +318,7 @@ export default function ReleveFournisseurClient({
               <span>Date d&apos;édition : {new Date().toLocaleDateString(dateLocale)}</span>
               <span>Dette totale : {formatAmount(totalDette)} {unite}</span>
               <span>Règlements : {formatAmount(totalRegle)} {unite}</span>
-              <span><strong>Reste dû : {formatAmount(soldeActuel)} {unite}</strong></span>
+              <span><strong>{soldeActuel < 0 ? 'Avance / Surplus :' : 'Reste dû :'} {formatAmount(soldeActuel)} {unite}</strong></span>
             </div>
           </div>
 
