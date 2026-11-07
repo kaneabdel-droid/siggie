@@ -269,7 +269,6 @@ export default function JournalClient({
       }
     }
 
-    const lower = rawTiers.toLowerCase()
     const matchingMembre = membres.find((m) => {
       const full = `${m.prenom || ''} ${m.nom}`.trim().toLowerCase()
       const code = (m.code_membre || '').toLowerCase()

@@ -1,41 +1,125 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
+import { useEffect } from "react";
 
 /**
- * Bouclier de sécurité côté client :
- * - Détecte l'intégration frauduleuse dans une iFrame (anti-clickjacking / anti-clonage visuel).
- * - Brise immédiatement tout cadre parent malveillant (Frame-Busting).
+ * Bouclier de Sécurité Global DembaSolution :
+ * 1. Anti-Clickjacking & Frame-Busting (Protection contre l'encapsulation en iFrame pirate)
+ * 2. Anti-Copie Universel (Interdiction de toute sélection, copie, couper, clic-droit et raccourcis d'inspection)
  */
-export default function ClientSecurityShield() {
+export function ClientSecurityShield() {
   useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    // Vérifie si la page s'exécute dans une fenêtre imbriquée (iFrame)
-    if (window.top && window.top !== window.self) {
+    // 1. Frame-Busting / Anti-Clickjacking
+    if (typeof window !== "undefined") {
       try {
-        // Tente de briser le cadre et de rediriger la fenêtre principale vers l'URL officielle
-        window.top.location.href = window.self.location.href
+        if (window.top && window.top !== window.self) {
+          window.top.location.href = window.self.location.href;
+        }
       } catch {
-        // En cas de bac à sable iFrame empêchant la redirection du parent (sandbox),
-        // on neutralise l'affichage pour empêcher tout détournement de clic
-        document.body.innerHTML = `
-          <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;text-align:center;padding:24px;">
-            <div style="max-width:520px;background:#131c2e;border:1px solid #1e293b;border-radius:12px;padding:32px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
-              <div style="font-size:40px;margin-bottom:16px;">🛡️</div>
-              <h2 style="font-size:20px;font-weight:700;margin-bottom:12px;color:#f87171;">Avertissement de Sécurité</h2>
-              <p style="font-size:14px;line-height:1.6;color:#94a3b8;margin-bottom:24px;">
-                L'affichage de DembaSolution dans un cadre externe ou une iFrame non autorisée est strictement bloqué pour protéger vos identifiants et vos données.
-              </p>
-              <a href="${window.self.location.href}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 24px;background:#10b981;color:#ffffff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px;">
-                Accéder directement et en toute sécurité
-              </a>
-            </div>
-          </div>
-        `
+        window.location.href = "about:blank";
       }
     }
-  }, [])
 
-  return null
+    // 2. Injection du style global anti-copie / anti-sélection
+    const styleId = "demba-anti-copy-shield";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.innerHTML = `
+        html, body, *:not(input):not(textarea):not([contenteditable="true"]) {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
+        input, textarea, [contenteditable="true"] {
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          -ms-user-select: text !important;
+          user-select: text !important;
+        }
+        img {
+          -webkit-user-drag: none !important;
+          user-drag: none !important;
+          pointer-events: auto;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // 3. Interdiction du menu contextuel (clic droit) sauf dans les champs de saisie
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+        return;
+      }
+      e.preventDefault();
+      return false;
+    };
+
+    // 4. Interdiction de la copie et du couper
+    const handleCopyCut = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+        return;
+      }
+      e.preventDefault();
+      if (e.clipboardData) {
+        e.clipboardData.clearData();
+      }
+    };
+
+    // 5. Interdiction du drag & drop
+    const handleDragStart = (e: DragEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+        return;
+      }
+      e.preventDefault();
+    };
+
+    // 6. Blocage des raccourcis clavier de copie, inspection et impression
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      // Ctrl/Cmd + C ou X ou A hors des inputs
+      if (isCtrlOrCmd && (e.key === "c" || e.key === "C" || e.key === "x" || e.key === "X" || e.key === "a" || e.key === "A") && !isInput) {
+        e.preventDefault();
+      }
+
+      // Ctrl/Cmd + U (Code source), S (Enregistrer), P (Imprimer)
+      if (isCtrlOrCmd && (e.key === "u" || e.key === "U" || e.key === "s" || e.key === "S" || e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+      }
+
+      // F12 ou Ctrl+Shift+I / J / C (DevTools)
+      if (
+        e.key === "F12" ||
+        (isCtrlOrCmd && e.shiftKey && (e.key === "i" || e.key === "I" || e.key === "j" || e.key === "J" || e.key === "c" || e.key === "C"))
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu, { capture: true });
+    document.addEventListener("copy", handleCopyCut, { capture: true });
+    document.addEventListener("cut", handleCopyCut, { capture: true });
+    document.addEventListener("dragstart", handleDragStart, { capture: true });
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu, { capture: true });
+      document.removeEventListener("copy", handleCopyCut, { capture: true });
+      document.removeEventListener("cut", handleCopyCut, { capture: true });
+      document.removeEventListener("dragstart", handleDragStart, { capture: true });
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
+  }, []);
+
+  return null;
 }
+
+export default ClientSecurityShield;

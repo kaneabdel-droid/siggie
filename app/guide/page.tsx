@@ -1,3 +1,4 @@
+import { GuideAntiScreenshotShield } from "@/components/GuideAntiScreenshotShield";
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import ClientNavbar from '@/components/ClientNavbar'
@@ -141,6 +142,7 @@ export default async function GuidePage() {
 
   return (
     <div className="bg-background min-h-screen font-sans text-foreground">
+      <GuideAntiScreenshotShield />
       <ClientNavbar dict={dict} currentLang={locale} />
 
       <main>
