@@ -6,7 +6,12 @@ import { requirePermission } from '@/utils/supabase/permissions'
 
 function cleanClientNom(nom?: string | null): string {
   if (!nom) return ''
-  return nom.replace(/\[SOLDE_INIT:.*?\]/g, '').trim()
+  return nom
+    .replace(/\[SOLDE_INIT:.*?\]/g, '')
+    .replace(/\[CLI-[^\]]+\]/g, '')
+    .replace(/\[FOURNISSEUR\]/g, '')
+    .replace(/\[TX_ID:[^\]]+\]/g, '')
+    .trim()
 }
 
 function extractClientSoldeInitial(nom?: string | null): number {
@@ -40,7 +45,7 @@ export async function getClients() {
     if (!extendedRes.error && extendedRes.data) {
       clientsRes = extendedRes
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const [membresRes, prestationsRes, sortiesRes] = await Promise.all([
     supabase.from('membres').select('id, prenom, nom'),
@@ -78,7 +83,7 @@ export async function getClients() {
 
     for (const p of (prestationsRes.data || []) as any[]) {
       if (p.tiers_type === 'membre' || p.membre_id || p.client_id) continue
-      const nom = String(p.client_nom || '').trim()
+      const nom = cleanClientNom(String(p.client_nom || '')).trim()
       if (!nom) continue
       const lower = nom.toLowerCase()
       if (memberNames.has(lower) || existingClientNames.has(lower)) continue
@@ -92,7 +97,7 @@ export async function getClients() {
 
     for (const s of (sortiesRes.data || []) as any[]) {
       if (s.client_id) continue
-      const nom = String(s.tiers_nom || '').trim()
+      const nom = cleanClientNom(String(s.tiers_nom || '')).trim()
       if (!nom) continue
       const lower = nom.toLowerCase()
       if (memberNames.has(lower) || existingClientNames.has(lower)) continue
@@ -169,7 +174,7 @@ export async function addClient(nom: string, telephone?: string, solde_initial?:
     if (!insertRes.error && insertRes.data) {
       finalClientData = insertRes.data
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Fallback résilient si la colonne solde_initial n'existe pas
   if (!finalClientData) {
@@ -231,7 +236,7 @@ export async function getReleveClient(clientId: string) {
     if (!ext.error && ext.data) {
       clientRes = ext
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const client = clientRes.data
   if (!client || client.nom?.startsWith('[FOURNISSEUR]')) return { error: "Client introuvable" }
@@ -242,7 +247,7 @@ export async function getReleveClient(clientId: string) {
     : extractClientSoldeInitial(rawNomClient)
 
   client.nom = cleanClientNom(rawNomClient)
-  ;(client as any).solde_initial = soldeInit
+    ; (client as any).solde_initial = soldeInit
 
   if (!(client as any).code_client) {
     (client as any).code_client = `CLI-${client.id ? client.id.slice(0, 4).toUpperCase() : '001'}`
@@ -276,17 +281,32 @@ export async function getReleveClient(clientId: string) {
   if (ventesRes.error) return { error: ventesRes.error.message }
   if (paiementsRes.error) return { error: paiementsRes.error.message }
 
-  const clientNomLower = client.nom.trim().toLowerCase()
+  const clientNomLower = cleanClientNom(client.nom).trim().toLowerCase()
+  const clientPhoneClean = client.telephone ? client.telephone.replace(/\D/g, '') : ''
 
   const ventesClient = (ventesRes.data || []).filter((v: any) => {
     if (v.client_id) return v.client_id === clientId
-    return String(v.tiers_nom || '').trim().toLowerCase() === clientNomLower
+    const vNomClean = cleanClientNom(v.tiers_nom).trim().toLowerCase()
+    return vNomClean && (vNomClean === clientNomLower || vNomClean.includes(clientNomLower) || clientNomLower.includes(vNomClean))
   })
 
   const prestationsClient = (prestationsRes.data || []).filter((p: any) => {
     if (p.tiers_type === 'membre' || p.membre_id) return false
     if (p.client_id) return p.client_id === clientId
-    return String(p.client_nom || '').trim().toLowerCase() === clientNomLower
+
+    const pNomClean = cleanClientNom(p.client_nom).trim().toLowerCase()
+    if (pNomClean && (pNomClean === clientNomLower || pNomClean.includes(clientNomLower) || clientNomLower.includes(pNomClean))) {
+      return true
+    }
+
+    if (clientPhoneClean && p.client_telephone) {
+      const pPhoneClean = p.client_telephone.replace(/\D/g, '')
+      if (pPhoneClean && (pPhoneClean === clientPhoneClean || pPhoneClean.endsWith(clientPhoneClean) || clientPhoneClean.endsWith(pPhoneClean))) {
+        return true
+      }
+    }
+
+    return false
   })
 
   const mouvements: Mouvement[] = []
@@ -738,7 +758,7 @@ export async function updateClientSoldeInitial(clientId: string, solde_initial: 
       revalidatePath('/bilans/releve-client')
       return { success: true }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Fallback résilient universel : encoder dans le champ nom [SOLDE_INIT:50000]
   const { data: current } = await supabase

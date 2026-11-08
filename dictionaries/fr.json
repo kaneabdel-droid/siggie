@@ -1014,10 +1014,10 @@
         "equipment": "Équipement",
         "revenue": "Recettes (Prest.)",
         "expenses": "Dépenses (Consom.)",
-        "credit_interest": "Intérêts Crédit",
+        "credit_interest": "Intérêts Crédit (Annuel)",
         "gross_balance": "Solde Brut",
-        "depreciation": "Amortissement Cumulé",
-        "net_result": "Résultat Net"
+        "depreciation": "Amortissement (Annuel)",
+        "net_result": "Résultat Net (Annuel)"
       },
       "acq_value": "Valeur acq",
       "empty": "Aucun équipement enregistré."

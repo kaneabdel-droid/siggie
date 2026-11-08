@@ -548,10 +548,10 @@ export async function getRentabiliteMateriels() {
     }
 
     const solde_brut = recettes - depenses
-    // Solde net incluant la charge financière des intérêts du crédit équipement
-    const solde_net = solde_brut - interet_cumule_credit
-    // Résultat net après dotations aux amortissements et charges financières
-    const solde_apres_amortissement = solde_net - amortissement_cumule
+    // Solde net annuel incluant la charge financière annuelle des intérêts du crédit équipement (Option 1)
+    const solde_net = solde_brut - interet_annuel_credit
+    // Résultat net annuel après dotations annuelles aux amortissements et charges financières
+    const solde_apres_amortissement = solde_net - amortissement_annuel
 
     return {
       ...mat,

@@ -27,14 +27,15 @@ export default async function RentabilitePage() {
     return new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(amount)
   }
 
-  // Totaux globaux
+  // Totaux globaux (Option 1 : Rentabilité annuelle de référence)
   const totalRecettes = rentabilite?.reduce((sum, m) => sum + m.recettes, 0) || 0
   const totalDepenses = rentabilite?.reduce((sum, m) => sum + m.depenses, 0) || 0
-  const totalInteretsCredit = rentabilite?.reduce((sum, m) => sum + (m.interet_cumule_credit || 0), 0) || 0
   const totalInteretsAnnuel = rentabilite?.reduce((sum, m) => sum + (m.interet_annuel_credit || 0), 0) || 0
-  const totalAmortissements = rentabilite?.reduce((sum, m) => sum + m.amortissement_cumule, 0) || 0
+  const totalInteretsCumule = rentabilite?.reduce((sum, m) => sum + (m.interet_cumule_credit || 0), 0) || 0
+  const totalAmortissementsAnnuel = rentabilite?.reduce((sum, m) => sum + (m.amortissement_annuel || 0), 0) || 0
+  const totalAmortissementsCumule = rentabilite?.reduce((sum, m) => sum + (m.amortissement_cumule || 0), 0) || 0
   const soldeGlobal = totalRecettes - totalDepenses
-  const rentabiliteNette = soldeGlobal - totalInteretsCredit - totalAmortissements
+  const rentabiliteNette = soldeGlobal - totalInteretsAnnuel - totalAmortissementsAnnuel
 
   return (
     <div className="space-y-6" id="materiel-rentabilite-print">
@@ -66,14 +67,15 @@ export default async function RentabilitePage() {
         </div>
         <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm">
           <p className="text-sm font-medium text-foreground-muted flex items-center justify-between gap-1">
-            <span>{t.credit_interest || 'Intérêts Crédit'}</span>
-            {totalInteretsAnnuel > 0 && (
-              <span className="text-[10px] text-foreground-muted font-normal">
-                {formatMoney(totalInteretsAnnuel)}/an
-              </span>
-            )}
+            <span>{t.credit_interest_annual || 'Intérêts Crédits (Annuel)'}</span>
+            <span className="text-[10px] text-foreground-muted font-normal">/an</span>
           </p>
-          <p className="mt-2 text-2xl font-bold text-danger break-words">{formatMoney(totalInteretsCredit)}</p>
+          <p className="mt-2 text-2xl font-bold text-danger break-words">{formatMoney(totalInteretsAnnuel)}</p>
+          {totalInteretsCumule > 0 && (
+            <p className="mt-1 text-xs text-foreground-muted">
+              Cumul : {formatMoney(totalInteretsCumule)}
+            </p>
+          )}
         </div>
         <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm">
           <p className="text-sm font-medium text-foreground-muted">{t.gross_balance}</p>
@@ -83,8 +85,8 @@ export default async function RentabilitePage() {
         </div>
         <div className="bg-surface p-4 rounded-lg border border-surface-border shadow-sm ring-1 ring-primary/20">
           <p className="text-sm font-medium text-foreground-muted flex flex-wrap items-center justify-between gap-2">
-            {t.net_profit}
-            <span className="text-[10px] bg-background px-2 py-0.5 rounded-full border border-surface-border">{t.net_profit_badge}</span>
+            {t.net_profit || 'Rentabilité Nette'}
+            <span className="text-[10px] bg-background px-2 py-0.5 rounded-full border border-surface-border">Annuelle</span>
           </p>
           <p className={`mt-2 text-2xl font-bold break-words ${rentabiliteNette >= 0 ? 'text-primary' : 'text-danger'}`}>
             {formatMoney(rentabiliteNette)}
@@ -100,10 +102,10 @@ export default async function RentabilitePage() {
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.equipment}</th>
               <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.revenue}</th>
               <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.expenses}</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.credit_interest || 'Intérêts crédit'}</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">Intérêts crédit (Annuel)</th>
               <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.gross_balance}</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.depreciation}</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">{t.headers.net_result}</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">Amortissement (Annuel)</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">Résultat Net (Annuel)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border bg-surface">
@@ -122,12 +124,12 @@ export default async function RentabilitePage() {
                   {formatMoney(mat.depenses)}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-right">
-                  {mat.interet_cumule_credit > 0 ? (
+                  {mat.interet_annuel_credit > 0 ? (
                     <div>
-                      <span className="text-danger font-medium">-{formatMoney(mat.interet_cumule_credit)}</span>
-                      {mat.interet_annuel_credit > 0 && (
+                      <span className="text-danger font-medium">-{formatMoney(mat.interet_annuel_credit)}/an</span>
+                      {mat.interet_cumule_credit > 0 && (
                         <span className="block text-[11px] text-foreground-muted">
-                          {formatMoney(mat.interet_annuel_credit)}/an
+                          Cumul: -{formatMoney(mat.interet_cumule_credit)}
                         </span>
                       )}
                     </div>
@@ -139,7 +141,18 @@ export default async function RentabilitePage() {
                   {formatMoney(mat.solde_brut ?? (mat.recettes - mat.depenses))}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-right text-warning">
-                  -{formatMoney(mat.amortissement_cumule)}
+                  {mat.amortissement_annuel > 0 ? (
+                    <div>
+                      <span className="font-medium">-{formatMoney(mat.amortissement_annuel)}/an</span>
+                      {mat.amortissement_cumule > 0 && (
+                        <span className="block text-[11px] text-foreground-muted">
+                          Cumul: -{formatMoney(mat.amortissement_cumule)}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-foreground-muted">-</span>
+                  )}
                 </td>
                 <td className={`whitespace-nowrap px-6 py-4 text-sm text-right font-bold ${mat.solde_apres_amortissement >= 0 ? 'text-primary' : 'text-danger'}`}>
                   {formatMoney(mat.solde_apres_amortissement)}

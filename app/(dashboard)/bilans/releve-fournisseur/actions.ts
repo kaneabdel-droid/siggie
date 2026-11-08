@@ -70,7 +70,7 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
     if (!tableRes.error && tableRes.data) {
       tableFournisseurs = tableRes.data
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 1b. Charger les fournisseurs enregistrés de façon pérenne dans clients_externes (tagués [FOURNISSEUR])
   try {
@@ -101,7 +101,7 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
         })
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Découvrir dynamiquement tous les fournisseurs mentionnés dans les achats, consommations et règlements
   const [achatsRes, consommationsRes, materielsRes, transactionsRes] = await Promise.all([
@@ -300,7 +300,7 @@ export async function addFournisseur(nom: string, telephone?: string, adresse?: 
         }
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Persistance garantie et pérenne dans clients_externes (avec tag [FOURNISSEUR])
   let insertedClient: any = null
@@ -384,7 +384,7 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
       resolvedId = fExt.id
       soldeInitial = Number(fExt.solde_initial || 0)
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Si non trouvé dans fExt, chercher dans clients_externes (fournisseurs créés)
   if (targetNom === fournisseurNomOrId.trim()) {
@@ -741,7 +741,7 @@ export async function updateFournisseurSoldeInitial(fournisseurId: string, solde
       revalidatePath('/bilans/releve-fournisseur')
       return { success: true }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Tenter dans clients_externes direct column
   try {
@@ -753,7 +753,7 @@ export async function updateFournisseurSoldeInitial(fournisseurId: string, solde
       revalidatePath('/bilans/releve-fournisseur')
       return { success: true }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 3. Fallback résilient dans nom clients_externes
   try {
@@ -770,7 +770,7 @@ export async function updateFournisseurSoldeInitial(fournisseurId: string, solde
       const newNom = sInit > 0 ? `${prefix}${baseClean} [SOLDE_INIT:${sInit}]` : `${prefix}${baseClean}`
       await supabase.from('clients_externes').update({ nom: newNom }).eq('id', fournisseurId)
     }
-  } catch (_) {}
+  } catch (_) { }
 
   revalidatePath('/bilans/releve-fournisseur')
   return { success: true }
