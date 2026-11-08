@@ -162,11 +162,10 @@ export default function StockNatureClient({
               <button
                 type="button"
                 onClick={() => setSelectedProduitFilter('all')}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  selectedProduitFilter === 'all'
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedProduitFilter === 'all'
                     ? 'bg-primary text-white shadow-xs'
                     : 'bg-surface border border-surface-border text-foreground hover:bg-surface-hover'
-                }`}
+                  }`}
               >
                 Tous les produits ({listeProduitsActifs.length})
               </button>
@@ -175,11 +174,10 @@ export default function StockNatureClient({
                   key={pSum.produit}
                   type="button"
                   onClick={() => setSelectedProduitFilter(pSum.produit)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    selectedProduitFilter === pSum.produit
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedProduitFilter === pSum.produit
                       ? 'bg-primary text-white shadow-xs'
                       : 'bg-surface border border-surface-border text-foreground hover:bg-surface-hover'
-                  }`}
+                    }`}
                 >
                   {pSum.produit} : {Number(pSum.soldeActuel).toLocaleString(dateLocale)} {pSum.uniteStock}
                 </button>
@@ -290,21 +288,21 @@ export default function StockNatureClient({
 
                 const factureVente = isVente
                   ? {
-                      id: m.id,
-                      type_document: 'vente_stock' as const,
-                      tiers_type: m.tiers_type || 'client',
-                      tiers_nom: m.tiers,
-                      membre: m.membre || null,
-                      client: m.client || null,
-                      campagne: campagneInfo,
-                      date_sortie: m.date,
-                      quantite: quantiteFacture,
-                      unite: uniteFacture,
-                      prix_unitaire: m.prix_unitaire,
-                      montant_total: Number(quantiteFacture || 0) * Number(m.prix_unitaire || 0),
-                      motif: m.motif,
-                      nb_contenance: m.nb_contenance,
-                    }
+                    id: m.id,
+                    type_document: 'vente_stock' as const,
+                    tiers_type: m.tiers_type || 'client',
+                    tiers_nom: m.tiers,
+                    membre: m.membre || null,
+                    client: m.client || null,
+                    campagne: campagneInfo,
+                    date_sortie: m.date,
+                    quantite: quantiteFacture,
+                    unite: uniteFacture,
+                    prix_unitaire: m.prix_unitaire,
+                    montant_total: Number(quantiteFacture || 0) * Number(m.prix_unitaire || 0),
+                    motif: m.motif,
+                    nb_contenance: m.nb_contenance,
+                  }
                   : null
 
                 const soldeAffiche = selectedProduitFilter === 'all'
@@ -317,12 +315,11 @@ export default function StockNatureClient({
                       {new Date(m.date).toLocaleDateString(dateLocale)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                        isReport ? 'bg-purple-500/10 text-purple-600 ring-purple-500/20' :
-                        m.type === 'entree' ? 'bg-success/10 text-success ring-success/20' :
-                        m.type === 'vente' ? 'bg-primary/10 text-primary ring-primary/20' :
-                        'bg-warning/10 text-warning ring-warning/20'
-                      }`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${isReport ? 'bg-purple-500/10 text-purple-600 ring-purple-500/20' :
+                          m.type === 'entree' ? 'bg-success/10 text-success ring-success/20' :
+                            m.type === 'vente' ? 'bg-primary/10 text-primary ring-primary/20' :
+                              'bg-warning/10 text-warning ring-warning/20'
+                        }`}>
                         {typeLabel(m.type, m.tiers_type)}
                       </span>
                     </td>
@@ -335,9 +332,8 @@ export default function StockNatureClient({
                             {m.produit}
                           </span>
                           {isVente && (
-                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                              isMembre ? 'bg-primary/10 text-primary' : 'bg-secondary/15 text-secondary'
-                            }`}>
+                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${isMembre ? 'bg-primary/10 text-primary' : 'bg-secondary/15 text-secondary'
+                              }`}>
                               {isMembre ? 'Relevé Membre' : 'Relevé Client'}
                             </span>
                           )}
@@ -346,18 +342,17 @@ export default function StockNatureClient({
                         {/* Détails supplémentaires (variété, origine, contenance) */}
                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
                           {m.type === 'entree' && !isReport && (
-                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                              m.origine_stock === 'materiel'
+                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${m.origine_stock === 'materiel'
                                 ? 'bg-secondary/15 text-secondary border border-secondary/20'
                                 : m.origine_stock === 'achat'
-                                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                                : 'bg-primary/10 text-primary border border-primary/20'
-                            }`}>
+                                  ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                                  : 'bg-primary/10 text-primary border border-primary/20'
+                              }`}>
                               {m.origine_stock === 'materiel'
                                 ? 'Origine : Matériel'
                                 : m.origine_stock === 'achat'
-                                ? 'Origine : Achat'
-                                : 'Origine : Exploitation'}
+                                  ? 'Origine : Achat'
+                                  : 'Origine : Exploitation'}
                             </span>
                           )}
 

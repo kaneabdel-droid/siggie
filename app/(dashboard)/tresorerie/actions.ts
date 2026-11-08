@@ -78,6 +78,21 @@ export async function addCompte(nom: string, type_compte: string, solde_initial:
   return { success: true }
 }
 
+function revalidateAllTiersPaths() {
+  revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
+  revalidatePath('/tresorerie/journal-od')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/releve-fournisseur')
+  revalidatePath('/bilans/releve-membre')
+  revalidatePath('/bilans/bilan-annuel')
+  revalidatePath('/bilans/suivi-budgetaire')
+  revalidatePath('/remboursements')
+  revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/facturation')
+  revalidatePath('/credits')
+}
+
 export async function addTransaction(data: {
   compte_id: string
   type_transaction: string
@@ -297,7 +312,7 @@ export async function addTransaction(data: {
   }
 
   // Insertion en utilisant exclusivement les colonnes réelles de la table transactions
-  const { error } = await supabase
+  const { data: insertedTx, error } = await supabase
     .from('transactions')
     .insert({
       gie_id: userData.gie_id,
@@ -311,14 +326,32 @@ export async function addTransaction(data: {
       imputation_id: data.imputation_id || null,
       campagne_id: data.campagne_id || null,
     })
+    .select('id')
+    .single()
 
   if (error) {
     console.error("Erreur insertion transaction:", error)
     return { error: error.message }
   }
 
-  revalidatePath('/tresorerie')
-  revalidatePath('/tresorerie/journaux')
+  const txId = insertedTx?.id
+
+  // Synchronisation automatique Paiement Client dans paiements_clients
+  if (data.type_transaction === 'entree' && data.tiers_type === 'client' && data.tiers_id && txId) {
+    try {
+      await supabase.from('paiements_clients').insert({
+        gie_id: userData.gie_id,
+        client_id: data.tiers_id,
+        montant: data.montant,
+        date_paiement: dateTx,
+        motif: `Règlement Trésorerie [MODE:espece] [TX_ID:${txId}] [COMPTE:${data.compte_id}] ${data.motif || ''}`.trim(),
+      })
+    } catch (pcErr) {
+      console.error("Erreur synchro paiements_clients:", pcErr)
+    }
+  }
+
+  revalidateAllTiersPaths()
   return { success: true }
 }
 
@@ -486,9 +519,39 @@ export async function updateTransaction(
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tresorerie')
-  revalidatePath('/tresorerie/journaux')
-  revalidatePath('/credits')
+  // Synchronisation automatique de mise à jour avec paiements_clients
+  try {
+    const { data: linkedPC } = await supabase
+      .from('paiements_clients')
+      .select('id, motif')
+      .ilike('motif', `%[TX_ID:${id}]%`)
+      .limit(1)
+      .maybeSingle()
+
+    if (linkedPC) {
+      const cleanMotifBase = String(linkedPC.motif || '').replace(/\[TX_ID:.*?\]/g, '').trim()
+      await supabase
+        .from('paiements_clients')
+        .update({
+          montant: data.montant,
+          date_paiement: dateTx,
+          motif: `${cleanMotifBase} [TX_ID:${id}]`,
+        })
+        .eq('id', linkedPC.id)
+    } else if (data.type_transaction === 'entree' && data.tiers_type === 'client' && data.tiers_id) {
+      await supabase.from('paiements_clients').insert({
+        gie_id: userData.gie_id,
+        client_id: data.tiers_id,
+        montant: data.montant,
+        date_paiement: dateTx,
+        motif: `Règlement Trésorerie [MODE:espece] [TX_ID:${id}] [COMPTE:${data.compte_id || ''}] ${data.motif || ''}`.trim(),
+      })
+    }
+  } catch (errPC) {
+    console.error("Erreur synchro update paiements_clients:", errPC)
+  }
+
+  revalidateAllTiersPaths()
   return { success: true }
 }
 
@@ -500,6 +563,73 @@ export async function deleteTransaction(id: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Non authentifié" }
 
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) return { error: "Utilisateur introuvable" }
+
+  // 1. Récupérer la transaction pour identifier les écritures liées
+  const { data: tx } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  // 2. Synchronisation suppression : supprimer le paiement client lié si existant
+  try {
+    await supabase
+      .from('paiements_clients')
+      .delete()
+      .ilike('motif', `%[TX_ID:${id}]%`)
+  } catch (_) {}
+
+  // 3. Synchronisation suppression : régulariser et supprimer le remboursement membre lié si existant
+  if (tx && String(tx.motif || '').includes('[REMBOURSEMENT:')) {
+    try {
+      const rMatch = String(tx.motif).match(/\[REMBOURSEMENT:(\d+(?:\.\d+)?)\]/)
+      const rembMontant = rMatch ? Number(rMatch[1]) : Number(tx.montant)
+
+      const { data: rembs } = await supabase
+        .from('remboursements')
+        .select('id, facture_id, montant_fcfa')
+        .eq('gie_id', userData.gie_id)
+        .eq('montant_fcfa', rembMontant)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (rembs && rembs.length > 0) {
+        const targetRemb = rembs[0]
+        if (targetRemb.facture_id) {
+          const { data: fac } = await supabase
+            .from('factures')
+            .select('id, montant_total, montant_interet, montant_paye')
+            .eq('id', targetRemb.facture_id)
+            .single()
+
+          if (fac) {
+            const totalDu = Number(fac.montant_total || 0) + Number(fac.montant_interet || 0)
+            const newPaye = Math.max(0, Number(fac.montant_paye || 0) - Number(targetRemb.montant_fcfa || 0))
+            let newStatut = 'impayee'
+            if (newPaye > 0) newStatut = 'partiellement_paye'
+            if (newPaye >= totalDu) newStatut = 'payee'
+
+            await supabase.from('factures').update({
+              montant_paye: newPaye,
+              statut: newStatut,
+            }).eq('id', fac.id)
+          }
+        }
+        await supabase.from('remboursements').delete().eq('id', targetRemb.id)
+      }
+    } catch (rErr) {
+      console.error("Erreur suppression remboursement lié:", rErr)
+    }
+  }
+
+  // 4. Supprimer la transaction elle-même
   const { error } = await supabase
     .from('transactions')
     .delete()
@@ -507,9 +637,7 @@ export async function deleteTransaction(id: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/tresorerie')
-  revalidatePath('/tresorerie/journaux')
-  revalidatePath('/credits')
+  revalidateAllTiersPaths()
   return { success: true }
 }
 

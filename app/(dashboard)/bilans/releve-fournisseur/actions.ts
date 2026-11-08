@@ -4,6 +4,17 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 
+function extractSoldeInitial(nom?: string | null): number {
+  if (!nom) return 0
+  const m = String(nom).match(/\[SOLDE_INIT:(\d+(?:\.\d+)?)\]/)
+  return m ? Number(m[1]) : 0
+}
+
+function cleanTiersNom(nom?: string | null): string {
+  if (!nom) return ''
+  return nom.replace(/\[SOLDE_INIT:.*?\]/g, '').replace(/^\[FOURNISSEUR\]\s*/i, '').trim()
+}
+
 export interface FournisseurSummary {
   id: string
   nom: string
@@ -82,11 +93,11 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
         }
         tableFournisseurs.push({
           id: cf.id,
-          nom: cleanNom,
+          nom: cleanTiersNom(cf.nom),
           telephone: tel,
           adresse: adr,
           code_fournisseur: null,
-          solde_initial: 0,
+          solde_initial: Number((cf as any).solde_initial || 0) || extractSoldeInitial(cf.nom),
         })
       }
     }
@@ -378,7 +389,7 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
   // 2. Si non trouvé dans fExt, chercher dans clients_externes (fournisseurs créés)
   if (targetNom === fournisseurNomOrId.trim()) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fournisseurNomOrId)
-    let cQuery = supabase.from('clients_externes').select('id, nom, telephone, solde_initial').eq('gie_id', userData.gie_id)
+    let cQuery = supabase.from('clients_externes').select('id, nom, telephone').eq('gie_id', userData.gie_id)
     if (isUUID) {
       cQuery = cQuery.eq('id', fournisseurNomOrId)
     } else {
@@ -387,10 +398,10 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
     const { data: cExt } = await cQuery.maybeSingle()
     if (cExt) {
       const rawNom = cExt.nom || ''
-      targetNom = rawNom.replace(/^\[FOURNISSEUR\]\s*/i, '').trim()
+      targetNom = cleanTiersNom(rawNom)
       resolvedId = cExt.id
       codeFournisseur = `FRN-${cExt.id.slice(0, 4).toUpperCase()}`
-      soldeInitial = Number((cExt as any).solde_initial || 0)
+      soldeInitial = Number((cExt as any).solde_initial || 0) || extractSoldeInitial(rawNom)
       if (cExt.telephone) {
         if (cExt.telephone.includes('|')) {
           const parts = cExt.telephone.split('|')
@@ -732,7 +743,7 @@ export async function updateFournisseurSoldeInitial(fournisseurId: string, solde
     }
   } catch (_) {}
 
-  // 2. Tenter dans clients_externes
+  // 2. Tenter dans clients_externes direct column
   try {
     const { error: cErr } = await supabase
       .from('clients_externes')
@@ -741,6 +752,23 @@ export async function updateFournisseurSoldeInitial(fournisseurId: string, solde
     if (!cErr) {
       revalidatePath('/bilans/releve-fournisseur')
       return { success: true }
+    }
+  } catch (_) {}
+
+  // 3. Fallback résilient dans nom clients_externes
+  try {
+    const { data: current } = await supabase
+      .from('clients_externes')
+      .select('nom')
+      .eq('id', fournisseurId)
+      .single()
+
+    if (current) {
+      const baseClean = cleanTiersNom(current.nom)
+      const isFourn = current.nom?.startsWith('[FOURNISSEUR]')
+      const prefix = isFourn ? '[FOURNISSEUR] ' : ''
+      const newNom = sInit > 0 ? `${prefix}${baseClean} [SOLDE_INIT:${sInit}]` : `${prefix}${baseClean}`
+      await supabase.from('clients_externes').update({ nom: newNom }).eq('id', fournisseurId)
     }
   } catch (_) {}
 

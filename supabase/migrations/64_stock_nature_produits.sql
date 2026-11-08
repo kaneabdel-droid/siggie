@@ -37,3 +37,4 @@ USING (gie_id IN (SELECT gie_id FROM public.utilisateurs WHERE id = auth.uid()))
 ALTER TABLE public.remboursements
   ALTER COLUMN facture_id DROP NOT NULL,
   ALTER COLUMN membre_id DROP NOT NULL;
+

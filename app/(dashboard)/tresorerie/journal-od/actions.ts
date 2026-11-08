@@ -275,6 +275,8 @@ export async function addOperationOD(input: {
   revalidatePath('/tresorerie')
   revalidatePath('/bilans')
   revalidatePath('/bilans/releve-fournisseur')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/releve-membre')
   revalidatePath('/bilans/suivi-budgetaire')
 
   return { success: true, id: insertedId }
@@ -298,6 +300,8 @@ export async function deleteOperationOD(id: string) {
   revalidatePath('/tresorerie/journaux')
   revalidatePath('/tresorerie')
   revalidatePath('/bilans/releve-fournisseur')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/releve-membre')
 
   return { success: true }
 }
@@ -390,6 +394,8 @@ export async function updateOperationOD(
   revalidatePath('/tresorerie')
   revalidatePath('/bilans')
   revalidatePath('/bilans/releve-fournisseur')
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/bilans/releve-membre')
   revalidatePath('/bilans/suivi-budgetaire')
 
   return { success: true }

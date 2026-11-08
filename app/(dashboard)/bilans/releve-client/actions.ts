@@ -4,6 +4,17 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 
+function cleanClientNom(nom?: string | null): string {
+  if (!nom) return ''
+  return nom.replace(/\[SOLDE_INIT:.*?\]/g, '').trim()
+}
+
+function extractClientSoldeInitial(nom?: string | null): number {
+  if (!nom) return 0
+  const m = String(nom).match(/\[SOLDE_INIT:(\d+(?:\.\d+)?)\]/)
+  return m ? Number(m[1]) : 0
+}
+
 export async function getClients() {
   const supabase = await createClient()
 
@@ -14,23 +25,22 @@ export async function getClients() {
 
   let clientsRes: any = await supabase
     .from('clients_externes')
-    .select('id, nom, telephone, code_client, solde_initial')
+    .select('id, nom, telephone')
     .not('nom', 'ilike', '[FOURNISSEUR]%')
     .order('nom', { ascending: true })
-  if (clientsRes.error && (clientsRes.error.message?.includes('solde_initial') || clientsRes.error.message?.includes('code_client') || clientsRes.error.code === '42703')) {
-    clientsRes = await supabase
+
+  // Tenter de charger solde_initial et code_client si présents dans le schéma
+  try {
+    const extendedRes = await supabase
       .from('clients_externes')
-      .select('id, nom, telephone, code_client')
+      .select('id, nom, telephone, code_client, solde_initial')
       .not('nom', 'ilike', '[FOURNISSEUR]%')
       .order('nom', { ascending: true })
-  }
-  if (clientsRes.error && (clientsRes.error.message?.includes('code_client') || clientsRes.error.code === '42703')) {
-    clientsRes = await supabase
-      .from('clients_externes')
-      .select('id, nom, telephone')
-      .not('nom', 'ilike', '[FOURNISSEUR]%')
-      .order('nom', { ascending: true })
-  }
+
+    if (!extendedRes.error && extendedRes.data) {
+      clientsRes = extendedRes
+    }
+  } catch (_) {}
 
   const [membresRes, prestationsRes, sortiesRes] = await Promise.all([
     supabase.from('membres').select('id, prenom, nom'),
@@ -42,10 +52,19 @@ export async function getClients() {
 
   const clients = (clientsRes.data || [])
     .filter((c: any) => !c.nom?.startsWith('[FOURNISSEUR]'))
-    .map((c: any, idx: number) => ({
-      ...c,
-      code_client: c.code_client || `CLI-${c.id ? c.id.slice(0, 4).toUpperCase() : String(idx + 1).padStart(3, '0')}`,
-    }))
+    .map((c: any, idx: number) => {
+      const rawNom = c.nom || ''
+      const soldeInit = c.solde_initial != null && !isNaN(Number(c.solde_initial)) && Number(c.solde_initial) !== 0
+        ? Number(c.solde_initial)
+        : extractClientSoldeInitial(rawNom)
+
+      return {
+        ...c,
+        nom: cleanClientNom(rawNom),
+        solde_initial: soldeInit,
+        code_client: c.code_client || `CLI-${c.id ? c.id.slice(0, 4).toUpperCase() : String(idx + 1).padStart(3, '0')}`,
+      }
+    })
   const existingClientNames = new Set(clients.map((c: any) => c.nom.trim().toLowerCase()))
   const memberNames = new Set(
     (membresRes.data || []).flatMap((m) => [
@@ -131,39 +150,48 @@ export async function addClient(nom: string, telephone?: string, solde_initial?:
   const nextNum = (countData ? Number(countData) : 0) + 1
   const codeClient = `CLI-${String(nextNum).padStart(3, '0')}`
 
-  let insertRes = await supabase
-    .from('clients_externes')
-    .insert({
-      gie_id: userData.gie_id,
-      nom: nom.trim(),
-      telephone: telephone?.trim() || null,
-      code_client: codeClient,
-      solde_initial: sInitial,
-    })
-    .select('id, nom, telephone, code_client, solde_initial')
-    .single()
+  const cleanNom = cleanClientNom(nom)
+  let finalClientData: any = null
 
-  if (insertRes.error && (insertRes.error.message?.includes('solde_initial') || insertRes.error.code === '42703')) {
-    insertRes = await supabase
+  // 1. Tenter avec la colonne solde_initial
+  try {
+    const insertRes = await supabase
       .from('clients_externes')
-      .insert({ gie_id: userData.gie_id, nom: nom.trim(), telephone: telephone?.trim() || null, code_client: codeClient })
-      .select('id, nom, telephone, code_client')
-      .single()
-  }
-
-  if (insertRes.error && (insertRes.error.message?.includes('code_client') || insertRes.error.code === '42703')) {
-    insertRes = await supabase
-      .from('clients_externes')
-      .insert({ gie_id: userData.gie_id, nom: nom.trim(), telephone: telephone?.trim() || null })
+      .insert({
+        gie_id: userData.gie_id,
+        nom: cleanNom,
+        telephone: telephone?.trim() || null,
+        solde_initial: sInitial,
+      })
       .select('id, nom, telephone')
       .single()
+
+    if (!insertRes.error && insertRes.data) {
+      finalClientData = insertRes.data
+    }
+  } catch (_) {}
+
+  // 2. Fallback résilient si la colonne solde_initial n'existe pas
+  if (!finalClientData) {
+    const nomAvecTag = sInitial > 0 ? `${cleanNom} [SOLDE_INIT:${sInitial}]` : cleanNom
+    const insertFallback = await supabase
+      .from('clients_externes')
+      .insert({
+        gie_id: userData.gie_id,
+        nom: nomAvecTag,
+        telephone: telephone?.trim() || null,
+      })
+      .select('id, nom, telephone')
+      .single()
+
+    if (insertFallback.error) return { error: insertFallback.error.message }
+    finalClientData = insertFallback.data
   }
 
-  if (insertRes.error) return { error: insertRes.error.message }
-
   const client = {
-    ...insertRes.data,
-    code_client: (insertRes.data as any)?.code_client || codeClient,
+    ...finalClientData,
+    nom: cleanNom,
+    code_client: codeClient,
     solde_initial: sInitial,
   }
 
@@ -190,28 +218,32 @@ export async function getReleveClient(clientId: string) {
 
   let clientRes = await supabase
     .from('clients_externes')
-    .select('id, nom, telephone, code_client, solde_initial')
+    .select('id, nom, telephone')
     .eq('id', clientId)
     .single()
 
-  if (clientRes.error && (clientRes.error.message?.includes('solde_initial') || clientRes.error.code === '42703')) {
-    clientRes = await supabase
+  try {
+    const ext = await supabase
       .from('clients_externes')
-      .select('id, nom, telephone, code_client')
+      .select('id, nom, telephone, code_client, solde_initial')
       .eq('id', clientId)
       .single()
-  }
-
-  if (clientRes.error && (clientRes.error.message?.includes('code_client') || clientRes.error.code === '42703')) {
-    clientRes = await supabase
-      .from('clients_externes')
-      .select('id, nom, telephone')
-      .eq('id', clientId)
-      .single()
-  }
+    if (!ext.error && ext.data) {
+      clientRes = ext
+    }
+  } catch (_) {}
 
   const client = clientRes.data
   if (!client || client.nom?.startsWith('[FOURNISSEUR]')) return { error: "Client introuvable" }
+
+  const rawNomClient = client.nom || ''
+  const soldeInit = (client as any).solde_initial != null && !isNaN(Number((client as any).solde_initial)) && Number((client as any).solde_initial) !== 0
+    ? Number((client as any).solde_initial)
+    : extractClientSoldeInitial(rawNomClient)
+
+  client.nom = cleanClientNom(rawNomClient)
+  ;(client as any).solde_initial = soldeInit
+
   if (!(client as any).code_client) {
     (client as any).code_client = `CLI-${client.id ? client.id.slice(0, 4).toUpperCase() : '001'}`
   }
@@ -260,7 +292,6 @@ export async function getReleveClient(clientId: string) {
   const mouvements: Mouvement[] = []
 
   // Solde initial du client si renseigné
-  const soldeInit = Number((client as any).solde_initial || 0)
   if (soldeInit !== 0) {
     mouvements.push({
       id: `solde-init-${client.id}`,
@@ -696,17 +727,36 @@ export async function updateClientSoldeInitial(clientId: string, solde_initial: 
 
   const sInit = Number(solde_initial || 0)
 
-  let updateRes = await supabase
+  // 1. Tenter la mise à jour directe si la colonne solde_initial existe
+  try {
+    const updateRes = await supabase
+      .from('clients_externes')
+      .update({ solde_initial: sInit })
+      .eq('id', clientId)
+
+    if (!updateRes.error) {
+      revalidatePath('/bilans/releve-client')
+      return { success: true }
+    }
+  } catch (_) {}
+
+  // 2. Fallback résilient universel : encoder dans le champ nom [SOLDE_INIT:50000]
+  const { data: current } = await supabase
     .from('clients_externes')
-    .update({ solde_initial: sInit })
+    .select('nom')
     .eq('id', clientId)
+    .single()
 
-  if (updateRes.error && (updateRes.error.message?.includes('solde_initial') || updateRes.error.code === '42703')) {
-    // Si la colonne n'est pas encore créée dans Postgres, le stocker avec un tag dans le téléphone ou autre
-    console.warn("Colonne solde_initial manquante sur clients_externes, appliquer la migration 63.")
+  if (current) {
+    const cleanNom = cleanClientNom(current.nom)
+    const newNom = sInit > 0 ? `${cleanNom} [SOLDE_INIT:${sInit}]` : cleanNom
+    const { error: nomErr } = await supabase
+      .from('clients_externes')
+      .update({ nom: newNom })
+      .eq('id', clientId)
+
+    if (nomErr) return { error: nomErr.message }
   }
-
-  if (updateRes.error) return { error: updateRes.error.message }
 
   revalidatePath('/bilans/releve-client')
   return { success: true }
