@@ -38,6 +38,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'ristournes', label: 'Ristournes (surplus rendu aux membres)', group: 'Finance', paths: ['/remboursements/ristournes'], actions: ['read', 'create', 'delete'], hint: 'Création : sortie de trésorerie au profit du membre' },
   { key: 'stock_nature', label: 'Stock en nature', group: 'Finance', paths: ['/remboursements/stock-nature'], actions: ['read', 'create'] },
   { key: 'tresorerie', label: 'Trésorerie (comptes, journaux, rapprochement)', group: 'Finance', paths: ['/tresorerie'], actions: CRUD },
+  { key: 'journal_od', label: 'Journal OD (Frais généraux & Produits)', group: 'Finance', paths: ['/tresorerie/journal-od'], actions: CRUD },
   { key: 'imputations', label: 'Imputations', group: 'Finance', paths: ['/tresorerie/imputations'], actions: CRUD },
   { key: 'materiel', label: 'Matériel (inventaire)', group: 'Matériel', paths: ['/materiel'], actions: CRUD },
   { key: 'materiel_prestations', label: 'Prestations matériel', group: 'Matériel', paths: ['/materiel/prestations'], actions: CRUD },
@@ -117,8 +118,9 @@ export function defaultPermissionsForRole(role?: string | null): PermissionMap |
       remboursements: ['read', 'create'],
       ristournes: ['read', 'create'],
       stock_nature: ['read'],
-      tresorerie: ['read', 'create', 'update'],
-      imputations: ['read', 'create', 'update'],
+      tresorerie: ['read', 'create', 'update', 'delete'],
+      journal_od: ['read', 'create', 'update', 'delete'],
+      imputations: ['read', 'create', 'update', 'delete'],
       materiel: ['read'],
       materiel_prestations: ['read'],
       materiel_consommations: ['read'],
@@ -201,8 +203,24 @@ export function hasPermission(
   action: PermissionAction
 ): boolean {
   if (role === 'admin') return true
+  const rNorm = (role || '').trim().toLowerCase()
+
+  // Un trésorier ou comptable a toujours les droits complets sur les finances de trésorerie, le journal OD et les imputations
+  if (
+    (rNorm === 'tresorier' || rNorm === 'comptable') &&
+    (moduleKey === 'tresorerie' || moduleKey === 'journal_od' || moduleKey === 'imputations')
+  ) {
+    return true
+  }
+
   const effectivePermissions = permissions ?? defaultPermissionsForRole(role)
   if (!effectivePermissions) return true
+
+  // Héritage de journal_od depuis tresorerie si non défini explicitement dans les permissions du compte
+  if (moduleKey === 'journal_od' && !effectivePermissions['journal_od']) {
+    return effectivePermissions['tresorerie']?.includes(action) ?? false
+  }
+
   return effectivePermissions[moduleKey]?.includes(action) ?? false
 }
 

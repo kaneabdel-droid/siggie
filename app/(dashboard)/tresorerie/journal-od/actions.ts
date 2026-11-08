@@ -161,6 +161,14 @@ export async function getContexteOD() {
   }
 }
 
+async function requireODPermission(action: 'create' | 'update' | 'delete') {
+  const deniedOD = await requirePermission('journal_od', action)
+  if (!deniedOD) return null
+  const deniedTres = await requirePermission('tresorerie', action)
+  if (!deniedTres) return null
+  return deniedOD
+}
+
 export async function addOperationOD(input: {
   date_operation?: string
   tiers?: string | null
@@ -172,7 +180,7 @@ export async function addOperationOD(input: {
   imputation_libelle?: string | null
   compte_id?: string | null
 }) {
-  const denied = await requirePermission('tresorerie', 'create')
+  const denied = await requireODPermission('create')
   if (denied) return denied as never
   const supabase = await createClient()
 
@@ -283,7 +291,7 @@ export async function addOperationOD(input: {
 }
 
 export async function deleteOperationOD(id: string) {
-  const denied = await requirePermission('tresorerie', 'delete')
+  const denied = await requireODPermission('delete')
   if (denied) return denied as never
   const supabase = await createClient()
 
@@ -320,7 +328,7 @@ export async function updateOperationOD(
     compte_id?: string | null
   }
 ) {
-  const denied = await requirePermission('tresorerie', 'update')
+  const denied = await requireODPermission('update')
   if (denied) return denied as never
   const supabase = await createClient()
 

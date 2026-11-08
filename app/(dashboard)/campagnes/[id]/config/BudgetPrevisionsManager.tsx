@@ -227,7 +227,7 @@ function RubriqueList({
                     <span className="text-xs font-semibold text-foreground">
                       {subtotal.toLocaleString('fr-FR')}{unite}
                     </span>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20" title="% dans cette section">
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20" title={`Part de la rubrique dans le total (${title})`}>
                       {groupPct}%
                     </span>
 
@@ -271,7 +271,7 @@ function RubriqueList({
                     const isEditingPoste = editingPosteId === p.id
                     const isEditingPrevision = editingPrevisionId === p.id
                     const pMontant = previsions[p.id] || 0
-                    const pPct = totalBudgetNature > 0 ? ((pMontant / totalBudgetNature) * 100).toFixed(1) : '0'
+                    const pPct = subtotal > 0 ? ((pMontant / subtotal) * 100).toFixed(1) : '0'
 
                     return (
                       <li
@@ -332,7 +332,7 @@ function RubriqueList({
 
                         {/* Montant prévision, Pourcentage & Suppression du poste */}
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] font-mono text-foreground-muted bg-background px-1.5 py-0.5 rounded border border-surface-border shrink-0" title="Part dans cette section">
+                          <span className="text-[10px] font-mono text-foreground-muted bg-background px-1.5 py-0.5 rounded border border-surface-border shrink-0" title={`Part dans la rubrique "${group.libelle}"`}>
                             {pPct}%
                           </span>
 
