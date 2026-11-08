@@ -85,20 +85,12 @@ export async function getStockNature(campagneId: string) {
   const rembIdsIncluded = new Set(remboursements.map((r: any) => r.id))
 
   // Sorties : ventes et ristournes enregistrées
-  let sortiesRes: any = await supabase
+  const { data: sorties, error: sortiesError } = await supabase
     .from('sorties_stock_nature')
-    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, motif, date_sortie, unite, nb_contenance, quantite_vente, unite_vente, membres(id, prenom, nom, code_membre, telephone)')
+    .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, motif, date_sortie, membres(id, prenom, nom, code_membre, telephone)')
     .eq('campagne_id', campagneId)
 
-  if (sortiesRes.error && (sortiesRes.error.message?.includes('unite') || sortiesRes.error.code === '42703')) {
-    sortiesRes = await supabase
-      .from('sorties_stock_nature')
-      .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, motif, date_sortie, membres(id, prenom, nom, code_membre, telephone)')
-      .eq('campagne_id', campagneId)
-  }
-
-  if (sortiesRes.error) return { error: sortiesRes.error.message }
-  const sorties = sortiesRes.data || []
+  if (sortiesError) return { error: sortiesError.message }
 
   const mouvements: Mouvement[] = []
 
@@ -426,8 +418,7 @@ export async function addSortieStockNature(input: {
 
   const motifComplet = `${metaTags} ${input.motif?.trim() || ''}`.trim()
 
-  // 1. Tenter l'insertion avec les nouvelles colonnes
-  let insertRes = await supabase.from('sorties_stock_nature').insert({
+  const { error } = await supabase.from('sorties_stock_nature').insert({
     gie_id: userData.gie_id,
     campagne_id: input.campagne_id,
     type_sortie: input.type_sortie,
@@ -439,30 +430,9 @@ export async function addSortieStockNature(input: {
     prix_unitaire: input.prix_unitaire,
     motif: motifComplet,
     date_sortie: input.date_sortie || new Date().toISOString().slice(0, 10),
-    unite: stockUnite,
-    unite_vente: venteUnite,
-    quantite_vente: quantiteVente,
-    nb_contenance: nbContenance,
   })
 
-  // 2. Si colonnes pas encore créées dans Postgres, fallback safe
-  if (insertRes.error && (insertRes.error.message?.includes('unite') || insertRes.error.code === '42703')) {
-    insertRes = await supabase.from('sorties_stock_nature').insert({
-      gie_id: userData.gie_id,
-      campagne_id: input.campagne_id,
-      type_sortie: input.type_sortie,
-      tiers_type: input.tiers_type,
-      membre_id: input.tiers_type === 'membre' ? input.membre_id : null,
-      client_id: input.tiers_type === 'client' ? input.client_id : null,
-      tiers_nom: input.tiers_nom || null,
-      quantite: input.quantite,
-      prix_unitaire: input.prix_unitaire,
-      motif: motifComplet,
-      date_sortie: input.date_sortie || new Date().toISOString().slice(0, 10),
-    })
-  }
-
-  if (insertRes.error) return { error: insertRes.error.message }
+  if (error) return { error: error.message }
 
   revalidatePath('/remboursements/stock-nature')
   revalidatePath('/facturation')
@@ -522,25 +492,12 @@ export async function updateSortieStockNature(id: string, input: {
   if (input.client_id !== undefined) payload.client_id = input.client_id || null
   if (input.tiers_nom !== undefined) payload.tiers_nom = input.tiers_nom || null
 
-  let updateRes = await supabase
+  const { error } = await supabase
     .from('sorties_stock_nature')
-    .update({
-      ...payload,
-      unite: stockUnite,
-      unite_vente: venteUnite,
-      quantite_vente: quantiteVente,
-      nb_contenance: nbContenance,
-    })
+    .update(payload)
     .eq('id', id)
 
-  if (updateRes.error && (updateRes.error.message?.includes('unite') || updateRes.error.code === '42703')) {
-    updateRes = await supabase
-      .from('sorties_stock_nature')
-      .update(payload)
-      .eq('id', id)
-  }
-
-  if (updateRes.error) return { error: updateRes.error.message }
+  if (error) return { error: error.message }
 
   revalidatePath('/remboursements/stock-nature')
   revalidatePath('/facturation')

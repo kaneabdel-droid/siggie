@@ -218,7 +218,7 @@ export async function getReleveClient(clientId: string) {
 
   let ventesQuery = supabase
     .from('sorties_stock_nature')
-    .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, unite, nb_contenance, quantite_vente, unite_vente, campagnes(id, nom, produit_collecte)')
+    .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, campagnes(id, nom, produit_collecte)')
     .eq('type_sortie', 'vente')
     .eq('tiers_type', 'client')
 
@@ -240,14 +240,6 @@ export async function getReleveClient(clientId: string) {
       .select('id, montant, date_transaction, motif, type_piece, type_transaction')
       .eq('type_transaction', 'entree'),
   ])
-
-  if (ventesRes.error && (ventesRes.error.message?.includes('unite') || ventesRes.error.code === '42703')) {
-    ventesRes = await supabase
-      .from('sorties_stock_nature')
-      .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, campagnes(id, nom, produit_collecte)')
-      .eq('type_sortie', 'vente')
-      .eq('tiers_type', 'client')
-  }
 
   if (ventesRes.error) return { error: ventesRes.error.message }
   if (paiementsRes.error) return { error: paiementsRes.error.message }
@@ -763,25 +755,12 @@ export async function updateVenteClient(sortieId: string, input: {
     date_sortie: input.date_sortie || new Date().toISOString().slice(0, 10),
   }
 
-  let updateRes = await supabase
+  const { error } = await supabase
     .from('sorties_stock_nature')
-    .update({
-      ...payload,
-      unite: stockUnite,
-      unite_vente: venteUnite,
-      quantite_vente: quantiteVente,
-      nb_contenance: nbContenance,
-    })
+    .update(payload)
     .eq('id', sortieId)
 
-  if (updateRes.error && (updateRes.error.message?.includes('unite') || updateRes.error.code === '42703')) {
-    updateRes = await supabase
-      .from('sorties_stock_nature')
-      .update(payload)
-      .eq('id', sortieId)
-  }
-
-  if (updateRes.error) return { error: updateRes.error.message }
+  if (error) return { error: error.message }
 
   revalidatePath('/bilans/releve-client')
   revalidatePath('/remboursements/stock-nature')
