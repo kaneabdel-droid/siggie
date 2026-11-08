@@ -14,9 +14,16 @@ export async function getClients() {
 
   let clientsRes: any = await supabase
     .from('clients_externes')
-    .select('id, nom, telephone, code_client')
+    .select('id, nom, telephone, code_client, solde_initial')
     .not('nom', 'ilike', '[FOURNISSEUR]%')
     .order('nom', { ascending: true })
+  if (clientsRes.error && (clientsRes.error.message?.includes('solde_initial') || clientsRes.error.message?.includes('code_client') || clientsRes.error.code === '42703')) {
+    clientsRes = await supabase
+      .from('clients_externes')
+      .select('id, nom, telephone, code_client')
+      .not('nom', 'ilike', '[FOURNISSEUR]%')
+      .order('nom', { ascending: true })
+  }
   if (clientsRes.error && (clientsRes.error.message?.includes('code_client') || clientsRes.error.code === '42703')) {
     clientsRes = await supabase
       .from('clients_externes')
@@ -98,7 +105,7 @@ export async function getClients() {
   return { clients }
 }
 
-export async function addClient(nom: string, telephone?: string) {
+export async function addClient(nom: string, telephone?: string, solde_initial?: number) {
   const denied = await requirePermission('bilans_clients', 'create')
   if (denied) return denied as never
   const supabase = await createClient()
@@ -115,6 +122,8 @@ export async function addClient(nom: string, telephone?: string) {
   if (!userData) return { error: "Utilisateur introuvable" }
   if (!nom.trim()) return { error: "Le nom du client est requis" }
 
+  const sInitial = Number(solde_initial || 0)
+
   // Generate a code client
   const { data: countData } = await supabase
     .from('clients_externes')
@@ -124,9 +133,23 @@ export async function addClient(nom: string, telephone?: string) {
 
   let insertRes = await supabase
     .from('clients_externes')
-    .insert({ gie_id: userData.gie_id, nom: nom.trim(), telephone: telephone?.trim() || null, code_client: codeClient })
-    .select('id, nom, telephone, code_client')
+    .insert({
+      gie_id: userData.gie_id,
+      nom: nom.trim(),
+      telephone: telephone?.trim() || null,
+      code_client: codeClient,
+      solde_initial: sInitial,
+    })
+    .select('id, nom, telephone, code_client, solde_initial')
     .single()
+
+  if (insertRes.error && (insertRes.error.message?.includes('solde_initial') || insertRes.error.code === '42703')) {
+    insertRes = await supabase
+      .from('clients_externes')
+      .insert({ gie_id: userData.gie_id, nom: nom.trim(), telephone: telephone?.trim() || null, code_client: codeClient })
+      .select('id, nom, telephone, code_client')
+      .single()
+  }
 
   if (insertRes.error && (insertRes.error.message?.includes('code_client') || insertRes.error.code === '42703')) {
     insertRes = await supabase
@@ -140,7 +163,8 @@ export async function addClient(nom: string, telephone?: string) {
 
   const client = {
     ...insertRes.data,
-    code_client: (insertRes.data as any)?.code_client || codeClient
+    code_client: (insertRes.data as any)?.code_client || codeClient,
+    solde_initial: sInitial,
   }
 
   revalidatePath('/bilans/releve-client')
@@ -166,9 +190,17 @@ export async function getReleveClient(clientId: string) {
 
   let clientRes = await supabase
     .from('clients_externes')
-    .select('id, nom, telephone, code_client')
+    .select('id, nom, telephone, code_client, solde_initial')
     .eq('id', clientId)
     .single()
+
+  if (clientRes.error && (clientRes.error.message?.includes('solde_initial') || clientRes.error.code === '42703')) {
+    clientRes = await supabase
+      .from('clients_externes')
+      .select('id, nom, telephone, code_client')
+      .eq('id', clientId)
+      .single()
+  }
 
   if (clientRes.error && (clientRes.error.message?.includes('code_client') || clientRes.error.code === '42703')) {
     clientRes = await supabase
@@ -184,12 +216,14 @@ export async function getReleveClient(clientId: string) {
     (client as any).code_client = `CLI-${client.id ? client.id.slice(0, 4).toUpperCase() : '001'}`
   }
 
-  const [ventesRes, prestationsRes, paiementsRes, remboursementsRes, transactionsRes] = await Promise.all([
-    supabase
-      .from('sorties_stock_nature')
-      .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, campagnes(nom, produit_collecte)')
-      .eq('type_sortie', 'vente')
-      .eq('tiers_type', 'client'),
+  let ventesQuery = supabase
+    .from('sorties_stock_nature')
+    .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, unite, nb_contenance, quantite_vente, unite_vente, campagnes(id, nom, produit_collecte)')
+    .eq('type_sortie', 'vente')
+    .eq('tiers_type', 'client')
+
+  let [ventesRes, prestationsRes, paiementsRes, remboursementsRes, transactionsRes]: [any, any, any, any, any] = await Promise.all([
+    ventesQuery,
     supabase
       .from('materiel_prestations')
       .select('*, materiel:materiel_id(nom), produit:produit_id(nom), campagne:campagne_id(nom)'),
@@ -206,6 +240,14 @@ export async function getReleveClient(clientId: string) {
       .select('id, montant, date_transaction, motif, type_piece, type_transaction')
       .eq('type_transaction', 'entree'),
   ])
+
+  if (ventesRes.error && (ventesRes.error.message?.includes('unite') || ventesRes.error.code === '42703')) {
+    ventesRes = await supabase
+      .from('sorties_stock_nature')
+      .select('id, client_id, tiers_nom, tiers_type, quantite, prix_unitaire, date_sortie, motif, campagnes(id, nom, produit_collecte)')
+      .eq('type_sortie', 'vente')
+      .eq('tiers_type', 'client')
+  }
 
   if (ventesRes.error) return { error: ventesRes.error.message }
   if (paiementsRes.error) return { error: paiementsRes.error.message }
@@ -225,19 +267,70 @@ export async function getReleveClient(clientId: string) {
 
   const mouvements: Mouvement[] = []
 
+  // Solde initial du client si renseigné
+  const soldeInit = Number((client as any).solde_initial || 0)
+  if (soldeInit !== 0) {
+    mouvements.push({
+      id: `solde-init-${client.id}`,
+      date: '2025-01-01',
+      type: soldeInit > 0 ? 'vente' : 'paiement',
+      designation: soldeInit > 0 ? 'Solde initial (Créance antérieure reportée)' : 'Solde initial (Acompte reporté)',
+      quantite: null,
+      unite: null,
+      prix_unitaire: null,
+      montant: Math.abs(soldeInit),
+      raw: { isSoldeInitial: true, solde_initial: soldeInit },
+    })
+  }
+
   for (const v of ventesClient) {
     const camp = Array.isArray(v.campagnes) ? v.campagnes[0] : v.campagnes
     const prod = camp?.produit_collecte || 'Stock en nature'
+    const motifStr = String(v.motif || '')
+
+    const sUniteMatch = motifStr.match(/\[STOCK_UNITE:([^\]]+)\]/) || motifStr.match(/\[UNITE:([^\]]+)\]/)
+    const sUnite = (v as any).unite || (sUniteMatch ? sUniteMatch[1].trim() : 'kg')
+
+    const vUniteMatch = motifStr.match(/\[VENTE_UNITE:([^\]]+)\]/)
+    const uniteVente = (v as any).unite_vente || (vUniteMatch ? vUniteMatch[1].trim() : sUnite)
+
+    const vQteMatch = motifStr.match(/\[VENTE_QTE:([^\]]+)\]/)
+    const quantiteVente = (v as any).quantite_vente != null ? Number((v as any).quantite_vente) : (vQteMatch ? Number(vQteMatch[1]) : Number(v.quantite))
+
+    const nbContMatch = motifStr.match(/\[NB_CONTENANCE:([^\]]+)\]/)
+    const nbContenance = (v as any).nb_contenance != null ? Number((v as any).nb_contenance) : (nbContMatch ? Number(nbContMatch[1]) : null)
+
+    const cleanMotif = motifStr.replace(/\[[^\]]*\]/g, '').trim()
+
+    let designationSuffix = ''
+    if (uniteVente !== sUnite && nbContenance) {
+      designationSuffix = ` (${quantiteVente} ${uniteVente} - ${nbContenance} sacs)`
+    } else if (nbContenance) {
+      designationSuffix = ` (${nbContenance} sacs)`
+    }
+
+    const totalMontant = quantiteVente * Number(v.prix_unitaire || 0)
+
     mouvements.push({
       id: v.id,
       date: v.date_sortie,
       type: 'vente',
-      designation: `Facture Vente : ${prod}${camp?.nom ? ` (${camp.nom})` : ''}`,
-      quantite: Number(v.quantite),
-      unite: 'kg',
+      designation: `Facture Vente : ${prod}${camp?.nom ? ` (${camp.nom})` : ''}${designationSuffix}${cleanMotif ? ` - ${cleanMotif}` : ''}`,
+      quantite: quantiteVente,
+      unite: uniteVente,
       prix_unitaire: Number(v.prix_unitaire),
-      montant: Number(v.quantite) * Number(v.prix_unitaire),
-      raw: { ...v, client, campagne: camp },
+      montant: totalMontant,
+      raw: {
+        ...v,
+        client,
+        campagne: camp,
+        quantite_stock: Number(v.quantite),
+        unite_stock: sUnite,
+        quantite_vente: quantiteVente,
+        unite_vente: uniteVente,
+        nb_contenance: nbContenance,
+        cleanMotif,
+      },
     })
   }
 
@@ -316,6 +409,18 @@ export async function getReleveClient(clientId: string) {
       unite: mode === 'nature' && qteNature ? uniteNature : null,
       prix_unitaire: mode === 'nature' && puNature ? puNature : null,
       montant: Number(p.montant),
+      raw: {
+        ...p,
+        mode,
+        cleanMotif,
+        refPiece,
+        qteNature,
+        puNature,
+        prodNature,
+        varNature,
+        uniteNature,
+        isPaiementClient: true,
+      },
     })
   }
 
@@ -586,5 +691,276 @@ export async function addPaiementClient(input: {
   revalidatePath('/tresorerie')
   revalidatePath('/tresorerie/journaux')
   revalidatePath('/facturation')
+  return { success: true }
+}
+
+/**
+ * Modifier le solde initial (créance ou acompte reporté) d'un client externe
+ */
+export async function updateClientSoldeInitial(clientId: string, solde_initial: number) {
+  const denied = await requirePermission('bilans_clients', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const sInit = Number(solde_initial || 0)
+
+  let updateRes = await supabase
+    .from('clients_externes')
+    .update({ solde_initial: sInit })
+    .eq('id', clientId)
+
+  if (updateRes.error && (updateRes.error.message?.includes('solde_initial') || updateRes.error.code === '42703')) {
+    // Si la colonne n'est pas encore créée dans Postgres, le stocker avec un tag dans le téléphone ou autre
+    console.warn("Colonne solde_initial manquante sur clients_externes, appliquer la migration 63.")
+  }
+
+  if (updateRes.error) return { error: updateRes.error.message }
+
+  revalidatePath('/bilans/releve-client')
+  return { success: true }
+}
+
+/**
+ * Modifier une vente de stock depuis le relevé client
+ */
+export async function updateVenteClient(sortieId: string, input: {
+  quantite: number
+  prix_unitaire: number
+  date_sortie?: string
+  motif?: string
+  unite?: string
+  unite_vente?: string
+  quantite_vente?: number
+  nb_contenance?: number
+}) {
+  const denied = await requirePermission('bilans_clients', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const qte = Number(input.quantite || 0)
+  const pu = Number(input.prix_unitaire || 0)
+  if (!qte || qte <= 0) return { error: "Quantité invalide" }
+
+  const stockUnite = input.unite || 'kg'
+  const venteUnite = input.unite_vente || stockUnite
+  const quantiteVente = input.quantite_vente != null ? input.quantite_vente : qte
+  const nbContenance = input.nb_contenance != null ? input.nb_contenance : null
+
+  const metaTags = [
+    `[STOCK_UNITE:${stockUnite}]`,
+    `[VENTE_UNITE:${venteUnite}]`,
+    `[VENTE_QTE:${quantiteVente}]`,
+    nbContenance ? `[NB_CONTENANCE:${nbContenance}]` : '',
+  ].filter(Boolean).join(' ')
+
+  const cleanMotif = (input.motif || '').replace(/\[[^\]]*\]/g, '').trim()
+  const motifComplet = `${metaTags} ${cleanMotif}`.trim()
+
+  const payload: any = {
+    quantite: qte,
+    prix_unitaire: pu,
+    motif: motifComplet,
+    date_sortie: input.date_sortie || new Date().toISOString().slice(0, 10),
+  }
+
+  let updateRes = await supabase
+    .from('sorties_stock_nature')
+    .update({
+      ...payload,
+      unite: stockUnite,
+      unite_vente: venteUnite,
+      quantite_vente: quantiteVente,
+      nb_contenance: nbContenance,
+    })
+    .eq('id', sortieId)
+
+  if (updateRes.error && (updateRes.error.message?.includes('unite') || updateRes.error.code === '42703')) {
+    updateRes = await supabase
+      .from('sorties_stock_nature')
+      .update(payload)
+      .eq('id', sortieId)
+  }
+
+  if (updateRes.error) return { error: updateRes.error.message }
+
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/facturation')
+  revalidatePath('/bilans/bilan-annuel')
+  return { success: true }
+}
+
+/**
+ * Supprimer une écriture de vente client
+ */
+export async function deleteVenteClient(sortieId: string) {
+  const denied = await requirePermission('bilans_clients', 'delete')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('sorties_stock_nature')
+    .delete()
+    .eq('id', sortieId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/facturation')
+  revalidatePath('/bilans/bilan-annuel')
+  return { success: true }
+}
+
+/**
+ * Modifier un paiement reçu d'un client externe
+ */
+export async function updatePaiementClient(paiementId: string, input: {
+  montant: number
+  date_paiement?: string
+  motif?: string
+  reference_piece?: string | null
+}) {
+  const denied = await requirePermission('bilans_clients', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const montantEffectif = Number(input.montant || 0)
+  if (!montantEffectif || montantEffectif <= 0) return { error: "Montant invalide" }
+
+  // 1. Lire le paiement existant pour adapter les métas et écritures de contrepartie
+  const { data: p } = await supabase
+    .from('paiements_clients')
+    .select('*')
+    .eq('id', paiementId)
+    .single()
+
+  if (!p) return { error: "Paiement introuvable" }
+
+  const rawMotif = String(p.motif || '')
+  const datePaiement = input.date_paiement || p.date_paiement || new Date().toISOString().slice(0, 10)
+  const userNote = input.motif !== undefined ? input.motif.trim() : rawMotif.replace(/\[[^\]]*\]/g, '').trim()
+  const refPiece = input.reference_piece !== undefined ? input.reference_piece?.trim() : null
+
+  // Conserver les tags techniques existants en mettant à jour la référence si nécessaire
+  let newMotif = rawMotif
+  if (refPiece) {
+    if (newMotif.includes('[REF:')) {
+      newMotif = newMotif.replace(/\[REF:[^\]]+\]/, `[REF:${refPiece}]`)
+    } else {
+      newMotif = `[REF:${refPiece}] ${newMotif}`
+    }
+  }
+
+  // Remplacer la partie texte humaine
+  const existingTags = (newMotif.match(/\[[^\]]+\]/g) || []).join(' ')
+  const finalMotif = `${existingTags} ${userNote}`.trim()
+
+  const { error: updateErr } = await supabase
+    .from('paiements_clients')
+    .update({
+      montant: montantEffectif,
+      date_paiement: datePaiement,
+      motif: finalMotif,
+    })
+    .eq('id', paiementId)
+
+  if (updateErr) return { error: updateErr.message }
+
+  // 2. Mettre à jour dans remboursements si en nature
+  const rembMatch = rawMotif.match(/\[REMB_ID:([^\]]+)\]/)
+  if (rembMatch && rembMatch[1]) {
+    await supabase
+      .from('remboursements')
+      .update({
+        montant_fcfa: montantEffectif,
+        date_paiement: datePaiement,
+      })
+      .eq('id', rembMatch[1].trim())
+  }
+
+  // 3. Mettre à jour dans transactions de trésorerie si liée
+  const { data: clientRow } = await supabase.from('clients_externes').select('nom').eq('id', p.client_id).maybeSingle()
+  const clientNomLower = clientRow?.nom ? clientRow.nom.trim().toLowerCase() : ''
+
+  const { data: txs } = await supabase
+    .from('transactions')
+    .select('id, motif, montant')
+    .eq('date_transaction', p.date_paiement)
+    .eq('type_transaction', 'entree')
+
+  for (const tx of txs || []) {
+    const mLower = String(tx.motif || '').toLowerCase()
+    if (Number(tx.montant) === Number(p.montant) && (clientNomLower && mLower.includes(clientNomLower))) {
+      await supabase
+        .from('transactions')
+        .update({
+          montant: montantEffectif,
+          date_transaction: datePaiement,
+        })
+        .eq('id', tx.id)
+      break
+    }
+  }
+
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/remboursements')
+  revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
+  return { success: true }
+}
+
+/**
+ * Supprimer un paiement client externe (et ses écritures liées de trésorerie / stock nature)
+ */
+export async function deletePaiementClient(paiementId: string) {
+  const denied = await requirePermission('bilans_clients', 'delete')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  // 1. Lire le paiement pour nettoyer les écritures liées
+  const { data: p } = await supabase
+    .from('paiements_clients')
+    .select('*')
+    .eq('id', paiementId)
+    .single()
+
+  if (!p) return { error: "Paiement introuvable" }
+
+  const rawMotif = String(p.motif || '')
+
+  // Si c'est un remboursement en nature
+  const rembMatch = rawMotif.match(/\[REMB_ID:([^\]]+)\]/)
+  if (rembMatch && rembMatch[1]) {
+    await supabase.from('remboursements').delete().eq('id', rembMatch[1].trim())
+  }
+
+  // Nettoyer dans transactions si transaction de trésorerie liée
+  const { data: clientRow } = await supabase.from('clients_externes').select('nom').eq('id', p.client_id).maybeSingle()
+  const clientNomLower = clientRow?.nom ? clientRow.nom.trim().toLowerCase() : ''
+
+  const { data: txs } = await supabase
+    .from('transactions')
+    .select('id, motif, montant')
+    .eq('date_transaction', p.date_paiement)
+    .eq('type_transaction', 'entree')
+
+  for (const tx of txs || []) {
+    const mLower = String(tx.motif || '').toLowerCase()
+    if (Number(tx.montant) === Number(p.montant) && (clientNomLower && mLower.includes(clientNomLower))) {
+      await supabase.from('transactions').delete().eq('id', tx.id)
+      break
+    }
+  }
+
+  const { error } = await supabase.from('paiements_clients').delete().eq('id', paiementId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/bilans/releve-client')
+  revalidatePath('/remboursements')
+  revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/tresorerie')
+  revalidatePath('/tresorerie/journaux')
   return { success: true }
 }

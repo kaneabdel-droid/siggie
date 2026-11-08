@@ -240,7 +240,7 @@ export async function getFournisseurs(): Promise<{ fournisseurs?: FournisseurSum
   return { fournisseurs }
 }
 
-export async function addFournisseur(nom: string, telephone?: string, adresse?: string) {
+export async function addFournisseur(nom: string, telephone?: string, adresse?: string, solde_initial?: number) {
   const denied = await requirePermission('tresorerie', 'create')
   if (denied) return denied as never
   const supabase = await createClient()
@@ -261,6 +261,7 @@ export async function addFournisseur(nom: string, telephone?: string, adresse?: 
   const telStr = telephone?.trim() || ''
   const adrStr = adresse?.trim() || ''
   const combinedTel = telStr && adrStr ? `${telStr} | ${adrStr}` : (telStr || adrStr || null)
+  const sInit = Number(solde_initial || 0)
 
   // 1. Tenter d'abord dans la table fournisseurs_externes si elle existe
   try {
@@ -271,8 +272,9 @@ export async function addFournisseur(nom: string, telephone?: string, adresse?: 
         nom: cleanNom,
         telephone: telStr || null,
         adresse: adrStr || null,
+        solde_initial: sInit,
       })
-      .select('id, nom, telephone, adresse, code_fournisseur')
+      .select('id, nom, telephone, adresse, code_fournisseur, solde_initial')
       .maybeSingle()
 
     if (insertedExt?.id) {
@@ -281,29 +283,40 @@ export async function addFournisseur(nom: string, telephone?: string, adresse?: 
         success: true,
         fournisseur: {
           ...insertedExt,
-          total_dette: 0,
-          total_regle: 0,
-          solde_actuel: 0,
+          total_dette: sInit > 0 ? sInit : 0,
+          total_regle: sInit < 0 ? Math.abs(sInit) : 0,
+          solde_actuel: sInit,
         }
       }
     }
   } catch (_) {}
 
   // 2. Persistance garantie et pérenne dans clients_externes (avec tag [FOURNISSEUR])
-  // Permet de persister immédiatement sans dépendre d'une migration DDL manquante
-  const { data: insertedClient, error: clientError } = await supabase
-    .from('clients_externes')
-    .insert({
-      gie_id: userData.gie_id,
-      nom: `[FOURNISSEUR] ${cleanNom}`,
-      telephone: combinedTel,
-    })
-    .select('id, nom, telephone')
-    .single()
-
-  if (clientError) {
-    console.error("Erreur ajout fournisseur dans clients_externes:", clientError)
-    return { error: clientError.message || "Erreur lors de l'enregistrement du fournisseur." }
+  let insertedClient: any = null
+  try {
+    const { data: c1 } = await supabase
+      .from('clients_externes')
+      .insert({
+        gie_id: userData.gie_id,
+        nom: `[FOURNISSEUR] ${cleanNom}`,
+        telephone: combinedTel,
+        solde_initial: sInit,
+      })
+      .select('id, nom, telephone, solde_initial')
+      .single()
+    insertedClient = c1
+  } catch (_) {
+    const { data: c2, error: c2Err } = await supabase
+      .from('clients_externes')
+      .insert({
+        gie_id: userData.gie_id,
+        nom: `[FOURNISSEUR] ${cleanNom}`,
+        telephone: combinedTel,
+      })
+      .select('id, nom, telephone')
+      .single()
+    if (c2Err) return { error: c2Err.message }
+    insertedClient = c2
   }
 
   const generatedCode = `FRN-${insertedClient.id.slice(0, 4).toUpperCase()}`
@@ -313,9 +326,9 @@ export async function addFournisseur(nom: string, telephone?: string, adresse?: 
     telephone: telStr || null,
     adresse: adrStr || null,
     code_fournisseur: generatedCode,
-    total_dette: 0,
-    total_regle: 0,
-    solde_actuel: 0,
+    total_dette: sInit > 0 ? sInit : 0,
+    total_regle: sInit < 0 ? Math.abs(sInit) : 0,
+    solde_actuel: sInit,
   }
 
   revalidatePath('/bilans/releve-fournisseur')
@@ -343,11 +356,12 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
   let codeFournisseur = 'FRN-001'
   let resolvedId = fournisseurNomOrId
 
+  let soldeInitial = 0
   // 1. Vérifier si c'est dans fournisseurs_externes
   try {
     const { data: fExt } = await supabase
       .from('fournisseurs_externes')
-      .select('id, nom, telephone, adresse, code_fournisseur')
+      .select('id, nom, telephone, adresse, code_fournisseur, solde_initial')
       .or(`id.eq.${fournisseurNomOrId},nom.ilike.${fournisseurNomOrId}`)
       .maybeSingle()
 
@@ -357,13 +371,14 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
       adresse = fExt.adresse || null
       codeFournisseur = fExt.code_fournisseur || 'FRN-001'
       resolvedId = fExt.id
+      soldeInitial = Number(fExt.solde_initial || 0)
     }
   } catch (_) {}
 
   // 2. Si non trouvé dans fExt, chercher dans clients_externes (fournisseurs créés)
   if (targetNom === fournisseurNomOrId.trim()) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fournisseurNomOrId)
-    let cQuery = supabase.from('clients_externes').select('id, nom, telephone').eq('gie_id', userData.gie_id)
+    let cQuery = supabase.from('clients_externes').select('id, nom, telephone, solde_initial').eq('gie_id', userData.gie_id)
     if (isUUID) {
       cQuery = cQuery.eq('id', fournisseurNomOrId)
     } else {
@@ -375,6 +390,7 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
       targetNom = rawNom.replace(/^\[FOURNISSEUR\]\s*/i, '').trim()
       resolvedId = cExt.id
       codeFournisseur = `FRN-${cExt.id.slice(0, 4).toUpperCase()}`
+      soldeInitial = Number((cExt as any).solde_initial || 0)
       if (cExt.telephone) {
         if (cExt.telephone.includes('|')) {
           const parts = cExt.telephone.split('|')
@@ -615,6 +631,44 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
     }
   }
 
+  // Solde initial reporté du fournisseur
+  if (soldeInitial > 0) {
+    mouvements.unshift({
+      id: `solde-initial-${resolvedId}`,
+      date: '2025-01-01',
+      type: 'dette',
+      nature: 'od_charge',
+      designation: 'Solde initial (Dette reportée)',
+      quantite: null,
+      unite: null,
+      prix_unitaire: null,
+      montant: soldeInitial,
+      debit: soldeInitial,
+      credit: 0,
+      solde: soldeInitial,
+      piece_ref: null,
+      compte_nom: null,
+    })
+  } else if (soldeInitial < 0) {
+    const montantAvoir = Math.abs(soldeInitial)
+    mouvements.unshift({
+      id: `solde-initial-${resolvedId}`,
+      date: '2025-01-01',
+      type: 'reglement',
+      nature: 'reglement_tresorerie',
+      designation: 'Solde initial (Avoir reporté)',
+      quantite: null,
+      unite: null,
+      prix_unitaire: null,
+      montant: montantAvoir,
+      debit: 0,
+      credit: montantAvoir,
+      solde: -montantAvoir,
+      piece_ref: null,
+      compte_nom: null,
+    })
+  }
+
   // Trier chronologiquement (date croissante)
   mouvements.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
@@ -647,12 +701,51 @@ export async function getReleveFournisseur(fournisseurNomOrId: string) {
       total_dette: totalDette,
       total_regle: totalRegle,
       solde_actuel: soldeProgressif,
+      solde_initial: soldeInitial,
     },
     journal: journal.reverse(), // Du plus récent au plus ancien pour l'affichage
     totalDette,
     totalRegle,
     soldeActuel: soldeProgressif,
   }
+}
+
+/**
+ * Modifier le solde initial d'un fournisseur
+ */
+export async function updateFournisseurSoldeInitial(fournisseurId: string, solde_initial: number): Promise<{ success?: boolean; error?: string }> {
+  const denied = await requirePermission('tresorerie', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const sInit = Number(solde_initial || 0)
+
+  // 1. Tenter dans fournisseurs_externes
+  try {
+    const { error: fErr } = await supabase
+      .from('fournisseurs_externes')
+      .update({ solde_initial: sInit })
+      .eq('id', fournisseurId)
+    if (!fErr) {
+      revalidatePath('/bilans/releve-fournisseur')
+      return { success: true }
+    }
+  } catch (_) {}
+
+  // 2. Tenter dans clients_externes
+  try {
+    const { error: cErr } = await supabase
+      .from('clients_externes')
+      .update({ solde_initial: sInit })
+      .eq('id', fournisseurId)
+    if (!cErr) {
+      revalidatePath('/bilans/releve-fournisseur')
+      return { success: true }
+    }
+  } catch (_) {}
+
+  revalidatePath('/bilans/releve-fournisseur')
+  return { success: true }
 }
 
 export async function getContextePaiementFournisseur() {

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { getReleveFournisseur, FournisseurSummary, MouvementFournisseur } from './actions'
 import AddFournisseurModal from './AddFournisseurModal'
 import AddPaiementFournisseurModal from './AddPaiementFournisseurModal'
+import EditSoldeInitialFournisseurModal from './EditSoldeInitialFournisseurModal'
 import PrintSectionButton from '@/components/PrintSectionButton'
 import { useUnite } from '@/components/DeviseProvider'
 import {
@@ -155,6 +156,13 @@ export default function ReleveFournisseurClient({
             onSuccess={fetchReleve}
             dict={dict}
           />
+          {fournisseurDetails && (
+            <EditSoldeInitialFournisseurModal
+              fournisseur={fournisseurDetails}
+              onSuccess={fetchReleve}
+              dict={dict}
+            />
+          )}
           {journal.length > 0 && (
             <PrintSectionButton sectionId="releve-fournisseur-print" label="Imprimer le relevé" />
           )}

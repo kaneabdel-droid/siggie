@@ -21,8 +21,9 @@ export default function AddClientModal({
     const formData = new FormData(e.currentTarget)
     const nom = formData.get('nom') as string
     const telephone = formData.get('telephone') as string
+    const soldeInitial = Number(formData.get('solde_initial') || 0)
 
-    const res = await addClient(nom, telephone)
+    const res = await addClient(nom, telephone, soldeInitial)
     setLoading(false)
     if (res?.error) {
       alert(res.error)
@@ -69,8 +70,23 @@ export default function AddClientModal({
                     <input
                       type="text"
                       name="telephone"
+                      placeholder="Ex: 77 123 45 67"
                       className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Solde initial / Créance reportée (FCFA)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      name="solde_initial"
+                      defaultValue={0}
+                      placeholder="0 (si dette antérieure, saisir le montant)"
+                      className="mt-1 block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2"
+                    />
+                    <p className="mt-1 text-xs text-foreground-muted">
+                      Montant déjà dû par le client au démarrage sur SIGGIE (ou négatif si acompte).
+                    </p>
                   </div>
                 </form>
               </div>

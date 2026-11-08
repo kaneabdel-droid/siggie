@@ -15,6 +15,7 @@ export default function AddFournisseurModal({
   const [nom, setNom] = useState('')
   const [telephone, setTelephone] = useState('')
   const [adresse, setAdresse] = useState('')
+  const [soldeInitial, setSoldeInitial] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -30,7 +31,7 @@ export default function AddFournisseurModal({
     setLoading(true)
     setError('')
 
-    const res = await addFournisseur(nom, telephone, adresse)
+    const res = await addFournisseur(nom, telephone, adresse, Number(soldeInitial) || 0)
     setLoading(false)
 
     if (res?.error) {
@@ -41,6 +42,7 @@ export default function AddFournisseurModal({
       setNom('')
       setTelephone('')
       setAdresse('')
+      setSoldeInitial('')
     }
   }
 
@@ -110,6 +112,23 @@ export default function AddFournisseurModal({
                   placeholder="Ex: Dakar, Saint-Louis, Richard-Toll..."
                   className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-foreground-muted focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-xs"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Solde initial / Dette reportée (FCFA)
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={soldeInitial}
+                  onChange={(e) => setSoldeInitial(e.target.value)}
+                  placeholder="0 (si dette antérieure due, saisir le montant)"
+                  className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-foreground-muted focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-xs"
+                />
+                <p className="mt-1 text-[11px] text-foreground-muted">
+                  Montant dû à ce fournisseur avant le démarrage sur SIGGIE.
+                </p>
               </div>
 
               <div className="mt-6 flex justify-end gap-3 pt-3 border-t border-surface-border">

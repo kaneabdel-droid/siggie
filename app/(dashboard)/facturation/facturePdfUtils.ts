@@ -825,6 +825,8 @@ export function buildVenteStockWhatsAppText({
   const montantTotal = Number(vente.montant_total || quantite * prixUnitaire)
   const unitStr = unite ? ` ${unite.trim()}` : ' FCFA'
   const releveLabel = isMembre ? 'Relevé Membre' : 'Relevé Client'
+  const uVente = vente.unite_vente || vente.unite || 'kg'
+  const nbCont = vente.nb_contenance ? ` (${vente.nb_contenance} sacs)` : ''
 
   return (
 `*FACTURE VENTE DE STOCK N° ${idCourt}*
@@ -837,8 +839,8 @@ ${nomCampagne ? `🌱 *Campagne :* ${nomCampagne}\n` : ''}📅 *Date :* ${dateVe
 ━━━━━━━━━━━━━━━━━━━
 📊 *DÉTAIL DE LA VENTE*
 ━━━━━━━━━━━━━━━━━━━
-• Quantité : ${quantite} kg
-• Prix unitaire : ${formatFactureAmount(prixUnitaire)}${unitStr} / kg
+• Quantité : ${quantite} ${uVente}${nbCont}
+• Prix unitaire : ${formatFactureAmount(prixUnitaire)}${unitStr} / ${uVente}
 • *MONTANT TOTAL FACTURÉ :* ${formatFactureAmount(montantTotal)}${unitStr}
 ───────────────────
 📌 *Imputation comptable :* Intégré directement au *${releveLabel}*
@@ -888,6 +890,8 @@ export async function generateVenteStockPdf({
   const quantite = Number(vente.quantite || 0)
   const prixUnitaire = Number(vente.prix_unitaire || 0)
   const montantTotal = Number(vente.montant_total || quantite * prixUnitaire)
+  const uVente = vente.unite_vente || vente.unite || 'kg'
+  const nbCont = vente.nb_contenance ? ` (${vente.nb_contenance} sacs)` : ''
 
   // Header
   doc.setFont('helvetica', 'bold')
@@ -957,11 +961,11 @@ export async function generateVenteStockPdf({
 
   autoTable(doc, {
     startY: 73,
-    head: [['Désignation du produit vendu', 'Quantité (kg)', 'Prix Unitaire / kg', unite ? `Montant (${unite.trim()})` : 'Montant']],
+    head: [['Désignation du produit vendu', `Quantité (${uVente})`, `Prix Unitaire / ${uVente}`, unite ? `Montant (${unite.trim()})` : 'Montant']],
     body: [
       [
         designation,
-        `${quantite} kg`,
+        `${quantite} ${uVente}${nbCont}`,
         formatFactureAmount(prixUnitaire),
         formatFactureAmount(montantTotal),
       ],
