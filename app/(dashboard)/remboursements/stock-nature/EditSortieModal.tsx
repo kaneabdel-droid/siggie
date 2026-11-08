@@ -7,11 +7,15 @@ import { updateSortieStockNature } from './actions'
 export default function EditSortieModal({
   mouvement,
   campagneInfo,
+  produits = [],
+  stocksParProduit = {},
   onSuccess,
   dict,
 }: {
   mouvement: any
   campagneInfo?: any
+  produits?: string[]
+  stocksParProduit?: Record<string, any>
   onSuccess: () => void
   dict: any
 }) {
@@ -19,8 +23,8 @@ export default function EditSortieModal({
   const [loading, setLoading] = useState(false)
 
   const isVente = mouvement.type === 'vente'
-  const produitNom = campagneInfo?.produit_collecte || ''
-  const isPaddy = produitNom.toLowerCase().includes('paddy') || produitNom.toLowerCase().includes('riz')
+  const fallbackProduit = mouvement.produit || campagneInfo?.produit_collecte || 'Riz Paddy'
+  const [produitChoisi, setProduitChoisi] = useState(fallbackProduit)
 
   // Unité et valeurs existantes
   const [uniteVente, setUniteVente] = useState(mouvement.unite_vente || mouvement.unite || 'kg')
@@ -32,6 +36,8 @@ export default function EditSortieModal({
   const [dateSortie, setDateSortie] = useState(mouvement.date ? mouvement.date.slice(0, 10) : new Date().toISOString().slice(0, 10))
   const [motif, setMotif] = useState(mouvement.motif || '')
   const [error, setError] = useState('')
+
+  const isPaddy = produitChoisi.toLowerCase().includes('paddy') || produitChoisi.toLowerCase().includes('riz')
 
   const montantTotal = useMemo(() => {
     const q = Number(quantiteVente) || 0
@@ -99,6 +105,7 @@ export default function EditSortieModal({
     const res = await updateSortieStockNature(mouvement.id, {
       quantite: quantiteDeduitStock,
       prix_unitaire: pu,
+      produit: produitChoisi,
       unite: uniteStockCible,
       unite_vente: uniteVente,
       quantite_vente: qVente,
@@ -116,11 +123,16 @@ export default function EditSortieModal({
     }
   }
 
+  const listeOptionsProduits = produits.length > 0 ? produits : [mouvement.produit || 'Riz Paddy']
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setProduitChoisi(mouvement.produit || fallbackProduit)
+          setIsOpen(true)
+        }}
         className="p-1 rounded text-foreground-muted hover:text-primary hover:bg-background transition-colors"
         title="Modifier cette écriture"
       >
@@ -138,7 +150,7 @@ export default function EditSortieModal({
                   Modifier l&apos;écriture de {isVente ? "Vente" : "Sortie"}
                 </h3>
                 <p className="text-xs text-foreground-muted mb-4">
-                  Bénéficiaire : <span className="font-semibold text-foreground">{mouvement.tiers}</span>
+                  Tiers : <span className="font-semibold text-foreground">{mouvement.tiers}</span> • Produit : <span className="font-semibold text-primary">{produitChoisi}</span>
                 </p>
 
                 {error && (
@@ -148,46 +160,37 @@ export default function EditSortieModal({
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Unités & Tarification */}
-                  <div className="p-3.5 rounded-lg bg-background border border-surface-border space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-foreground mb-1">
-                          Unité de la vente *
-                        </label>
-                        <select
-                          value={uniteVente}
-                          onChange={(e) => setUniteVente(e.target.value)}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
-                        >
-                          <option value="kg">Poids : kg (Kilogrammes)</option>
-                          <option value="sacs">Contenance : sacs</option>
-                          <option value="cageots">Contenance : cageots</option>
-                          <option value="cartons">Contenance : cartons</option>
-                        </select>
-                      </div>
+                  {/* Produit concerné */}
+                  {listeOptionsProduits.length > 1 && (
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground mb-1">
+                        Produit concerné *
+                      </label>
+                      <select
+                        value={produitChoisi}
+                        onChange={(e) => setProduitChoisi(e.target.value)}
+                        className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                      >
+                        {listeOptionsProduits.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-                      <div>
-                        <label className="block text-xs font-semibold text-foreground mb-1">
-                          Unité du stock physique *
-                        </label>
-                        <select
-                          value={uniteStockCible}
-                          onChange={(e) => setUniteStockCible(e.target.value)}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
-                        >
-                          <option value="sacs">sacs (Stock compté en sacs)</option>
-                          <option value="kg">kg (Stock pesé en kg)</option>
-                          <option value="cageots">cageots</option>
-                          <option value="cartons">cartons</option>
-                        </select>
-                      </div>
+                  {/* Bloc Quantités & Unités */}
+                  <div className="p-3 bg-surface-hover/50 rounded-lg border border-surface-border space-y-3">
+                    <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                      <span>Quantité & Unités</span>
+                      <span className="text-[11px] text-foreground-muted font-normal">
+                        Unité stock : <span className="font-semibold text-primary">{uniteStockCible}</span>
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-foreground mb-1">
-                          Quantité vendue ({uniteVente}) *
+                          Quantité vendue *
                         </label>
                         <input
                           type="number"
@@ -196,10 +199,108 @@ export default function EditSortieModal({
                           min="0.01"
                           value={quantiteVente}
                           onChange={(e) => setQuantiteVente(e.target.value)}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                          placeholder="Ex: 5000"
+                          className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                         />
                       </div>
 
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground mb-1">
+                          Unité de vente *
+                        </label>
+                        <select
+                          value={uniteVente}
+                          onChange={(e) => setUniteVente(e.target.value)}
+                          className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                        >
+                          <option value="kg">kg (Poids)</option>
+                          <option value="sacs">sacs (Contenance)</option>
+                          <option value="cageots">cageots</option>
+                          <option value="cartons">cartons</option>
+                          <option value="tonnes">tonnes</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {isVenteEnKgEtStockEnSacs && (
+                      <div className="p-2.5 bg-primary/10 rounded-md border border-primary/20 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <div className="text-xs text-foreground">
+                            <span className="font-semibold">Conversion Stock :</span> La vente est en <span className="font-semibold">kg</span>. Précisez le nombre de sacs à déduire du stock physique :
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-primary mb-1">
+                            Nombre de sacs à déduire *
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            required
+                            min="1"
+                            value={nbContenance}
+                            onChange={(e) => setNbContenance(e.target.value)}
+                            placeholder="Ex: 62 sacs"
+                            className="w-full rounded-md border border-primary bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden font-mono shadow-2xs"
+                          />
+                        </div>
+
+                        {(suggestion80kg || suggestion50kg) && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-foreground-muted">
+                            <span>Suggestions rapides :</span>
+                            {suggestion80kg && (
+                              <button
+                                type="button"
+                                onClick={() => setNbContenance(String(suggestion80kg))}
+                                className="px-2 py-0.5 rounded bg-background border border-surface-border text-primary hover:border-primary font-mono transition-colors"
+                              >
+                                ~{suggestion80kg} sacs (base 80kg)
+                              </button>
+                            )}
+                            {suggestion50kg && (
+                              <button
+                                type="button"
+                                onClick={() => setNbContenance(String(suggestion50kg))}
+                                className="px-2 py-0.5 rounded bg-background border border-surface-border text-primary hover:border-primary font-mono transition-colors"
+                              >
+                                ~{suggestion50kg} sacs (base 50kg)
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {isVenteEnSacsEtStockEnKg && (
+                      <div className="p-2.5 bg-amber-500/10 rounded-md border border-amber-500/20 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="text-xs text-foreground">
+                            <span className="font-semibold">Conversion Stock :</span> La vente est en <span className="font-semibold">{uniteVente}</span> alors que le stock est suivi en <span className="font-semibold">kg</span>. Renseignez le poids total à déduire :
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">
+                            Poids total en kg à déduire du stock *
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            required
+                            min="1"
+                            value={poidsKgStock}
+                            onChange={(e) => setPoidsKgStock(e.target.value)}
+                            placeholder="Ex: 4000 kg"
+                            className="w-full rounded-md border border-amber-500 bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden font-mono shadow-2xs"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
                       <div>
                         <label className="block text-xs font-semibold text-foreground mb-1">
                           Prix unitaire (FCFA / {uniteVente}) *
@@ -211,114 +312,47 @@ export default function EditSortieModal({
                           min="0"
                           value={prixUnitaire}
                           onChange={(e) => setPrixUnitaire(e.target.value)}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                          placeholder="Ex: 300"
+                          className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                         />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground mb-1">
+                          Montant total
+                        </label>
+                        <div className="flex items-center h-[38px] px-3 rounded-md bg-background border border-surface-border font-mono font-bold text-foreground text-sm">
+                          {montantTotal.toLocaleString('fr-FR')} FCFA
+                        </div>
                       </div>
                     </div>
-
-                    {montantTotal > 0 && (
-                      <div className="flex items-center justify-between p-2 rounded-md bg-primary/10 border border-primary/20 text-xs">
-                        <span className="font-semibold text-foreground">Montant total :</span>
-                        <span className="font-bold text-primary text-sm">{montantTotal.toLocaleString('fr-FR')} FCFA</span>
-                      </div>
-                    )}
-
-                    {isVenteEnKgEtStockEnSacs && (
-                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
-                        <div className="flex items-start gap-2">
-                          <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                          <div className="text-xs text-amber-900 dark:text-amber-200">
-                            <span className="font-semibold">Déduction du stock en sacs :</span> Indiquez le nombre de contenances / sacs sortis.
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-foreground mb-1">
-                            Nombre de sacs à déduire du stock physique *
-                          </label>
-                          <input
-                            type="number"
-                            step="any"
-                            required
-                            min="0.1"
-                            value={nbContenance}
-                            onChange={(e) => setNbContenance(e.target.value)}
-                            placeholder="Nombre de sacs"
-                            className="w-full rounded-md border border-amber-500/30 bg-surface px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 shadow-2xs"
-                          />
-                        </div>
-
-                        {(suggestion80kg || suggestion50kg) && (
-                          <div className="flex items-center gap-2 pt-1 text-[11px] text-foreground-muted">
-                            <Calculator className="h-3.5 w-3.5 text-primary" />
-                            <span>Calcul rapide :</span>
-                            {suggestion80kg && (
-                              <button
-                                type="button"
-                                onClick={() => setNbContenance(String(suggestion80kg))}
-                                className="px-2 py-0.5 rounded bg-surface border border-surface-border text-primary font-medium"
-                              >
-                                ~80 kg/sac ({suggestion80kg})
-                              </button>
-                            )}
-                            {suggestion50kg && (
-                              <button
-                                type="button"
-                                onClick={() => setNbContenance(String(suggestion50kg))}
-                                className="px-2 py-0.5 rounded bg-surface border border-surface-border text-primary font-medium"
-                              >
-                                ~50 kg/sac ({suggestion50kg})
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {isVenteEnSacsEtStockEnKg && (
-                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
-                        <label className="block text-xs font-semibold text-foreground mb-1">
-                          Poids total en kg à déduire du stock physique *
-                        </label>
-                        <input
-                          type="number"
-                          step="any"
-                          required
-                          min="0.1"
-                          value={poidsKgStock}
-                          onChange={(e) => setPoidsKgStock(e.target.value)}
-                          placeholder="Poids total en kg"
-                          className="w-full rounded-md border border-amber-500/30 bg-surface px-3 py-2 text-sm text-foreground shadow-2xs"
-                        />
-                      </div>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label htmlFor="edit_date_sortie" className="block text-xs font-semibold text-foreground mb-1">
-                        Date de sortie *
+                        Date d&apos;opération *
                       </label>
                       <input
                         type="date"
                         id="edit_date_sortie"
+                        required
                         value={dateSortie}
                         onChange={(e) => setDateSortie(e.target.value)}
-                        required
                         className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                       />
                     </div>
 
                     <div>
                       <label htmlFor="edit_motif" className="block text-xs font-semibold text-foreground mb-1">
-                        Motif / Référence BL
+                        Motif / Référence
                       </label>
                       <input
                         type="text"
                         id="edit_motif"
                         value={motif}
                         onChange={(e) => setMotif(e.target.value)}
-                        placeholder="Ex: Facture Vente N° 042"
+                        placeholder="Ex: Facture Vente N° 045"
                         className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                       />
                     </div>
@@ -349,4 +383,3 @@ export default function EditSortieModal({
     </>
   )
 }
-

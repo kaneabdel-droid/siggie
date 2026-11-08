@@ -10,6 +10,9 @@ const NEW_CLIENT_VALUE = '__new__'
 export default function AddSortieModal({
   campagneId,
   campagneInfo,
+  produits = [],
+  stocksParProduit = {},
+  selectedProduitDefault,
   uniteStock = 'kg',
   membres,
   clients,
@@ -19,6 +22,9 @@ export default function AddSortieModal({
 }: {
   campagneId: string
   campagneInfo?: any
+  produits?: string[]
+  stocksParProduit?: Record<string, any>
+  selectedProduitDefault?: string
   uniteStock?: string
   membres: any[]
   clients: { id: string; nom: string }[]
@@ -32,6 +38,10 @@ export default function AddSortieModal({
   const [tiersType, setTiersType] = useState('membre')
   const [clientId, setClientId] = useState('')
   const [newClientNom, setNewClientNom] = useState('')
+
+  // Produit à déduire
+  const fallbackProduit = selectedProduitDefault || produits[0] || campagneInfo?.produit_collecte || 'Riz Paddy'
+  const [produitChoisi, setProduitChoisi] = useState(fallbackProduit)
 
   // Unité et quantités
   const [uniteVente, setUniteVente] = useState('kg')
@@ -47,8 +57,9 @@ export default function AddSortieModal({
 
   const t = dict?.remboursements_pages?.stock_nature?.form || {}
 
-  const produitNom = campagneInfo?.produit_collecte || ''
-  const isPaddy = produitNom.toLowerCase().includes('paddy') || produitNom.toLowerCase().includes('riz')
+  const currentProductStock = stocksParProduit[produitChoisi]
+  const stockDispo = currentProductStock ? currentProductStock.soldeActuel : 0
+  const isPaddy = produitChoisi.toLowerCase().includes('paddy') || produitChoisi.toLowerCase().includes('riz')
 
   // Calcul du montant total
   const montantTotal = useMemo(() => {
@@ -132,6 +143,7 @@ export default function AddSortieModal({
 
     const res = await addSortieStockNature({
       campagne_id: campagneId,
+      produit: produitChoisi,
       type_sortie: typeSortie,
       tiers_type: tiersType,
       membre_id: (formData.get('membre_id') as string) || undefined,
@@ -162,16 +174,20 @@ export default function AddSortieModal({
     }
   }
 
+  // Liste des produits disponibles dans la campagne
+  const listeOptionsProduits = produits.length > 0 ? produits : [campagneInfo?.produit_collecte || 'Riz Paddy']
+
   return (
     <>
       <button
         type="button"
         onClick={() => {
-          setUniteStockCible(uniteStock || 'kg')
+          setProduitChoisi(selectedProduitDefault || produits[0] || campagneInfo?.produit_collecte || 'Riz Paddy')
+          setUniteStockCible(currentProductStock?.uniteStock || uniteStock || 'kg')
           setIsOpen(true)
         }}
         disabled={!campagneId}
-        className="inline-flex items-center gap-x-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-secondary/90 disabled:opacity-50 transition-colors"
+        className="inline-flex items-center gap-x-2 rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-white shadow-2xs hover:bg-secondary/90 disabled:opacity-50 transition-colors"
       >
         <Plus className="-ml-0.5 h-5 w-5" aria-hidden="true" />
         <span>{dict?.remboursements_pages?.stock_nature?.add_sortie || "Enregistrer une sortie"}</span>
@@ -188,7 +204,10 @@ export default function AddSortieModal({
                   {typeSortie === 'vente' ? "Enregistrer une Vente de Stock" : "Enregistrer une Ristourne de Stock"}
                 </h3>
                 <p className="text-xs text-foreground-muted mb-4">
-                  Produit : <span className="font-semibold text-foreground">{produitNom || 'Stock nature'}</span> • Unité actuelle du stock : <span className="font-semibold text-primary">{uniteStockCible}</span>
+                  Produit : <span className="font-semibold text-foreground">{produitChoisi}</span> • Stock disponible : <span className="font-semibold text-primary">{Number(stockDispo).toLocaleString('fr-FR')} {currentProductStock?.uniteStock || uniteStockCible}</span>
+                  {isPaddy && currentProductStock?.uniteStock === 'kg' && stockDispo > 0 && (
+                    <span className="text-foreground-muted"> (~{Math.round(stockDispo / 80)} sacs de 80kg)</span>
+                  )}
                 </p>
 
                 {error && (
@@ -198,6 +217,37 @@ export default function AddSortieModal({
                 )}
 
                 <form id="add-sortie-form" onSubmit={handleSubmit} className="space-y-4">
+                  {/* Sélection du produit */}
+                  {listeOptionsProduits.length > 1 && (
+                    <div>
+                      <label htmlFor="produit" className="block text-xs font-semibold text-foreground mb-1">
+                        Produit à déduire *
+                      </label>
+                      <select
+                        id="produit"
+                        value={produitChoisi}
+                        onChange={(e) => {
+                          const p = e.target.value
+                          setProduitChoisi(p)
+                          const pSummary = stocksParProduit[p]
+                          if (pSummary?.uniteStock) {
+                            setUniteStockCible(pSummary.uniteStock)
+                          }
+                        }}
+                        className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                      >
+                        {listeOptionsProduits.map((p) => {
+                          const pSum = stocksParProduit[p]
+                          return (
+                            <option key={p} value={p}>
+                              {p} {pSum ? `(Dispo: ${Number(pSum.soldeActuel).toLocaleString('fr-FR')} ${pSum.uniteStock})` : ''}
+                            </option>
+                          )
+                        })}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label htmlFor="type_sortie" className="block text-xs font-semibold text-foreground mb-1">
@@ -227,7 +277,7 @@ export default function AddSortieModal({
                         className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                       >
                         <option value="membre">Membre du GIE</option>
-                        <option value="client">Client externe (Acheteur)</option>
+                        <option value="client">Client externe</option>
                       </select>
                     </div>
                   </div>
@@ -235,7 +285,7 @@ export default function AddSortieModal({
                   {tiersType === 'membre' ? (
                     <div>
                       <label htmlFor="membre_id" className="block text-xs font-semibold text-foreground mb-1">
-                        Membre acheteur *
+                        Membre *
                       </label>
                       <select
                         name="membre_id"
@@ -245,14 +295,14 @@ export default function AddSortieModal({
                       >
                         <option value="">Sélectionner un membre</option>
                         {membres.map((m) => (
-                          <option key={m.id} value={m.id}>{m.prenom} {m.nom} {m.code_membre ? `(${m.code_membre})` : ''}</option>
+                          <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>
                         ))}
                       </select>
                     </div>
                   ) : (
                     <div>
                       <label htmlFor="client_id" className="block text-xs font-semibold text-foreground mb-1">
-                        Client externe acheteur *
+                        Client externe *
                       </label>
                       <select
                         id="client_id"
@@ -261,71 +311,41 @@ export default function AddSortieModal({
                         required
                         className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                       >
-                        <option value="">Sélectionner un client acheteur</option>
+                        <option value="">Sélectionner un client</option>
                         {clients.map((c) => (
                           <option key={c.id} value={c.id}>{c.nom}</option>
                         ))}
                         <option value={NEW_CLIENT_VALUE}>+ Nouveau client externe...</option>
                       </select>
+
                       {clientId === NEW_CLIENT_VALUE && (
-                        <input
-                          type="text"
-                          value={newClientNom}
-                          onChange={(e) => setNewClientNom(e.target.value)}
-                          required
-                          placeholder="Nom de l'acheteur / commerçant / rizerie..."
-                          className="mt-2 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
-                        />
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            required
+                            value={newClientNom}
+                            onChange={(e) => setNewClientNom(e.target.value)}
+                            placeholder="Nom du nouveau client"
+                            className="block w-full rounded-md border border-primary bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden shadow-2xs"
+                          />
+                        </div>
                       )}
                     </div>
                   )}
 
-                  {/* Section Vente : Poids vs Contenance */}
-                  <div className="p-3.5 rounded-lg bg-background border border-surface-border space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-foreground">Unités & Tarification de la Vente</span>
-                      <span className="text-[11px] text-foreground-muted">Poids (kg) ou Contenance (sacs, cageots)</span>
+                  {/* Unités de vente et de stock */}
+                  <div className="p-3 bg-surface-hover/50 rounded-lg border border-surface-border space-y-3">
+                    <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+                      <span>Quantité vendue & Unités</span>
+                      <span className="text-[11px] text-foreground-muted font-normal">
+                        Unité stock : <span className="font-semibold text-primary">{uniteStockCible}</span>
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-foreground mb-1">
-                          Unité de la vente *
-                        </label>
-                        <select
-                          value={uniteVente}
-                          onChange={(e) => setUniteVente(e.target.value)}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
-                        >
-                          <option value="kg">Poids : kg (Kilogrammes)</option>
-                          <option value="sacs">Contenance : sacs (Paddy / Oignon)</option>
-                          <option value="cageots">Contenance : cageots</option>
-                          <option value="cartons">Contenance : cartons</option>
-                          <option value="tonnes">Poids : tonnes</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-foreground mb-1">
-                          Unité du stock physique *
-                        </label>
-                        <select
-                          value={uniteStockCible}
-                          onChange={(e) => setUniteStockCible(e.target.value)}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
-                        >
-                          <option value="sacs">sacs (Stock compté en sacs)</option>
-                          <option value="kg">kg (Stock pesé en kg)</option>
-                          <option value="cageots">cageots</option>
-                          <option value="cartons">cartons</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-foreground mb-1">
-                          Quantité vendue ({uniteVente}) *
+                          Quantité vendue *
                         </label>
                         <input
                           type="number"
@@ -334,11 +354,110 @@ export default function AddSortieModal({
                           min="0.01"
                           value={quantiteVente}
                           onChange={(e) => setQuantiteVente(e.target.value)}
-                          placeholder={uniteVente === 'kg' ? "Ex: 5000" : "Ex: 60"}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                          placeholder="Ex: 5000"
+                          className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                         />
                       </div>
 
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground mb-1">
+                          Unité de vente *
+                        </label>
+                        <select
+                          value={uniteVente}
+                          onChange={(e) => setUniteVente(e.target.value)}
+                          className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                        >
+                          <option value="kg">kg (Poids)</option>
+                          <option value="sacs">sacs (Contenance)</option>
+                          <option value="cageots">cageots</option>
+                          <option value="cartons">cartons</option>
+                          <option value="tonnes">tonnes</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Vente en kg et stock en sacs (ou paddy) : demander la contenance en sacs */}
+                    {isVenteEnKgEtStockEnSacs && (
+                      <div className="p-2.5 bg-primary/10 rounded-md border border-primary/20 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <div className="text-xs text-foreground">
+                            <span className="font-semibold">Conversion Stock :</span> La vente est exprimée en <span className="font-semibold">kg</span>. Précisez le nombre de sacs à déduire du stock physique :
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-primary mb-1">
+                            Nombre de sacs à déduire *
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            required
+                            min="1"
+                            value={nbContenance}
+                            onChange={(e) => setNbContenance(e.target.value)}
+                            placeholder="Ex: 62 sacs"
+                            className="w-full rounded-md border border-primary bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden font-mono shadow-2xs"
+                          />
+                        </div>
+
+                        {(suggestion80kg || suggestion50kg) && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-foreground-muted">
+                            <span>Suggestions rapides :</span>
+                            {suggestion80kg && (
+                              <button
+                                type="button"
+                                onClick={() => setNbContenance(String(suggestion80kg))}
+                                className="px-2 py-0.5 rounded bg-background border border-surface-border text-primary hover:border-primary font-mono transition-colors"
+                              >
+                                ~{suggestion80kg} sacs (base 80kg)
+                              </button>
+                            )}
+                            {suggestion50kg && (
+                              <button
+                                type="button"
+                                onClick={() => setNbContenance(String(suggestion50kg))}
+                                className="px-2 py-0.5 rounded bg-background border border-surface-border text-primary hover:border-primary font-mono transition-colors"
+                              >
+                                ~{suggestion50kg} sacs (base 50kg)
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Vente en contenance (sacs) et stock en kg : demander le poids total en kg */}
+                    {isVenteEnSacsEtStockEnKg && (
+                      <div className="p-2.5 bg-amber-500/10 rounded-md border border-amber-500/20 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="text-xs text-foreground">
+                            <span className="font-semibold">Conversion Stock :</span> La vente est en <span className="font-semibold">{uniteVente}</span> alors que le stock est suivi en <span className="font-semibold">kg</span>. Renseignez le poids total à déduire :
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">
+                            Poids total en kg à déduire du stock *
+                          </label>
+                          <input
+                            type="number"
+                            step="any"
+                            required
+                            min="1"
+                            value={poidsKgStock}
+                            onChange={(e) => setPoidsKgStock(e.target.value)}
+                            placeholder="Ex: 4000 kg"
+                            className="w-full rounded-md border border-amber-500 bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden font-mono shadow-2xs"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
                       <div>
                         <label className="block text-xs font-semibold text-foreground mb-1">
                           Prix unitaire (FCFA / {uniteVente}) *
@@ -350,138 +469,41 @@ export default function AddSortieModal({
                           min="0"
                           value={prixUnitaire}
                           onChange={(e) => setPrixUnitaire(e.target.value)}
-                          placeholder={uniteVente === 'kg' ? "Ex: 300" : "Ex: 25000"}
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+                          placeholder="Ex: 300"
+                          className="w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                         />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground mb-1">
+                          Montant total
+                        </label>
+                        <div className="flex items-center h-[38px] px-3 rounded-md bg-background border border-surface-border font-mono font-bold text-foreground text-sm">
+                          {montantTotal.toLocaleString('fr-FR')} FCFA
+                        </div>
                       </div>
                     </div>
-
-                    {/* Total calculé */}
-                    {montantTotal > 0 && (
-                      <div className="flex items-center justify-between p-2 rounded-md bg-primary/10 border border-primary/20 text-xs">
-                        <span className="font-semibold text-foreground">Montant total à facturer :</span>
-                        <span className="font-bold text-primary text-sm">{montantTotal.toLocaleString('fr-FR')} FCFA</span>
-                      </div>
-                    )}
-
-                    {/* RÈGLE SPÉCIFIQUE : Vente en kg et Stock en sacs / Paddy */}
-                    {isVenteEnKgEtStockEnSacs && (
-                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
-                        <div className="flex items-start gap-2">
-                          <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                          <div className="text-xs text-amber-900 dark:text-amber-200">
-                            <span className="font-semibold">Déduction du stock en sacs :</span> La vente est en kg mais le stock est géré en contenance. Indiquez le nombre exact de sacs sortis de l&apos;entrepôt.
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-foreground mb-1">
-                            Nombre de sacs à déduire du stock physique *
-                          </label>
-                          <input
-                            type="number"
-                            step="any"
-                            required
-                            min="0.1"
-                            value={nbContenance}
-                            onChange={(e) => setNbContenance(e.target.value)}
-                            placeholder="Nombre de sacs sortis"
-                            className="w-full rounded-md border border-amber-500/30 bg-surface px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 shadow-2xs"
-                          />
-                        </div>
-
-                        {(suggestion80kg || suggestion50kg) && (
-                          <div className="flex items-center gap-2 pt-1 text-[11px] text-foreground-muted">
-                            <Calculator className="h-3.5 w-3.5 text-primary" />
-                            <span>Calcul rapide :</span>
-                            {suggestion80kg && (
-                              <button
-                                type="button"
-                                onClick={() => setNbContenance(String(suggestion80kg))}
-                                className="px-2 py-0.5 rounded bg-surface border border-surface-border hover:bg-background text-primary font-medium"
-                              >
-                                ~80 kg/sac ({suggestion80kg} sacs)
-                              </button>
-                            )}
-                            {suggestion50kg && (
-                              <button
-                                type="button"
-                                onClick={() => setNbContenance(String(suggestion50kg))}
-                                className="px-2 py-0.5 rounded bg-surface border border-surface-border hover:bg-background text-primary font-medium"
-                              >
-                                ~50 kg/sac ({suggestion50kg} sacs)
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Cas inverse : Vente en sacs et Stock en kg */}
-                    {isVenteEnSacsEtStockEnKg && (
-                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
-                        <div className="flex items-start gap-2">
-                          <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                          <div className="text-xs text-amber-900 dark:text-amber-200">
-                            <span className="font-semibold">Déduction du stock en kg :</span> La vente est en {uniteVente} mais le stock est pesé en kg. Indiquez le poids total en kg à déduire.
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-foreground mb-1">
-                            Poids total en kg à déduire du stock physique *
-                          </label>
-                          <input
-                            type="number"
-                            step="any"
-                            required
-                            min="0.1"
-                            value={poidsKgStock}
-                            onChange={(e) => setPoidsKgStock(e.target.value)}
-                            placeholder="Poids total en kg"
-                            className="w-full rounded-md border border-amber-500/30 bg-surface px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 shadow-2xs"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Même unité : champ indicatif nombre de contenance pour paddy si vente en kg */}
-                    {!isVenteEnKgEtStockEnSacs && !isVenteEnSacsEtStockEnKg && isPaddy && (
-                      <div>
-                        <label className="block text-xs font-medium text-foreground-muted mb-1">
-                          Nombre de sacs correspondant (mention sur facture/bon)
-                        </label>
-                        <input
-                          type="number"
-                          step="any"
-                          value={nbContenance}
-                          onChange={(e) => setNbContenance(e.target.value)}
-                          placeholder="Ex: 62 sacs"
-                          className="w-full rounded-md border border-surface-border bg-surface px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
-                        />
-                      </div>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label htmlFor="date_sortie" className="block text-xs font-semibold text-foreground mb-1">
-                        Date de sortie *
+                        Date d&apos;opération *
                       </label>
                       <input
                         type="date"
                         name="date_sortie"
                         id="date_sortie"
+                        required
                         value={dateSortie}
                         onChange={(e) => setDateSortie(e.target.value)}
-                        required
                         className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                       />
                     </div>
 
                     <div>
                       <label htmlFor="motif" className="block text-xs font-semibold text-foreground mb-1">
-                        Motif / Référence BL
+                        Motif / Référence
                       </label>
                       <input
                         type="text"
@@ -489,30 +511,29 @@ export default function AddSortieModal({
                         id="motif"
                         value={motif}
                         onChange={(e) => setMotif(e.target.value)}
-                        placeholder="Ex: Facture Vente N° 042"
+                        placeholder="Ex: Facture Vente N° 045"
                         className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
                       />
                     </div>
                   </div>
-                </form>
-              </div>
 
-              <div className="bg-background/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-                <button
-                  type="submit"
-                  form="add-sortie-form"
-                  disabled={loading}
-                  className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-2xs hover:bg-primary/90 sm:w-auto disabled:opacity-50 transition-colors"
-                >
-                  {loading ? (dict?.common?.saving || "Enregistrement...") : (dict?.common?.save || "Valider la Sortie")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="mt-2 sm:mt-0 inline-flex w-full justify-center rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-2xs ring-1 ring-inset ring-surface-border hover:bg-background sm:w-auto transition-colors"
-                >
-                  {dict?.common?.cancel || "Annuler"}
-                </button>
+                  <div className="pt-2 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsOpen(false)}
+                      className="rounded-md border border-surface-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background transition-colors"
+                    >
+                      {dict?.common?.cancel || "Annuler"}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-white shadow-2xs hover:bg-secondary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {loading ? (dict?.common?.saving || "Enregistrement...") : (dict?.common?.save || "Valider l'opération")}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
