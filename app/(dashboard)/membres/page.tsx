@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { Search, Users, UserCheck, Eye } from 'lucide-react'
+import { Search, Users, UserCheck, Eye, Leaf, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import SearchMembres from './SearchMembres'
 import CreateMembreButton from './CreateMembreButton'
@@ -40,6 +40,8 @@ export default async function MembresPage({
   ])
 
   const totalClients = clients?.length || 0
+  const totalSurface = (membres || []).reduce((sum, m) => sum + (Number(m.superficie) || 0), 0)
+  const totalSoldeInitial = (membres || []).reduce((sum, m) => sum + (Number(m.solde_initial) || 0), 0)
 
   return (
     <div>
@@ -115,6 +117,56 @@ export default async function MembresPage({
         </div>
       ) : (
         <>
+          {/* KPI Cards Membres */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-surface-border bg-surface p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+                  Total Membres
+                </span>
+                <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <Users className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="mt-2 text-2xl font-bold text-foreground">
+                {(membres || []).length}
+              </p>
+              <p className="text-xs text-foreground-muted mt-0.5">Membres enregistrés</p>
+            </div>
+
+            <div className="rounded-xl border border-surface-border bg-surface p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+                  Total Surface
+                </span>
+                <span className="p-2 rounded-lg bg-success/10 text-success">
+                  <Leaf className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="mt-2 text-2xl font-bold text-foreground">
+                {totalSurface.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ha
+              </p>
+              <p className="text-xs text-foreground-muted mt-0.5">Superficie totale déclarée</p>
+            </div>
+
+            <div className="rounded-xl border border-surface-border bg-surface p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground-muted">
+                  Total Solde Initial
+                </span>
+                <span className={`p-2 rounded-lg ${totalSoldeInitial > 0 ? 'bg-danger/10 text-danger' : totalSoldeInitial < 0 ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'}`}>
+                  <Wallet className="w-4 h-4" />
+                </span>
+              </div>
+              <p className={`mt-2 text-2xl font-bold ${totalSoldeInitial > 0 ? 'text-danger' : totalSoldeInitial < 0 ? 'text-success' : 'text-foreground'}`}>
+                {totalSoldeInitial.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} F
+              </p>
+              <p className="text-xs text-foreground-muted mt-0.5">
+                {totalSoldeInitial > 0 ? 'Créance globale due au GIE' : totalSoldeInitial < 0 ? 'Avoir global en faveur des membres' : 'Soldes équilibrés'}
+              </p>
+            </div>
+          </div>
+
           {/* Barre de recherche Membres */}
           <div className="mt-6 flex items-center space-x-4">
             <SearchMembres dict={dict} />
@@ -242,6 +294,24 @@ export default async function MembresPage({
                     </tr>
                   )}
                 </tbody>
+                {membres && membres.length > 0 && (
+                  <tfoot className="bg-background/90 font-semibold border-t-2 border-surface-border">
+                    <tr>
+                      <td colSpan={4} className="py-3.5 pl-4 pr-3 text-right text-xs font-bold uppercase tracking-wider text-foreground">
+                        Total général :
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3.5 text-sm font-bold text-right text-foreground">
+                        {totalSurface.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ha
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3.5 text-sm font-bold text-right">
+                        <span className={totalSoldeInitial > 0 ? 'text-danger' : totalSoldeInitial < 0 ? 'text-success' : 'text-foreground'}>
+                          {totalSoldeInitial.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} F
+                        </span>
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </div>
