@@ -29,22 +29,25 @@ export async function getBilanAnnuel(annee: number): Promise<BilanAnnuelData | {
 
   try {
     const [
+      membres, clients,
       intrants, achats, distributions, factures, remboursements, sorties, campagnes,
       paiementsClients, materiels, prestations, consommations, comptes, transactions, credits, ristournes, saisiesRows,
     ] = await Promise.all([
+      fetchAll<NonNullable<BilanRaw['membres']>[number]>(supabase, 'membres', 'id, solde_initial'),
+      fetchAll<NonNullable<BilanRaw['clients']>[number]>(supabase, 'clients_externes', 'id, nom, solde_initial'),
       fetchAll<BilanRaw['intrants'][number]>(supabase, 'intrants', 'id, quantite_stock, prix_unitaire'),
       fetchAll<BilanRaw['achats'][number]>(supabase, 'achats_intrants', 'id, intrant_id, quantite, prix_unitaire, date_achat'),
       fetchAll<BilanRaw['distributions'][number]>(supabase, 'distribution_intrants', 'id, intrant_id, quantite, date_distribution'),
       fetchAll<BilanRaw['factures'][number]>(supabase, 'factures', 'id, membre_id, campagne_id, montant_total, montant_interet, date_emission'),
-      fetchAll<BilanRaw['remboursements'][number]>(supabase, 'remboursements', 'id, facture_id, membre_id, type_remboursement, montant_fcfa, quantite_nature, date_paiement, produit_nature'),
-      fetchAll<BilanRaw['sorties'][number]>(supabase, 'sorties_stock_nature', 'id, campagne_id, membre_id, type_sortie, tiers_type, quantite, prix_unitaire, date_sortie'),
+      fetchAll<BilanRaw['remboursements'][number]>(supabase, 'remboursements', 'id, facture_id, membre_id, client_id, type_remboursement, montant_fcfa, quantite_nature, date_paiement, produit_nature'),
+      fetchAll<BilanRaw['sorties'][number]>(supabase, 'sorties_stock_nature', 'id, campagne_id, membre_id, client_id, type_sortie, tiers_type, tiers_nom, quantite, prix_unitaire, date_sortie, motif'),
       fetchAll<BilanRaw['campagnes'][number]>(supabase, 'campagnes', 'id, prix_collecte'),
-      fetchAll<BilanRaw['paiementsClients'][number]>(supabase, 'paiements_clients', 'id, montant, date_paiement, motif'),
+      fetchAll<BilanRaw['paiementsClients'][number]>(supabase, 'paiements_clients', 'id, client_id, montant, date_paiement, motif'),
       fetchAll<BilanRaw['materiels'][number]>(supabase, 'materiels', 'id, valeur_acquisition, duree_vie_economique, date_acquisition'),
-      fetchAll<BilanRaw['prestations'][number]>(supabase, 'materiel_prestations', '*'),
+      fetchAll<BilanRaw['prestations'][number]>(supabase, 'materiel_prestations', 'id, montant_facture, date_prestation, tiers_type, membre_id, client_id, client_nom'),
       fetchAll<BilanRaw['consommations'][number]>(supabase, 'materiel_consommations', 'id, montant_total, date_consommation'),
       fetchAll<BilanRaw['comptes'][number]>(supabase, 'comptes', 'id, solde_initial'),
-      fetchAll<BilanRaw['transactions'][number]>(supabase, 'transactions', 'id, type_transaction, montant, date_transaction, type_piece, credit_id'),
+      fetchAll<BilanRaw['transactions'][number]>(supabase, 'transactions', 'id, compte_id, type_transaction, montant, date_transaction, type_piece, credit_id'),
       fetchAll<BilanRaw['credits'][number]>(supabase, 'credits', 'id, statut, montant_accorde, taux_interet, duree_credit, date_demande, but_credit'),
       fetchAll<BilanRaw['ristournes'][number]>(supabase, 'ristournes', 'id, membre_id, montant, date_ristourne'),
       supabase.from('bilan_saisies').select('annee, rubrique, montant').in('annee', [annee, annee - 1]),
@@ -61,8 +64,23 @@ export async function getBilanAnnuel(annee: number): Promise<BilanAnnuelData | {
     }
 
     const raw: BilanRaw = {
-      intrants, achats, distributions, factures, remboursements, sorties, campagnes,
-      paiementsClients, materiels, prestations, consommations, comptes, transactions, credits, ristournes,
+      membres,
+      clients,
+      intrants,
+      achats,
+      distributions,
+      factures,
+      remboursements,
+      sorties,
+      campagnes,
+      paiementsClients,
+      materiels,
+      prestations,
+      consommations,
+      comptes,
+      transactions,
+      credits,
+      ristournes,
     }
 
     return {

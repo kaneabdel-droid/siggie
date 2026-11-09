@@ -21,15 +21,16 @@ export type BilanRaw = {
     document_id?: string | null
     document_type?: string | null
     produit_nature?: string | null
+    client_id?: string | null
   }[]
-  sorties: { campagne_id: string; membre_id: string | null; type_sortie: string; tiers_type: string; quantite: number | null; prix_unitaire: number | null; date_sortie: string }[]
+  sorties: { id?: string; campagne_id: string; membre_id: string | null; client_id?: string | null; type_sortie: string; tiers_type: string; tiers_nom?: string | null; quantite: number | null; prix_unitaire: number | null; date_sortie: string; motif?: string | null }[]
   campagnes: { id: string; prix_collecte: number | null }[]
-  paiementsClients: { id?: string; montant: number | null; date_paiement: string; motif?: string | null }[]
+  paiementsClients: { id?: string; client_id?: string | null; montant: number | null; date_paiement: string; motif?: string | null }[]
   materiels: { id?: string; valeur_acquisition: number | null; duree_vie_economique: number | null; date_acquisition: string | null }[]
-  prestations: { montant_facture: number | null; date_prestation: string; tiers_type?: string | null; membre_id?: string | null }[]
+  prestations: { id?: string; montant_facture: number | null; date_prestation: string; tiers_type?: string | null; membre_id?: string | null; client_id?: string | null; client_nom?: string | null }[]
   consommations: { montant_total: number | null; date_consommation: string }[]
-  comptes: { solde_initial: number | null }[]
-  transactions: { type_transaction: string; montant: number | null; date_transaction: string | null; type_piece: string | null; credit_id: string | null }[]
+  comptes: { id?: string; solde_initial: number | null }[]
+  transactions: { id?: string; compte_id?: string | null; type_transaction: string; montant: number | null; date_transaction: string | null; type_piece: string | null; credit_id: string | null }[]
   ristournes: { membre_id: string; montant: number | null; date_ristourne: string }[]
   credits: {
     id: string
@@ -43,6 +44,8 @@ export type BilanRaw = {
     equipement_nom?: string | null
     materiel_id?: string | null
   }[]
+  membres?: { id: string; solde_initial: number | null }[]
+  clients?: { id: string; nom?: string | null; solde_initial?: number | null }[]
 }
 
 export const RUBRIQUES_SAISIE = ['subventions', 'emprunts', 'autres_produits', 'autres_charges'] as const
@@ -99,6 +102,17 @@ const dansAnnee = (d: string | null | undefined, y: number) => {
 }
 const somme = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((s, r) => s + f(r), 0)
 const ligne = (brut: number, amo = 0): Ligne => ({ brut, amo, net: brut - amo })
+
+function cleanClientNom(nom?: string | null): string {
+  if (!nom) return ''
+  return nom.replace(/\[.*?\]/g, '').trim()
+}
+
+function extractClientSoldeInitial(nom?: string | null): number {
+  if (!nom) return 0
+  const match = String(nom).match(/\[SOLDE_INIT:([+-]?\d+(?:\.\d+)?)\]/)
+  return match ? Number(match[1]) : 0
+}
 
 // Amortissement linéaire cumulé à la date `limite` (même règle que la page Amortissements).
 function amortissement(m: BilanRaw['materiels'][number], limite: number): number {
@@ -274,51 +288,179 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   const stockNatureDebut = stockNatureA(debutAnnee(annee) - 1)
   const stockTotalDebut = stockIntrantsDebut + stockNatureDebut
 
-  // Solde par membre = facturé - remboursé + ristournes. Une ristourne rend au membre son surplus
-  // de remboursement (en nature ou en numéraire) : elle réduit ce qu'il a remboursé. Un solde
-  // positif est une créance du GIE ; un solde négatif (surplus non encore rendu) est une dette
-  // du GIE envers le membre, à porter au passif et non en créance négative.
+  // 1. Solde par membre = solde_initial + facturé - remboursé + ristournes + prestations + ventes stock.
+  // Une ristourne rend au membre son surplus de remboursement : elle réduit ce qu'il a remboursé.
+  // Un solde positif est une créance du GIE ; un solde négatif (surplus non encore rendu / avance)
+  // est une dette du GIE envers le membre, à porter au passif et non en créance négative.
   const soldeMembre = new Map<string, number>()
-  const ajouter = (id: string | null, v: number) => soldeMembre.set(id ?? 'externe', (soldeMembre.get(id ?? 'externe') || 0) + v)
-  for (const f of raw.factures.filter((x) => avant(x.date_emission, fin))) ajouter(f.membre_id, n(f.montant_total) + n(f.montant_interet))
+  for (const m of raw.membres || []) {
+    soldeMembre.set(m.id, n(m.solde_initial))
+  }
+  const ajouterMembre = (id: string | null | undefined, v: number) => {
+    if (!id) return
+    soldeMembre.set(id, (soldeMembre.get(id) || 0) + v)
+  }
+
+  for (const f of raw.factures.filter((x) => avant(x.date_emission, fin))) {
+    ajouterMembre(f.membre_id, n(f.montant_total) + n(f.montant_interet))
+  }
   for (const p of raw.prestations.filter((x) => (x.tiers_type === 'membre' || Boolean(x.membre_id)) && avant(x.date_prestation, fin))) {
-    ajouter(p.membre_id ?? null, n(p.montant_facture))
+    ajouterMembre(p.membre_id, n(p.montant_facture))
   }
   for (const s of raw.sorties.filter((x) => x.type_sortie === 'vente' && x.tiers_type === 'membre' && x.membre_id && avant(x.date_sortie, fin))) {
-    ajouter(s.membre_id, n(s.quantite) * n(s.prix_unitaire))
+    ajouterMembre(s.membre_id, n(s.quantite) * n(s.prix_unitaire))
   }
-  for (const r of raw.remboursements.filter((x) => avant(x.date_paiement, fin))) ajouter(r.membre_id, -n(r.montant_fcfa))
+  for (const r of raw.remboursements.filter((x) => x.membre_id && avant(x.date_paiement, fin))) {
+    ajouterMembre(r.membre_id, -n(r.montant_fcfa))
+  }
   for (const s of raw.sorties.filter((x) => x.type_sortie === 'ristourne' && x.tiers_type === 'membre' && x.membre_id && avant(x.date_sortie, fin))) {
-    ajouter(s.membre_id, n(s.quantite) * n(s.prix_unitaire))
+    ajouterMembre(s.membre_id, n(s.quantite) * n(s.prix_unitaire))
   }
   // Ristournes en numéraire (commande Ristourne du module Remboursements).
-  for (const r of raw.ristournes.filter((x) => avant(x.date_ristourne, fin))) ajouter(r.membre_id, n(r.montant))
-  const soldes = [...soldeMembre.values()]
-  const creancesMembres = somme(soldes, (v) => Math.max(0, v))
-  const dettesMembres = somme(soldes, (v) => Math.max(0, -v))
-  const prestationsClients = somme(
-    raw.prestations.filter((p) => p.tiers_type !== 'membre' && !p.membre_id && avant(p.date_prestation, fin)),
-    (p) => n(p.montant_facture)
-  )
-  const creancesClients = Math.max(
-    0,
-    somme(raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && avant(s.date_sortie, fin)), (s) => n(s.quantite) * n(s.prix_unitaire)) +
-      prestationsClients -
-      somme(raw.paiementsClients.filter((p) => avant(p.date_paiement, fin)), (p) => n(p.montant))
-  )
+  for (const r of raw.ristournes.filter((x) => avant(x.date_ristourne, fin))) {
+    ajouterMembre(r.membre_id, n(r.montant))
+  }
 
+  const soldesMembres = [...soldeMembre.values()]
+  const creancesMembres = somme(soldesMembres, (v) => Math.max(0, v))
+  const dettesMembres = somme(soldesMembres, (v) => Math.max(0, -v))
+
+  // 2. Solde par client externe = solde initial + ventes stock nature + prestations matériel - paiements.
+  // Même principe : un solde positif est une créance client (actif), un solde négatif est une avance reçue (dette au passif).
+  type ClientInfo = {
+    id: string
+    cleanNom: string
+    solde: number
+  }
+  const clientMap = new Map<string, ClientInfo>()
+  for (const c of (raw.clients || []).filter((cl) => !cl.nom?.startsWith('[FOURNISSEUR]'))) {
+    const rawNom = c.nom || ''
+    const si = c.solde_initial != null && !isNaN(Number(c.solde_initial)) && Number(c.solde_initial) !== 0
+      ? Number(c.solde_initial)
+      : extractClientSoldeInitial(rawNom)
+    clientMap.set(c.id, {
+      id: c.id,
+      cleanNom: cleanClientNom(rawNom).toLowerCase(),
+      solde: si,
+    })
+  }
+
+  const findClientId = (id?: string | null, nom?: string | null): string | null => {
+    if (id && clientMap.has(id)) return id
+    if (nom) {
+      const lower = cleanClientNom(nom).toLowerCase()
+      if (!lower) return null
+      for (const [cid, cl] of clientMap.entries()) {
+        if (cl.cleanNom === lower || cl.cleanNom.includes(lower) || lower.includes(cl.cleanNom)) {
+          return cid
+        }
+      }
+    }
+    return null
+  }
+
+  // Ventes aux clients externes
+  for (const s of raw.sorties.filter((x) => x.type_sortie === 'vente' && x.tiers_type === 'client' && avant(x.date_sortie, fin))) {
+    const cid = findClientId(s.client_id, s.tiers_nom)
+    const montant = n(s.quantite) * n(s.prix_unitaire)
+    if (cid && clientMap.has(cid)) {
+      clientMap.get(cid)!.solde += montant
+    } else {
+      const fallbackKey = s.tiers_nom ? `nom:${cleanClientNom(s.tiers_nom).toLowerCase()}` : 'client-divers'
+      if (!clientMap.has(fallbackKey)) {
+        clientMap.set(fallbackKey, { id: fallbackKey, cleanNom: fallbackKey, solde: 0 })
+      }
+      clientMap.get(fallbackKey)!.solde += montant
+    }
+  }
+
+  // Prestations matériel aux clients externes
+  for (const p of raw.prestations.filter((x) => x.tiers_type !== 'membre' && !x.membre_id && avant(x.date_prestation, fin))) {
+    const cid = findClientId(p.client_id, p.client_nom)
+    const montant = n(p.montant_facture)
+    if (cid && clientMap.has(cid)) {
+      clientMap.get(cid)!.solde += montant
+    } else {
+      const fallbackKey = p.client_nom ? `nom:${cleanClientNom(p.client_nom).toLowerCase()}` : 'client-divers'
+      if (!clientMap.has(fallbackKey)) {
+        clientMap.set(fallbackKey, { id: fallbackKey, cleanNom: fallbackKey, solde: 0 })
+      }
+      clientMap.get(fallbackKey)!.solde += montant
+    }
+  }
+
+  // Paiements des clients externes
+  const rembIdsInPaiements = new Set<string>()
+  for (const pc of (raw.paiementsClients || []).filter((x) => avant(x.date_paiement, fin))) {
+    const motifStr = String(pc.motif || '')
+    const rembIdMatch = motifStr.match(/\[REMB_ID:([^\]]+)\]/)
+    if (rembIdMatch && rembIdMatch[1]) rembIdsInPaiements.add(rembIdMatch[1].trim())
+
+    const cid = findClientId(pc.client_id, null)
+    const montant = n(pc.montant)
+    if (cid && clientMap.has(cid)) {
+      clientMap.get(cid)!.solde -= montant
+    } else {
+      const fallbackKey = 'client-divers'
+      if (!clientMap.has(fallbackKey)) {
+        clientMap.set(fallbackKey, { id: fallbackKey, cleanNom: fallbackKey, solde: 0 })
+      }
+      clientMap.get(fallbackKey)!.solde -= montant
+    }
+  }
+
+  // Remboursements directs attribués aux clients (sans doublon avec paiements_clients)
+  for (const r of (raw.remboursements || []).filter((x) => x.client_id && avant(x.date_paiement, fin))) {
+    if (r.id && rembIdsInPaiements.has(r.id)) continue
+    const cid = findClientId(r.client_id, null)
+    const montant = n(r.montant_fcfa)
+    if (cid && clientMap.has(cid)) {
+      clientMap.get(cid)!.solde -= montant
+    }
+  }
+
+  const soldesClients = [...clientMap.values()].map((c) => c.solde)
+  const creancesClients = somme(soldesClients, (v) => Math.max(0, v))
+  const dettesClients = somme(soldesClients, (v) => Math.max(0, -v))
+
+  const totalCreances = creancesMembres + creancesClients
+
+  // 3. Disponibilités : soldes positifs de tous les comptes de trésorerie
   const tresoAvant = raw.transactions.filter((t) => avant(t.date_transaction, fin))
-  const disponibilites =
-    somme(raw.comptes, (c) => n(c.solde_initial)) +
-    somme(tresoAvant.filter((t) => t.type_transaction === 'entree'), (t) => n(t.montant)) -
-    somme(tresoAvant.filter((t) => t.type_transaction === 'sortie'), (t) => n(t.montant))
+
+  let disponibilites = 0
+  let decouvertsComptes = 0
+
+  const comptesTraites = new Set<string>()
+  for (const c of raw.comptes || []) {
+    if (c.id) comptesTraites.add(c.id)
+    const txCompte = tresoAvant.filter((t) => c.id && t.compte_id === c.id)
+    const entrees = somme(txCompte.filter((t) => t.type_transaction === 'entree'), (t) => n(t.montant))
+    const sorties = somme(txCompte.filter((t) => t.type_transaction === 'sortie'), (t) => n(t.montant))
+    const solde = n(c.solde_initial) + entrees - sorties
+    if (solde > 0) {
+      disponibilites += solde
+    } else if (solde < 0) {
+      decouvertsComptes += -solde
+    }
+  }
+
+  // Transactions sans compte_id rattaché
+  const txOrphelines = tresoAvant.filter((t) => !t.compte_id || !comptesTraites.has(t.compte_id))
+  if (txOrphelines.length > 0) {
+    const netOrphelin =
+      somme(txOrphelines.filter((t) => t.type_transaction === 'entree'), (t) => n(t.montant)) -
+      somme(txOrphelines.filter((t) => t.type_transaction === 'sortie'), (t) => n(t.montant))
+    if (netOrphelin > 0) disponibilites += netOrphelin
+    else if (netOrphelin < 0) decouvertsComptes += -netOrphelin
+  }
 
   const actif = {
     immobilisations: ligne(immoBrut, immoAmo),
     stocks_intrants: ligne(stockIntrants),
     stocks_remboursement: ligne(stockNature),
     stocks: ligne(stockTotal),
-    creances: ligne(creancesMembres + creancesClients),
+    creances: ligne(totalCreances),
     disponibilites: ligne(disponibilites),
   }
   const totalActif = ligne(
@@ -421,14 +563,14 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
       somme(tresoAvant.filter((t) => t.type_transaction === 'sortie' && t.type_piece === 'facture_fournisseur'), (t) => n(t.montant))
   )
 
-  const dettes = dettesFournisseurs + dettesMembres
+  const dettes = dettesFournisseurs + dettesMembres + dettesClients
   const subventions = n(saisies.subventions)
 
   // Emprunts : solde en cours du crédit équipement par défaut (ou valeur manuelle saisie)
   const emprunts = saisies.emprunts !== undefined ? n(saisies.emprunts) : creditEquipementRestant
 
-  // Crédit de trésorerie : solde en cours du crédit de campagne
-  const creditsTresorerie = creditCampagneRestant
+  // Crédit de trésorerie : solde en cours du crédit de campagne + découverts bancaires
+  const creditsTresorerie = creditCampagneRestant + decouvertsComptes
 
   // Capital = solde du bilan : ce qu'il faut pour équilibrer le total du passif avec l'actif net.
   const capital = totalActif.net - (resultat + subventions + emprunts + dettes + creditsTresorerie)

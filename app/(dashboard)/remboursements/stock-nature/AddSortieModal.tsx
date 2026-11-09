@@ -69,7 +69,7 @@ export default function AddSortieModal({
   }, [quantiteVente, prixUnitaire])
 
   // Détection du besoin de conversion
-  const isVenteEnKgEtStockEnSacs = uniteVente === 'kg' && (uniteStockCible === 'sacs' || isPaddy)
+  const isVenteEnKgEtStockEnSacs = uniteVente === 'kg' && uniteStockCible === 'sacs'
   const isVenteEnSacsEtStockEnKg = (uniteVente === 'sacs' || uniteVente === 'cageots' || uniteVente === 'cartons') && uniteStockCible === 'kg'
 
   // Suggestions automatiques de sacs

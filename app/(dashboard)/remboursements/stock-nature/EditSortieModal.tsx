@@ -45,7 +45,7 @@ export default function EditSortieModal({
     return q * pu
   }, [quantiteVente, prixUnitaire])
 
-  const isVenteEnKgEtStockEnSacs = uniteVente === 'kg' && (uniteStockCible === 'sacs' || isPaddy)
+  const isVenteEnKgEtStockEnSacs = uniteVente === 'kg' && uniteStockCible === 'sacs'
   const isVenteEnSacsEtStockEnKg = (uniteVente === 'sacs' || uniteVente === 'cageots' || uniteVente === 'cartons') && uniteStockCible === 'kg'
 
   const suggestion80kg = useMemo(() => {
