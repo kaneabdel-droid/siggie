@@ -3,13 +3,13 @@
 import { useState, useTransition, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Edit2, Edit3, X, Check, Trash2, Folder, CornerDownRight, PlusCircle } from 'lucide-react'
-import { 
-  addRubrique, 
-  renameRubriqueGroupe, 
-  deleteRubriqueGroupe, 
-  updatePoste, 
-  deletePoste, 
-  setBudgetPrevision 
+import {
+  addRubrique,
+  renameRubriqueGroupe,
+  deleteRubriqueGroupe,
+  updatePoste,
+  deletePoste,
+  setBudgetPrevision
 } from './actions'
 import { useUnite } from '@/components/DeviseProvider'
 
@@ -45,7 +45,7 @@ function RubriqueList({
 }) {
   const unite = useUnite()
   const [isPending, startTransition] = useTransition()
-  
+
   // Édition montant prévision
   const [editingPrevisionId, setEditingPrevisionId] = useState<string | null>(null)
   const [editPrevisionValue, setEditPrevisionValue] = useState('')
