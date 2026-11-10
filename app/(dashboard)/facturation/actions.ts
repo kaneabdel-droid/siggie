@@ -151,7 +151,11 @@ export async function getFactures() {
       }
       : null
 
-    const quantite = Number(v.quantite || 0)
+    const motifStr = String(v.motif || '')
+    const vQteMatch = motifStr.match(/\[VENTE_QTE:([^\]]+)\]/)
+    const vUniteMatch = motifStr.match(/\[VENTE_UNITE:([^\]]+)\]/)
+    const quantite = vQteMatch ? Number(vQteMatch[1]) : Number(v.quantite || 0)
+    const uniteFacturee = vUniteMatch ? vUniteMatch[1].trim() : 'kg'
     const prixUnitaire = Number(v.prix_unitaire || 0)
     const montant = quantite * prixUnitaire
     const paidFromTags = paidByDocKey.get(`vente_stock:${v.id}`) || 0
@@ -172,7 +176,7 @@ export async function getFactures() {
       client_telephone: matchedMembre?.telephone || matchedClient?.telephone || null,
       campagne_id: v.campagne_id || v.campagne?.id || null,
       campagne: v.campagne || null,
-      designation: `Vente ${prod} (${quantite} kg × ${prixUnitaire.toLocaleString('fr-FR')})`,
+      designation: `Vente ${prod} (${quantite} ${uniteFacturee} × ${prixUnitaire.toLocaleString('fr-FR')})`,
       date_emission: v.date_sortie || v.created_at,
       montant_total: montant,
       montant_interet: 0,

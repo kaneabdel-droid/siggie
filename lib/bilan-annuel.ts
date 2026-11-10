@@ -361,7 +361,9 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   // Ventes aux clients externes
   for (const s of raw.sorties.filter((x) => x.type_sortie === 'vente' && x.tiers_type === 'client' && avant(x.date_sortie, fin))) {
     const cid = findClientId(s.client_id, s.tiers_nom)
-    const montant = n(s.quantite) * n(s.prix_unitaire)
+    const vQteMatch = String(s.motif || '').match(/\[VENTE_QTE:([^\]]+)\]/)
+    const quantiteFacturee = vQteMatch ? n(vQteMatch[1]) : n(s.quantite)
+    const montant = quantiteFacturee * n(s.prix_unitaire)
     if (cid && clientMap.has(cid)) {
       clientMap.get(cid)!.solde += montant
     } else {
@@ -460,7 +462,9 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   let gain = 0
   let perte = 0
   for (const s of raw.sorties.filter((x) => x.type_sortie === 'vente' && dansAnnee(x.date_sortie, annee))) {
-    const ecart = (n(s.prix_unitaire) - (prixCollecte.get(s.campagne_id) || 0)) * n(s.quantite)
+    const vQteMatch = String(s.motif || '').match(/\[VENTE_QTE:([^\]]+)\]/)
+    const quantiteFacturee = vQteMatch ? n(vQteMatch[1]) : n(s.quantite)
+    const ecart = (n(s.prix_unitaire) - (prixCollecte.get(s.campagne_id) || 0)) * quantiteFacturee
     if (ecart >= 0) gain += ecart
     else perte += -ecart
   }

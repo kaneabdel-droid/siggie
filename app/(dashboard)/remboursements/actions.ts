@@ -387,7 +387,12 @@ export async function getFacturesPourRemboursement() {
         ? clientByName.get(v.tiers_nom.trim().toLowerCase())
         : null
 
-    const montantTotal = Number(v.quantite || 0) * Number(v.prix_unitaire || 0)
+    const vMotifStr = String(v.motif || '')
+    const vQteMatch = vMotifStr.match(/\[VENTE_QTE:([^\]]+)\]/)
+    const vUniteMatch = vMotifStr.match(/\[VENTE_UNITE:([^\]]+)\]/)
+    const quantiteFacturee = vQteMatch ? Number(vQteMatch[1]) : Number(v.quantite || 0)
+    const uniteFacturee = vUniteMatch ? vUniteMatch[1].trim() : 'kg'
+    const montantTotal = quantiteFacturee * Number(v.prix_unitaire || 0)
     const paidFromTags = paidByDocKey.get(`vente_stock:${v.id}`) || 0
     const initialMontantPaye = Math.max(Number(v.montant_paye || 0), paidFromTags)
 
@@ -462,7 +467,7 @@ export async function getFacturesPourRemboursement() {
       client: clientData,
       client_nom: clientData.nom,
       client_telephone: clientData.telephone,
-      designation: `Vente de Stock (${v.quantite} kg de ${prod})`,
+      designation: `Vente de Stock (${quantiteFacturee} ${uniteFacturee} de ${prod})`,
       montant_total: montantTotal,
       montant_interet: 0,
       montant_paye: finalMontantPaye,
