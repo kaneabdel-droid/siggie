@@ -1101,20 +1101,21 @@
     },
     "rapprochement": {
       "no_campaigns": "No season found.",
-      "title": "Bank Reconciliation",
-      "desc": "Overview of bank loan usage for a given season.",
+      "title": "Bank Reconciliation (Season Loan)",
+      "desc": "Overview of seasonal bank loan usage for a given season. Reconciliation applies strictly to seasonal loans and excludes equipment loans.",
       "select_campaign": "Choose a season",
+      "select_credit": "Choose seasonal loan",
       "loading": "Loading statement...",
-      "credit_granted": "Loan Granted",
+      "credit_granted": "Season Loan Granted",
       "supplier_payments": "Supplier Payments",
       "cash_withdrawals": "Cash Withdrawals",
       "credit_balance": "Loan Balance",
-      "supplier_payments_title": "Supplier Payments",
-      "cash_withdrawals_title": "Cash Withdrawals",
+      "supplier_payments_title": "Supplier Payments (on season loan)",
+      "cash_withdrawals_title": "Cash Withdrawals (on season loan)",
       "account_label": "Account",
       "unknown_account": "Unknown",
-      "no_payment": "No payment.",
-      "no_withdrawal": "No withdrawal."
+      "no_payment": "No supplier payment linked to this loan.",
+      "no_withdrawal": "No cash withdrawal linked to this loan."
     }
   },
   "campagnes_detail": {

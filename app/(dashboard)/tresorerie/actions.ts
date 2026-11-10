@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 import { findDoublonRemboursement } from '@/lib/anti-doublons'
+import { getCreditType } from '@/lib/credits-types'
 
 export async function getComptes() {
   const supabase = await createClient()
@@ -806,17 +807,36 @@ export async function getJournal(compteId: string) {
   }
 }
 
-export async function getRapprochement(campagneId: string) {
+export async function getRapprochement(campagneId: string, creditId?: string) {
   const supabase = await createClient()
 
-  // 1. Récupérer le crédit lié à la campagne
-  const { data: credit } = await supabase
-    .from('credits')
-    .select('*')
-    .eq('campagne_id', campagneId)
-    .single()
+  // 1. Récupérer les crédits liés à la campagne
+  let query = supabase.from('credits').select('*').eq('campagne_id', campagneId)
+  if (creditId) {
+    query = query.eq('id', creditId)
+  }
+  const { data: credits, error: creditErr } = await query
 
-  if (!credit) return { error: "Aucun crédit trouvé pour cette campagne." }
+  if (creditErr) return { error: creditErr.message }
+
+  // Filtrer EXCLUSIVEMENT les crédits de campagne (trésorerie / court terme)
+  // et exclure formellement les crédits d'équipement (matériel / moyen terme)
+  const creditsCampagne = (credits || []).filter((c) => getCreditType(c) === 'campagne')
+
+  if (creditsCampagne.length === 0) {
+    const hasEquipement = (credits || []).some((c) => getCreditType(c) === 'equipement')
+    if (hasEquipement) {
+      return {
+        error: "Cette campagne ne dispose pas de crédit de campagne (court terme). Le crédit rattaché est un crédit d'équipement (investissement matériel), suivi dans le module Matériel.",
+      }
+    }
+    return { error: "Aucun crédit de campagne trouvé pour cette campagne." }
+  }
+
+  // Sélectionner le crédit de campagne demandé ou le crédit valide / premier par défaut
+  const credit = (creditId ? creditsCampagne.find((c) => c.id === creditId) : undefined)
+    || creditsCampagne.find((c) => c.statut === 'valide')
+    || creditsCampagne[0]
 
   // 2. Récupérer les transactions liées à ce crédit
   const { data: transactions } = await supabase
@@ -848,6 +868,13 @@ export async function getRapprochement(campagneId: string) {
 
   return {
     credit,
+    creditsCampagne: creditsCampagne.map((c) => ({
+      id: c.id,
+      banque_nom: c.banque_nom,
+      montant_accorde: Number(c.montant_accorde || 0),
+      but_credit: c.but_credit,
+      statut: c.statut,
+    })),
     paiementsFournisseurs,
     retraits,
     bilan: {

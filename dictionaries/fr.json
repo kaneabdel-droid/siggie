@@ -1104,20 +1104,21 @@
     },
     "rapprochement": {
       "no_campaigns": "Aucune campagne trouvée.",
-      "title": "Rapprochement Bancaire",
-      "desc": "Bilan de l'utilisation du crédit de la banque pour une campagne donnée.",
+      "title": "Rapprochement Bancaire (Crédit de Campagne)",
+      "desc": "Bilan de l'utilisation du crédit de campagne bancaire pour une campagne donnée. Le rapprochement s'applique exclusivement aux crédits de campagne (intrants et trésorerie d'exploitation) et exclut les crédits d'équipement.",
       "select_campaign": "Choisir une campagne",
+      "select_credit": "Choisir le crédit de campagne",
       "loading": "Chargement du bilan...",
-      "credit_granted": "Crédit Accordé",
+      "credit_granted": "Crédit Campagne Accordé",
       "supplier_payments": "Paiements Frs",
       "cash_withdrawals": "Retraits Espèces",
       "credit_balance": "Solde du Crédit",
-      "supplier_payments_title": "Paiements Fournisseurs",
-      "cash_withdrawals_title": "Retraits en Espèces",
+      "supplier_payments_title": "Paiements Fournisseurs (sur crédit de campagne)",
+      "cash_withdrawals_title": "Retraits en Espèces (sur crédit de campagne)",
       "account_label": "Compte",
       "unknown_account": "Inconnu",
-      "no_payment": "Aucun paiement.",
-      "no_withdrawal": "Aucun retrait."
+      "no_payment": "Aucun paiement lié à ce crédit.",
+      "no_withdrawal": "Aucun retrait lié à ce crédit."
     }
   },
   "campagnes_detail": {
