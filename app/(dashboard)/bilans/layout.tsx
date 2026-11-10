@@ -40,11 +40,11 @@ export default async function BilansLayout({
           {!isPremium && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">PRO</span>}
         </Link>
         <Link
-          href="/bilans/bilan-annuel"
+          href="/bilans/smt"
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
         >
           <Scale className="w-4 h-4" />
-          {dict.bilans.tabs.bilan_annuel}
+          {(dict.bilans.tabs as any).smt || (dict.bilans.tabs as any).bilan_annuel || "Système Minimal de Trésorerie (SMT)"}
           {!isPremium && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">PRO</span>}
         </Link>
         <Link

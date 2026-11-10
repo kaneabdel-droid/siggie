@@ -773,7 +773,8 @@
       "releve_client": "Customer Statement",
       "releve_fournisseur": "Supplier Statement",
       "suivi_budgetaire": "Budget Tracking",
-      "bilan_annuel": "Annual Balance Sheet"
+      "smt": "Minimal Cash-Basis System (SMT)",
+      "bilan_annuel": "Minimal Cash-Basis System (SMT)"
     },
     "tresorerie_title": "Overall Cash Position",
     "tresorerie": {

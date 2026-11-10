@@ -776,7 +776,8 @@
       "releve_client": "Relevé Client",
       "releve_fournisseur": "Relevé Fournisseur",
       "suivi_budgetaire": "Suivi Budgétaire",
-      "bilan_annuel": "Bilan annuel"
+      "smt": "Système Minimal de Trésorerie (SMT)",
+      "bilan_annuel": "Système Minimal de Trésorerie (SMT)"
     },
     "tresorerie_title": "Trésorerie Globale",
     "tresorerie": {

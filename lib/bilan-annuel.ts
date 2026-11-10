@@ -29,7 +29,7 @@ export type BilanRaw = {
   prestations: { id?: string; montant_facture: number | null; date_prestation: string; tiers_type?: string | null; membre_id?: string | null; client_id?: string | null; client_nom?: string | null }[]
   consommations: { montant_total: number | null; date_consommation: string }[]
   comptes: { id?: string; solde_initial: number | null }[]
-  transactions: { id?: string; compte_id?: string | null; type_transaction: string; montant: number | null; date_transaction: string | null; type_piece: string | null; credit_id: string | null }[]
+  transactions: { id?: string; compte_id?: string | null; type_transaction: string; montant: number | null; date_transaction: string | null; type_piece: string | null; credit_id: string | null; motif?: string | null }[]
   ristournes: { membre_id: string; montant: number | null; date_ristourne: string }[]
   credits: {
     id: string
