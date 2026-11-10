@@ -579,6 +579,7 @@ export async function setStockInitial(input: {
   }
 
   revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/intrants/stock-nature')
   return { success: true }
 }
 
@@ -658,6 +659,7 @@ export async function addSortieStockNature(input: {
   if (error) return { error: error.message }
 
   revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/intrants/stock-nature')
   revalidatePath('/facturation')
   revalidatePath('/bilans/releve-membre')
   revalidatePath('/bilans/releve-client')
@@ -733,6 +735,7 @@ export async function updateSortieStockNature(id: string, input: {
   if (error) return { error: error.message }
 
   revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/intrants/stock-nature')
   revalidatePath('/facturation')
   revalidatePath('/bilans/releve-membre')
   revalidatePath('/bilans/releve-client')
@@ -756,6 +759,7 @@ export async function deleteSortieStockNature(id: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/remboursements/stock-nature')
+  revalidatePath('/intrants/stock-nature')
   revalidatePath('/facturation')
   revalidatePath('/bilans/releve-membre')
   revalidatePath('/bilans/releve-client')

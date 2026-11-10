@@ -28,23 +28,24 @@ export type PermissionModule = {
 
 export const PERMISSION_MODULES: PermissionModule[] = [
   { key: 'dashboard', label: 'Tableau de bord', group: 'Général', paths: ['/dashboard'], actions: ['read'] },
-  { key: 'membres', label: 'Membres-Clients', group: 'Gestion', paths: ['/membres'], actions: CRUD },
+  { key: 'membres', label: 'Membres', group: 'Gestion', paths: ['/membres'], actions: CRUD },
   { key: 'campagnes', label: 'Campagnes & Superficies', group: 'Gestion', paths: ['/campagnes', '/superficies'], actions: CRUD, hint: 'Modification : inclut la configuration (membres, intrants, budget) et le tour de casier (superficies)' },
-  { key: 'intrants', label: 'Intrants & Stock', group: 'Gestion', paths: ['/intrants'], actions: CRUD, hint: 'Création : inclut les achats de stock' },
+  { key: 'intrants', label: 'Intrants-Produits & Stocks', group: 'Gestion', paths: ['/intrants'], actions: CRUD, hint: 'Création : inclut les achats de stock' },
   { key: 'distribution', label: 'Distribution', group: 'Gestion', paths: ['/distribution'], actions: CRUD },
   { key: 'credits', label: 'Crédits bancaires', group: 'Finance', paths: ['/credits'], actions: CRUD, hint: 'Modification : statut, décaissements, remboursements' },
   { key: 'facturation', label: 'Facturation', group: 'Finance', paths: ['/facturation'], actions: ['read', 'create', 'update'], hint: 'Création : générer les factures · Modification : calcul des intérêts' },
   { key: 'remboursements', label: 'Remboursements', group: 'Finance', paths: ['/remboursements'], actions: ['read', 'create'], hint: 'Création : enregistrer un paiement' },
   { key: 'ristournes', label: 'Ristournes (surplus rendu aux membres)', group: 'Finance', paths: ['/remboursements/ristournes'], actions: ['read', 'create', 'delete'], hint: 'Création : sortie de trésorerie au profit du membre' },
-  { key: 'stock_nature', label: 'Stock en nature', group: 'Finance', paths: ['/remboursements/stock-nature'], actions: ['read', 'create'] },
+  { key: 'stock_nature', label: 'Stock en nature', group: 'Finance', paths: ['/remboursements/stock-nature', '/intrants/stock-nature'], actions: ['read', 'create'] },
   { key: 'tresorerie', label: 'Trésorerie (comptes, journaux, rapprochement)', group: 'Finance', paths: ['/tresorerie'], actions: CRUD },
-  { key: 'journal_od', label: 'Journal OD (Frais généraux & Produits)', group: 'Finance', paths: ['/tresorerie/journal-od'], actions: CRUD },
+  { key: 'tiers_od', label: 'Tiers & OD (Clients, Fournisseurs, Journal OD)', group: 'Finance', paths: ['/tiers-od'], actions: CRUD },
+  { key: 'journal_od', label: 'Journal OD (Frais généraux & Produits)', group: 'Finance', paths: ['/tresorerie/journal-od', '/tiers-od/journal-od'], actions: CRUD },
   { key: 'imputations', label: 'Imputations', group: 'Finance', paths: ['/tresorerie/imputations'], actions: CRUD },
   { key: 'materiel', label: 'Matériel (inventaire)', group: 'Matériel', paths: ['/materiel'], actions: CRUD },
   { key: 'materiel_prestations', label: 'Prestations matériel', group: 'Matériel', paths: ['/materiel/prestations'], actions: CRUD },
   { key: 'materiel_consommations', label: 'Consommations matériel', group: 'Matériel', paths: ['/materiel/consommations'], actions: CRUD },
   { key: 'materiel_analyses', label: 'Amortissements & rentabilité', group: 'Matériel', paths: ['/materiel/amortissements', '/materiel/rentabilite'], actions: ['read'] },
-  { key: 'bilans', label: 'Bilans, relevés membres & suivi budgétaire', group: 'Bilans', paths: ['/bilans'], actions: ['read'] },
+  { key: 'bilans', label: 'Bilan & Suivi budgétaire', group: 'Bilans', paths: ['/bilans'], actions: ['read'] },
   { key: 'bilan_annuel', label: 'Bilan annuel & compte de résultat', group: 'Bilans', paths: ['/bilans/bilan-annuel'], actions: ['read', 'update'], hint: 'Modification : saisie des montants manuels (subventions, emprunts, autres produits/charges)' },
   { key: 'bilans_clients', label: 'Relevés clients externes', group: 'Bilans', paths: ['/bilans/releve-client'], actions: ['read', 'create'] },
   { key: 'parametres', label: 'Paramètres du GIE', group: 'Administration', paths: ['/parametres'], actions: ['read', 'update'] },
@@ -119,6 +120,7 @@ export function defaultPermissionsForRole(role?: string | null): PermissionMap |
       ristournes: ['read', 'create'],
       stock_nature: ['read'],
       tresorerie: ['read', 'create', 'update', 'delete'],
+      tiers_od: ['read', 'create', 'update', 'delete'],
       journal_od: ['read', 'create', 'update', 'delete'],
       imputations: ['read', 'create', 'update', 'delete'],
       materiel: ['read'],
@@ -161,6 +163,7 @@ export function defaultPermissionsForRole(role?: string | null): PermissionMap |
       facturation: ['read', 'create', 'update'],
       remboursements: ['read', 'create'],
       stock_nature: ['read', 'create'],
+      tiers_od: ['read', 'create', 'update'],
       materiel: ['read'],
       materiel_prestations: ['read', 'create', 'update'],
       materiel_consommations: ['read', 'create', 'update'],
@@ -183,6 +186,7 @@ export function defaultPermissionsForRole(role?: string | null): PermissionMap |
       facturation: ['read', 'create', 'update'],
       remboursements: ['read'],
       tresorerie: ['read'],
+      tiers_od: ['read', 'create', 'update'],
       materiel: ['read'],
       materiel_prestations: ['read', 'create'],
       bilans: ['read'],
@@ -205,10 +209,10 @@ export function hasPermission(
   if (role === 'admin') return true
   const rNorm = (role || '').trim().toLowerCase()
 
-  // Un trésorier ou comptable a toujours les droits complets sur les finances de trésorerie, le journal OD et les imputations
+  // Un trésorier ou comptable a toujours les droits complets sur les finances de trésorerie, tiers & OD, le journal OD et les imputations
   if (
     (rNorm === 'tresorier' || rNorm === 'comptable') &&
-    (moduleKey === 'tresorerie' || moduleKey === 'journal_od' || moduleKey === 'imputations')
+    (moduleKey === 'tresorerie' || moduleKey === 'journal_od' || moduleKey === 'imputations' || moduleKey === 'tiers_od')
   ) {
     return true
   }
@@ -216,9 +220,14 @@ export function hasPermission(
   const effectivePermissions = permissions ?? defaultPermissionsForRole(role)
   if (!effectivePermissions) return true
 
+  // Héritage de tiers_od si non défini explicitement
+  if (moduleKey === 'tiers_od' && !effectivePermissions['tiers_od']) {
+    return (effectivePermissions['tresorerie']?.includes(action) || effectivePermissions['bilans']?.includes(action) || effectivePermissions['membres']?.includes(action)) ?? false
+  }
+
   // Héritage de journal_od depuis tresorerie si non défini explicitement dans les permissions du compte
   if (moduleKey === 'journal_od' && !effectivePermissions['journal_od']) {
-    return effectivePermissions['tresorerie']?.includes(action) ?? false
+    return (effectivePermissions['tresorerie']?.includes(action) || effectivePermissions['tiers_od']?.includes(action)) ?? false
   }
 
   return effectivePermissions[moduleKey]?.includes(action) ?? false

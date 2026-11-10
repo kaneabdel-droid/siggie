@@ -281,7 +281,7 @@ export default function JournalClient({
     })
     if (matchingMembre) {
       return {
-        url: `/bilans/releve-membre?membreId=${matchingMembre.id}`,
+        url: `/membres/releves?membreId=${matchingMembre.id}`,
         label: `Consulter le relevé membre de ${matchingMembre.prenom || ''} ${matchingMembre.nom}`,
         kind: 'membre',
       }
@@ -293,14 +293,14 @@ export default function JournalClient({
     })
     if (matchingClient) {
       return {
-        url: `/bilans/releve-client?clientId=${matchingClient.id}`,
+        url: `/tiers-od/releve-client?clientId=${matchingClient.id}`,
         label: `Consulter le journal client de ${matchingClient.nom}`,
         kind: 'client',
       }
     }
 
     return {
-      url: `/bilans/releve-fournisseur?fournisseurId=${encodeURIComponent(rawTiers)}`,
+      url: `/tiers-od/releve-fournisseur?fournisseurId=${encodeURIComponent(rawTiers)}`,
       label: `Consulter le relevé fournisseur de ${rawTiers}`,
       kind: 'fournisseur',
     }

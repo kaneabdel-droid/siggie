@@ -152,7 +152,9 @@ export function applySecurityHeaders(
     pathname.startsWith('/facturation') ||
     pathname.startsWith('/remboursements') ||
     pathname.startsWith('/tresorerie') ||
+    pathname.startsWith('/tiers-od') ||
     pathname.startsWith('/materiel') ||
+    pathname.startsWith('/bilans') ||
     pathname.startsWith('/membres')
 
   if (isPrivateArea) {

@@ -26,6 +26,7 @@ import {
   Settings,
   UploadCloud,
   CheckSquare,
+  BookOpenCheck,
 } from 'lucide-react'
 import { DeviseProvider } from '@/components/DeviseProvider'
 
@@ -78,13 +79,13 @@ export default function ClientLayout({
     { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
     { key: 'membres', href: '/membres', icon: Users },
     { key: 'campagnes', href: '/campagnes', icon: Leaf },
-    { key: 'superficies', href: '/superficies', icon: CheckSquare },
     { key: 'intrants', href: '/intrants', icon: Tractor },
     { key: 'distribution', href: '/distribution', icon: PackageOpen },
     { key: 'credits', href: '/credits', icon: Landmark },
     { key: 'facturation', href: '/facturation', icon: ReceiptText },
     { key: 'remboursements', href: '/remboursements', icon: Banknote },
     { key: 'tresorerie', href: '/tresorerie', icon: Landmark },
+    { key: 'tiers_od', href: '/tiers-od', icon: BookOpenCheck },
     { key: 'materiel', href: '/materiel', icon: Tractor },
     { key: 'bilans', href: '/bilans', icon: FileSpreadsheet },
     { key: 'abonnement', href: '/abonnement', icon: Shield },
@@ -112,13 +113,13 @@ export default function ClientLayout({
         '/dashboard',
         '/membres',
         '/campagnes',
-        '/superficies',
         '/intrants',
         '/distribution',
         '/credits',
         '/facturation',
         '/remboursements',
         '/tresorerie',
+        '/tiers-od',
         '/materiel',
         '/bilans',
         '/parametres',
@@ -129,10 +130,7 @@ export default function ClientLayout({
 
   const filteredNavigation = navigation.filter(item => {
     if (subscriptionTier === 'standard') {
-      if (item.href === '/materiel' || item.href === '/superficies') return false
-    }
-    if (subscriptionTier === 'medium') {
-      if (item.href === '/superficies') return false
+      if (item.href === '/materiel') return false
     }
     if (item.href === '/abonnement' && roleNorm !== 'admin') {
       return false

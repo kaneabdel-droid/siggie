@@ -43,6 +43,14 @@ export default async function CampagnesPage({
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex sm:items-center sm:gap-3">
           <Link
+            href="/superficies"
+            className="inline-flex items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background hover:border-emerald-500/40 transition shadow-xs"
+            title="Validation des surfaces déclarées et mesurées (Tour de casier)"
+          >
+            <CheckSquare className="h-4 w-4 text-emerald-500 shrink-0" />
+            <span>Tour de casier</span>
+          </Link>
+          <Link
             href="/dashboard#comparatif-campagnes"
             className="inline-flex items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background hover:border-primary/40 transition shadow-xs"
             title={isPremium ? "Accéder au comparatif des campagnes N vs N-1" : "Comparatif inter-campagnes réservé à la formule Premium"}

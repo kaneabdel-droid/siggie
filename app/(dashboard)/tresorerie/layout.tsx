@@ -44,13 +44,6 @@ export default async function TresorerieLayout({
           {dict.tresorerie.tabs.journaux}
         </Link>
         <Link
-          href="/tresorerie/journal-od"
-          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
-        >
-          <FileText className="w-4 h-4 text-amber-500" />
-          <span>Journal OD (Frais généraux & Produits)</span>
-        </Link>
-        <Link
           href="/tresorerie/plan-financement"
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
         >

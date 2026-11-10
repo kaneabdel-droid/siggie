@@ -1,17 +1,11 @@
-import { getClients } from './actions'
-import { getDictionary, getLocale } from '@/dictionaries'
-import { getTenantContext } from '@/utils/supabase/tenant'
-import ReleveClientClient from './ReleveClientClient'
+import { redirect } from 'next/navigation'
 
-export default async function ReleveClientPage() {
-  const locale = await getLocale()
-  const dict = await getDictionary(locale)
-  const tenant = await getTenantContext()
-  const { clients, error } = await getClients()
-
-  if (error) {
-    return <div className="p-4 bg-danger/10 text-danger rounded-md">Erreur: {error}</div>
-  }
-
-  return <ReleveClientClient initialClients={clients || []} dict={dict} locale={locale} gieName={tenant?.gieName || 'Mon GIE'} />
+export default async function RedirectReleveClient({
+  searchParams,
+}: {
+  searchParams?: Promise<{ [key: string]: string | undefined }>
+}) {
+  const params = await searchParams
+  const query = params ? new URLSearchParams(params as Record<string, string>).toString() : ''
+  redirect(`/tiers-od/releve-client${query ? `?${query}` : ''}`)
 }

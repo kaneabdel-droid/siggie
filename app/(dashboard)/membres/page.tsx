@@ -1,25 +1,22 @@
 import { createClient } from '@/utils/supabase/server'
-import { Search, Users, UserCheck, Eye, Leaf, Wallet } from 'lucide-react'
+import { Search, Users, Eye, Leaf, Wallet, FileSpreadsheet } from 'lucide-react'
 import Link from 'next/link'
 import SearchMembres from './SearchMembres'
 import CreateMembreButton from './CreateMembreButton'
 import MembreRowActions from './MembreRowActions'
-import ClientsListTab from './ClientsListTab'
 import FicheMembreModal from '@/components/FicheMembreModal'
 import JustificatifSoldeModal from '@/components/JustificatifSoldeModal'
 import { getDictionary, getLocale } from '@/dictionaries'
-import { getClients } from '@/app/(dashboard)/bilans/releve-client/actions'
 import { getTenantContext } from '@/utils/supabase/tenant'
 
 export default async function MembresPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ query?: string; tab?: string }>
+  searchParams?: Promise<{ query?: string }>
 }) {
   const supabase = await createClient()
   const params = await searchParams
   const query = params?.query || ''
-  const currentTab = params?.tab === 'clients' ? 'clients' : 'membres'
   const locale = await getLocale()
   const dict = await getDictionary(locale)
   const tenant = await getTenantContext()
@@ -30,16 +27,12 @@ export default async function MembresPage({
     .select('*')
     .order('nom', { ascending: true })
 
-  if (query && currentTab === 'membres') {
+  if (query) {
     queryBuilder = queryBuilder.or(`nom.ilike.%${query}%,prenom.ilike.%${query}%,village.ilike.%${query}%`)
   }
 
-  const [{ data: membres, error }, { clients }] = await Promise.all([
-    queryBuilder,
-    getClients(),
-  ])
+  const { data: membres, error } = await queryBuilder
 
-  const totalClients = clients?.length || 0
   const totalSurface = (membres || []).reduce((sum, m) => sum + (Number(m.superficie) || 0), 0)
   const totalSoldeInitial = (membres || []).reduce((sum, m) => sum + (Number(m.solde_initial) || 0), 0)
 
@@ -48,77 +41,46 @@ export default async function MembresPage({
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto min-w-0">
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.membres.title}</h2>
+            <h2 className="text-2xl font-bold font-heading text-foreground break-words">{dict.sidebar?.membres || "Membres"}</h2>
             <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-              {currentTab === 'membres'
-                ? `${membres?.length || 0} membre${(membres?.length || 0) > 1 ? 's' : ''}`
-                : `${totalClients} client${totalClients > 1 ? 's' : ''}`}
+              {`${membres?.length || 0} membre${(membres?.length || 0) > 1 ? 's' : ''}`}
             </span>
           </div>
           <p className="mt-2 text-sm text-foreground-muted">
             {dict.membres.desc}
           </p>
         </div>
-        {currentTab === 'membres' && (
-          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <CreateMembreButton dict={dict} />
-          </div>
-        )}
+        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+          <CreateMembreButton dict={dict} />
+        </div>
       </div>
 
-      {/* Tabs Switcher: Membres vs Clients Externes */}
+      {/* Tabs Switcher: Membres vs Relevés Membres */}
       <div className="mt-6 border-b border-surface-border">
         <nav className="flex space-x-6" aria-label="Tabs">
           <Link
             href="/membres"
-            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
-              currentTab === 'membres'
-                ? 'border-primary text-primary font-semibold'
-                : 'border-transparent text-foreground-muted hover:text-foreground'
-            }`}
+            className="flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors border-primary text-primary font-semibold"
           >
             <Users className="w-4 h-4" />
-            <span>Membres du GIE</span>
-            <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
-              currentTab === 'membres' ? 'bg-primary/15 text-primary' : 'bg-surface text-foreground-muted'
-            }`}>
+            <span>Liste des Membres</span>
+            <span className="ml-1 rounded-full px-2 py-0.5 text-xs bg-primary/15 text-primary">
               {membres?.length || 0}
             </span>
           </Link>
 
           <Link
-            href="/membres?tab=clients"
-            className={`flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
-              currentTab === 'clients'
-                ? 'border-primary text-primary font-semibold'
-                : 'border-transparent text-foreground-muted hover:text-foreground'
-            }`}
+            href="/membres/releves"
+            className="flex items-center gap-2 py-3 px-1 border-b-2 text-sm font-medium transition-colors border-transparent text-foreground-muted hover:text-foreground"
           >
-            <UserCheck className="w-4 h-4" />
-            <span>Clients Externes (Acheteurs & Prestations)</span>
-            <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
-              currentTab === 'clients' ? 'bg-primary/15 text-primary' : 'bg-surface text-foreground-muted'
-            }`}>
-              {totalClients}
-            </span>
+            <FileSpreadsheet className="w-4 h-4 text-primary" />
+            <span>Relevés des Membres</span>
           </Link>
         </nav>
       </div>
 
-      {/* Tab Content */}
-      {currentTab === 'clients' ? (
-        <div className="mt-6">
-          <ClientsListTab
-            initialClients={clients || []}
-            gieName={tenant?.gieName || 'Mon GIE'}
-            dict={dict}
-            locale={locale}
-          />
-        </div>
-      ) : (
-        <>
-          {/* KPI Cards Membres */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* KPI Cards Membres */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="rounded-xl border border-surface-border bg-surface p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-foreground-muted">
@@ -317,8 +279,6 @@ export default async function MembresPage({
           </div>
         </div>
       </div>
-    </>
-  )}
-</div>
-)
+    </div>
+  )
 }

@@ -30,13 +30,6 @@ export default async function RemboursementsLayout({
           {dict.remboursements.tabs.factures}
         </Link>
         <Link
-          href="/remboursements/stock-nature"
-          className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
-        >
-          <Package className="w-4 h-4" />
-          {dict.remboursements.tabs.stock_nature}
-        </Link>
-        <Link
           href="/remboursements/ristournes"
           className="bg-surface text-foreground-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium flex items-center gap-2 border border-surface-border"
         >

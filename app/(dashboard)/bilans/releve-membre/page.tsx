@@ -1,18 +1,11 @@
-import { createClient } from '@/utils/supabase/server'
-import { getDictionary, getLocale } from '@/dictionaries'
-import { getTenantContext } from '@/utils/supabase/tenant'
-import ReleveMembreClient from './ReleveMembreClient'
+import { redirect } from 'next/navigation'
 
-export default async function ReleveMembrePage() {
-  const supabase = await createClient()
-  const locale = await getLocale()
-  const dict = await getDictionary(locale)
-  const tenant = await getTenantContext()
-
-  const { data: membres } = await supabase
-    .from('membres')
-    .select('id, prenom, nom, code_membre')
-    .order('prenom', { ascending: true })
-
-  return <ReleveMembreClient membres={membres || []} dict={dict} locale={locale} gieName={tenant?.gieName || 'Mon GIE'} />
+export default async function RedirectReleveMembre({
+  searchParams,
+}: {
+  searchParams?: Promise<{ [key: string]: string | undefined }>
+}) {
+  const params = await searchParams
+  const query = params ? new URLSearchParams(params as Record<string, string>).toString() : ''
+  redirect(`/membres/releves${query ? `?${query}` : ''}`)
 }
