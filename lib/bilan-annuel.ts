@@ -21,7 +21,6 @@ export type BilanRaw = {
     document_id?: string | null
     document_type?: string | null
     produit_nature?: string | null
-    client_id?: string | null
   }[]
   sorties: { id?: string; campagne_id: string; membre_id: string | null; client_id?: string | null; type_sortie: string; tiers_type: string; tiers_nom?: string | null; quantite: number | null; prix_unitaire: number | null; date_sortie: string; motif?: string | null }[]
   campagnes: { id: string; prix_collecte: number | null }[]
@@ -390,12 +389,7 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   }
 
   // Paiements des clients externes
-  const rembIdsInPaiements = new Set<string>()
   for (const pc of (raw.paiementsClients || []).filter((x) => avant(x.date_paiement, fin))) {
-    const motifStr = String(pc.motif || '')
-    const rembIdMatch = motifStr.match(/\[REMB_ID:([^\]]+)\]/)
-    if (rembIdMatch && rembIdMatch[1]) rembIdsInPaiements.add(rembIdMatch[1].trim())
-
     const cid = findClientId(pc.client_id, null)
     const montant = n(pc.montant)
     if (cid && clientMap.has(cid)) {
@@ -406,16 +400,6 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
         clientMap.set(fallbackKey, { id: fallbackKey, cleanNom: fallbackKey, solde: 0 })
       }
       clientMap.get(fallbackKey)!.solde -= montant
-    }
-  }
-
-  // Remboursements directs attribués aux clients (sans doublon avec paiements_clients)
-  for (const r of (raw.remboursements || []).filter((x) => x.client_id && avant(x.date_paiement, fin))) {
-    if (r.id && rembIdsInPaiements.has(r.id)) continue
-    const cid = findClientId(r.client_id, null)
-    const montant = n(r.montant_fcfa)
-    if (cid && clientMap.has(cid)) {
-      clientMap.get(cid)!.solde -= montant
     }
   }
 
