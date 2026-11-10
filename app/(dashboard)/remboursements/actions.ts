@@ -6,13 +6,100 @@ import { requirePermission } from '@/utils/supabase/permissions'
 import { reconcilierPrestationsEtPaiements } from '@/lib/recouvrement-reconciliation'
 import { findDoublonRemboursement } from '@/lib/anti-doublons'
 
+export type ModeRemboursementKey = 'nature' | 'espece' | 'bon' | 'cheque' | 'autre'
+
+export type PaiementDetailItem = {
+  id: string
+  date: string
+  mode: ModeRemboursementKey
+  modeLabel: string
+  montant: number
+  quantite_nature?: number | null
+  unite_nature?: string | null
+  produit_nature?: string | null
+  reference_piece?: string | null
+  compte_nom?: string | null
+  motif?: string | null
+}
+
+export type RemboursementsParMode = {
+  nature: { montant: number; quantite: number; unite: string }
+  espece: { montant: number }
+  bon: { montant: number }
+  cheque: { montant: number }
+  autre: { montant: number }
+  total: number
+}
+
+function initRemboursementsParMode(): RemboursementsParMode {
+  return {
+    nature: { montant: 0, quantite: 0, unite: 'kg' },
+    espece: { montant: 0 },
+    bon: { montant: 0 },
+    cheque: { montant: 0 },
+    autre: { montant: 0 },
+    total: 0,
+  }
+}
+
+function getModeLabel(mode: ModeRemboursementKey): string {
+  switch (mode) {
+    case 'nature':
+      return 'En Nature'
+    case 'espece':
+      return 'Espèces'
+    case 'bon':
+      return 'Par Bon'
+    case 'cheque':
+      return 'Chèque / Banque'
+    case 'autre':
+      return 'Autre'
+  }
+}
+
+function parsePaiementClientMotif(motifStr?: string | null): {
+  mode: ModeRemboursementKey
+  quantite: number | null
+  unite: string
+  produit: string | null
+  reference: string | null
+  cleanMotif: string
+} {
+  const str = String(motifStr || '')
+  const modeMatch = str.match(/\[MODE:([^\]]+)\]/)
+  const qteMatch = str.match(/\[QTE:([^\]]+)\]/)
+  const uniteMatch = str.match(/\[UNITE:([^\]]+)\]/)
+  const prodMatch = str.match(/\[PRODUIT:([^\]]+)\]/)
+  const refMatch = str.match(/\[REF:([^\]]+)\]/)
+  const cleanMotif = str.replace(/\[[^\]]*\]/g, '').trim()
+
+  const rawMode = (modeMatch ? modeMatch[1] : '').trim().toLowerCase()
+  let mode: ModeRemboursementKey = 'espece'
+  if (rawMode === 'nature') mode = 'nature'
+  else if (rawMode === 'bon') mode = 'bon'
+  else if (rawMode === 'cheque' || rawMode === 'banque' || rawMode === 'virement') mode = 'cheque'
+  else if (rawMode === 'autre') mode = 'autre'
+  else if (str.toLowerCase().includes('nature') || qteMatch) mode = 'nature'
+  else if (str.toLowerCase().includes('bon')) mode = 'bon'
+  else if (str.toLowerCase().includes('chèque') || str.toLowerCase().includes('cheque')) mode = 'cheque'
+
+  return {
+    mode,
+    quantite: qteMatch ? Number(qteMatch[1]) : null,
+    unite: uniteMatch ? uniteMatch[1].trim() : 'kg',
+    produit: prodMatch ? prodMatch[1].trim() : null,
+    reference: refMatch ? refMatch[1].trim() : null,
+    cleanMotif,
+  }
+}
+
 export async function getFacturesPourRemboursement() {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Non authentifié")
 
-  const [facturesCampagneRes, prestationsRes, ventesRes, clientsRes, paiementsClientsRes, transactionsRes, remboursementsRes] = await Promise.all([
+  const [facturesCampagneRes, prestationsRes, ventesRes, clientsRes, paiementsClientsRes, transactionsRes, remboursementsRes, comptesRes] = await Promise.all([
     supabase
       .from('factures')
       .select(`
@@ -45,10 +132,13 @@ export async function getFacturesPourRemboursement() {
       .from('paiements_clients')
       .select('id, client_id, montant, date_paiement, motif'),
     supabase.from('transactions').select('id, date_transaction, type_transaction, type_piece, montant, motif, compte_id, campagne_id'),
-    supabase.from('remboursements').select('id, montant_fcfa, type_remboursement, facture_id, membre_id, date_paiement'),
+    supabase.from('remboursements').select('id, montant_fcfa, type_remboursement, facture_id, membre_id, quantite_nature, produit_nature, date_paiement, reference_piece, compte_id, created_at'),
+    supabase.from('comptes').select('id, nom'),
   ])
 
   if (facturesCampagneRes.error) return { error: facturesCampagneRes.error.message }
+
+  const comptesMap = new Map<string, string>((comptesRes.data || []).map((c: any) => [c.id, c.nom]))
 
   // Calcul des montants payés par document (prestation / vente_stock) via paiements_clients (tags [DOC:type:id])
   const paidByDocKey = new Map<string, number>()
@@ -80,6 +170,56 @@ export async function getFacturesPourRemboursement() {
     const totalDu = montantTotal + montantInteret
     const reste = totalDu - montantPaye
 
+    const fRembList = (remboursementsRes.data || []).filter((r: any) => r.facture_id === f.id)
+    const parMode: RemboursementsParMode = initRemboursementsParMode()
+    const details: PaiementDetailItem[] = []
+    let sumDetails = 0
+
+    for (const r of fRembList) {
+      const rawMode = String(r.type_remboursement || '').toLowerCase()
+      let mode: ModeRemboursementKey = 'espece'
+      if (rawMode === 'nature') mode = 'nature'
+      else if (rawMode === 'bon') mode = 'bon'
+      else if (rawMode === 'cheque' || rawMode === 'banque') mode = 'cheque'
+      else if (rawMode === 'autre') mode = 'autre'
+
+      const montant = Number(r.montant_fcfa || 0)
+      const qte = r.quantite_nature != null ? Number(r.quantite_nature) : null
+      const compteNom = r.compte_id ? comptesMap.get(r.compte_id) || null : null
+
+      parMode[mode].montant += montant
+      if (mode === 'nature' && qte) {
+        parMode.nature.quantite += qte
+      }
+      sumDetails += montant
+
+      details.push({
+        id: r.id,
+        date: r.date_paiement ? r.date_paiement.slice(0, 10) : (r.created_at ? r.created_at.slice(0, 10) : ''),
+        mode,
+        modeLabel: getModeLabel(mode),
+        montant,
+        quantite_nature: qte,
+        produit_nature: r.produit_nature,
+        reference_piece: r.reference_piece,
+        compte_nom: compteNom,
+      })
+    }
+
+    if (montantPaye > sumDetails) {
+      const diff = montantPaye - sumDetails
+      parMode.espece.montant += diff
+      details.unshift({
+        id: `reglement-direct-${f.id}`,
+        date: f.date_emission ? f.date_emission.slice(0, 10) : '',
+        mode: 'espece',
+        modeLabel: 'Règlement / Trésorerie',
+        montant: diff,
+        motif: 'Paiement direct enregistré sur la facture',
+      })
+    }
+    parMode.total = Math.max(montantPaye, sumDetails)
+
     facturesUnifiees.push({
       ...f,
       id: f.id,
@@ -89,9 +229,11 @@ export async function getFacturesPourRemboursement() {
       designation: `Facture Intrants & Crédits (${f.campagne?.nom || 'Campagne'})`,
       montant_total: montantTotal,
       montant_interet: montantInteret,
-      montant_paye: montantPaye,
+      montant_paye: parMode.total,
       total_du: totalDu,
-      reste,
+      reste: totalDu - parMode.total,
+      remboursements_par_mode: parMode,
+      paiements_details: details,
       client: null,
     })
   }
@@ -118,12 +260,94 @@ export async function getFacturesPourRemboursement() {
     const montantTotal = Number(p.montant_facture || 0)
     const paidFromTags = paidByDocKey.get(`prestation:${p.id}`) || 0
     const rec = recMap.get(p.id)
-    const montantPaye = rec ? rec.montantPaye : Math.max(Number(p.montant_paye || 0), paidFromTags)
+    const initialMontantPaye = rec ? rec.montantPaye : Math.max(Number(p.montant_paye || 0), paidFromTags)
+
+    const parMode: RemboursementsParMode = initRemboursementsParMode()
+    const details: PaiementDetailItem[] = []
+    let sumDetails = 0
+
+    // Paiements clients par tag ou match client
+    const matchingPcs = (paiementsClientsRes.data || [])
+      .filter((pc: any) => {
+        const motifStr = String(pc.motif || '')
+        if (motifStr.includes(`[DOC:prestation:${p.id}]`) || motifStr.includes(`[PRESTATION:${p.id}]`)) return true
+        if (p.client_id && pc.client_id === p.client_id && (motifStr.toLowerCase().includes('prestation') || motifStr.toLowerCase().includes('moisson'))) return true
+        return false
+      })
+
+    for (const pc of matchingPcs) {
+      const parsed = parsePaiementClientMotif(pc.motif)
+      const montant = Number(pc.montant || 0)
+      parMode[parsed.mode].montant += montant
+      if (parsed.mode === 'nature' && parsed.quantite) {
+        parMode.nature.quantite += parsed.quantite
+        if (parsed.unite) parMode.nature.unite = parsed.unite
+      }
+      sumDetails += montant
+
+      details.push({
+        id: pc.id,
+        date: pc.date_paiement ? pc.date_paiement.slice(0, 10) : '',
+        mode: parsed.mode,
+        modeLabel: getModeLabel(parsed.mode),
+        montant,
+        quantite_nature: parsed.quantite,
+        unite_nature: parsed.unite,
+        produit_nature: parsed.produit,
+        reference_piece: parsed.reference,
+        motif: parsed.cleanMotif,
+      })
+    }
+
+    // Remboursements pour membres liés à cette prestation
+    if (isMembre && p.membre_id) {
+      const mRemb = (remboursementsRes.data || []).filter((r: any) => r.membre_id === p.membre_id && r.document_id === p.id)
+      for (const r of mRemb) {
+        const rawMode = String(r.type_remboursement || '').toLowerCase()
+        let mode: ModeRemboursementKey = 'espece'
+        if (rawMode === 'nature') mode = 'nature'
+        else if (rawMode === 'bon') mode = 'bon'
+        else if (rawMode === 'cheque') mode = 'cheque'
+        else if (rawMode === 'autre') mode = 'autre'
+
+        const montant = Number(r.montant_fcfa || 0)
+        parMode[mode].montant += montant
+        if (mode === 'nature' && r.quantite_nature) parMode.nature.quantite += Number(r.quantite_nature)
+        sumDetails += montant
+
+        details.push({
+          id: r.id,
+          date: r.date_paiement ? r.date_paiement.slice(0, 10) : '',
+          mode,
+          modeLabel: getModeLabel(mode),
+          montant,
+          quantite_nature: r.quantite_nature,
+          produit_nature: r.produit_nature,
+          reference_piece: r.reference_piece,
+        })
+      }
+    }
+
+    if (initialMontantPaye > sumDetails) {
+      const diff = initialMontantPaye - sumDetails
+      parMode.espece.montant += diff
+      details.unshift({
+        id: `reglement-prestation-${p.id}`,
+        date: p.date_prestation ? p.date_prestation.slice(0, 10) : '',
+        mode: 'espece',
+        modeLabel: 'Règlement Trésorerie',
+        montant: diff,
+        motif: 'Paiement enregistré sur la prestation',
+      })
+    }
+
+    const finalMontantPaye = Math.max(initialMontantPaye, sumDetails)
+    parMode.total = finalMontantPaye
     const totalDu = montantTotal
-    const reste = Math.max(0, totalDu - montantPaye)
+    const reste = Math.max(0, totalDu - finalMontantPaye)
     const statut = rec
       ? rec.statut
-      : (p.statut_paiement || (reste <= 0 ? 'payee' : (montantPaye > 0 ? 'partiellement_paye' : 'impayee')))
+      : (p.statut_paiement || (reste <= 0 ? 'payee' : (finalMontantPaye > 0 ? 'partiellement_paye' : 'impayee')))
 
     const clientData = clientFound || {
       id: p.client_id || '',
@@ -145,10 +369,12 @@ export async function getFacturesPourRemboursement() {
       designation: `Prestation ${p.type_prestation} - ${p.materiel?.nom || 'Matériel'}`,
       montant_total: montantTotal,
       montant_interet: 0,
-      montant_paye: montantPaye,
+      montant_paye: finalMontantPaye,
       total_du: totalDu,
       reste,
-      statut: p.statut_paiement || (reste <= 0 ? 'payee' : (montantPaye > 0 ? 'partiellement_paye' : 'impayee')),
+      remboursements_par_mode: parMode,
+      paiements_details: details,
+      statut,
       date_emission: p.date_prestation,
     })
   }
@@ -163,9 +389,60 @@ export async function getFacturesPourRemboursement() {
 
     const montantTotal = Number(v.quantite || 0) * Number(v.prix_unitaire || 0)
     const paidFromTags = paidByDocKey.get(`vente_stock:${v.id}`) || 0
-    const montantPaye = Math.max(Number(v.montant_paye || 0), paidFromTags)
+    const initialMontantPaye = Math.max(Number(v.montant_paye || 0), paidFromTags)
+
+    const parMode: RemboursementsParMode = initRemboursementsParMode()
+    const details: PaiementDetailItem[] = []
+    let sumDetails = 0
+
+    const matchingPcs = (paiementsClientsRes.data || []).filter((pc: any) => {
+      const motifStr = String(pc.motif || '')
+      if (motifStr.includes(`[DOC:vente_stock:${v.id}]`) || motifStr.includes(`[VENTE:${v.id}]`)) return true
+      if (v.client_id && pc.client_id === v.client_id && (motifStr.toLowerCase().includes('vente') || motifStr.toLowerCase().includes('stock'))) return true
+      return false
+    })
+
+    for (const pc of matchingPcs) {
+      const parsed = parsePaiementClientMotif(pc.motif)
+      const montant = Number(pc.montant || 0)
+      parMode[parsed.mode].montant += montant
+      if (parsed.mode === 'nature' && parsed.quantite) {
+        parMode.nature.quantite += parsed.quantite
+        if (parsed.unite) parMode.nature.unite = parsed.unite
+      }
+      sumDetails += montant
+
+      details.push({
+        id: pc.id,
+        date: pc.date_paiement ? pc.date_paiement.slice(0, 10) : '',
+        mode: parsed.mode,
+        modeLabel: getModeLabel(parsed.mode),
+        montant,
+        quantite_nature: parsed.quantite,
+        unite_nature: parsed.unite,
+        produit_nature: parsed.produit,
+        reference_piece: parsed.reference,
+        motif: parsed.cleanMotif,
+      })
+    }
+
+    if (initialMontantPaye > sumDetails) {
+      const diff = initialMontantPaye - sumDetails
+      parMode.espece.montant += diff
+      details.unshift({
+        id: `reglement-vente-${v.id}`,
+        date: v.date_sortie ? v.date_sortie.slice(0, 10) : '',
+        mode: 'espece',
+        modeLabel: 'Règlement Trésorerie',
+        montant: diff,
+        motif: 'Paiement enregistré sur la vente de stock',
+      })
+    }
+
+    const finalMontantPaye = Math.max(initialMontantPaye, sumDetails)
+    parMode.total = finalMontantPaye
     const totalDu = montantTotal
-    const reste = totalDu - montantPaye
+    const reste = totalDu - finalMontantPaye
 
     const clientData = clientFound || {
       id: v.client_id || '',
@@ -188,10 +465,12 @@ export async function getFacturesPourRemboursement() {
       designation: `Vente de Stock (${v.quantite} kg de ${prod})`,
       montant_total: montantTotal,
       montant_interet: 0,
-      montant_paye: montantPaye,
+      montant_paye: finalMontantPaye,
       total_du: totalDu,
       reste,
-      statut: reste <= 0 ? 'payee' : (montantPaye > 0 ? 'partiellement_paye' : 'impayee'),
+      remboursements_par_mode: parMode,
+      paiements_details: details,
+      statut: reste <= 0 ? 'payee' : (finalMontantPaye > 0 ? 'partiellement_paye' : 'impayee'),
       date_emission: v.date_sortie,
     })
   }
