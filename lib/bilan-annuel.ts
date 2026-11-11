@@ -24,7 +24,7 @@ export type BilanRaw = {
     produit_nature?: string | null
   }[]
   sorties: { id?: string; campagne_id: string; membre_id: string | null; client_id?: string | null; type_sortie: string; tiers_type: string; tiers_nom?: string | null; quantite: number | null; prix_unitaire: number | null; date_sortie: string; motif?: string | null }[]
-  campagnes: { id: string; prix_collecte: number | null }[]
+  campagnes: { id: string; prix_collecte: number | null; nom?: string | null; produit_collecte?: string | null; date_debut?: string | null }[]
   paiementsClients: { id?: string; client_id?: string | null; montant: number | null; date_paiement: string; motif?: string | null }[]
   materiels: { id?: string; valeur_acquisition: number | null; duree_vie_economique: number | null; date_acquisition: string | null }[]
   prestations: { id?: string; montant_facture: number | null; date_prestation: string; tiers_type?: string | null; membre_id?: string | null; client_id?: string | null; client_nom?: string | null }[]
@@ -551,7 +551,7 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   const dettesFournisseurs = Math.max(
     0,
     somme(raw.achats.filter((a) => avant(a.date_achat, fin)), (a) => n(a.quantite) * n(a.prix_unitaire)) -
-      somme(tresoAvant.filter((t) => t.type_transaction === 'sortie' && t.type_piece === 'facture_fournisseur'), (t) => n(t.montant))
+    somme(tresoAvant.filter((t) => t.type_transaction === 'sortie' && t.type_piece === 'facture_fournisseur'), (t) => n(t.montant))
   )
 
   const dettes = dettesFournisseurs + dettesMembres + dettesClients

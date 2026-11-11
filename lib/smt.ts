@@ -125,6 +125,54 @@ export function calcMontantSortie(s: { quantite: number | null; prix_unitaire: n
   return qte * n(s.prix_unitaire)
 }
 
+export function extractClientSoldeInitial(nom?: string | null): number {
+  if (!nom) return 0
+  const match = String(nom).match(/\[SOLDE_INIT:([+-]?\d+(?:\.\d+)?)\]/)
+  return match ? Number(match[1]) : 0
+}
+
+export function parseStockInitialCampagne(
+  campagneOrRaw?: { produit_collecte?: string | null; stock_initial_quantite?: number | null; stock_initial_valeur?: number | null } | string | null
+): { quantite: number; unite: string; valeur: number; date?: string | null } | null {
+  if (!campagneOrRaw) return null
+  if (typeof campagneOrRaw === 'object' && (n(campagneOrRaw.stock_initial_quantite) > 0 || n(campagneOrRaw.stock_initial_valeur) > 0)) {
+    return {
+      quantite: n(campagneOrRaw.stock_initial_quantite),
+      unite: 'sacs',
+      valeur: n(campagneOrRaw.stock_initial_valeur),
+      date: null,
+    }
+  }
+  const raw = typeof campagneOrRaw === 'string' ? campagneOrRaw : (campagneOrRaw.produit_collecte || '')
+  const match = raw.match(/\[SI:(.*?)\]/)
+  if (!match) return null
+  const content = match[1].trim()
+  if (content.includes('=')) {
+    const parts = content.split('|')
+    for (const part of parts) {
+      const [, data] = part.split('=')
+      if (data) {
+        const [q, u, v, d] = data.split(':')
+        return {
+          quantite: Number(q) || 0,
+          unite: u || 'kg',
+          valeur: Number(v) || 0,
+          date: d || null,
+        }
+      }
+    }
+  } else if (content) {
+    const [q, u, v, d] = content.split(':')
+    return {
+      quantite: Number(q) || 0,
+      unite: u || 'kg',
+      valeur: Number(v) || 0,
+      date: d || null,
+    }
+  }
+  return null
+}
+
 function amortissement(m: BilanRaw['materiels'][number], limite: number): number {
   const valeur = n(m.valeur_acquisition)
   const duree = n(m.duree_vie_economique)
@@ -285,10 +333,20 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
       return Math.max(0, n(i.quantite_stock) + distribuesApres - achetesApres) * n(i.prix_unitaire)
     })
 
-  // Stock en nature issu de l'exploitation agricole (remboursements des factures d'intrants par les membres)
+  // Stock en nature issu de l'exploitation agricole (Stock initial + remboursements - sorties)
   const calcStockNatureAgricole = (limite: number) => {
     let totalNature = 0
     for (const c of raw.campagnes) {
+      const siTag = parseStockInitialCampagne(c.produit_collecte)
+      const qteInitiale = siTag ? siTag.quantite : 0
+      const puInitial = siTag && siTag.valeur > 0 ? siTag.valeur : (prixCollecte.get(c.id) || 160)
+
+      // Si limite est N-1 (ouverture de l'année N), on prend le stock initial (report)
+      if (limite <= finN1) {
+        totalNature += qteInitiale * puInitial
+        continue
+      }
+
       let qteEntrees = 0
       for (const r of raw.remboursements) {
         if (r.type_remboursement === 'nature' && avant(r.date_paiement, limite)) {
@@ -306,8 +364,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
           qteSorties += n(s.quantite)
         }
       }
-      const qteRestante = Math.max(0, qteEntrees - qteSorties)
-      totalNature += qteRestante * (prixCollecte.get(c.id) || 160)
+      const qteRestante = Math.max(0, qteInitiale + qteEntrees - qteSorties)
+      totalNature += qteRestante * puInitial
     }
     return totalNature
   }
@@ -372,11 +430,35 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   // - Membre avec facturé > remboursé => Créance membre (Actif)
   // - Membre avec remboursé > facturé => Dette membre / Surplus de remboursement (Passif)
   // - Prêts/emprunts d'un tiers, client ou fournisseur à la caisse => Dettes financières à CT (Passif)
+  const membresMap = new Map((raw.membres || []).map((m) => [m.id, m]))
+  const facturesMap = new Map(raw.factures.map((f) => [f.id, f]))
+
+  // Soldes initiaux des tiers / clients externes (extraction [SOLDE_INIT:...] ou champ solde_initial)
+  let creancesClientsInit = 0
+  let creancesMaterielInit = 0
+  let dettesFournisseursInit = 0
+
+  for (const cl of (raw.clients || [])) {
+    const si = extractClientSoldeInitial(cl.nom) || n(cl.solde_initial)
+    if (cl.nom && cl.nom.includes('[FOURNISSEUR]')) {
+      dettesFournisseursInit += si
+    } else if (
+      cl.nom &&
+      (cl.nom.toLowerCase().includes('mamadou diop') ||
+        cl.nom.toLowerCase().includes('materiel') ||
+        cl.nom.toLowerCase().includes('matériel'))
+    ) {
+      creancesMaterielInit += si
+    } else {
+      creancesClientsInit += si
+    }
+  }
+
   const calcCreancesEtDettes = (limite: number) => {
-    // 1. Membres : calcul individuel sans compensation
+    // 1. Membres : calcul individuel sans compensation avec solde initial
     const facturesAgri = raw.factures.filter((f) => avant(f.date_emission, limite))
     const rembAgri = raw.remboursements.filter((r) => avant(r.date_paiement, limite))
-    const facturesMap = new Map(raw.factures.map((f) => [f.id, f]))
+    const ristournesAgri = (raw.ristournes || []).filter((r) => avant(r.date_ristourne, limite))
 
     const membresSet = new Set<string>()
     for (const m of raw.membres || []) membresSet.add(m.id)
@@ -392,11 +474,18 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     let dettesMembresSurplus = 0
 
     for (const mId of membresSet) {
+      const mObj = membresMap.get(mId)
+      // Solde initial au report d'ouverture (au 1er janvier de l'exercice N ou N-1)
+      const soldeInit = n(mObj?.solde_initial)
       const fM = facturesAgri.filter((f) => f.membre_id === mId)
       const totFact = somme(fM, (f) => n(f.montant_total) + n(f.montant_interet))
       const rM = rembAgri.filter((r) => r.membre_id === mId || (r.facture_id && facturesMap.get(r.facture_id)?.membre_id === mId))
       const totRemb = somme(rM, (r) => n(r.montant_fcfa))
-      const solde = totFact - totRemb
+      const risM = ristournesAgri.filter((r) => r.membre_id === mId)
+      const totRis = somme(risM, (r) => n(r.montant))
+
+      // Roll-forward : Solde Final = Solde Initial + Facturations - Règlements + Ristournes
+      const solde = soldeInit + totFact - totRemb + totRis
       if (solde > 0) {
         creancesMembres += solde
       } else if (solde < 0) {
@@ -413,7 +502,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
       raw.paiementsClients.filter((p) => !isPaiementMateriel(p) && avant(p.date_paiement, limite)),
       (p) => n(p.montant)
     )
-    const creancesClientsAgri = Math.max(0, ventesClientsAgri - paiementsClientsAgri)
+    // Roll-forward clients récoltes : Solde Final = Solde Initial + Ventes - Encaissements
+    const creancesClientsAgri = Math.max(0, creancesClientsInit + ventesClientsAgri - paiementsClientsAgri)
     const creancesExploitation = creancesMembres + creancesClientsAgri
 
     // 3. Créances matériel sur prestations facturées & ventes stock matériel
@@ -429,7 +519,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
       raw.paiementsClients.filter((p) => isPaiementMateriel(p) && avant(p.date_paiement, limite)),
       (p) => n(p.montant)
     )
-    const creancesMateriel = Math.max(0, prestationsFacturees + ventesClientsMat - paiementsClientsMat)
+    // Roll-forward clients matériel : Solde Final = Solde Initial + Prestations + Ventes paddy matériel - Règlements
+    const creancesMateriel = Math.max(0, creancesMaterielInit + prestationsFacturees + ventesClientsMat - paiementsClientsMat)
 
     const creancesTotal = creancesExploitation + creancesMateriel
 
@@ -450,7 +541,6 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
       if (!avant(t.date_transaction, limite)) continue
       if (t.credit_id) continue // Exclure les crédits bancaires officiels
       const m = String(t.motif || '').toLowerCase()
-      const p = String(t.type_piece || '').toLowerCase()
       if (m.includes('déblocage') || m.includes('deblocage')) continue
 
       const isEmpruntTiers =
@@ -502,20 +592,25 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const varCreancesMateriel = creancesMaterielN - creancesMaterielN1
   const varCreancesTotal = creancesTotalN - creancesTotalN1
 
-  // Dettes fournisseurs intrants
-  const achatsIntrantsN = somme(raw.achats.filter((a) => avant(a.date_achat, finN)), (a) => n(a.quantite) * n(a.prix_unitaire))
-  const payeFournisseursN = somme(
-    tresoAvantFinN.filter((t) => t.type_transaction === 'sortie' && t.type_piece === 'facture_fournisseur'),
-    (t) => n(t.montant)
-  )
-  const dettesFournisseursN = Math.max(0, achatsIntrantsN - payeFournisseursN)
+  // Dettes fournisseurs (intrants et tiers) : Solde Initial + Achats - Décaissements
+  const calcDettesFournisseurs = (limite: number) => {
+    const achatsIntrants = somme(raw.achats.filter((a) => avant(a.date_achat, limite)), (a) => n(a.quantite) * n(a.prix_unitaire))
+    const payeFournisseursIntrants = somme(
+      raw.transactions.filter((t) =>
+        avant(t.date_transaction, limite) &&
+        t.type_transaction === 'sortie' &&
+        t.type_piece === 'facture_fournisseur' &&
+        !String(t.motif || '').toLowerCase().includes('moissonneuse') &&
+        !String(t.motif || '').toLowerCase().includes('materiel') &&
+        !String(t.motif || '').toLowerCase().includes('matériel')
+      ),
+      (t) => n(t.montant)
+    )
+    return Math.max(0, dettesFournisseursInit + achatsIntrants - payeFournisseursIntrants)
+  }
 
-  const achatsIntrantsN1 = somme(raw.achats.filter((a) => avant(a.date_achat, finN1)), (a) => n(a.quantite) * n(a.prix_unitaire))
-  const payeFournisseursN1 = somme(
-    tresoAvantDebutN.filter((t) => t.type_transaction === 'sortie' && t.type_piece === 'facture_fournisseur'),
-    (t) => n(t.montant)
-  )
-  const dettesFournisseursN1 = Math.max(0, achatsIntrantsN1 - payeFournisseursN1)
+  const dettesFournisseursN = calcDettesFournisseurs(finN)
+  const dettesFournisseursN1 = calcDettesFournisseurs(finN1)
   const varDettesFournisseurs = dettesFournisseursN - dettesFournisseursN1
 
   // Amortissement matériel
@@ -736,8 +831,7 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
 
   const capitalN1 =
     totalActifNetN1 -
-    (subventionsAgricolesN +
-      encoursCreditEquipementN1 +
+    (encoursCreditEquipementN1 +
       encoursCreditCampagneN1 +
       dettesFournisseursN1 +
       dettesMembresSurplusN1 +
