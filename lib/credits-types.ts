@@ -21,6 +21,22 @@ export function getCreditType(credit: {
 }
 
 /**
+ * Détermine si un crédit est un emprunt / dette financière (> 12 mois)
+ * par opposition aux crédits de trésorerie / campagne à court terme (≤ 12 mois).
+ */
+export function isCreditLongTerme(credit: {
+  duree_credit?: number | null
+  type_credit?: string | null
+  but_credit?: string | null
+}): boolean {
+  const duree = Number(credit.duree_credit) || 0
+  if (duree > 0) {
+    return duree > 12 // Supérieure à 12 mois
+  }
+  return getCreditType(credit) === 'equipement'
+}
+
+/**
  * Récupère le nom de l'équipement ou matériel financé
  */
 export function getCreditEquipementNom(credit: {

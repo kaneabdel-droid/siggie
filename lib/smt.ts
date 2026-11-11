@@ -9,7 +9,7 @@
 // ============================================================================
 
 import type { BilanRaw, Saisies } from './bilan-annuel'
-import { getCreditType } from './credits-types'
+import { getCreditType, isCreditLongTerme } from './credits-types'
 import { isStockableIntrant } from './intrants/types'
 
 export type SMTFluxCompte = {
@@ -21,11 +21,19 @@ export type SMTFluxCompte = {
   soldeFinal: number
 }
 
+export type SMTDetailItem = {
+  libelle: string
+  valeur: number
+  unite?: string
+  commentaire?: string
+}
+
 export type SMTLignePoste = {
   code?: string
   libelle: string
   montant: number
   note?: string
+  details?: SMTDetailItem[]
 }
 
 export type SMTVolet = {
@@ -47,6 +55,7 @@ export type SMTBilanLigne = {
   net: number
   netN1: number
   note?: string
+  details?: SMTDetailItem[]
 }
 
 export type SMTBilan = {
@@ -808,30 +817,82 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const totalActifNetN = immoNetN + stockTotalN + creancesTotalN + disponibilitesN
   const totalActifNetN1 = immoNetN1 + stockTotalN1 + creancesTotalN1 + disponibilitesN1
 
-  // Crédits bancaires en cours au passif
+  // Crédits bancaires en cours au passif :
+  // Emprunts et dettes financières (> 12 mois) vs Crédits de trésorerie (≤ 12 mois)
   const creditsValidesN = raw.credits.filter((c) => c.statut === 'valide' && avant(c.date_demande, finN))
-  const creditsCampagneValides = creditsValidesN.filter((c) => getCreditType(c) === 'campagne')
-  const creditsEquipementValides = creditsValidesN.filter((c) => getCreditType(c) === 'equipement')
+  const creditsEmpruntsN = creditsValidesN.filter((c) => isCreditLongTerme(c))
+  const creditsTresorerieN = creditsValidesN.filter((c) => !isCreditLongTerme(c))
 
-  const rembCampagneN = somme(
-    tresoAvantFinN.filter((t) => t.type_piece === 'remboursement_credit' && creditsCampagneValides.some((c) => c.id === t.credit_id)),
+  const idsEmpruntsN = new Set(creditsEmpruntsN.map((c) => c.id))
+  const idsTresorerieN = new Set(creditsTresorerieN.map((c) => c.id))
+
+  const rembEmpruntsN = somme(
+    tresoAvantFinN.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsEmpruntsN.has(t.credit_id)),
     (t) => n(t.montant)
   )
-  const encoursCreditCampagneN = Math.max(0, somme(creditsCampagneValides, (c) => n(c.montant_accorde)) - rembCampagneN)
+  const encoursEmpruntsN = Math.max(0, somme(creditsEmpruntsN, (c) => n(c.montant_accorde)) - rembEmpruntsN)
 
-  const rembEquipementN = somme(
-    tresoAvantFinN.filter((t) => t.type_piece === 'remboursement_credit' && creditsEquipementValides.some((c) => c.id === t.credit_id)),
+  const rembTresorerieN = somme(
+    tresoAvantFinN.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsTresorerieN.has(t.credit_id)),
     (t) => n(t.montant)
   )
-  const encoursCreditEquipementN = Math.max(0, somme(creditsEquipementValides, (c) => n(c.montant_accorde)) - rembEquipementN)
+  const encoursTresorerieN = Math.max(0, somme(creditsTresorerieN, (c) => n(c.montant_accorde)) - rembTresorerieN)
 
   // Année N-1 pour le passif
+  const tresoAvantFinN1 = tresoAvantDebutN
   const creditsValidesN1 = raw.credits.filter((c) => c.statut === 'valide' && avant(c.date_demande, finN1))
-  const encoursCreditCampagneN1 = Math.max(0, somme(creditsValidesN1.filter((c) => getCreditType(c) === 'campagne'), (c) => n(c.montant_accorde)))
-  const encoursCreditEquipementN1 = Math.max(0, somme(creditsValidesN1.filter((c) => getCreditType(c) === 'equipement'), (c) => n(c.montant_accorde)))
+  const creditsEmpruntsN1 = creditsValidesN1.filter((c) => isCreditLongTerme(c))
+  const creditsTresorerieN1 = creditsValidesN1.filter((c) => !isCreditLongTerme(c))
 
-  const empruntsPassifN = saisies.emprunts !== undefined ? n(saisies.emprunts) : encoursCreditEquipementN
-  const creditsCampagnePassifN = encoursCreditCampagneN
+  const idsEmpruntsN1 = new Set(creditsEmpruntsN1.map((c) => c.id))
+  const idsTresorerieN1 = new Set(creditsTresorerieN1.map((c) => c.id))
+
+  const rembEmpruntsN1 = somme(
+    tresoAvantFinN1.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsEmpruntsN1.has(t.credit_id)),
+    (t) => n(t.montant)
+  )
+  const encoursEmpruntsN1 = Math.max(0, somme(creditsEmpruntsN1, (c) => n(c.montant_accorde)) - rembEmpruntsN1)
+
+  const rembTresorerieN1 = somme(
+    tresoAvantFinN1.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsTresorerieN1.has(t.credit_id)),
+    (t) => n(t.montant)
+  )
+  const encoursTresorerieN1 = Math.max(0, somme(creditsTresorerieN1, (c) => n(c.montant_accorde)) - rembTresorerieN1)
+
+  const empruntsPassifN = saisies.emprunts !== undefined ? n(saisies.emprunts) : encoursEmpruntsN
+  const creditsCampagnePassifN = encoursTresorerieN
+
+  // Détails des emprunts > 12 mois
+  const detailsEmprunts: SMTDetailItem[] = creditsEmpruntsN.map((c) => {
+    const rembCredit = somme(
+      tresoAvantFinN.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id === c.id),
+      (t) => n(t.montant)
+    )
+    const soldeCredit = Math.max(0, n(c.montant_accorde) - rembCredit)
+    const nomCredit = c.equipement_nom || c.but_credit?.replace(/\[[^\]]*\]/g, '').trim() || 'Emprunt financier'
+    const dureeTxt = c.duree_credit ? ` (${c.duree_credit} mois)` : ' (> 12 mois)'
+    return {
+      libelle: `${nomCredit}${dureeTxt}`,
+      valeur: soldeCredit,
+      commentaire: `Accordé : ${n(c.montant_accorde).toLocaleString('fr-FR')} FCFA | Remboursé : ${rembCredit.toLocaleString('fr-FR')} FCFA`,
+    }
+  })
+
+  // Détails des crédits de trésorerie ≤ 12 mois
+  const detailsTresorerieCredits: SMTDetailItem[] = creditsTresorerieN.map((c) => {
+    const rembCredit = somme(
+      tresoAvantFinN.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id === c.id),
+      (t) => n(t.montant)
+    )
+    const soldeCredit = Math.max(0, n(c.montant_accorde) - rembCredit)
+    const nomCredit = c.but_credit?.replace(/\[[^\]]*\]/g, '').trim() || 'Crédit de campagne / trésorerie'
+    const dureeTxt = c.duree_credit ? ` (${c.duree_credit} mois)` : ' (≤ 12 mois)'
+    return {
+      libelle: `${nomCredit}${dureeTxt}`,
+      valeur: soldeCredit,
+      commentaire: `Accordé : ${n(c.montant_accorde).toLocaleString('fr-FR')} FCFA | Remboursé : ${rembCredit.toLocaleString('fr-FR')} FCFA`,
+    }
+  })
 
   // Capital et fonds propres du GIE (équilibre strict du bilan SMT)
   const capitalN =
@@ -846,8 +907,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
 
   const capitalN1 =
     totalActifNetN1 -
-    (encoursCreditEquipementN1 +
-      encoursCreditCampagneN1 +
+    (encoursEmpruntsN1 +
+      encoursTresorerieN1 +
       dettesFournisseursN1 +
       dettesMembresSurplusN1 +
       dettesTiersEmpruntsN1)
@@ -860,7 +921,11 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         amortissement: immoAmoN,
         net: immoNetN,
         netN1: immoNetN1,
-        note: 'Tracteurs, moissonneuses, motopompes, matériel valorisés au coût d\'acquisition net d\'amortissements',
+        note: 'Tracteurs, moissonneuses, motopompes et équipements valorisés au coût d\'acquisition net d\'amortissements',
+        details: [
+          { libelle: 'Valeur brute d\'acquisition du matériel', valeur: immoBrutN, commentaire: `${raw.materiels.length} équipement(s) inscrit(s) à l'actif` },
+          { libelle: 'Amortissements cumulés pratiqués', valeur: -immoAmoN, commentaire: 'Dépréciation économique linéaire sur la durée de vie' },
+        ],
       },
       stocksIntrants: {
         libelle: 'Stocks d\'intrants (engrais, urée, semences)',
@@ -869,6 +934,11 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: stockIntrantsN,
         netN1: stockIntrantsN1,
         note: 'Stocks physiques en magasin valorisés au dernier prix d\'achat',
+        details: raw.intrants.filter(i => isStockableIntrant(i) && n(i.quantite_stock) > 0).map(i => ({
+          libelle: i.nom || 'Intrant',
+          valeur: n(i.quantite_stock) * n(i.prix_unitaire),
+          commentaire: `${n(i.quantite_stock)} en stock à ${n(i.prix_unitaire)} FCFA/unité`,
+        })),
       },
       stocksNature: {
         libelle: 'Stocks de produits agricoles en nature (paddy, récoltes)',
@@ -877,6 +947,10 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: stockNatureN,
         netN1: stockNatureN1,
         note: 'Sacs de paddy et récoltes collectés en attente de vente ou redistribution',
+        details: [
+          { libelle: 'Stock récoltes exploitation (campagne)', valeur: stockNatureAgriN, commentaire: 'Remboursements en nature membres' },
+          ...(stockNatureMatN > 0 ? [{ libelle: 'Stock récoltes matériel (prestations)', valeur: stockNatureMatN, commentaire: 'Règlements en nature de travaux' }] : []),
+        ],
       },
       stocksTotal: {
         libelle: 'Total des Stocks',
@@ -885,6 +959,11 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: stockTotalN,
         netN1: stockTotalN1,
         note: 'Intrants + récoltes en magasin',
+        details: [
+          { libelle: 'Stock d\'intrants (engrais, semences en magasin)', valeur: stockIntrantsN, commentaire: 'Valorisé au dernier coût d\'achat' },
+          { libelle: 'Stock récoltes exploitation agricole', valeur: stockNatureAgriN, commentaire: 'Paddy et récoltes des membres' },
+          ...(stockNatureMatN > 0 ? [{ libelle: 'Stock récoltes matériel (prestations)', valeur: stockNatureMatN, commentaire: 'Règlements en nature de travaux' }] : []),
+        ],
       },
       creancesMembres: {
         libelle: 'Créances d\'exploitation sur les membres',
@@ -893,6 +972,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: creancesMembresN,
         netN1: creancesMembresN1,
         note: 'Reliquats facturés sur intrants et charges de campagne des membres',
+        details: [
+          { libelle: 'Reliquats facturés aux membres', valeur: creancesMembresN, commentaire: 'Campagnes d\'exploitation en cours' },
+        ],
       },
       creancesClients: {
         libelle: 'Créances d\'exploitation sur clients acheteurs',
@@ -901,6 +983,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: creancesClientsN,
         netN1: creancesClientsN1,
         note: 'Factures de vente de récoltes à terme en attente de règlement',
+        details: [
+          { libelle: 'Factures clients acheteurs de récoltes', valeur: creancesClientsN, commentaire: 'Ventes de paddy et récoltes à terme' },
+        ],
       },
       creancesMateriel: {
         libelle: 'Créances d\'activité matériel (prestations & ventes)',
@@ -909,6 +994,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: creancesMaterielN,
         netN1: creancesMaterielN1,
         note: 'Prestations et ventes de paddy moissonneuse restant à recouvrer',
+        details: [
+          { libelle: 'Prestations de travaux restant à recouvrer', valeur: creancesMaterielN, commentaire: 'Factures de labour, battage, moisson' },
+        ],
       },
       creancesTotal: {
         libelle: 'Total des Créances d\'Exploitation & Matériel',
@@ -917,6 +1005,11 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: creancesTotalN,
         netN1: creancesTotalN1,
         note: 'Créances membres, clients acheteurs et prestations matériel',
+        details: [
+          { libelle: 'Créances membres (campagnes agricoles)', valeur: creancesMembresN, commentaire: 'Reliquats facturés sur intrants et charges' },
+          { libelle: 'Créances clients acheteurs de récoltes', valeur: creancesClientsN, commentaire: 'Factures de vente à terme en attente de règlement' },
+          ...(creancesMaterielN > 0 ? [{ libelle: 'Créances prestations de matériel', valeur: creancesMaterielN, commentaire: 'Prestations mécanisées restant dues' }] : []),
+        ],
       },
       disponibilites: {
         libelle: 'Disponibilités (Banques & Caisses)',
@@ -925,6 +1018,11 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: disponibilitesN,
         netN1: disponibilitesN1,
         note: 'Soldes positifs de tous les comptes bancaires et caisses du GIE',
+        details: comptesList.filter(c => c.soldeFinal > 0).map(c => ({
+          libelle: c.nom,
+          valeur: c.soldeFinal,
+          commentaire: `Solde disponible au 31/12/${annee}`,
+        })),
       },
       totalActif: {
         libelle: 'TOTAL ACTIF SMT',
@@ -933,6 +1031,12 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: totalActifNetN,
         netN1: totalActifNetN1,
         note: 'Total du patrimoine actif du GIE',
+        details: [
+          { libelle: 'Immobilisations nettes', valeur: immoNetN, commentaire: 'Matériel net d\'amortissements' },
+          { libelle: 'Stocks & En-cours', valeur: stockTotalN, commentaire: 'Intrants et récoltes' },
+          { libelle: 'Créances totales', valeur: creancesTotalN, commentaire: 'Membres, acheteurs, prestations' },
+          { libelle: 'Disponibilités', valeur: disponibilitesN, commentaire: 'Banques et caisses' },
+        ],
       },
     },
     passif: {
@@ -943,6 +1047,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: capitalN,
         netN1: capitalN1,
         note: 'Fonds associatifs et apports nets des coopérateurs',
+        details: [
+          { libelle: 'Fonds propres et réserves du GIE', valeur: capitalN, commentaire: 'Garantit l\'équilibre strict du bilan patrimonial' },
+        ],
       },
       resultatNet: {
         libelle: 'Résultat net de l\'exercice (SMT)',
@@ -951,6 +1058,10 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: resultatNetGlobal,
         netN1: 0,
         note: 'Résultat issu du Compte d\'Exploitation SMT (Exploitation + Matériel)',
+        details: [
+          { libelle: 'Résultat net volet exploitation agricole', valeur: resultatNetAgricole, commentaire: 'Activités agricoles de la campagne' },
+          { libelle: 'Résultat net volet matériel', valeur: resultatNetMateriel, commentaire: 'Prestations et parc de matériels' },
+        ],
       },
       subventions: {
         libelle: 'Subventions d\'investissement & d\'équipement',
@@ -959,22 +1070,27 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: subventionsAgricolesN,
         netN1: 0,
         note: 'Subventions et dons affectés au matériel ou aux aménagements',
+        details: subventionsAgricolesN > 0 ? [
+          { libelle: 'Subventions d\'investissement enregistrées', valeur: subventionsAgricolesN, commentaire: 'Aides reçues pour investissements durables' },
+        ] : [],
       },
       empruntsEquipement: {
-        libelle: 'Emprunts et dettes financières (Crédit Équipement)',
+        libelle: 'Emprunts et dettes financières (> 12 mois)',
         brut: empruntsPassifN,
         amortissement: 0,
         net: empruntsPassifN,
-        netN1: encoursCreditEquipementN1,
-        note: 'Capital restant dû sur le crédit bancaire d\'acquisition du matériel',
+        netN1: encoursEmpruntsN1,
+        note: 'Solde restant dû de tous les emprunts et crédits accordés sur une période supérieure à 12 mois (hors crédits de trésorerie)',
+        details: detailsEmprunts,
       },
       creditsCampagne: {
-        libelle: 'Crédits de trésorerie & de campagne en cours',
+        libelle: 'Crédits de trésorerie & de campagne en cours (≤ 12 mois)',
         brut: creditsCampagnePassifN,
         amortissement: 0,
         net: creditsCampagnePassifN,
-        netN1: encoursCreditCampagneN1,
-        note: 'Encours du crédit de campagne bancaire pour intrants',
+        netN1: encoursTresorerieN1,
+        note: 'Solde en cours des crédits de campagne et crédits de trésorerie bancaires à court terme (≤ 12 mois)',
+        details: detailsTresorerieCredits,
       },
       dettesFournisseurs: {
         libelle: 'Dettes fournisseurs d\'intrants & tiers d\'exploitation',
@@ -983,6 +1099,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: dettesFournisseursN,
         netN1: dettesFournisseursN1,
         note: 'Factures d\'intrants et prestations reçues restant à payer',
+        details: [
+          { libelle: 'Factures fournisseurs impayées', valeur: dettesFournisseursN, commentaire: 'Achats d\'intrants restant dus' },
+        ],
       },
       dettesMembresSurplus: {
         libelle: 'Dettes envers les membres (Surplus de remboursement)',
@@ -991,6 +1110,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: dettesMembresSurplusN,
         netN1: dettesMembresSurplusN1,
         note: 'Trop-perçus et excédents de remboursements des membres à régulariser',
+        details: [
+          { libelle: 'Surplus et trop-perçus des membres', valeur: dettesMembresSurplusN, commentaire: 'Excédents de paiement sur factures d\'exploitation' },
+        ],
       },
       dettesTiersEmprunts: {
         libelle: 'Dettes financières à court terme (Prêts de tiers / membres à la caisse)',
@@ -999,6 +1121,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: dettesTiersEmpruntsN,
         netN1: dettesTiersEmpruntsN1,
         note: 'Prêts, emprunts et avances consentis par des membres, clients ou fournisseurs à la caisse',
+        details: [
+          { libelle: 'Prêts et dépôts consentis à la caisse', valeur: dettesTiersEmpruntsN, commentaire: 'Ressources financières prêtées au GIE' },
+        ],
       },
       totalPassif: {
         libelle: 'TOTAL PASSIF SMT',
@@ -1007,6 +1132,16 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: totalActifNetN,
         netN1: totalActifNetN1,
         note: 'Total des ressources et financements du GIE (égal au Total Actif)',
+        details: [
+          { libelle: 'Fonds propres / Capital', valeur: capitalN },
+          { libelle: 'Résultat net de l\'exercice', valeur: resultatNetGlobal },
+          ...(subventionsAgricolesN > 0 ? [{ libelle: 'Subventions d\'investissement', valeur: subventionsAgricolesN }] : []),
+          { libelle: 'Emprunts & dettes financières (> 12 mois)', valeur: empruntsPassifN },
+          { libelle: 'Crédits de trésorerie (≤ 12 mois)', valeur: creditsCampagnePassifN },
+          { libelle: 'Dettes fournisseurs', valeur: dettesFournisseursN },
+          { libelle: 'Dettes membres (surplus)', valeur: dettesMembresSurplusN },
+          ...(dettesTiersEmpruntsN > 0 ? [{ libelle: 'Dettes financières CT (prêts tiers)', valeur: dettesTiersEmpruntsN }] : []),
+        ],
       },
     },
   }

@@ -3,7 +3,7 @@
 // aucune requête ici, tout est calculé depuis `BilanRaw` pour pouvoir produire
 // l'exercice N et l'exercice N-1 avec un seul chargement de données.
 
-import { getCreditType } from './credits-types'
+import { getCreditType, isCreditLongTerme } from './credits-types'
 import { isStockableIntrant } from './intrants/types'
 import { parseStockInitialCampagne } from './smt'
 
@@ -543,29 +543,29 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   // ---- Passif ----
   const creditsValides = raw.credits.filter((c) => c.statut === 'valide' && avant(c.date_demande, fin))
 
-  // Séparation Crédits de Campagne vs Crédits d'Équipement
-  const creditsCampagne = creditsValides.filter((c) => getCreditType(c) === 'campagne')
-  const creditsEquipement = creditsValides.filter((c) => getCreditType(c) === 'equipement')
+  // Séparation Emprunts & dettes financières (> 12 mois) vs Crédits de trésorerie (≤ 12 mois)
+  const creditsEmprunts = creditsValides.filter((c) => isCreditLongTerme(c))
+  const creditsTresorerieCourtTerme = creditsValides.filter((c) => !isCreditLongTerme(c))
 
-  const idsCampagne = new Set(creditsCampagne.map((c) => c.id))
-  const idsEquipement = new Set(creditsEquipement.map((c) => c.id))
+  const idsEmprunts = new Set(creditsEmprunts.map((c) => c.id))
+  const idsCourtTerme = new Set(creditsTresorerieCourtTerme.map((c) => c.id))
 
-  const remboursementsCampagne = somme(
-    tresoAvant.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsCampagne.has(t.credit_id)),
+  const remboursementsEmprunts = somme(
+    tresoAvant.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsEmprunts.has(t.credit_id)),
     (t) => n(t.montant)
   )
-  const creditCampagneRestant = Math.max(
+  const soldeEmpruntsRestants = Math.max(
     0,
-    somme(creditsCampagne, (c) => n(c.montant_accorde)) - remboursementsCampagne
+    somme(creditsEmprunts, (c) => n(c.montant_accorde)) - remboursementsEmprunts
   )
 
-  const remboursementsEquipement = somme(
-    tresoAvant.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsEquipement.has(t.credit_id)),
+  const remboursementsCourtTerme = somme(
+    tresoAvant.filter((t) => t.type_piece === 'remboursement_credit' && t.credit_id && idsCourtTerme.has(t.credit_id)),
     (t) => n(t.montant)
   )
-  const creditEquipementRestant = Math.max(
+  const soldeCreditTresorerieRestant = Math.max(
     0,
-    somme(creditsEquipement, (c) => n(c.montant_accorde)) - remboursementsEquipement
+    somme(creditsTresorerieCourtTerme, (c) => n(c.montant_accorde)) - remboursementsCourtTerme
   )
 
   const dettesFournisseurs = Math.max(
@@ -577,11 +577,11 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   const dettes = dettesFournisseurs + dettesMembres + dettesClients
   const subventions = n(saisies.subventions)
 
-  // Emprunts : solde en cours du crédit équipement par défaut (ou valeur manuelle saisie)
-  const emprunts = saisies.emprunts !== undefined ? n(saisies.emprunts) : creditEquipementRestant
+  // Emprunts : solde de tous les emprunts ou crédits accordés sur une période > 12 mois (ou valeur manuelle saisie)
+  const emprunts = saisies.emprunts !== undefined ? n(saisies.emprunts) : soldeEmpruntsRestants
 
-  // Crédit de trésorerie : solde en cours du crédit de campagne + découverts bancaires
-  const creditsTresorerie = creditCampagneRestant + decouvertsComptes
+  // Crédit de trésorerie : solde en cours des crédits court terme (≤ 12 mois) + découverts bancaires
+  const creditsTresorerie = soldeCreditTresorerieRestant + decouvertsComptes
 
   // Capital = solde du bilan : ce qu'il faut pour équilibrer le total du passif avec l'actif net.
   const capital = totalActif.net - (resultat + subventions + emprunts + dettes + creditsTresorerie)

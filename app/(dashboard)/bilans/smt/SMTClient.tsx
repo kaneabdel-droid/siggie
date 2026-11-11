@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   Info,
+  X,
 } from 'lucide-react'
 import { saveSmtSaisie } from './actions'
 
@@ -46,6 +47,16 @@ export default function SMTClient({
   const [voletTab, setVoletTab] = useState<'global' | 'agricole' | 'materiel'>('global')
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
+  const [selectedLigneDetail, setSelectedLigneDetail] = useState<{
+    libelle: string
+    montant?: number
+    net?: number
+    brut?: number
+    amortissement?: number
+    netN1?: number
+    note?: string
+    details?: { libelle: string; valeur: number; unite?: string; commentaire?: string }[]
+  } | null>(null)
 
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
   const fmt = (v: number) =>
@@ -159,8 +170,8 @@ export default function SMTClient({
         </div>
 
         <div className={`p-4 rounded-xl border shadow-sm ${data.compteExploitation.global.resultatNet >= 0
-            ? 'bg-success/5 border-success/30 text-success'
-            : 'bg-danger/5 border-danger/30 text-danger'
+          ? 'bg-success/5 border-success/30 text-success'
+          : 'bg-danger/5 border-danger/30 text-danger'
           }`}>
           <div className="flex items-center justify-between text-xs font-semibold mb-1">
             <span>Résultat Net SMT</span>
@@ -181,8 +192,8 @@ export default function SMTClient({
           type="button"
           onClick={() => setActiveTab('exploitation')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'exploitation'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-foreground-muted hover:text-foreground'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-foreground-muted hover:text-foreground'
             }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -193,8 +204,8 @@ export default function SMTClient({
           type="button"
           onClick={() => setActiveTab('bilan')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'bilan'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-foreground-muted hover:text-foreground'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-foreground-muted hover:text-foreground'
             }`}
         >
           <Scale className="w-4 h-4" />
@@ -205,8 +216,8 @@ export default function SMTClient({
           type="button"
           onClick={() => setActiveTab('tresorerie')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'tresorerie'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-foreground-muted hover:text-foreground'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-foreground-muted hover:text-foreground'
             }`}
         >
           <Wallet className="w-4 h-4" />
@@ -229,8 +240,8 @@ export default function SMTClient({
                 type="button"
                 onClick={() => setVoletTab('global')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${voletTab === 'global'
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-foreground-muted hover:text-foreground'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-foreground-muted hover:text-foreground'
                   }`}
               >
                 <Layers className="w-3.5 h-3.5" />
@@ -240,8 +251,8 @@ export default function SMTClient({
                 type="button"
                 onClick={() => setVoletTab('agricole')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${voletTab === 'agricole'
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-foreground-muted hover:text-foreground'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-foreground-muted hover:text-foreground'
                   }`}
               >
                 <Wheat className="w-3.5 h-3.5" />
@@ -251,8 +262,8 @@ export default function SMTClient({
                 type="button"
                 onClick={() => setVoletTab('materiel')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${voletTab === 'materiel'
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-foreground-muted hover:text-foreground'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-foreground-muted hover:text-foreground'
                   }`}
               >
                 <Tractor className="w-3.5 h-3.5" />
@@ -290,9 +301,12 @@ export default function SMTClient({
               <table className="min-w-full divide-y divide-surface-border">
                 <tbody className="divide-y divide-surface-border">
                   {currentVolet.recettes.map((r, idx) => (
-                    <tr key={idx} className="hover:bg-background/40">
-                      <td className="px-4 py-2.5 text-foreground">{r.libelle}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-foreground tabular-nums">
+                    <tr key={idx} className="hover:bg-primary/5 transition-colors group cursor-pointer" onClick={() => setSelectedLigneDetail(r)}>
+                      <td className="px-4 py-2.5 text-foreground group-hover:text-primary transition-colors flex items-center justify-between" title="Cliquer pour voir le détail">
+                        <span>{r.libelle}</span>
+                        <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-2" />
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-foreground tabular-nums group-hover:text-primary transition-colors" title="Cliquer pour voir le détail">
                         {fmt(r.montant)}
                       </td>
                     </tr>
@@ -315,9 +329,12 @@ export default function SMTClient({
               <table className="min-w-full divide-y divide-surface-border">
                 <tbody className="divide-y divide-surface-border">
                   {currentVolet.depenses.map((d, idx) => (
-                    <tr key={idx} className="hover:bg-background/40">
-                      <td className="px-4 py-2.5 text-foreground">{d.libelle}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-foreground tabular-nums">
+                    <tr key={idx} className="hover:bg-danger/5 transition-colors group cursor-pointer" onClick={() => setSelectedLigneDetail(d)}>
+                      <td className="px-4 py-2.5 text-foreground group-hover:text-danger transition-colors flex items-center justify-between" title="Cliquer pour voir le détail">
+                        <span>{d.libelle}</span>
+                        <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-danger shrink-0 ml-2" />
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-foreground tabular-nums group-hover:text-danger transition-colors" title="Cliquer pour voir le détail">
                         {fmt(d.montant)}
                       </td>
                     </tr>
@@ -351,10 +368,13 @@ export default function SMTClient({
               <table className="min-w-full divide-y divide-surface-border">
                 <tbody className="divide-y divide-surface-border">
                   {currentVolet.ajustements.map((a, idx) => (
-                    <tr key={idx} className="hover:bg-background/40">
-                      <td className="px-4 py-2.5 text-foreground">{a.libelle}</td>
-                      <td className={`px-4 py-2.5 text-right font-medium tabular-nums ${a.montant >= 0 ? 'text-foreground' : 'text-danger'
-                        }`}>
+                    <tr key={idx} className="hover:bg-primary/5 transition-colors group cursor-pointer" onClick={() => setSelectedLigneDetail(a)}>
+                      <td className="px-4 py-2.5 text-foreground group-hover:text-primary transition-colors flex items-center justify-between" title="Cliquer pour voir le détail">
+                        <span>{a.libelle}</span>
+                        <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-2" />
+                      </td>
+                      <td className={`px-4 py-2.5 text-right font-medium tabular-nums group-hover:text-primary transition-colors ${a.montant >= 0 ? 'text-foreground' : 'text-danger'
+                        }`} title="Cliquer pour voir le détail">
                         {fmt(a.montant)}
                       </td>
                     </tr>
@@ -364,8 +384,8 @@ export default function SMTClient({
 
               {/* RESULTAT NET FINAL SMT */}
               <div className={`p-4 flex justify-between items-center font-bold text-base border-t-2 ${currentVolet.resultatNet >= 0
-                  ? 'bg-success/10 text-success border-success/30'
-                  : 'bg-danger/10 text-danger border-danger/30'
+                ? 'bg-success/10 text-success border-success/30'
+                : 'bg-danger/10 text-danger border-danger/30'
                 }`}>
                 <div>
                   <span>V. RÉSULTAT NET DE L&apos;EXERCICE (SMT) (A - B + C)</span>
@@ -419,9 +439,16 @@ export default function SMTClient({
                   </thead>
                   <tbody className="divide-y divide-surface-border">
                     {/* Immobilisations */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.actif.immobilisations.libelle}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.immobilisations)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.actif.immobilisations.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
                         {fmt(data.bilan.actif.immobilisations.brut)}
@@ -429,7 +456,11 @@ export default function SMTClient({
                       <td className="px-3 py-2.5 text-right tabular-nums text-danger">
                         {fmt(data.bilan.actif.immobilisations.amortissement)}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.immobilisations)}
+                        className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.actif.immobilisations.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -438,18 +469,26 @@ export default function SMTClient({
                     </tr>
 
                     {/* Stocks */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.actif.stocksTotal.libelle}
-                        <span className="block text-[11px] text-foreground-muted">
-                          Intrants ({fmt(data.bilan.actif.stocksIntrants.net)}) + Nature ({fmt(data.bilan.actif.stocksNature.net)})
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.stocksTotal)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.actif.stocksTotal.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
                         {fmt(data.bilan.actif.stocksTotal.brut)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">-</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.stocksTotal)}
+                        className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.actif.stocksTotal.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -458,21 +497,26 @@ export default function SMTClient({
                     </tr>
 
                     {/* Créances */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.actif.creancesTotal.libelle}
-                        <span className="block text-[11px] text-foreground-muted">
-                          Exploitation Membres ({fmt(data.bilan.actif.creancesMembres.net)}) + Acheteurs ({fmt(data.bilan.actif.creancesClients.net)})
-                          {data.bilan.actif.creancesMateriel && (
-                            <> + Matériel ({fmt(data.bilan.actif.creancesMateriel.net)})</>
-                          )}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.creancesTotal)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.actif.creancesTotal.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
                         {fmt(data.bilan.actif.creancesTotal.brut)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">-</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.creancesTotal)}
+                        className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.actif.creancesTotal.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -481,18 +525,26 @@ export default function SMTClient({
                     </tr>
 
                     {/* Disponibilités */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.actif.disponibilites.libelle}
-                        <span className="block text-[11px] text-foreground-muted">
-                          Soldes positifs des comptes et caisses
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.disponibilites)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.actif.disponibilites.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
                         {fmt(data.bilan.actif.disponibilites.brut)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">-</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.disponibilites)}
+                        className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.actif.disponibilites.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -501,15 +553,28 @@ export default function SMTClient({
                     </tr>
                   </tbody>
                   <tfoot>
-                    <tr className="bg-primary/5 font-bold text-foreground border-t-2 border-primary/20">
-                      <td className="px-3 py-3">{data.bilan.actif.totalActif.libelle}</td>
+                    <tr className="bg-primary/5 font-bold text-foreground border-t-2 border-primary/20 hover:bg-primary/10 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.totalActif)}
+                        className="px-3 py-3 cursor-pointer group-hover:text-primary"
+                        title="Cliquer pour voir le détail"
+                      >
+                        <span className="flex items-center justify-between">
+                          <span>{data.bilan.actif.totalActif.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
+                      </td>
                       <td className="px-3 py-3 text-right tabular-nums">
                         {fmt(data.bilan.actif.totalActif.brut)}
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums text-danger">
                         {fmt(data.bilan.actif.totalActif.amortissement)}
                       </td>
-                      <td className="px-3 py-3 text-right tabular-nums text-primary text-base">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.actif.totalActif)}
+                        className="px-3 py-3 text-right tabular-nums text-primary text-base cursor-pointer group-hover:underline"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.actif.totalActif.net)}
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums text-foreground-muted">
@@ -541,11 +606,22 @@ export default function SMTClient({
                   </thead>
                   <tbody className="divide-y divide-surface-border">
                     {/* Fonds Propres */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.passif.capital.libelle}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.capital)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.passif.capital.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.capital)}
+                        className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.passif.capital.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -554,12 +630,23 @@ export default function SMTClient({
                     </tr>
 
                     {/* Résultat Net */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.passif.resultatNet.libelle}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.resultatNet)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.passif.resultatNet.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
                       </td>
-                      <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${data.bilan.passif.resultatNet.net >= 0 ? 'text-success' : 'text-danger'
-                        }`}>
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.resultatNet)}
+                        className={`px-3 py-2.5 text-right tabular-nums font-semibold cursor-pointer group-hover:underline transition-colors ${data.bilan.passif.resultatNet.net >= 0 ? 'text-success' : 'text-danger'
+                          }`}
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.passif.resultatNet.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -568,9 +655,16 @@ export default function SMTClient({
                     </tr>
 
                     {/* Subventions */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.passif.subventions.libelle}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.subventions)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.passif.subventions.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground">
                         {canEdit ? (
@@ -583,7 +677,13 @@ export default function SMTClient({
                             className="w-28 rounded border border-surface-border bg-background px-2 py-0.5 text-right text-xs"
                           />
                         ) : (
-                          fmt(data.bilan.passif.subventions.net)
+                          <span
+                            onClick={() => setSelectedLigneDetail(data.bilan.passif.subventions)}
+                            className="cursor-pointer hover:text-primary hover:underline"
+                            title="Cliquer pour voir le détail"
+                          >
+                            {fmt(data.bilan.passif.subventions.net)}
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -592,9 +692,16 @@ export default function SMTClient({
                     </tr>
 
                     {/* Emprunts Équipement */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.passif.empruntsEquipement.libelle}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.empruntsEquipement)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.passif.empruntsEquipement.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground">
                         {canEdit ? (
@@ -607,7 +714,13 @@ export default function SMTClient({
                             className="w-28 rounded border border-surface-border bg-background px-2 py-0.5 text-right text-xs"
                           />
                         ) : (
-                          fmt(data.bilan.passif.empruntsEquipement.net)
+                          <span
+                            onClick={() => setSelectedLigneDetail(data.bilan.passif.empruntsEquipement)}
+                            className="cursor-pointer hover:text-primary hover:underline"
+                            title="Cliquer pour voir le détail"
+                          >
+                            {fmt(data.bilan.passif.empruntsEquipement.net)}
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -616,11 +729,22 @@ export default function SMTClient({
                     </tr>
 
                     {/* Crédits de campagne en cours */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.passif.creditsCampagne.libelle}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.creditsCampagne)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.passif.creditsCampagne.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.creditsCampagne)}
+                        className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.passif.creditsCampagne.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -629,11 +753,22 @@ export default function SMTClient({
                     </tr>
 
                     {/* Dettes fournisseurs */}
-                    <tr className="hover:bg-background/40">
-                      <td className="px-3 py-2.5 text-foreground font-medium">
-                        {data.bilan.passif.dettesFournisseurs.libelle}
+                    <tr className="hover:bg-primary/5 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.dettesFournisseurs)}
+                        className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                        title="Cliquer pour voir le détail de ce montant"
+                      >
+                        <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                          <span>{data.bilan.passif.dettesFournisseurs.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.dettesFournisseurs)}
+                        className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.passif.dettesFournisseurs.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -643,14 +778,22 @@ export default function SMTClient({
 
                     {/* Dettes membres (Surplus de remboursement) */}
                     {data.bilan.passif.dettesMembresSurplus && (
-                      <tr className="hover:bg-background/40">
-                        <td className="px-3 py-2.5 text-foreground font-medium">
-                          {data.bilan.passif.dettesMembresSurplus.libelle}
-                          <span className="block text-[11px] text-foreground-muted">
-                            Trop-perçus et excédents de remboursement des membres
+                      <tr className="hover:bg-primary/5 transition-colors group">
+                        <td
+                          onClick={() => setSelectedLigneDetail(data.bilan.passif.dettesMembresSurplus)}
+                          className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                          title="Cliquer pour voir le détail de ce montant"
+                        >
+                          <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                            <span>{data.bilan.passif.dettesMembresSurplus.libelle}</span>
+                            <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                        <td
+                          onClick={() => setSelectedLigneDetail(data.bilan.passif.dettesMembresSurplus)}
+                          className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                          title="Cliquer pour voir le détail"
+                        >
                           {fmt(data.bilan.passif.dettesMembresSurplus.net)}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -661,14 +804,22 @@ export default function SMTClient({
 
                     {/* Dettes financières CT (Prêts de tiers / membres à la caisse) */}
                     {data.bilan.passif.dettesTiersEmprunts && (
-                      <tr className="hover:bg-background/40">
-                        <td className="px-3 py-2.5 text-foreground font-medium">
-                          {data.bilan.passif.dettesTiersEmprunts.libelle}
-                          <span className="block text-[11px] text-foreground-muted">
-                            Prêts et avances de membres, clients ou fournisseurs à la caisse
+                      <tr className="hover:bg-primary/5 transition-colors group">
+                        <td
+                          onClick={() => setSelectedLigneDetail(data.bilan.passif.dettesTiersEmprunts)}
+                          className="px-3 py-2.5 text-foreground font-medium cursor-pointer"
+                          title="Cliquer pour voir le détail de ce montant"
+                        >
+                          <span className="flex items-center justify-between group-hover:text-primary transition-colors">
+                            <span>{data.bilan.passif.dettesTiersEmprunts.libelle}</span>
+                            <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                        <td
+                          onClick={() => setSelectedLigneDetail(data.bilan.passif.dettesTiersEmprunts)}
+                          className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground cursor-pointer group-hover:text-primary group-hover:underline transition-colors"
+                          title="Cliquer pour voir le détail"
+                        >
                           {fmt(data.bilan.passif.dettesTiersEmprunts.net)}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -678,9 +829,22 @@ export default function SMTClient({
                     )}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-primary/5 font-bold text-foreground border-t-2 border-primary/20">
-                      <td className="px-3 py-3">{data.bilan.passif.totalPassif.libelle}</td>
-                      <td className="px-3 py-3 text-right tabular-nums text-primary text-base">
+                    <tr className="bg-primary/5 font-bold text-foreground border-t-2 border-primary/20 hover:bg-primary/10 transition-colors group">
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.totalPassif)}
+                        className="px-3 py-3 cursor-pointer group-hover:text-primary"
+                        title="Cliquer pour voir le détail"
+                      >
+                        <span className="flex items-center justify-between">
+                          <span>{data.bilan.passif.totalPassif.libelle}</span>
+                          <Info className="h-3.5 w-3.5 text-foreground-muted opacity-30 group-hover:opacity-100 group-hover:text-primary shrink-0 ml-1.5" />
+                        </span>
+                      </td>
+                      <td
+                        onClick={() => setSelectedLigneDetail(data.bilan.passif.totalPassif)}
+                        className="px-3 py-3 text-right tabular-nums text-primary text-base cursor-pointer group-hover:underline"
+                        title="Cliquer pour voir le détail"
+                      >
                         {fmt(data.bilan.passif.totalPassif.net)}
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums text-foreground-muted">
@@ -821,6 +985,161 @@ export default function SMTClient({
           </div>
         </div>
       )}
+
+      {/* Modal d'affichage du détail de la ligne cliquée */}
+      {selectedLigneDetail && (
+        <ModalDetailLigneSMT
+          ligne={selectedLigneDetail}
+          onClose={() => setSelectedLigneDetail(null)}
+          devise={unite.trim()}
+          annee={annee}
+        />
+      )}
+    </div>
+  )
+}
+
+function ModalDetailLigneSMT({
+  ligne,
+  onClose,
+  devise,
+  annee,
+}: {
+  ligne: {
+    libelle: string
+    montant?: number
+    net?: number
+    brut?: number
+    amortissement?: number
+    netN1?: number
+    note?: string
+    details?: { libelle: string; valeur: number; unite?: string; commentaire?: string }[]
+  }
+  onClose: () => void
+  devise: string
+  annee: number
+}) {
+  const montantPrincipal = ligne.net !== undefined ? ligne.net : (ligne.montant !== undefined ? ligne.montant : 0)
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div className="fixed inset-0 bg-black/60 transition-opacity" onClick={onClose} />
+
+        <div className="relative transform overflow-hidden rounded-xl bg-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-surface-border">
+          {/* Header */}
+          <div className="flex items-start justify-between p-4 border-b border-surface-border bg-background/50">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Layers className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  {ligne.libelle}
+                </h3>
+                <p className="text-xs text-foreground-muted">
+                  Détail du montant — Exercice {annee}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-md text-foreground-muted hover:text-foreground hover:bg-surface transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="p-5 space-y-4">
+            {/* Montant global KPI */}
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between">
+              <div>
+                <div className="text-xs text-foreground-muted font-medium">Montant comptabilisé</div>
+                <div className="text-2xl font-black text-primary tracking-tight mt-0.5 font-mono">
+                  {Number(montantPrincipal).toLocaleString('fr-FR')} {devise}
+                </div>
+              </div>
+              {ligne.netN1 !== undefined && ligne.netN1 !== 0 && (
+                <div className="text-right">
+                  <div className="text-xs text-foreground-muted">Exercice N-1</div>
+                  <div className="text-sm font-semibold text-foreground-muted font-mono">
+                    {Number(ligne.netN1).toLocaleString('fr-FR')} {devise}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Note explicative / commentaire méthodologique SYSCOHADA */}
+            {ligne.note && (
+              <div className="p-3 rounded-lg bg-surface border border-surface-border text-xs text-foreground-muted flex items-start gap-2.5">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  {ligne.note}
+                </p>
+              </div>
+            )}
+
+            {/* Décomposition détaillée */}
+            {ligne.details && ligne.details.length > 0 ? (
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Composition &amp; Justificatifs du montant
+                </h4>
+                <div className="overflow-hidden rounded-lg border border-surface-border">
+                  <table className="min-w-full divide-y divide-surface-border text-xs">
+                    <thead className="bg-background">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-foreground-muted">Élément</th>
+                        <th className="px-3 py-2 text-right font-semibold text-foreground-muted">Montant ({devise})</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-border bg-surface">
+                      {ligne.details.map((d, i) => (
+                        <tr key={i} className="hover:bg-background/40">
+                          <td className="px-3 py-2 text-foreground font-medium">
+                            <div>{d.libelle}</div>
+                            {d.commentaire && (
+                              <div className="text-[11px] text-foreground-muted mt-0.5 font-normal">
+                                {d.commentaire}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono font-semibold text-foreground whitespace-nowrap">
+                            {Number(d.valeur).toLocaleString('fr-FR')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-background font-bold border-t border-surface-border">
+                      <tr>
+                        <td className="px-3 py-2 text-foreground">Total calculé</td>
+                        <td className="px-3 py-2 text-right font-mono text-primary">
+                          {Number(ligne.details.reduce((s, d) => s + (d.valeur || 0), 0)).toLocaleString('fr-FR')} {devise}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-2 text-xs text-foreground-muted italic">
+                Ce poste correspond au solde direct déterminé par les règles comptables du SMT.
+              </div>
+            )}
+          </div>
+
+          <div className="px-5 py-3 border-t border-surface-border bg-background/50 flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-md bg-surface border border-surface-border text-sm font-semibold text-foreground hover:bg-surface-hover transition-colors shadow-2xs"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
