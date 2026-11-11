@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Search, X, RotateCcw } from 'lucide-react'
+import { Search, X, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { getReleveMembre } from './actions'
 import PrintSectionButton from '@/components/PrintSectionButton'
@@ -46,6 +46,48 @@ export default function ReleveMembreClient({
       setSelectedMembre(matchedInitial.id)
     }
   }, [matchedInitial, selectedMembre])
+
+  const currentIndex = useMemo(() => {
+    const idx = membres.findIndex((m) => m.id === selectedMembre)
+    return idx >= 0 ? idx : 0
+  }, [membres, selectedMembre])
+
+  const currentMembreObj = membres[currentIndex]
+
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < membres.length - 1
+
+  const handlePrevMembre = useCallback(() => {
+    if (hasPrev) {
+      setSelectedMembre(membres[currentIndex - 1].id)
+    }
+  }, [hasPrev, membres, currentIndex])
+
+  const handleNextMembre = useCallback(() => {
+    if (hasNext) {
+      setSelectedMembre(membres[currentIndex + 1].id)
+    }
+  }, [hasNext, membres, currentIndex])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLSelectElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return
+      }
+      if (e.key === 'ArrowLeft') {
+        handlePrevMembre()
+      } else if (e.key === 'ArrowRight') {
+        handleNextMembre()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handlePrevMembre, handleNextMembre])
+
   const [lignes, setLignes] = useState<any[]>([])
   const [soldeFinal, setSoldeFinal] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -107,18 +149,59 @@ export default function ReleveMembreClient({
       </div>
 
       <div className="sm:flex sm:items-end sm:justify-between gap-4">
-        <div className="max-w-sm w-full">
-          <label htmlFor="membre" className="block text-sm font-medium text-foreground mb-1">{t.select_member}</label>
-          <select
-            id="membre"
-            value={selectedMembre}
-            onChange={(e) => setSelectedMembre(e.target.value)}
-            className="block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-          >
-            {membres.map((m) => (
-              <option key={m.id} value={m.id}>{m.prenom} {m.nom} {m.code_membre ? `[${m.code_membre}]` : ''}</option>
-            ))}
-          </select>
+        <div className="max-w-md w-full">
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="membre" className="block text-sm font-medium text-foreground">
+              {t.select_member}
+            </label>
+            {membres.length > 1 && (
+              <span className="text-xs font-mono font-semibold text-foreground-muted">
+                {currentIndex + 1} / {membres.length}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handlePrevMembre}
+              disabled={!hasPrev}
+              className="p-2 rounded-md border border-surface-border bg-surface hover:bg-background text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0 shadow-2xs"
+              title={
+                hasPrev
+                  ? `Membre précédent : ${membres[currentIndex - 1].prenom} ${membres[currentIndex - 1].nom}`
+                  : 'Premier membre'
+              }
+              aria-label="Membre précédent"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <select
+              id="membre"
+              value={selectedMembre}
+              onChange={(e) => setSelectedMembre(e.target.value)}
+              className="block flex-1 rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm truncate"
+            >
+              {membres.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.prenom} {m.nom} {m.code_membre ? `[${m.code_membre}]` : ''}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleNextMembre}
+              disabled={!hasNext}
+              className="p-2 rounded-md border border-surface-border bg-surface hover:bg-background text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0 shadow-2xs"
+              title={
+                hasNext
+                  ? `Membre suivant : ${membres[currentIndex + 1].prenom} ${membres[currentIndex + 1].nom}`
+                  : 'Dernier membre'
+              }
+              aria-label="Membre suivant"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         {!loading && !error && (
           <div className="mt-4 sm:mt-0">
@@ -134,14 +217,22 @@ export default function ReleveMembreClient({
         <div id="releve-membre-print" className="space-y-4">
           <div className="hidden print:block mb-4">
             <h2 className="text-xl font-bold text-foreground">{gieName}</h2>
-            <p className="text-sm text-foreground-muted">{t.title} — {membres.find((m) => m.id === selectedMembre)?.prenom || ''} {membres.find((m) => m.id === selectedMembre)?.nom || ''}</p>
+            <p className="text-sm text-foreground-muted">
+              {t.title} — {membres.find((m) => m.id === selectedMembre)?.prenom || ''}{' '}
+              {membres.find((m) => m.id === selectedMembre)?.nom || ''}
+            </p>
           </div>
-          <div className={`overflow-hidden rounded-lg px-4 py-5 shadow sm:p-6 max-w-xs ${soldeFinal > 0 ? 'bg-danger' : 'bg-success'} text-white`}>
+          <div
+            className={`overflow-hidden rounded-lg px-4 py-5 shadow sm:p-6 max-w-xs ${
+              soldeFinal > 0 ? 'bg-danger' : 'bg-success'
+            } text-white`}
+          >
             <dt className="text-sm font-medium text-white/90">
               {soldeFinal < 0 ? `${t.current_balance} (Surplus à ristourner)` : t.current_balance}
             </dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight">
-              {soldeFinal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{unite}
+              {soldeFinal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
+              {unite}
             </dd>
           </div>
 
@@ -185,12 +276,24 @@ export default function ReleveMembreClient({
             <table className="min-w-full divide-y divide-surface-border">
               <thead className="bg-background">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.season}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.date}</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.billed}</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.paid}</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">{t.headers.balance}</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider print:hidden">Facture</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">
+                    {t.headers.season}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-foreground-muted uppercase tracking-wider">
+                    {t.headers.date}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">
+                    {t.headers.billed}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">
+                    {t.headers.paid}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider">
+                    {t.headers.balance}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-foreground-muted uppercase tracking-wider print:hidden">
+                    Facture
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border bg-surface">
@@ -275,9 +378,56 @@ export default function ReleveMembreClient({
               </tbody>
             </table>
           </div>
+
+          {/* Navigation bas de relevé / formulaire */}
+          {membres.length > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-surface-border print:hidden">
+              <button
+                type="button"
+                onClick={handlePrevMembre}
+                disabled={!hasPrev}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-surface-border bg-surface hover:bg-background text-sm font-medium text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+                title={
+                  hasPrev
+                    ? `Consulter le relevé de : ${membres[currentIndex - 1].prenom} ${membres[currentIndex - 1].nom}`
+                    : ''
+                }
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Membre précédent</span>
+                <span className="sm:hidden">Précédent</span>
+              </button>
+
+              <span className="text-xs text-foreground-muted font-medium text-center">
+                Membre <strong className="text-foreground">{currentIndex + 1}</strong> sur{' '}
+                <strong className="text-foreground">{membres.length}</strong>
+                {currentMembreObj && (
+                  <span className="hidden sm:inline">
+                    {' '}
+                    — <span className="text-primary font-semibold">{currentMembreObj.prenom} {currentMembreObj.nom}</span>
+                  </span>
+                )}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleNextMembre}
+                disabled={!hasNext}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-surface-border bg-surface hover:bg-background text-sm font-medium text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+                title={
+                  hasNext
+                    ? `Consulter le relevé de : ${membres[currentIndex + 1].prenom} ${membres[currentIndex + 1].nom}`
+                    : ''
+                }
+              >
+                <span className="hidden sm:inline">Membre suivant</span>
+                <span className="sm:hidden">Suivant</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
-

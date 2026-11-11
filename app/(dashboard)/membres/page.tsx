@@ -179,6 +179,7 @@ export default async function MembresPage({
                           <div className="flex items-center gap-2">
                             <FicheMembreModal
                               membre={membre}
+                              membres={membres || []}
                               gieName={tenant?.gieName || 'Mon GIE'}
                               dict={dict}
                               locale={locale}
@@ -230,6 +231,7 @@ export default async function MembresPage({
                           <div className="flex items-center justify-end gap-2">
                             <FicheMembreModal
                               membre={membre}
+                              membres={membres || []}
                               gieName={tenant?.gieName || 'Mon GIE'}
                               dict={dict}
                               locale={locale}

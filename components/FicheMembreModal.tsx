@@ -22,7 +22,9 @@ import {
   Eye,
   Check,
   RotateCcw,
-  Paperclip
+  Paperclip,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { getFicheMembre } from '@/app/(dashboard)/bilans/releve-membre/actions'
 import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
@@ -44,12 +46,14 @@ type MembreData = {
 
 export default function FicheMembreModal({
   membre,
+  membres,
   gieName = 'Mon GIE',
   dict,
   locale = 'fr',
   triggerButton,
 }: {
   membre: MembreData
+  membres?: MembreData[]
   gieName?: string
   dict?: any
   locale?: string
@@ -57,21 +61,65 @@ export default function FicheMembreModal({
 }) {
   const unite = useUnite()
   const [isOpen, setIsOpen] = useState(false)
+  const [currentMembreId, setCurrentMembreId] = useState(membre.id)
   const [activeTab, setActiveTab] = useState<'factures' | 'remboursements' | 'prestations' | 'releve'>('factures')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<any>(null)
 
+  useEffect(() => {
+    setCurrentMembreId(membre.id)
+  }, [membre.id])
+
+  const membreList = useMemo(() => {
+    return membres && membres.length > 0 ? membres : [membre]
+  }, [membres, membre])
+
+  const currentIndex = useMemo(() => {
+    const idx = membreList.findIndex((m) => m.id === currentMembreId)
+    return idx >= 0 ? idx : 0
+  }, [membreList, currentMembreId])
+
+  const currentMembre = membreList[currentIndex] || membre
+
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < membreList.length - 1
+
+  const goToPrev = useCallback(() => {
+    if (hasPrev) {
+      setCurrentMembreId(membreList[currentIndex - 1].id)
+    }
+  }, [hasPrev, membreList, currentIndex])
+
+  const goToNext = useCallback(() => {
+    if (hasNext) {
+      setCurrentMembreId(membreList[currentIndex + 1].id)
+    }
+  }, [hasNext, membreList, currentIndex])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        goToPrev()
+      } else if (e.key === 'ArrowRight') {
+        goToNext()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, goToPrev, goToNext])
+
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
-  const displayCode = membre.code_membre || `MEM-${membre.id ? membre.id.slice(0, 4).toUpperCase() : '001'}`
+  const displayCode = currentMembre.code_membre || `MEM-${currentMembre.id ? currentMembre.id.slice(0, 4).toUpperCase() : '001'}`
 
   const fetchDetails = useCallback(async () => {
-    if (!membre.id) return
+    if (!currentMembre.id) return
     setLoading(true)
     setError('')
     try {
-      const res = await getFicheMembre(membre.id)
+      const res = await getFicheMembre(currentMembre.id)
       if (res?.error) {
         setError(res.error)
       } else {
@@ -82,7 +130,7 @@ export default function FicheMembreModal({
     } finally {
       setLoading(false)
     }
-  }, [membre.id])
+  }, [currentMembre.id])
 
   useEffect(() => {
     if (isOpen) {
@@ -131,7 +179,7 @@ export default function FicheMembreModal({
       {isOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
           <div className="relative w-full max-w-5xl rounded-2xl bg-surface border border-surface-border shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-            
+
             {/* Top Gradient Stripe */}
             <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-primary to-indigo-500 shrink-0" />
 
@@ -139,43 +187,42 @@ export default function FicheMembreModal({
             <div className="flex items-center justify-between p-5 border-b border-surface-border bg-background/50 shrink-0">
               <div className="flex items-center gap-4 min-w-0">
                 <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center text-primary shadow-xs shrink-0 font-bold text-xl">
-                  {membre.prenom ? membre.prenom[0] : ''}{membre.nom ? membre.nom[0] : ''}
+                  {currentMembre.prenom ? currentMembre.prenom[0] : ''}{currentMembre.nom ? currentMembre.nom[0] : ''}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <h2 className="text-2xl font-black text-foreground tracking-tight font-heading truncate">
-                      {membre.prenom} {membre.nom}
+                      {currentMembre.prenom} {currentMembre.nom}
                     </h2>
                     <span className="inline-flex items-center gap-1 rounded-md bg-primary/15 text-primary px-2.5 py-0.5 text-xs font-mono font-bold border border-primary/30 shadow-2xs">
                       {displayCode}
                     </span>
-                    <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                      membre.statut === 'actif'
+                    <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${currentMembre.statut === 'actif'
                         ? 'bg-success/10 text-success ring-success/20'
                         : 'bg-foreground-muted/10 text-foreground-muted ring-foreground-muted/20'
-                    }`}>
-                      {membre.statut === 'actif' ? 'Membre actif' : 'Membre inactif'}
+                      }`}>
+                      {currentMembre.statut === 'actif' ? 'Membre actif' : 'Membre inactif'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-foreground-muted mt-1.5 flex-wrap">
-                    {membre.village && (
+                    {currentMembre.village && (
                       <span className="inline-flex items-center gap-1 bg-surface px-2.5 py-1 rounded-md border border-surface-border text-foreground font-medium">
                         <MapPin className="h-3.5 w-3.5 text-primary" />
-                        {membre.village}
+                        {currentMembre.village}
                       </span>
                     )}
-                    {membre.telephone ? (
+                    {currentMembre.telephone ? (
                       <span className="inline-flex items-center gap-1.5 bg-surface px-2.5 py-1 rounded-md border border-surface-border font-mono text-foreground">
                         <Phone className="h-3.5 w-3.5 text-primary" />
-                        {membre.telephone}
+                        {currentMembre.telephone}
                       </span>
                     ) : (
                       <span className="italic text-foreground-muted">Sans téléphone</span>
                     )}
-                    {membre.superficie && (
+                    {currentMembre.superficie && (
                       <span className="inline-flex items-center gap-1 bg-surface px-2.5 py-1 rounded-md border border-surface-border text-foreground-muted font-medium">
                         <Wheat className="h-3.5 w-3.5 text-primary" />
-                        {Number(membre.superficie).toLocaleString(dateLocale, { maximumFractionDigits: 2 })} ha
+                        {Number(currentMembre.superficie).toLocaleString(dateLocale, { maximumFractionDigits: 2 })} ha
                       </span>
                     )}
                     <span className="text-surface-border">•</span>
@@ -188,10 +235,38 @@ export default function FicheMembreModal({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {/* Flèches de navigation Suivant / Précédent en entête */}
+                {membreList.length > 1 && (
+                  <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-xl border border-surface-border shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={goToPrev}
+                      disabled={!hasPrev}
+                      className="p-1 rounded-lg text-foreground hover:bg-background disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      title={hasPrev ? `Membre précédent : ${membreList[currentIndex - 1].prenom} ${membreList[currentIndex - 1].nom}` : 'Premier membre'}
+                      aria-label="Membre précédent"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-[11px] font-mono font-bold px-1 text-foreground-muted whitespace-nowrap">
+                      {currentIndex + 1} / {membreList.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={goToNext}
+                      disabled={!hasNext}
+                      className="p-1 rounded-lg text-foreground hover:bg-background disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      title={hasNext ? `Membre suivant : ${membreList[currentIndex + 1].prenom} ${membreList[currentIndex + 1].nom}` : 'Dernier membre'}
+                      aria-label="Membre suivant"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 <JustificatifSoldeModal
-                  membreId={membre.id}
-                  membreNom={`${membre.nom} ${membre.prenom}`}
-                  soldeInitial={membre.solde_initial}
+                  membreId={currentMembre.id}
+                  membreNom={`${currentMembre.nom} ${currentMembre.prenom}`}
+                  soldeInitial={currentMembre.solde_initial}
                   triggerButton={
                     <button
                       type="button"
@@ -269,34 +344,31 @@ export default function FicheMembreModal({
 
                 {/* Carte 3 : Solde Dû / Position */}
                 <div
-                  className={`rounded-xl border p-4 shadow-xs relative overflow-hidden flex flex-col justify-between ${
-                    soldeActuel > 0
+                  className={`rounded-xl border p-4 shadow-xs relative overflow-hidden flex flex-col justify-between ${soldeActuel > 0
                       ? 'border-danger/30 bg-danger/5'
                       : soldeActuel < 0
-                      ? 'border-indigo-500/30 bg-indigo-500/5'
-                      : 'border-success/30 bg-success/5'
-                  }`}
+                        ? 'border-indigo-500/30 bg-indigo-500/5'
+                        : 'border-success/30 bg-success/5'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
-                      className={`text-xs font-semibold uppercase tracking-wider ${
-                        soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'
-                      }`}
+                      className={`text-xs font-semibold uppercase tracking-wider ${soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'
+                        }`}
                     >
                       {soldeActuel > 0
                         ? 'Reste Dû (À recouvrer)'
                         : soldeActuel < 0
-                        ? 'Solde Créditeur (Surplus)'
-                        : 'Compte Soldé (À jour)'}
+                          ? 'Solde Créditeur (Surplus)'
+                          : 'Compte Soldé (À jour)'}
                     </span>
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                        soldeActuel > 0
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${soldeActuel > 0
                           ? 'bg-danger/15 text-danger border border-danger/30'
                           : soldeActuel < 0
-                          ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
-                          : 'bg-success/15 text-success border border-success/30'
-                      }`}
+                            ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                            : 'bg-success/15 text-success border border-success/30'
+                        }`}
                     >
                       {soldeActuel > 0 ? (
                         <>
@@ -317,9 +389,8 @@ export default function FicheMembreModal({
                     </span>
                   </div>
                   <div
-                    className={`mt-2 text-2xl font-black font-mono tracking-tight ${
-                      soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'
-                    }`}
+                    className={`mt-2 text-2xl font-black font-mono tracking-tight ${soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'
+                      }`}
                   >
                     {Math.abs(soldeActuel).toLocaleString(dateLocale, { maximumFractionDigits: 0 })}{' '}
                     <span className="text-sm font-bold opacity-75 font-sans">{unite}</span>
@@ -328,8 +399,8 @@ export default function FicheMembreModal({
                     {soldeActuel > 0
                       ? 'Montant net restant à percevoir'
                       : soldeActuel < 0
-                      ? 'Surplus agricole à reverser au membre'
-                      : 'Aucune dette en cours sur ce compte'}
+                        ? 'Surplus agricole à reverser au membre'
+                        : 'Aucune dette en cours sur ce compte'}
                   </div>
                 </div>
               </div>
@@ -340,17 +411,15 @@ export default function FicheMembreModal({
                   <button
                     type="button"
                     onClick={() => setActiveTab('factures')}
-                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                      activeTab === 'factures'
+                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${activeTab === 'factures'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-foreground-muted hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <FileText className="w-4 h-4" />
                     <span>Factures & Campagnes</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                      activeTab === 'factures' ? 'bg-primary/20 text-primary' : 'bg-surface-border/50 text-foreground-muted'
-                    }`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${activeTab === 'factures' ? 'bg-primary/20 text-primary' : 'bg-surface-border/50 text-foreground-muted'
+                      }`}>
                       {factures.length}
                     </span>
                   </button>
@@ -358,17 +427,15 @@ export default function FicheMembreModal({
                   <button
                     type="button"
                     onClick={() => setActiveTab('remboursements')}
-                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                      activeTab === 'remboursements'
+                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${activeTab === 'remboursements'
                         ? 'border-success text-success'
                         : 'border-transparent text-foreground-muted hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <Receipt className="w-4 h-4" />
                     <span>Remboursements & Pesées</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                      activeTab === 'remboursements' ? 'bg-success/20 text-success' : 'bg-surface-border/50 text-foreground-muted'
-                    }`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${activeTab === 'remboursements' ? 'bg-success/20 text-success' : 'bg-surface-border/50 text-foreground-muted'
+                      }`}>
                       {remboursements.length}
                     </span>
                   </button>
@@ -377,17 +444,15 @@ export default function FicheMembreModal({
                     <button
                       type="button"
                       onClick={() => setActiveTab('prestations')}
-                      className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                        activeTab === 'prestations'
+                      className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${activeTab === 'prestations'
                           ? 'border-amber-500 text-amber-500'
                           : 'border-transparent text-foreground-muted hover:text-foreground'
-                      }`}
+                        }`}
                     >
                       <Tractor className="w-4 h-4" />
                       <span>Prestations</span>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                        activeTab === 'prestations' ? 'bg-amber-500/20 text-amber-500' : 'bg-surface-border/50 text-foreground-muted'
-                      }`}>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${activeTab === 'prestations' ? 'bg-amber-500/20 text-amber-500' : 'bg-surface-border/50 text-foreground-muted'
+                        }`}>
                         {prestations.length}
                       </span>
                     </button>
@@ -396,17 +461,15 @@ export default function FicheMembreModal({
                   <button
                     type="button"
                     onClick={() => setActiveTab('releve')}
-                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${
-                      activeTab === 'releve'
+                    className={`flex items-center gap-2 py-3 px-3 border-b-2 text-sm font-semibold transition-all cursor-pointer ${activeTab === 'releve'
                         ? 'border-indigo-500 text-indigo-400'
                         : 'border-transparent text-foreground-muted hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <Calendar className="w-4 h-4" />
                     <span>Grand Livre (Relevé)</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                      activeTab === 'releve' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-surface-border/50 text-foreground-muted'
-                    }`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold font-mono ${activeTab === 'releve' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-surface-border/50 text-foreground-muted'
+                      }`}>
                       {journal.length}
                     </span>
                   </button>
@@ -427,381 +490,410 @@ export default function FicheMembreModal({
 
               {/* Modal Body: Contenu affiché avec marge de sécurité */}
               <div className="p-5 flex-1 pb-8">
-              {loading && (
-                <div className="flex items-center justify-center py-16">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                </div>
-              )}
+                {loading && (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  </div>
+                )}
 
-              {error && (
-                <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
+                {error && (
+                  <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
 
-              {!loading && !error && (
-                <>
-                  {/* TAB 1: Factures */}
-                  {activeTab === 'factures' && (
-                    <div className="space-y-3">
-                      {factures.length === 0 ? (
-                        <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
-                          <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Aucune facture enregistrée pour ce membre.</p>
-                        </div>
-                      ) : (
-                        <div className="overflow-hidden rounded-xl border border-surface-border shadow-xs">
-                          <table className="min-w-full divide-y divide-surface-border">
-                            <thead className="bg-background/60 text-xs font-semibold text-foreground-muted uppercase">
-                              <tr>
-                                <th className="px-4 py-3 text-left">Campagne</th>
-                                <th className="px-4 py-3 text-left">Date Émission</th>
-                                <th className="px-4 py-3 text-right">Principal</th>
-                                <th className="px-4 py-3 text-right">Intérêts</th>
-                                <th className="px-4 py-3 text-right">Total Facturé</th>
-                                <th className="px-4 py-3 text-right">Déjà Payé</th>
-                                <th className="px-4 py-3 text-right">Reste Dû</th>
-                                <th className="px-4 py-3 text-center">Statut</th>
-                                <th className="px-4 py-3 text-right">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-surface-border bg-surface text-sm">
-                              {factures.map((f: any) => {
-                                const camp = Array.isArray(f.campagnes) ? f.campagnes[0] : f.campagnes
-                                const principal = Number(f.montant_total || 0)
-                                const interet = Number(f.montant_interet || 0)
-                                const total = principal + interet
-                                const paye = Number(f.montant_paye || 0)
-                                const reste = Math.max(0, total - paye)
-                                return (
-                                  <tr key={f.id} className="hover:bg-background/40 transition-colors">
-                                    <td className="px-4 py-3.5 font-medium text-foreground">
-                                      {camp?.nom || 'Campagne'}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-foreground-muted text-xs font-mono">
-                                      {f.date_emission ? new Date(f.date_emission).toLocaleDateString(dateLocale) : '-'}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right font-mono text-foreground-muted">
-                                      {principal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right font-mono text-foreground-muted text-xs">
-                                      {interet > 0 ? `+${interet.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}` : '-'}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
-                                      {total.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right font-mono text-success font-semibold">
-                                      {paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right font-mono font-bold">
-                                      <span className={reste > 0 ? 'text-danger' : 'text-success'}>
-                                        {reste.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
-                                      </span>
-                                    </td>
-                                    <td className="px-4 py-3.5 text-center">
-                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                        f.statut === 'payee'
-                                          ? 'bg-success/10 text-success'
-                                          : f.statut === 'partiellement_payee' || f.statut === 'partiellement_paye'
-                                          ? 'bg-warning/10 text-warning'
-                                          : 'bg-danger/10 text-danger'
-                                      }`}>
-                                        {f.statut === 'payee'
-                                          ? 'Soldée'
-                                          : f.statut === 'partiellement_payee' || f.statut === 'partiellement_paye'
-                                          ? 'Partielle'
-                                          : 'Impayée'}
-                                      </span>
-                                    </td>
-                                    <td className="px-4 py-3.5 text-right">
-                                      <div className="flex items-center justify-end gap-1.5">
-                                        <DownloadPdfButton
-                                          facture={{
-                                            ...f,
-                                            montant_total: total,
-                                            montant_paye: paye,
-                                            client_nom: `${membre.prenom} ${membre.nom}`,
-                                            client_telephone: membre.telephone,
-                                          }}
-                                          gieName={gieName}
-                                          dict={dict}
-                                        />
-                                        <FactureWhatsAppModal
-                                          facture={{
-                                            ...f,
-                                            montant_total: total,
-                                            montant_paye: paye,
-                                            client_nom: `${membre.prenom} ${membre.nom}`,
-                                            client_telephone: membre.telephone,
-                                          }}
-                                          gieName={gieName}
-                                          dict={dict}
-                                        />
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* TAB 2: Remboursements */}
-                  {activeTab === 'remboursements' && (
-                    <div className="space-y-3">
-                      {remboursements.length === 0 ? (
-                        <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
-                          <Receipt className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Aucun remboursement enregistré pour ce membre.</p>
-                        </div>
-                      ) : (
-                        <div className="overflow-hidden rounded-xl border border-surface-border shadow-xs">
-                          <table className="min-w-full divide-y divide-surface-border">
-                            <thead className="bg-background/60 text-xs font-semibold text-foreground-muted uppercase">
-                              <tr>
-                                <th className="px-4 py-3 text-left">Date Paiement</th>
-                                <th className="px-4 py-3 text-left">Mode / Nature</th>
-                                <th className="px-4 py-3 text-left">Compte / Référence</th>
-                                <th className="px-4 py-3 text-right">Pesée (kg)</th>
-                                <th className="px-4 py-3 text-right">Montant Encaissé</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-surface-border bg-surface text-sm">
-                              {remboursements.map((r: any) => {
-                                const compte = Array.isArray(r.comptes) ? r.comptes[0] : r.comptes
-                                const isNature = r.type_remboursement === 'nature'
-                                return (
-                                  <tr key={r.id} className="hover:bg-background/40 transition-colors">
-                                    <td className="px-4 py-3.5 text-foreground-muted text-xs font-mono">
-                                      {r.date_paiement ? new Date(r.date_paiement).toLocaleDateString(dateLocale) : '-'}
-                                    </td>
-                                    <td className="px-4 py-3.5">
-                                      <div className="flex items-center gap-2">
-                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold ${
-                                          isNature
-                                            ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                                            : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                                        }`}>
-                                          {isNature ? <Scale className="w-3.5 h-3.5" /> : <Receipt className="w-3.5 h-3.5" />}
-                                          {isNature ? 'Pesée en nature' : (r.type_remboursement || 'Espèces')}
+                {!loading && !error && (
+                  <>
+                    {/* TAB 1: Factures */}
+                    {activeTab === 'factures' && (
+                      <div className="space-y-3">
+                        {factures.length === 0 ? (
+                          <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
+                            <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Aucune facture enregistrée pour ce membre.</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-hidden rounded-xl border border-surface-border shadow-xs">
+                            <table className="min-w-full divide-y divide-surface-border">
+                              <thead className="bg-background/60 text-xs font-semibold text-foreground-muted uppercase">
+                                <tr>
+                                  <th className="px-4 py-3 text-left">Campagne</th>
+                                  <th className="px-4 py-3 text-left">Date Émission</th>
+                                  <th className="px-4 py-3 text-right">Principal</th>
+                                  <th className="px-4 py-3 text-right">Intérêts</th>
+                                  <th className="px-4 py-3 text-right">Total Facturé</th>
+                                  <th className="px-4 py-3 text-right">Déjà Payé</th>
+                                  <th className="px-4 py-3 text-right">Reste Dû</th>
+                                  <th className="px-4 py-3 text-center">Statut</th>
+                                  <th className="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-surface-border bg-surface text-sm">
+                                {factures.map((f: any) => {
+                                  const camp = Array.isArray(f.campagnes) ? f.campagnes[0] : f.campagnes
+                                  const principal = Number(f.montant_total || 0)
+                                  const interet = Number(f.montant_interet || 0)
+                                  const total = principal + interet
+                                  const paye = Number(f.montant_paye || 0)
+                                  const reste = Math.max(0, total - paye)
+                                  return (
+                                    <tr key={f.id} className="hover:bg-background/40 transition-colors">
+                                      <td className="px-4 py-3.5 font-medium text-foreground">
+                                        {camp?.nom || 'Campagne'}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-foreground-muted text-xs font-mono">
+                                        {f.date_emission ? new Date(f.date_emission).toLocaleDateString(dateLocale) : '-'}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right font-mono text-foreground-muted">
+                                        {principal.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right font-mono text-foreground-muted text-xs">
+                                        {interet > 0 ? `+${interet.toLocaleString(dateLocale, { maximumFractionDigits: 0 })}` : '-'}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
+                                        {total.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right font-mono text-success font-semibold">
+                                        {paye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right font-mono font-bold">
+                                        <span className={reste > 0 ? 'text-danger' : 'text-success'}>
+                                          {reste.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                         </span>
-                                        {r.produit_nature && (
-                                          <span className="text-xs text-foreground-muted">
-                                            ({r.produit_nature})
+                                      </td>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${f.statut === 'payee'
+                                            ? 'bg-success/10 text-success'
+                                            : f.statut === 'partiellement_payee' || f.statut === 'partiellement_paye'
+                                              ? 'bg-warning/10 text-warning'
+                                              : 'bg-danger/10 text-danger'
+                                          }`}>
+                                          {f.statut === 'payee'
+                                            ? 'Soldée'
+                                            : f.statut === 'partiellement_payee' || f.statut === 'partiellement_paye'
+                                              ? 'Partielle'
+                                              : 'Impayée'}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                          <DownloadPdfButton
+                                            facture={{
+                                              ...f,
+                                              montant_total: total,
+                                              montant_paye: paye,
+                                              client_nom: `${currentMembre.prenom} ${currentMembre.nom}`,
+                                              client_telephone: currentMembre.telephone,
+                                            }}
+                                            gieName={gieName}
+                                            dict={dict}
+                                          />
+                                          <FactureWhatsAppModal
+                                            facture={{
+                                              ...f,
+                                              montant_total: total,
+                                              montant_paye: paye,
+                                              client_nom: `${currentMembre.prenom} ${currentMembre.nom}`,
+                                              client_telephone: currentMembre.telephone,
+                                            }}
+                                            gieName={gieName}
+                                            dict={dict}
+                                          />
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* TAB 2: Remboursements */}
+                    {activeTab === 'remboursements' && (
+                      <div className="space-y-3">
+                        {remboursements.length === 0 ? (
+                          <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
+                            <Receipt className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Aucun remboursement enregistré pour ce membre.</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-hidden rounded-xl border border-surface-border shadow-xs">
+                            <table className="min-w-full divide-y divide-surface-border">
+                              <thead className="bg-background/60 text-xs font-semibold text-foreground-muted uppercase">
+                                <tr>
+                                  <th className="px-4 py-3 text-left">Date Paiement</th>
+                                  <th className="px-4 py-3 text-left">Mode / Nature</th>
+                                  <th className="px-4 py-3 text-left">Compte / Référence</th>
+                                  <th className="px-4 py-3 text-right">Pesée (kg)</th>
+                                  <th className="px-4 py-3 text-right">Montant Encaissé</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-surface-border bg-surface text-sm">
+                                {remboursements.map((r: any) => {
+                                  const compte = Array.isArray(r.comptes) ? r.comptes[0] : r.comptes
+                                  const isNature = r.type_remboursement === 'nature'
+                                  return (
+                                    <tr key={r.id} className="hover:bg-background/40 transition-colors">
+                                      <td className="px-4 py-3.5 text-foreground-muted text-xs font-mono">
+                                        {r.date_paiement ? new Date(r.date_paiement).toLocaleDateString(dateLocale) : '-'}
+                                      </td>
+                                      <td className="px-4 py-3.5">
+                                        <div className="flex items-center gap-2">
+                                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold ${isNature
+                                              ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                                              : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                                            }`}>
+                                            {isNature ? <Scale className="w-3.5 h-3.5" /> : <Receipt className="w-3.5 h-3.5" />}
+                                            {isNature ? 'Pesée en nature' : (r.type_remboursement || 'Espèces')}
                                           </span>
+                                          {r.produit_nature && (
+                                            <span className="text-xs text-foreground-muted">
+                                              ({r.produit_nature})
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-foreground-muted text-xs">
+                                        {compte?.nom ? `Compte : ${compte.nom}` : r.reference_piece ? `Réf: ${r.reference_piece}` : '-'}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right font-mono font-semibold text-foreground">
+                                        {r.quantite_nature ? `${Number(r.quantite_nature).toLocaleString(dateLocale)} kg` : '-'}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-right font-mono font-bold text-success text-base">
+                                        {Number(r.montant_fcfa || 0).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* TAB 3: Prestations */}
+                    {activeTab === 'prestations' && (
+                      <div className="space-y-3">
+                        {prestations.length === 0 ? (
+                          <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
+                            <Tractor className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Aucune prestation de matériel pour ce membre.</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-hidden rounded-xl border border-surface-border shadow-xs">
+                            <table className="min-w-full divide-y divide-surface-border">
+                              <thead className="bg-background/60 text-xs font-semibold text-foreground-muted uppercase">
+                                <tr>
+                                  <th className="px-4 py-3 text-left">Date</th>
+                                  <th className="px-4 py-3 text-left">Matériel & Type</th>
+                                  <th className="px-4 py-3 text-left">Campagne</th>
+                                  <th className="px-4 py-3 text-right">Superficie / Heures</th>
+                                  <th className="px-4 py-3 text-right">Montant Facturé</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-surface-border bg-surface text-sm">
+                                {prestations.map((p: any) => (
+                                  <tr key={p.id} className="hover:bg-background/40 transition-colors">
+                                    <td className="px-4 py-3.5 text-foreground-muted text-xs font-mono">
+                                      {p.date_prestation ? new Date(p.date_prestation).toLocaleDateString(dateLocale) : '-'}
+                                    </td>
+                                    <td className="px-4 py-3.5 font-medium text-foreground">
+                                      <div className="flex items-center gap-1.5">
+                                        <Tractor className="w-4 h-4 text-primary" />
+                                        <span>{p.type_prestation}</span>
+                                        {p.materiel?.nom && (
+                                          <span className="text-xs text-foreground-muted">({p.materiel.nom})</span>
                                         )}
                                       </div>
                                     </td>
                                     <td className="px-4 py-3.5 text-foreground-muted text-xs">
-                                      {compte?.nom ? `Compte : ${compte.nom}` : r.reference_piece ? `Réf: ${r.reference_piece}` : '-'}
+                                      {p.campagne?.nom || '-'}
                                     </td>
-                                    <td className="px-4 py-3.5 text-right font-mono font-semibold text-foreground">
-                                      {r.quantite_nature ? `${Number(r.quantite_nature).toLocaleString(dateLocale)} kg` : '-'}
+                                    <td className="px-4 py-3.5 text-right font-mono text-foreground-muted">
+                                      {p.quantite ? `${p.quantite} ha / h` : '-'}
                                     </td>
-                                    <td className="px-4 py-3.5 text-right font-mono font-bold text-success text-base">
-                                      {Number(r.montant_fcfa || 0).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                                    <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
+                                      {Number(p.montant_facture || 0).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                     </td>
                                   </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  {/* TAB 3: Prestations */}
-                  {activeTab === 'prestations' && (
-                    <div className="space-y-3">
-                      {prestations.length === 0 ? (
-                        <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
-                          <Tractor className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Aucune prestation de matériel pour ce membre.</p>
+                    {/* TAB 4: Grand Livre (Relevé de Compte) */}
+                    {activeTab === 'releve' && (
+                      <div id="fiche-membre-print-area" className="space-y-4">
+                        {/* En-tête imprimable */}
+                        <div className="hidden print:block p-4 border border-surface-border rounded-lg mb-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h1 className="text-xl font-black text-foreground font-heading">{gieName}</h1>
+                              <p className="text-sm font-semibold text-primary">Relevé de Compte Individuel — Membre</p>
+                            </div>
+                            <div className="text-right text-xs text-foreground-muted font-mono">
+                              Date: {new Date().toLocaleDateString(dateLocale)}
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-surface-border grid grid-cols-2 text-xs">
+                            <div>
+                              <strong>Membre:</strong> {currentMembre.prenom} {currentMembre.nom} ({displayCode})
+                            </div>
+                            <div>
+                              <strong>Village:</strong> {currentMembre.village || '-'} | <strong>Tél:</strong> {currentMembre.telephone || '-'}
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="overflow-hidden rounded-xl border border-surface-border shadow-xs">
-                          <table className="min-w-full divide-y divide-surface-border">
-                            <thead className="bg-background/60 text-xs font-semibold text-foreground-muted uppercase">
-                              <tr>
-                                <th className="px-4 py-3 text-left">Date</th>
-                                <th className="px-4 py-3 text-left">Matériel & Type</th>
-                                <th className="px-4 py-3 text-left">Campagne</th>
-                                <th className="px-4 py-3 text-right">Superficie / Heures</th>
-                                <th className="px-4 py-3 text-right">Montant Facturé</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-surface-border bg-surface text-sm">
-                              {prestations.map((p: any) => (
-                                <tr key={p.id} className="hover:bg-background/40 transition-colors">
-                                  <td className="px-4 py-3.5 text-foreground-muted text-xs font-mono">
-                                    {p.date_prestation ? new Date(p.date_prestation).toLocaleDateString(dateLocale) : '-'}
+
+                        {journal.length === 0 ? (
+                          <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
+                            <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Aucun mouvement comptable enregistré.</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto rounded-xl border border-surface-border bg-surface shadow-xs">
+                            <table className="min-w-full divide-y divide-surface-border text-left">
+                              <thead className="bg-background/80 text-xs font-semibold text-foreground-muted uppercase tracking-wider">
+                                <tr>
+                                  <th scope="col" className="w-28 px-4 py-3 text-left whitespace-nowrap">Date</th>
+                                  <th scope="col" className="min-w-[280px] px-4 py-3 text-left">Opération / Libellé</th>
+                                  <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right text-foreground whitespace-nowrap">Débit (Facturé)</th>
+                                  <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right text-success whitespace-nowrap">Crédit (Remboursé)</th>
+                                  <th scope="col" className="w-48 min-w-[160px] px-4 py-3 text-right text-foreground whitespace-nowrap bg-background/40 border-l border-surface-border">Solde Dû</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-surface-border bg-surface text-sm">
+                                {journal.map((item: any) => {
+                                  const isDebit = item.debit > 0
+                                  const isCredit = item.credit > 0
+                                  return (
+                                    <tr key={item.id} className="hover:bg-background/40 transition-colors">
+                                      <td className="px-4 py-3 text-foreground-muted text-xs font-mono whitespace-nowrap">
+                                        {item.date ? new Date(item.date).toLocaleDateString(dateLocale) : '-'}
+                                      </td>
+                                      <td className="px-4 py-3 text-foreground">
+                                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-bold shrink-0 ${item.type === 'remboursement'
+                                              ? 'bg-success/15 text-success border border-success/30'
+                                              : item.type === 'facture'
+                                                ? 'bg-primary/15 text-primary border border-primary/30'
+                                                : item.type === 'prestation'
+                                                  ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                                  : item.type === 'solde_initial'
+                                                    ? 'bg-surface-border text-foreground-muted border border-surface-border'
+                                                    : 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                                            }`}>
+                                            {item.type === 'remboursement' ? 'Paiement' : item.type === 'facture' ? 'Facture' : item.type === 'prestation' ? 'Prestation' : 'Report'}
+                                          </span>
+                                          <span className="text-xs sm:text-sm font-medium text-foreground">
+                                            {item.libelle}
+                                          </span>
+                                          {item.type === 'solde_initial' && (
+                                            <span className="shrink-0 ml-1">
+                                              <JustificatifSoldeModal
+                                                membreId={currentMembre.id}
+                                                membreNom={`${currentMembre.nom} ${currentMembre.prenom}`}
+                                                soldeInitial={currentMembre.solde_initial}
+                                                triggerButton={
+                                                  <span className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline cursor-pointer font-sans font-medium bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                                                    <Paperclip className="w-3 h-3" />
+                                                    <span>Justificatif</span>
+                                                  </span>
+                                                }
+                                              />
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-mono font-semibold text-foreground whitespace-nowrap">
+                                        {isDebit ? `${Number(item.debit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '—'}
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-mono font-semibold text-success whitespace-nowrap">
+                                        {isCredit ? `-${Number(item.credit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '—'}
+                                      </td>
+                                      <td className="px-4 py-3 text-right font-mono font-bold whitespace-nowrap bg-background/20 border-l border-surface-border">
+                                        <span className={item.soldeLigne > 0 ? 'text-danger' : item.soldeLigne < 0 ? 'text-indigo-400' : 'text-success'}>
+                                          {Number(item.soldeLigne || 0).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                              <tfoot className="bg-background/90 border-t-2 border-surface-border font-bold text-xs sm:text-sm">
+                                <tr>
+                                  <td colSpan={2} className="px-4 py-3.5 text-right uppercase tracking-wider text-foreground-muted">
+                                    Totaux du Compte
                                   </td>
-                                  <td className="px-4 py-3.5 font-medium text-foreground">
-                                    <div className="flex items-center gap-1.5">
-                                      <Tractor className="w-4 h-4 text-primary" />
-                                      <span>{p.type_prestation}</span>
-                                      {p.materiel?.nom && (
-                                        <span className="text-xs text-foreground-muted">({p.materiel.nom})</span>
-                                      )}
-                                    </div>
+                                  <td className="w-36 min-w-[130px] px-4 py-3.5 text-right font-mono text-foreground whitespace-nowrap">
+                                    {totalFacture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                   </td>
-                                  <td className="px-4 py-3.5 text-foreground-muted text-xs">
-                                    {p.campagne?.nom || '-'}
+                                  <td className="w-36 min-w-[130px] px-4 py-3.5 text-right font-mono text-success whitespace-nowrap">
+                                    {totalPaye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
                                   </td>
-                                  <td className="px-4 py-3.5 text-right font-mono text-foreground-muted">
-                                    {p.quantite ? `${p.quantite} ha / h` : '-'}
-                                  </td>
-                                  <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
-                                    {Number(p.montant_facture || 0).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                                  <td className="w-48 min-w-[160px] px-4 py-3.5 text-right font-mono text-sm whitespace-nowrap bg-background/40 border-l border-surface-border">
+                                    <span className={soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'}>
+                                      {soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
+                                    </span>
                                   </td>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* TAB 4: Grand Livre (Relevé de Compte) */}
-                  {activeTab === 'releve' && (
-                    <div id="fiche-membre-print-area" className="space-y-4">
-                      {/* En-tête imprimable */}
-                      <div className="hidden print:block p-4 border border-surface-border rounded-lg mb-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h1 className="text-xl font-black text-foreground font-heading">{gieName}</h1>
-                            <p className="text-sm font-semibold text-primary">Relevé de Compte Individuel — Membre</p>
+                              </tfoot>
+                            </table>
                           </div>
-                          <div className="text-right text-xs text-foreground-muted font-mono">
-                            Date: {new Date().toLocaleDateString(dateLocale)}
-                          </div>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-surface-border grid grid-cols-2 text-xs">
-                          <div>
-                            <strong>Membre:</strong> {membre.prenom} {membre.nom} ({displayCode})
-                          </div>
-                          <div>
-                            <strong>Village:</strong> {membre.village || '-'} | <strong>Tél:</strong> {membre.telephone || '-'}
-                          </div>
-                        </div>
+                        )}
                       </div>
-
-                      {journal.length === 0 ? (
-                        <div className="text-center py-12 text-foreground-muted border border-dashed border-surface-border rounded-xl">
-                          <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Aucun mouvement comptable enregistré.</p>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto rounded-xl border border-surface-border bg-surface shadow-xs">
-                          <table className="min-w-full divide-y divide-surface-border text-left">
-                            <thead className="bg-background/80 text-xs font-semibold text-foreground-muted uppercase tracking-wider">
-                              <tr>
-                                <th scope="col" className="w-28 px-4 py-3 text-left whitespace-nowrap">Date</th>
-                                <th scope="col" className="min-w-[280px] px-4 py-3 text-left">Opération / Libellé</th>
-                                <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right text-foreground whitespace-nowrap">Débit (Facturé)</th>
-                                <th scope="col" className="w-36 min-w-[130px] px-4 py-3 text-right text-success whitespace-nowrap">Crédit (Remboursé)</th>
-                                <th scope="col" className="w-48 min-w-[160px] px-4 py-3 text-right text-foreground whitespace-nowrap bg-background/40 border-l border-surface-border">Solde Dû</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-surface-border bg-surface text-sm">
-                              {journal.map((item: any) => {
-                                const isDebit = item.debit > 0
-                                const isCredit = item.credit > 0
-                                return (
-                                  <tr key={item.id} className="hover:bg-background/40 transition-colors">
-                                    <td className="px-4 py-3 text-foreground-muted text-xs font-mono whitespace-nowrap">
-                                      {item.date ? new Date(item.date).toLocaleDateString(dateLocale) : '-'}
-                                    </td>
-                                    <td className="px-4 py-3 text-foreground">
-                                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-bold shrink-0 ${
-                                          item.type === 'remboursement'
-                                            ? 'bg-success/15 text-success border border-success/30'
-                                            : item.type === 'facture'
-                                            ? 'bg-primary/15 text-primary border border-primary/30'
-                                            : item.type === 'prestation'
-                                            ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                                            : item.type === 'solde_initial'
-                                            ? 'bg-surface-border text-foreground-muted border border-surface-border'
-                                            : 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
-                                        }`}>
-                                          {item.type === 'remboursement' ? 'Paiement' : item.type === 'facture' ? 'Facture' : item.type === 'prestation' ? 'Prestation' : 'Report'}
-                                        </span>
-                                        <span className="text-xs sm:text-sm font-medium text-foreground">
-                                          {item.libelle}
-                                        </span>
-                                        {item.type === 'solde_initial' && (
-                                          <span className="shrink-0 ml-1">
-                                            <JustificatifSoldeModal
-                                              membreId={membre.id}
-                                              membreNom={`${membre.nom} ${membre.prenom}`}
-                                              soldeInitial={membre.solde_initial}
-                                              triggerButton={
-                                                <span className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline cursor-pointer font-sans font-medium bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                                                  <Paperclip className="w-3 h-3" />
-                                                  <span>Justificatif</span>
-                                                </span>
-                                              }
-                                            />
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono font-semibold text-foreground whitespace-nowrap">
-                                      {isDebit ? `${Number(item.debit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono font-semibold text-success whitespace-nowrap">
-                                      {isCredit ? `-${Number(item.credit).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} ${unite}` : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-mono font-bold whitespace-nowrap bg-background/20 border-l border-surface-border">
-                                      <span className={item.soldeLigne > 0 ? 'text-danger' : item.soldeLigne < 0 ? 'text-indigo-400' : 'text-success'}>
-                                        {Number(item.soldeLigne || 0).toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                            <tfoot className="bg-background/90 border-t-2 border-surface-border font-bold text-xs sm:text-sm">
-                              <tr>
-                                <td colSpan={2} className="px-4 py-3.5 text-right uppercase tracking-wider text-foreground-muted">
-                                  Totaux du Compte
-                                </td>
-                                <td className="w-36 min-w-[130px] px-4 py-3.5 text-right font-mono text-foreground whitespace-nowrap">
-                                  {totalFacture.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
-                                </td>
-                                <td className="w-36 min-w-[130px] px-4 py-3.5 text-right font-mono text-success whitespace-nowrap">
-                                  {totalPaye.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
-                                </td>
-                                <td className="w-48 min-w-[160px] px-4 py-3.5 text-right font-mono text-sm whitespace-nowrap bg-background/40 border-l border-surface-border">
-                                  <span className={soldeActuel > 0 ? 'text-danger' : soldeActuel < 0 ? 'text-indigo-400' : 'text-success'}>
-                                    {soldeActuel.toLocaleString(dateLocale, { maximumFractionDigits: 0 })} {unite}
-                                  </span>
-                                </td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Footer: Action bar & summary */}
-            <div className="p-4 border-t border-surface-border bg-background/50 flex items-center justify-between gap-4 text-xs shrink-0">
+            {/* Footer: Action bar, navigation & summary */}
+            <div className="p-4 border-t border-surface-border bg-background/50 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
               <div className="flex items-center gap-2 text-foreground-muted">
-                <span>Fiche membre SIGGIE •</span>
+                <span>Fiche & Relevé du membre •</span>
                 <span>{factures.length} campagnes, {remboursements.length} paiements</span>
               </div>
+
+              {/* Navigation Suivant / Précédent en bas de formulaire */}
+              {membreList.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={goToPrev}
+                    disabled={!hasPrev}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed text-foreground border border-surface-border transition-colors cursor-pointer"
+                    title={hasPrev ? `Membre précédent : ${membreList[currentIndex - 1].prenom} ${membreList[currentIndex - 1].nom}` : ''}
+                    aria-label="Membre précédent"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Précédent</span>
+                  </button>
+                  <span className="font-mono text-xs font-semibold text-foreground-muted px-1">
+                    {currentIndex + 1} sur {membreList.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={goToNext}
+                    disabled={!hasNext}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed text-foreground border border-surface-border transition-colors cursor-pointer"
+                    title={hasNext ? `Membre suivant : ${membreList[currentIndex + 1].prenom} ${membreList[currentIndex + 1].nom}` : ''}
+                    aria-label="Membre suivant"
+                  >
+                    <span className="hidden sm:inline">Suivant</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
