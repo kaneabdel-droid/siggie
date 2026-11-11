@@ -5,6 +5,7 @@
 
 import { getCreditType } from './credits-types'
 import { isStockableIntrant } from './intrants/types'
+import { parseStockInitialCampagne } from './smt'
 
 export type BilanRaw = {
   intrants: { id: string; nom?: string | null; type_intrant?: string | null; quantite_stock: number | null; prix_unitaire: number | null }[]
@@ -24,7 +25,16 @@ export type BilanRaw = {
     produit_nature?: string | null
   }[]
   sorties: { id?: string; campagne_id: string; membre_id: string | null; client_id?: string | null; type_sortie: string; tiers_type: string; tiers_nom?: string | null; quantite: number | null; prix_unitaire: number | null; date_sortie: string; motif?: string | null }[]
-  campagnes: { id: string; prix_collecte: number | null; nom?: string | null; produit_collecte?: string | null; date_debut?: string | null }[]
+  campagnes: {
+    id: string
+    prix_collecte: number | null
+    nom?: string | null
+    produit_collecte?: string | null
+    date_debut?: string | null
+    stock_initial_quantite?: number | null
+    stock_initial_valeur?: number | null
+    stock_initial_secteur?: string | null
+  }[]
   paiementsClients: { id?: string; client_id?: string | null; montant: number | null; date_paiement: string; motif?: string | null }[]
   materiels: { id?: string; valeur_acquisition: number | null; duree_vie_economique: number | null; date_acquisition: string | null }[]
   prestations: { id?: string; montant_facture: number | null; date_prestation: string; tiers_type?: string | null; membre_id?: string | null; client_id?: string | null; client_nom?: string | null }[]
@@ -166,6 +176,7 @@ function prixCollecteParCampagne(raw: BilanRaw): Map<string, number> {
 
 export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): BilanCalcule {
   const fin = finAnnee(annee)
+  const finN1 = debutAnnee(annee) - 1
   const prixCollecte = prixCollecteParCampagne(raw)
   const campagneDeFacture = new Map(raw.factures.map((f) => [f.id, f.campagne_id]))
 
@@ -190,8 +201,17 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
     const rembIdsIncluded = new Set<string>()
 
     let totalNature = somme(raw.campagnes, (c) => {
-      let qteEntrees = 0
-      let valEntrees = 0
+      const siTag = parseStockInitialCampagne(c)
+      const qteInitiale = siTag ? siTag.quantite : 0
+      const puInitial = siTag && siTag.valeur > 0 ? siTag.valeur : (prixCollecte.get(c.id) || 0)
+      const valInitiale = qteInitiale * puInitial
+
+      if (limite <= finN1) {
+        return valInitiale
+      }
+
+      let qteEntrees = qteInitiale
+      let valEntrees = valInitiale
 
       // 1. Remboursements directs en nature
       for (const r of raw.remboursements) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Layers, Plus } from 'lucide-react'
+import { Layers, Plus, Pencil, CheckCircle2 } from 'lucide-react'
 import { setStockInitial } from './actions'
 
 export default function SetStockInitialModal({
@@ -13,6 +13,8 @@ export default function SetStockInitialModal({
   initialData,
   onSuccess,
   dict,
+  externalIsOpen,
+  onCloseExternal,
 }: {
   campagneId: string
   campagneNom?: string
@@ -24,11 +26,25 @@ export default function SetStockInitialModal({
     unite: string
     valeur?: number
     date?: string | null
+    secteur?: 'exploitation' | 'materiel'
   } | null
   onSuccess: () => void
   dict: any
+  externalIsOpen?: boolean
+  onCloseExternal?: () => void
 }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
+  const isControlled = externalIsOpen !== undefined
+  const isOpen = isControlled ? externalIsOpen : internalIsOpen
+
+  const handleClose = () => {
+    if (isControlled) {
+      onCloseExternal?.()
+    } else {
+      setInternalIsOpen(false)
+    }
+  }
+
   const [loading, setLoading] = useState(false)
 
   // Liste des produits disponibles (au moins le produit par défaut ou 'Riz Paddy')
@@ -41,7 +57,16 @@ export default function SetStockInitialModal({
   const [unite, setUnite] = useState('kg')
   const [valeurUnitaire, setValeurUnitaire] = useState('')
   const [dateStock, setDateStock] = useState(new Date().toISOString().slice(0, 10))
+  const [secteur, setSecteur] = useState<'exploitation' | 'materiel'>('exploitation')
   const [error, setError] = useState('')
+
+  // Mettre à jour le produit si selectedProduitDefault change
+  useEffect(() => {
+    if (selectedProduitDefault) {
+      setProduit(selectedProduitDefault)
+      setIsCustomProduit(false)
+    }
+  }, [selectedProduitDefault])
 
   // Charger les données du produit sélectionné
   useEffect(() => {
@@ -53,9 +78,11 @@ export default function SetStockInitialModal({
       setUnite(existing.unite || 'kg')
       setValeurUnitaire(existing.valeur ? String(existing.valeur) : '')
       if (existing.date) setDateStock(existing.date.slice(0, 10))
+      setSecteur(existing.secteur === 'materiel' ? 'materiel' : 'exploitation')
     } else {
       setQuantite('')
       setValeurUnitaire('')
+      setSecteur('exploitation')
     }
   }, [produit, isCustomProduit, customProduitNom, stocksParProduit, initialData, defaultProd])
 
@@ -83,13 +110,14 @@ export default function SetStockInitialModal({
       unite,
       valeur_unitaire: Number(valeurUnitaire) || 0,
       date: dateStock,
+      secteur,
     })
 
     setLoading(false)
     if (res?.error) {
       setError(res.error)
     } else {
-      setIsOpen(false)
+      handleClose()
       onSuccess()
     }
   }
@@ -101,20 +129,22 @@ export default function SetStockInitialModal({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        disabled={!campagneId}
-        className="inline-flex items-center gap-x-2 rounded-md bg-surface border border-surface-border px-3 py-2 text-sm font-semibold text-foreground shadow-2xs hover:bg-background disabled:opacity-50 transition-colors"
-      >
-        <Layers className="h-4 w-4 text-primary" />
-        <span>{initialStocksConfigures.length > 0 ? "Gérer Stocks Initiaux" : "Définir Stock Initial"}</span>
-      </button>
+      {!isControlled && (
+        <button
+          type="button"
+          onClick={() => setInternalIsOpen(true)}
+          disabled={!campagneId}
+          className="inline-flex items-center gap-x-2 rounded-md bg-surface border border-surface-border px-3 py-2 text-sm font-semibold text-foreground shadow-2xs hover:bg-background disabled:opacity-50 transition-colors"
+        >
+          <Layers className="h-4 w-4 text-primary" />
+          <span>{initialStocksConfigures.length > 0 ? "Gérer Stocks Initiaux" : "Définir Stock Initial"}</span>
+        </button>
+      )}
 
       {isOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div className="fixed inset-0 bg-black/60 transition-opacity" onClick={() => setIsOpen(false)} />
+            <div className="fixed inset-0 bg-black/60 transition-opacity" onClick={handleClose} />
 
             <div className="relative transform overflow-hidden rounded-xl bg-surface text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-surface-border">
               <div className="bg-surface px-4 pb-4 pt-5 sm:p-6">
@@ -133,25 +163,49 @@ export default function SetStockInitialModal({
                 </div>
 
                 <p className="text-xs text-foreground-muted mb-4">
-                  Définissez ou modifiez le stock de report antérieur ou l&apos;inventaire initial disponible au démarrage de cette campagne par nature de produit.
+                  Définissez ou modifiez le stock de report antérieur ou l&apos;inventaire initial disponible au démarrage de cette campagne par nature de produit et secteur d&apos;activité.
                 </p>
 
-                {/* Récapitulatif des stocks initiaux déjà enregistrés */}
+                {/* Récapitulatif des stocks initiaux déjà enregistrés avec action rapide pour modifier */}
                 {initialStocksConfigures.length > 0 && (
                   <div className="mb-4 p-3 bg-surface-hover rounded-lg border border-surface-border text-xs">
                     <div className="font-semibold text-foreground mb-1.5 flex items-center justify-between">
-                      <span>Stocks initiaux enregistrés :</span>
+                      <span>Stocks initiaux configurés :</span>
+                      <span className="text-[11px] text-foreground-muted font-normal">Cliquer pour charger &amp; modifier</span>
                     </div>
-                    <div className="space-y-1">
-                      {initialStocksConfigures.map(([pName, pVal]) => (
-                        <div key={pName} className="flex items-center justify-between py-0.5 text-foreground-muted">
-                          <span className="font-medium text-foreground">{pName}</span>
-                          <span className="font-mono text-primary font-semibold">
-                            {Number(pVal.stockInitial.quantite).toLocaleString('fr-FR')} {pVal.stockInitial.unite}
-                            {pVal.stockInitial.valeur ? ` (à ${pVal.stockInitial.valeur} FCFA)` : ''}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="space-y-1.5 divide-y divide-surface-border/50">
+                      {initialStocksConfigures.map(([pName, pVal]) => {
+                        const isSelected = (!isCustomProduit && produit === pName)
+                        const pSecteur = pVal.stockInitial?.secteur === 'materiel' ? 'materiel' : 'exploitation'
+                        return (
+                          <div
+                            key={pName}
+                            onClick={() => {
+                              setProduit(pName)
+                              setIsCustomProduit(false)
+                            }}
+                            className={`flex items-center justify-between pt-1.5 cursor-pointer rounded px-1.5 transition-colors ${isSelected ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-background/80 text-foreground-muted'
+                              }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground">{pName}</span>
+                              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${pSecteur === 'materiel'
+                                  ? 'bg-secondary/15 text-secondary border border-secondary/20'
+                                  : 'bg-primary/10 text-primary border border-primary/20'
+                                }`}>
+                                {pSecteur === 'materiel' ? '🚜 Matériel' : '🌱 Exploitation'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-primary font-semibold">
+                                {Number(pVal.stockInitial.quantite).toLocaleString('fr-FR')} {pVal.stockInitial.unite}
+                                {pVal.stockInitial.valeur ? ` (à ${pVal.stockInitial.valeur} FCFA)` : ''}
+                              </span>
+                              <Pencil className="h-3.5 w-3.5 text-foreground-muted hover:text-foreground" />
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -213,6 +267,57 @@ export default function SetStockInitialModal({
                         </button>
                       </div>
                     )}
+                  </div>
+
+                  {/* Secteur d'appartenance */}
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1.5">
+                      Secteur d&apos;appartenance *
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSecteur('exploitation')}
+                        className={`flex items-start gap-2.5 p-3 rounded-lg border text-left transition-all ${secteur === 'exploitation'
+                            ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20 shadow-xs'
+                            : 'border-surface-border bg-background text-foreground-muted hover:text-foreground hover:bg-surface-hover'
+                          }`}
+                      >
+                        <span className="text-xl">🌱</span>
+                        <div>
+                          <div className="text-xs font-bold text-foreground flex items-center gap-1">
+                            Exploitation
+                            {secteur === 'exploitation' && <CheckCircle2 className="h-3.5 w-3.5 text-primary ml-auto" />}
+                          </div>
+                          <div className="text-[11px] text-foreground-muted mt-0.5">
+                            Campagne agricole / Récoltes des membres
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSecteur('materiel')}
+                        className={`flex items-start gap-2.5 p-3 rounded-lg border text-left transition-all ${secteur === 'materiel'
+                            ? 'border-secondary bg-secondary/10 text-secondary ring-2 ring-secondary/20 shadow-xs'
+                            : 'border-surface-border bg-background text-foreground-muted hover:text-foreground hover:bg-surface-hover'
+                          }`}
+                      >
+                        <span className="text-xl">🚜</span>
+                        <div>
+                          <div className="text-xs font-bold text-foreground flex items-center gap-1">
+                            Matériel
+                            {secteur === 'materiel' && <CheckCircle2 className="h-3.5 w-3.5 text-secondary ml-auto" />}
+                          </div>
+                          <div className="text-[11px] text-foreground-muted mt-0.5">
+                            Prestations de services / Travaux mécanisés
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-foreground-muted">
+                      Affecte ce stock au bilan et compte d&apos;exploitation (production agricole) ou au secteur matériel (prestations).
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -284,7 +389,7 @@ export default function SetStockInitialModal({
                   <div className="pt-2 flex justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsOpen(false)}
+                      onClick={handleClose}
                       className="rounded-md border border-surface-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background transition-colors"
                     >
                       {dict?.common?.cancel || "Annuler"}

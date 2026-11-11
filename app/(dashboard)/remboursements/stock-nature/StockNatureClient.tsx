@@ -8,7 +8,7 @@ import SetStockInitialModal from './SetStockInitialModal'
 import { useUnite } from '@/components/DeviseProvider'
 import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
 import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
-import { Trash2, Package, Filter, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { Trash2, Package, Filter, ArrowDownRight, ArrowUpRight, Pencil } from 'lucide-react'
 
 export default function StockNatureClient({
   campagnes,
@@ -36,6 +36,8 @@ export default function StockNatureClient({
   const [produits, setProduits] = useState<string[]>([])
   const [stocksParProduit, setStocksParProduit] = useState<Record<string, ProductStockSummary>>({})
   const [selectedProduitFilter, setSelectedProduitFilter] = useState<string>('all')
+  const [editInitialModalOpen, setEditInitialModalOpen] = useState(false)
+  const [editInitialProduit, setEditInitialProduit] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -126,10 +128,15 @@ export default function StockNatureClient({
             campagneNom={campagneInfo?.nom}
             produits={produits}
             stocksParProduit={stocksParProduit}
-            selectedProduitDefault={selectedProduitFilter !== 'all' ? selectedProduitFilter : produits[0]}
+            selectedProduitDefault={editInitialProduit || (selectedProduitFilter !== 'all' ? selectedProduitFilter : produits[0])}
             initialData={stockInitial}
             onSuccess={fetchStock}
             dict={dict}
+            externalIsOpen={editInitialModalOpen ? true : undefined}
+            onCloseExternal={() => {
+              setEditInitialModalOpen(false)
+              setEditInitialProduit(null)
+            }}
           />
           <AddSortieModal
             campagneId={selectedCampagne}
@@ -163,8 +170,8 @@ export default function StockNatureClient({
                 type="button"
                 onClick={() => setSelectedProduitFilter('all')}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedProduitFilter === 'all'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'bg-surface border border-surface-border text-foreground hover:bg-surface-hover'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-surface border border-surface-border text-foreground hover:bg-surface-hover'
                   }`}
               >
                 Tous les produits ({listeProduitsActifs.length})
@@ -175,8 +182,8 @@ export default function StockNatureClient({
                   type="button"
                   onClick={() => setSelectedProduitFilter(pSum.produit)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedProduitFilter === pSum.produit
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'bg-surface border border-surface-border text-foreground hover:bg-surface-hover'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'bg-surface border border-surface-border text-foreground hover:bg-surface-hover'
                     }`}
                 >
                   {pSum.produit} : {Number(pSum.soldeActuel).toLocaleString(dateLocale)} {pSum.uniteStock}
@@ -231,8 +238,16 @@ export default function StockNatureClient({
                     {/* Décomposition du stock */}
                     <div className="mt-4 pt-3 border-t border-surface-border grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <div className="text-foreground-muted text-[11px]">Stock Initial</div>
-                        <div className="font-semibold text-foreground font-mono">
+                        <div className="text-foreground-muted text-[11px] flex items-center justify-between">
+                          <span>Stock Initial</span>
+                          <span className={`text-[9px] font-semibold px-1 py-0.2 rounded ${pSum.stockInitial.secteur === 'materiel'
+                              ? 'bg-secondary/15 text-secondary border border-secondary/20'
+                              : 'bg-primary/10 text-primary border border-primary/20'
+                            }`}>
+                            {pSum.stockInitial.secteur === 'materiel' ? '🚜 Matériel' : '🌱 Exploitation'}
+                          </span>
+                        </div>
+                        <div className="font-semibold text-foreground font-mono mt-0.5">
                           {Number(pSum.stockInitial.quantite).toLocaleString(dateLocale)}
                         </div>
                       </div>
@@ -316,9 +331,9 @@ export default function StockNatureClient({
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm">
                       <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${isReport ? 'bg-purple-500/10 text-purple-600 ring-purple-500/20' :
-                          m.type === 'entree' ? 'bg-success/10 text-success ring-success/20' :
-                            m.type === 'vente' ? 'bg-primary/10 text-primary ring-primary/20' :
-                              'bg-warning/10 text-warning ring-warning/20'
+                        m.type === 'entree' ? 'bg-success/10 text-success ring-success/20' :
+                          m.type === 'vente' ? 'bg-primary/10 text-primary ring-primary/20' :
+                            'bg-warning/10 text-warning ring-warning/20'
                         }`}>
                         {typeLabel(m.type, m.tiers_type)}
                       </span>
@@ -341,12 +356,21 @@ export default function StockNatureClient({
 
                         {/* Détails supplémentaires (variété, origine, contenance) */}
                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                          {isReport && (
+                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${m.origine_stock === 'materiel'
+                                ? 'bg-secondary/15 text-secondary border border-secondary/20'
+                                : 'bg-primary/10 text-primary border border-primary/20'
+                              }`}>
+                              {m.origine_stock === 'materiel' ? '🚜 Secteur : Matériel' : '🌱 Secteur : Exploitation'}
+                            </span>
+                          )}
+
                           {m.type === 'entree' && !isReport && (
                             <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${m.origine_stock === 'materiel'
-                                ? 'bg-secondary/15 text-secondary border border-secondary/20'
-                                : m.origine_stock === 'achat'
-                                  ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                                  : 'bg-primary/10 text-primary border border-primary/20'
+                              ? 'bg-secondary/15 text-secondary border border-secondary/20'
+                              : m.origine_stock === 'achat'
+                                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                                : 'bg-primary/10 text-primary border border-primary/20'
                               }`}>
                               {m.origine_stock === 'materiel'
                                 ? 'Origine : Matériel'
@@ -357,11 +381,10 @@ export default function StockNatureClient({
                           )}
 
                           {isVente && (
-                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                              m.origine_stock === 'materiel' || /moissonneuse|materiel|matériel|prestation/i.test(m.motif || '')
+                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${m.origine_stock === 'materiel' || /moissonneuse|materiel|matériel|prestation/i.test(m.motif || '')
                                 ? 'bg-secondary/15 text-secondary border border-secondary/20'
                                 : 'bg-primary/10 text-primary border border-primary/20'
-                            }`}>
+                              }`}>
                               {m.origine_stock === 'materiel' || /moissonneuse|materiel|matériel|prestation/i.test(m.motif || '')
                                 ? 'CA Matériel'
                                 : 'CA Exploitation'}
@@ -414,6 +437,21 @@ export default function StockNatureClient({
                             <FactureWhatsAppModal facture={factureVente} gieName={gieName} dict={dict} />
                             <DownloadPdfButton facture={factureVente} dict={dict} gieName={gieName} />
                           </>
+                        )}
+
+                        {isReport && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditInitialProduit(m.produit)
+                              setEditInitialModalOpen(true)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-surface border border-surface-border text-foreground hover:bg-surface-hover hover:border-primary/40 transition-colors shadow-2xs"
+                            title="Modifier ce stock initial et son secteur d'appartenance"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-primary" />
+                            <span>Modifier</span>
+                          </button>
                         )}
 
                         {isSortieModifiable && (

@@ -132,15 +132,17 @@ export function extractClientSoldeInitial(nom?: string | null): number {
 }
 
 export function parseStockInitialCampagne(
-  campagneOrRaw?: { produit_collecte?: string | null; stock_initial_quantite?: number | null; stock_initial_valeur?: number | null } | string | null
-): { quantite: number; unite: string; valeur: number; date?: string | null } | null {
+  campagneOrRaw?: { produit_collecte?: string | null; stock_initial_quantite?: number | null; stock_initial_valeur?: number | null; stock_initial_secteur?: string | null } | string | null
+): { quantite: number; unite: string; valeur: number; date?: string | null; secteur: 'exploitation' | 'materiel' } | null {
   if (!campagneOrRaw) return null
   if (typeof campagneOrRaw === 'object' && (n(campagneOrRaw.stock_initial_quantite) > 0 || n(campagneOrRaw.stock_initial_valeur) > 0)) {
+    const rawSecteur = (campagneOrRaw as any).stock_initial_secteur
     return {
       quantite: n(campagneOrRaw.stock_initial_quantite),
       unite: 'sacs',
       valeur: n(campagneOrRaw.stock_initial_valeur),
       date: null,
+      secteur: rawSecteur === 'materiel' ? 'materiel' : 'exploitation',
     }
   }
   const raw = typeof campagneOrRaw === 'string' ? campagneOrRaw : (campagneOrRaw.produit_collecte || '')
@@ -152,22 +154,24 @@ export function parseStockInitialCampagne(
     for (const part of parts) {
       const [, data] = part.split('=')
       if (data) {
-        const [q, u, v, d] = data.split(':')
+        const [q, u, v, d, s] = data.split(':')
         return {
           quantite: Number(q) || 0,
           unite: u || 'kg',
           valeur: Number(v) || 0,
           date: d || null,
+          secteur: s === 'materiel' ? 'materiel' : 'exploitation',
         }
       }
     }
   } else if (content) {
-    const [q, u, v, d] = content.split(':')
+    const [q, u, v, d, s] = content.split(':')
     return {
       quantite: Number(q) || 0,
       unite: u || 'kg',
       valeur: Number(v) || 0,
       date: d || null,
+      secteur: s === 'materiel' ? 'materiel' : 'exploitation',
     }
   }
   return null
@@ -337,8 +341,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const calcStockNatureAgricole = (limite: number) => {
     let totalNature = 0
     for (const c of raw.campagnes) {
-      const siTag = parseStockInitialCampagne(c.produit_collecte)
-      const qteInitiale = siTag ? siTag.quantite : 0
+      const siTag = parseStockInitialCampagne(c)
+      const isExploitation = !siTag || siTag.secteur !== 'materiel'
+      const qteInitiale = (siTag && isExploitation) ? siTag.quantite : 0
       const puInitial = siTag && siTag.valeur > 0 ? siTag.valeur : (prixCollecte.get(c.id) || 160)
 
       // Si limite est N-1 (ouverture de l'année N), on prend le stock initial (report)
@@ -374,6 +379,16 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const calcStockNatureMateriel = (limite: number) => {
     let totalNature = 0
     for (const c of raw.campagnes) {
+      const siTag = parseStockInitialCampagne(c)
+      const isMateriel = siTag && siTag.secteur === 'materiel'
+      const qteInitiale = isMateriel ? siTag.quantite : 0
+      const puInitial = siTag && siTag.valeur > 0 ? siTag.valeur : (prixCollecte.get(c.id) ? (prixCollecte.get(c.id)! * 80) : 10000)
+
+      if (limite <= finN1) {
+        totalNature += qteInitiale * puInitial
+        continue
+      }
+
       let qteEntreesSacs = 0
       for (const p of raw.paiementsClients) {
         if (isPaiementMateriel(p) && avant(p.date_paiement, limite)) {
@@ -398,8 +413,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
           qteSortiesSacs += n(s.quantite)
         }
       }
-      const qteRestante = Math.max(0, qteEntreesSacs - qteSortiesSacs)
-      totalNature += qteRestante * (prixCollecte.get(c.id) ? (prixCollecte.get(c.id)! * 80) : 10000)
+      const qteRestante = Math.max(0, qteInitiale + qteEntreesSacs - qteSortiesSacs)
+      totalNature += qteRestante * puInitial
     }
     return totalNature
   }

@@ -35,6 +35,7 @@ export type ProductStockSummary = {
     unite: string
     valeur: number
     date?: string | null
+    secteur?: 'exploitation' | 'materiel'
   }
   totalEntrees: number
   totalSorties: number
@@ -55,37 +56,39 @@ function cleanNomProduit(raw?: string | null, fallback: string = 'Riz Paddy'): s
 
 /**
  * Parse les stocks initiaux encodés dans le champ produit_collecte (fallback résilient sans migration)
- * Format : [SI:Riz Paddy=12500:kg:160|Oignon=3000:kg:200] ou [SI:12500:kg:160]
+ * Format : [SI:Riz Paddy=12500:kg:160:2025-01-01:exploitation|Oignon=3000:kg:200:2025-01-01:materiel] ou [SI:12500:kg:160]
  */
-function parseStockInitialTag(raw?: string | null): Record<string, { quantite: number; unite: string; valeur: number; date?: string | null }> {
+function parseStockInitialTag(raw?: string | null): Record<string, { quantite: number; unite: string; valeur: number; date?: string | null; secteur?: 'exploitation' | 'materiel' }> {
   if (!raw) return {}
   const match = raw.match(/\[SI:(.*?)\]/)
   if (!match) return {}
   const content = match[1].trim()
-  const result: Record<string, { quantite: number; unite: string; valeur: number; date?: string | null }> = {}
+  const result: Record<string, { quantite: number; unite: string; valeur: number; date?: string | null; secteur?: 'exploitation' | 'materiel' }> = {}
 
   if (content.includes('=')) {
     const parts = content.split('|')
     for (const part of parts) {
       const [prod, data] = part.split('=')
       if (prod && data) {
-        const [q, u, v, d] = data.split(':')
+        const [q, u, v, d, s] = data.split(':')
         result[prod.trim()] = {
           quantite: Number(q) || 0,
           unite: u || 'kg',
           valeur: Number(v) || 0,
           date: d || null,
+          secteur: s === 'materiel' ? 'materiel' : 'exploitation',
         }
       }
     }
   } else if (content) {
-    const [q, u, v, d] = content.split(':')
+    const [q, u, v, d, s] = content.split(':')
     const prodName = cleanNomProduit(raw)
     result[prodName] = {
       quantite: Number(q) || 0,
       unite: u || 'kg',
       valeur: Number(v) || 0,
       date: d || null,
+      secteur: s === 'materiel' ? 'materiel' : 'exploitation',
     }
   }
 
@@ -101,7 +104,7 @@ export async function getStockNature(campagneId: string) {
   // 1. Charger la campagne (tolérance sur colonnes stock_initial)
   let campagneRes = await supabase
     .from('campagnes')
-    .select('id, nom, produit_collecte, prix_collecte, date_debut, stock_initial_quantite, stock_initial_unite, stock_initial_valeur, stock_initial_date')
+    .select('id, nom, produit_collecte, prix_collecte, date_debut, stock_initial_quantite, stock_initial_unite, stock_initial_valeur, stock_initial_date, stock_initial_secteur')
     .eq('id', campagneId)
     .single()
 
@@ -128,7 +131,19 @@ export async function getStockNature(campagneId: string) {
   const factureIds = factures?.map((f) => f.id) || []
 
   // 3. Charger les clients externes et les stocks initiaux multi-produits
-  const [clientsRes, allRembRes, paiementsClientsRes, sortiesRes, initialStocksTableRes] = await Promise.all([
+  let initialStocksTableRes: any = await supabase
+    .from('stock_nature_initial')
+    .select('produit, quantite, unite, valeur_unitaire, date_inventaire, secteur')
+    .eq('campagne_id', campagneId)
+
+  if (initialStocksTableRes.error && (initialStocksTableRes.error.message?.includes('secteur') || initialStocksTableRes.error.code === '42703')) {
+    initialStocksTableRes = await supabase
+      .from('stock_nature_initial')
+      .select('produit, quantite, unite, valeur_unitaire, date_inventaire')
+      .eq('campagne_id', campagneId)
+  }
+
+  const [clientsRes, allRembRes, paiementsClientsRes, sortiesRes] = await Promise.all([
     supabase.from('clients_externes').select('id, nom, telephone'),
     supabase
       .from('remboursements')
@@ -139,10 +154,6 @@ export async function getStockNature(campagneId: string) {
     supabase
       .from('sorties_stock_nature')
       .select('id, type_sortie, tiers_type, membre_id, tiers_nom, client_id, quantite, prix_unitaire, motif, date_sortie, membres(id, prenom, nom, code_membre, telephone)')
-      .eq('campagne_id', campagneId),
-    supabase
-      .from('stock_nature_initial')
-      .select('produit, quantite, unite, valeur_unitaire, date_inventaire')
       .eq('campagne_id', campagneId),
   ])
 
@@ -170,7 +181,7 @@ export async function getStockNature(campagneId: string) {
     if (!stocksParProduit[key]) {
       stocksParProduit[key] = {
         produit: key,
-        stockInitial: { quantite: 0, unite: defaultUnite, valeur: prixCollecteCampagne, date: null },
+        stockInitial: { quantite: 0, unite: defaultUnite, valeur: prixCollecteCampagne, date: null, secteur: 'exploitation' },
         totalEntrees: 0,
         totalSorties: 0,
         soldeActuel: 0,
@@ -186,7 +197,7 @@ export async function getStockNature(campagneId: string) {
   ensureProduit(defaultProduitCampagne)
 
   // 4. Initialisation des stocks initiaux (Inventaire d'ouverture)
-  // Source A : Table dédiée stock_nature_initial (si migration 64 appliquée)
+  // Source A : Table dédiée stock_nature_initial (si migration 64/65 appliquée)
   if (initialStocksTableRes.data && initialStocksTableRes.data.length > 0) {
     for (const initRow of initialStocksTableRes.data) {
       const prod = cleanNomProduit(initRow.produit, defaultProduitCampagne)
@@ -196,6 +207,7 @@ export async function getStockNature(campagneId: string) {
         unite: initRow.unite || 'kg',
         valeur: Number(initRow.valeur_unitaire || 0),
         date: initRow.date_inventaire || null,
+        secteur: initRow.secteur === 'materiel' ? 'materiel' : 'exploitation',
       }
       pSummary.uniteStock = initRow.unite || pSummary.uniteStock
     }
@@ -209,6 +221,7 @@ export async function getStockNature(campagneId: string) {
       unite: (campagne as any).stock_initial_unite || 'kg',
       valeur: Number((campagne as any).stock_initial_valeur || campagne.prix_collecte || 0),
       date: (campagne as any).stock_initial_date || null,
+      secteur: (campagne as any).stock_initial_secteur === 'materiel' ? 'materiel' : 'exploitation',
     }
     stocksParProduit[defaultProduitCampagne].uniteStock = (campagne as any).stock_initial_unite || 'kg'
   }
@@ -224,6 +237,7 @@ export async function getStockNature(campagneId: string) {
         unite: siData.unite,
         valeur: siData.valeur,
         date: siData.date || null,
+        secteur: siData.secteur || 'exploitation',
       }
       pSummary.uniteStock = siData.unite
     }
@@ -234,6 +248,7 @@ export async function getStockNature(campagneId: string) {
   // 5. Injecter les mouvements de Stock Initial dans le journal
   for (const [prodName, summary] of Object.entries(stocksParProduit)) {
     if (summary.stockInitial.quantite > 0) {
+      const initSecteur = summary.stockInitial.secteur || 'exploitation'
       mouvements.push({
         id: `stock-initial-${campagne.id}-${encodeURIComponent(prodName)}`,
         date: summary.stockInitial.date || (campagne as any).date_debut || '2025-01-01',
@@ -244,8 +259,8 @@ export async function getStockNature(campagneId: string) {
         prix_unitaire: summary.stockInitial.valeur || Number(campagne.prix_collecte || 0),
         quantite: summary.stockInitial.quantite,
         unite: summary.stockInitial.unite,
-        origine_stock: 'report',
-        motif: `Inventaire d'ouverture / Report de stock [${prodName}]`,
+        origine_stock: initSecteur,
+        motif: `Inventaire d'ouverture / Report de stock [${prodName}] [SECTEUR:${initSecteur}]`,
       })
     }
   }
@@ -481,6 +496,7 @@ export async function setStockInitial(input: {
   unite?: string
   valeur_unitaire?: number
   date?: string
+  secteur?: 'exploitation' | 'materiel'
 }) {
   const denied = await requirePermission('stock_nature', 'update')
   if (denied) return denied as never
@@ -501,6 +517,7 @@ export async function setStockInitial(input: {
   const unite = input.unite?.trim() || 'kg'
   const valUnit = Number(input.valeur_unitaire || 0)
   const dateStock = input.date || new Date().toISOString().slice(0, 10)
+  const secteur = input.secteur === 'materiel' ? 'materiel' : 'exploitation'
 
   // Récupérer la campagne
   const { data: camp } = await supabase
@@ -513,40 +530,60 @@ export async function setStockInitial(input: {
 
   const produitCible = cleanNomProduit(input.produit || camp.produit_collecte, 'Riz Paddy')
 
-  // 1. Tenter la table dédiée stock_nature_initial (si migration 64 appliquée)
+  // 1. Tenter la table dédiée stock_nature_initial (si migration 64/65 appliquée)
   try {
+    const payload: any = {
+      gie_id: userData.gie_id,
+      campagne_id: input.campagne_id,
+      produit: produitCible,
+      quantite: qte,
+      unite,
+      valeur_unitaire: valUnit,
+      date_inventaire: dateStock,
+      secteur,
+    }
     const { error: sniErr } = await supabase
       .from('stock_nature_initial')
-      .upsert({
-        gie_id: userData.gie_id,
-        campagne_id: input.campagne_id,
-        produit: produitCible,
-        quantite: qte,
-        unite,
-        valeur_unitaire: valUnit,
-        date_inventaire: dateStock,
-      }, { onConflict: 'gie_id,campagne_id,produit' })
+      .upsert(payload, { onConflict: 'gie_id,campagne_id,produit' })
 
     if (sniErr) {
-      console.warn("stock_nature_initial table non présente, utilisation du fallback:", sniErr.message)
+      if (sniErr.message?.includes('secteur')) {
+        delete payload.secteur
+        await supabase.from('stock_nature_initial').upsert(payload, { onConflict: 'gie_id,campagne_id,produit' })
+      } else {
+        console.warn("stock_nature_initial table non présente, utilisation du fallback:", sniErr.message)
+      }
     }
   } catch (_) { }
 
-  // 2. Tenter la mise à jour directe sur la table campagnes (si migration 63 appliquée)
+  // 2. Tenter la mise à jour directe sur la table campagnes (si migration 63/65 appliquée)
   try {
-    await supabase
+    const { error: campErr } = await supabase
       .from('campagnes')
       .update({
         stock_initial_quantite: qte,
         stock_initial_unite: unite,
         stock_initial_valeur: valUnit,
         stock_initial_date: dateStock,
+        stock_initial_secteur: secteur,
       })
       .eq('id', input.campagne_id)
+
+    if (campErr && campErr.message?.includes('stock_initial_secteur')) {
+      await supabase
+        .from('campagnes')
+        .update({
+          stock_initial_quantite: qte,
+          stock_initial_unite: unite,
+          stock_initial_valeur: valUnit,
+          stock_initial_date: dateStock,
+        })
+        .eq('id', input.campagne_id)
+    }
   } catch (_) { }
 
   // 3. Fallback pérenne universel : encoder dans le champ produit_collecte
-  // Format : "Riz Paddy [SI:Riz Paddy=15000:kg:160|Oignon=3000:kg:200]"
+  // Format : "Riz Paddy [SI:Riz Paddy=15000:kg:160:2025-01-01:exploitation|Oignon=3000:kg:200:2025-01-01:materiel]"
   try {
     const currentRaw = camp.produit_collecte || 'Riz Paddy'
     const cleanBase = cleanNomProduit(currentRaw, produitCible)
@@ -557,18 +594,19 @@ export async function setStockInitial(input: {
       unite,
       valeur: valUnit,
       date: dateStock,
+      secteur,
     }
 
     const tagParts: string[] = []
     for (const [pName, pData] of Object.entries(currentTagMap)) {
       if (pData.quantite > 0) {
-        tagParts.push(`${pName}=${pData.quantite}:${pData.unite}:${pData.valeur}:${pData.date || ''}`)
+        tagParts.push(`${pName}=${pData.quantite}:${pData.unite}:${pData.valeur}:${pData.date || ''}:${pData.secteur || 'exploitation'}`)
       }
     }
 
     const newTag = tagParts.length > 0 ? ` [SI:${tagParts.join('|')}]` : ''
     // Tronquer avec précaution si la taille maximale est dépassée
-    const safeString = `${cleanBase}${newTag}`.slice(0, 100)
+    const safeString = `${cleanBase}${newTag}`.slice(0, 160)
 
     await supabase
       .from('campagnes')
@@ -580,6 +618,8 @@ export async function setStockInitial(input: {
 
   revalidatePath('/remboursements/stock-nature')
   revalidatePath('/intrants/stock-nature')
+  revalidatePath('/bilans/bilan-annuel')
+  revalidatePath('/bilans/smt')
   return { success: true }
 }
 
