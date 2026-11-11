@@ -72,8 +72,8 @@ export default function SMTClient({
     voletTab === 'agricole'
       ? data.compteExploitation.agricole
       : voletTab === 'materiel'
-      ? data.compteExploitation.materiel
-      : data.compteExploitation.global
+        ? data.compteExploitation.materiel
+        : data.compteExploitation.global
 
   return (
     <div className="space-y-6" id="smt-print-area">
@@ -158,11 +158,10 @@ export default function SMTClient({
           </p>
         </div>
 
-        <div className={`p-4 rounded-xl border shadow-sm ${
-          data.compteExploitation.global.resultatNet >= 0
+        <div className={`p-4 rounded-xl border shadow-sm ${data.compteExploitation.global.resultatNet >= 0
             ? 'bg-success/5 border-success/30 text-success'
             : 'bg-danger/5 border-danger/30 text-danger'
-        }`}>
+          }`}>
           <div className="flex items-center justify-between text-xs font-semibold mb-1">
             <span>Résultat Net SMT</span>
             <Scale className="w-4 h-4" />
@@ -181,11 +180,10 @@ export default function SMTClient({
         <button
           type="button"
           onClick={() => setActiveTab('exploitation')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-            activeTab === 'exploitation'
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'exploitation'
               ? 'border-primary text-primary'
               : 'border-transparent text-foreground-muted hover:text-foreground'
-          }`}
+            }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
           1. Compte d&apos;Exploitation SMT
@@ -194,11 +192,10 @@ export default function SMTClient({
         <button
           type="button"
           onClick={() => setActiveTab('bilan')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-            activeTab === 'bilan'
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'bilan'
               ? 'border-primary text-primary'
               : 'border-transparent text-foreground-muted hover:text-foreground'
-          }`}
+            }`}
         >
           <Scale className="w-4 h-4" />
           2. Bilan SMT (Situation Patrimoniale)
@@ -207,11 +204,10 @@ export default function SMTClient({
         <button
           type="button"
           onClick={() => setActiveTab('tresorerie')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-            activeTab === 'tresorerie'
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition ${activeTab === 'tresorerie'
               ? 'border-primary text-primary'
               : 'border-transparent text-foreground-muted hover:text-foreground'
-          }`}
+            }`}
         >
           <Wallet className="w-4 h-4" />
           3. Livre & Flux de Trésorerie SMT
@@ -232,11 +228,10 @@ export default function SMTClient({
               <button
                 type="button"
                 onClick={() => setVoletTab('global')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
-                  voletTab === 'global'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${voletTab === 'global'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-foreground-muted hover:text-foreground'
-                }`}
+                  }`}
               >
                 <Layers className="w-3.5 h-3.5" />
                 Compte Global
@@ -244,11 +239,10 @@ export default function SMTClient({
               <button
                 type="button"
                 onClick={() => setVoletTab('agricole')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
-                  voletTab === 'agricole'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${voletTab === 'agricole'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-foreground-muted hover:text-foreground'
-                }`}
+                  }`}
               >
                 <Wheat className="w-3.5 h-3.5" />
                 Volet Exploitation Agricole
@@ -256,11 +250,10 @@ export default function SMTClient({
               <button
                 type="button"
                 onClick={() => setVoletTab('materiel')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${
-                  voletTab === 'materiel'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition ${voletTab === 'materiel'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-foreground-muted hover:text-foreground'
-                }`}
+                  }`}
               >
                 <Tractor className="w-3.5 h-3.5" />
                 Volet Matériel & Équipements
@@ -281,9 +274,8 @@ export default function SMTClient({
               </div>
               <div className="text-right">
                 <span className="text-xs text-foreground-muted block">Résultat net du volet</span>
-                <span className={`text-lg font-bold ${
-                  currentVolet.resultatNet >= 0 ? 'text-success' : 'text-danger'
-                }`}>
+                <span className={`text-lg font-bold ${currentVolet.resultatNet >= 0 ? 'text-success' : 'text-danger'
+                  }`}>
                   {fmt(currentVolet.resultatNet)}
                 </span>
               </div>
@@ -345,9 +337,8 @@ export default function SMTClient({
                 <span className="text-foreground">
                   III. Solde brut de trésorerie d&apos;exploitation (A - B)
                 </span>
-                <span className={`text-base tabular-nums ${
-                  currentVolet.soldeTresorerie >= 0 ? 'text-success' : 'text-danger'
-                }`}>
+                <span className={`text-base tabular-nums ${currentVolet.soldeTresorerie >= 0 ? 'text-success' : 'text-danger'
+                  }`}>
                   {fmt(currentVolet.soldeTresorerie)}
                 </span>
               </div>
@@ -362,9 +353,8 @@ export default function SMTClient({
                   {currentVolet.ajustements.map((a, idx) => (
                     <tr key={idx} className="hover:bg-background/40">
                       <td className="px-4 py-2.5 text-foreground">{a.libelle}</td>
-                      <td className={`px-4 py-2.5 text-right font-medium tabular-nums ${
-                        a.montant >= 0 ? 'text-foreground' : 'text-danger'
-                      }`}>
+                      <td className={`px-4 py-2.5 text-right font-medium tabular-nums ${a.montant >= 0 ? 'text-foreground' : 'text-danger'
+                        }`}>
                         {fmt(a.montant)}
                       </td>
                     </tr>
@@ -373,11 +363,10 @@ export default function SMTClient({
               </table>
 
               {/* RESULTAT NET FINAL SMT */}
-              <div className={`p-4 flex justify-between items-center font-bold text-base border-t-2 ${
-                currentVolet.resultatNet >= 0
+              <div className={`p-4 flex justify-between items-center font-bold text-base border-t-2 ${currentVolet.resultatNet >= 0
                   ? 'bg-success/10 text-success border-success/30'
                   : 'bg-danger/10 text-danger border-danger/30'
-              }`}>
+                }`}>
                 <div>
                   <span>V. RÉSULTAT NET DE L&apos;EXERCICE (SMT) (A - B + C)</span>
                   <span className="block text-xs font-normal opacity-80 mt-0.5">
@@ -569,9 +558,8 @@ export default function SMTClient({
                       <td className="px-3 py-2.5 text-foreground font-medium">
                         {data.bilan.passif.resultatNet.libelle}
                       </td>
-                      <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${
-                        data.bilan.passif.resultatNet.net >= 0 ? 'text-success' : 'text-danger'
-                      }`}>
+                      <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${data.bilan.passif.resultatNet.net >= 0 ? 'text-success' : 'text-danger'
+                        }`}>
                         {fmt(data.bilan.passif.resultatNet.net)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
@@ -652,6 +640,42 @@ export default function SMTClient({
                         {fmt(data.bilan.passif.dettesFournisseurs.netN1)}
                       </td>
                     </tr>
+
+                    {/* Dettes membres (Surplus de remboursement) */}
+                    {data.bilan.passif.dettesMembresSurplus && (
+                      <tr className="hover:bg-background/40">
+                        <td className="px-3 py-2.5 text-foreground font-medium">
+                          {data.bilan.passif.dettesMembresSurplus.libelle}
+                          <span className="block text-[11px] text-foreground-muted">
+                            Trop-perçus et excédents de remboursement des membres
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                          {fmt(data.bilan.passif.dettesMembresSurplus.net)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
+                          {fmt(data.bilan.passif.dettesMembresSurplus.netN1)}
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Dettes financières CT (Prêts de tiers / membres à la caisse) */}
+                    {data.bilan.passif.dettesTiersEmprunts && (
+                      <tr className="hover:bg-background/40">
+                        <td className="px-3 py-2.5 text-foreground font-medium">
+                          {data.bilan.passif.dettesTiersEmprunts.libelle}
+                          <span className="block text-[11px] text-foreground-muted">
+                            Prêts et avances de membres, clients ou fournisseurs à la caisse
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                          {fmt(data.bilan.passif.dettesTiersEmprunts.net)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">
+                          {fmt(data.bilan.passif.dettesTiersEmprunts.netN1)}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                   <tfoot>
                     <tr className="bg-primary/5 font-bold text-foreground border-t-2 border-primary/20">
@@ -714,9 +738,8 @@ export default function SMTClient({
                       <td className="px-4 py-3 text-right tabular-nums font-medium text-danger">
                         -{fmt(c.sorties)}
                       </td>
-                      <td className={`px-4 py-3 text-right tabular-nums font-bold ${
-                        c.soldeFinal >= 0 ? 'text-foreground' : 'text-danger'
-                      }`}>
+                      <td className={`px-4 py-3 text-right tabular-nums font-bold ${c.soldeFinal >= 0 ? 'text-foreground' : 'text-danger'
+                        }`}>
                         {fmt(c.soldeFinal)}
                       </td>
                     </tr>
@@ -734,9 +757,8 @@ export default function SMTClient({
                     <td className="px-4 py-3 text-right tabular-nums text-danger">
                       -{fmt(data.fluxTresorerie.totalSorties)}
                     </td>
-                    <td className={`px-4 py-3 text-right tabular-nums text-base ${
-                      data.fluxTresorerie.soldeCloture >= 0 ? 'text-primary' : 'text-danger'
-                    }`}>
+                    <td className={`px-4 py-3 text-right tabular-nums text-base ${data.fluxTresorerie.soldeCloture >= 0 ? 'text-primary' : 'text-danger'
+                      }`}>
                       {fmt(data.fluxTresorerie.soldeCloture)}
                     </td>
                   </tr>

@@ -69,6 +69,8 @@ export type SMTBilan = {
     empruntsEquipement: SMTBilanLigne
     creditsCampagne: SMTBilanLigne
     dettesFournisseurs: SMTBilanLigne
+    dettesMembresSurplus: SMTBilanLigne
+    dettesTiersEmprunts: SMTBilanLigne
     totalPassif: SMTBilanLigne
   }
 }
@@ -319,8 +321,16 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         if (isPaiementMateriel(p) && avant(p.date_paiement, limite)) {
           const m = String(p.motif || '')
           if (m.includes('[MODE:nature]')) {
-            const q = m.match(/\[QTE:([^\]]+)\]/)
-            if (q) qteEntreesSacs += n(q[1])
+            const cMatch = m.match(/\[CAMPAGNE:([^\]]+)\]/i)
+            if (cMatch) {
+              if (cMatch[1] === c.id) {
+                const q = m.match(/\[QTE:([^\]]+)\]/i)
+                if (q) qteEntreesSacs += n(q[1])
+              }
+            } else if (raw.campagnes.length === 1 || c.id === raw.campagnes[0]?.id) {
+              const q = m.match(/\[QTE:([^\]]+)\]/i)
+              if (q) qteEntreesSacs += n(q[1])
+            }
           }
         }
       }
@@ -356,15 +366,43 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const varStockNature = stockNatureN - stockNatureN1
 
   // --------------------------------------------------------------------------
-  // CRÉANCES DIFFÉRENCIÉES : EXPLOITATION AGRICOLE VS MATÉRIEL
+  // CRÉANCES ET DETTES DIFFÉRENCIÉES (NON-COMPENSATION SYSCOHADA)
   // --------------------------------------------------------------------------
-  const calcCreances = (limite: number) => {
-    // 1. Créances exploitation sur membres (factures intrants/campagne - remboursements)
+  // En comptabilité SYSCOHADA, les créances et les dettes ne se compensent pas :
+  // - Membre avec facturé > remboursé => Créance membre (Actif)
+  // - Membre avec remboursé > facturé => Dette membre / Surplus de remboursement (Passif)
+  // - Prêts/emprunts d'un tiers, client ou fournisseur à la caisse => Dettes financières à CT (Passif)
+  const calcCreancesEtDettes = (limite: number) => {
+    // 1. Membres : calcul individuel sans compensation
     const facturesAgri = raw.factures.filter((f) => avant(f.date_emission, limite))
     const rembAgri = raw.remboursements.filter((r) => avant(r.date_paiement, limite))
-    const totalFacturesMembres = somme(facturesAgri, (f) => n(f.montant_total) + n(f.montant_interet))
-    const totalRembMembres = somme(rembAgri, (r) => n(r.montant_fcfa))
-    const creancesMembres = Math.max(0, totalFacturesMembres - totalRembMembres)
+    const facturesMap = new Map(raw.factures.map((f) => [f.id, f]))
+
+    const membresSet = new Set<string>()
+    for (const m of raw.membres || []) membresSet.add(m.id)
+    for (const f of facturesAgri) if (f.membre_id) membresSet.add(f.membre_id)
+    for (const r of rembAgri) {
+      if (r.membre_id) membresSet.add(r.membre_id)
+      else if (r.facture_id && facturesMap.get(r.facture_id)?.membre_id) {
+        membresSet.add(facturesMap.get(r.facture_id)!.membre_id!)
+      }
+    }
+
+    let creancesMembres = 0
+    let dettesMembresSurplus = 0
+
+    for (const mId of membresSet) {
+      const fM = facturesAgri.filter((f) => f.membre_id === mId)
+      const totFact = somme(fM, (f) => n(f.montant_total) + n(f.montant_interet))
+      const rM = rembAgri.filter((r) => r.membre_id === mId || (r.facture_id && facturesMap.get(r.facture_id)?.membre_id === mId))
+      const totRemb = somme(rM, (r) => n(r.montant_fcfa))
+      const solde = totFact - totRemb
+      if (solde > 0) {
+        creancesMembres += solde
+      } else if (solde < 0) {
+        dettesMembresSurplus += Math.abs(solde)
+      }
+    }
 
     // 2. Créances exploitation sur clients acheteurs de récoltes agricoles
     const ventesClientsAgri = somme(
@@ -397,6 +435,7 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
 
     return {
       creancesMembres,
+      dettesMembresSurplus,
       creancesClientsAgri,
       creancesExploitation,
       creancesMateriel,
@@ -404,11 +443,51 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     }
   }
 
-  const crN = calcCreances(finN)
-  const crN1 = calcCreances(finN1)
+  // Prêts et emprunts de tiers (membres, clients, fournisseurs) accordés à la caisse
+  const calcDettesTiersEmprunts = (limite: number) => {
+    let totalDettes = 0
+    for (const t of raw.transactions) {
+      if (!avant(t.date_transaction, limite)) continue
+      if (t.credit_id) continue // Exclure les crédits bancaires officiels
+      const m = String(t.motif || '').toLowerCase()
+      const p = String(t.type_piece || '').toLowerCase()
+      if (m.includes('déblocage') || m.includes('deblocage')) continue
+
+      const isEmpruntTiers =
+        m.includes('emprunt') ||
+        m.includes('prêt') ||
+        m.includes('pret') ||
+        m.includes('credit_membre') ||
+        m.includes('crédit_membre') ||
+        m.includes('pret_tiers') ||
+        m.includes('prêt client') ||
+        m.includes('pret client') ||
+        m.includes('prêt fournisseur') ||
+        m.includes('pret fournisseur')
+
+      if (t.type_transaction === 'entree' && isEmpruntTiers) {
+        totalDettes += n(t.montant)
+      } else if (
+        t.type_transaction === 'sortie' &&
+        (m.includes('remboursement') || m.includes('restitution')) &&
+        (m.includes('emprunt') || m.includes('prêt') || m.includes('pret') || m.includes('credit_membre'))
+      ) {
+        totalDettes -= n(t.montant)
+      }
+    }
+    return Math.max(0, totalDettes)
+  }
+
+  const crN = calcCreancesEtDettes(finN)
+  const crN1 = calcCreancesEtDettes(finN1)
 
   const creancesMembresN = crN.creancesMembres
   const creancesMembresN1 = crN1.creancesMembres
+  const dettesMembresSurplusN = crN.dettesMembresSurplus
+  const dettesMembresSurplusN1 = crN1.dettesMembresSurplus
+  const dettesTiersEmpruntsN = calcDettesTiersEmprunts(finN)
+  const dettesTiersEmpruntsN1 = calcDettesTiersEmprunts(finN1)
+
   const creancesClientsN = crN.creancesClientsAgri
   const creancesClientsN1 = crN1.creancesClientsAgri
   const creancesExploitationN = crN.creancesExploitation
@@ -419,6 +498,7 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const creancesTotalN1 = crN1.creancesTotal
 
   const varCreancesAgricoles = creancesExploitationN - creancesExploitationN1
+  const varDettesMembresSurplus = dettesMembresSurplusN - dettesMembresSurplusN1
   const varCreancesMateriel = creancesMaterielN - creancesMaterielN1
   const varCreancesTotal = creancesTotalN - creancesTotalN1
 
@@ -551,9 +631,13 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     { libelle: 'Variation des stocks d\'intrants (SF - SI)', montant: varStockIntrants },
     { libelle: 'Variation des stocks de récoltes en nature (SF - SI)', montant: varStockNatureAgri },
     { libelle: 'Variation des créances d\'exploitation agricole (CF - CI)', montant: varCreancesAgricoles },
+    ...(varDettesMembresSurplus !== 0
+      ? [{ libelle: 'Variation des dettes envers membres / surplus (- [DF - DI])', montant: -varDettesMembresSurplus }]
+      : []),
     { libelle: 'Variation des dettes fournisseurs (- [DF - DI])', montant: -varDettesFournisseurs },
   ]
-  const totalAjustementsAgricoles = varStockIntrants + varStockNatureAgri + varCreancesAgricoles - varDettesFournisseurs
+  const totalAjustementsAgricoles =
+    varStockIntrants + varStockNatureAgri + varCreancesAgricoles - varDettesMembresSurplus - varDettesFournisseurs
   const resultatNetAgricole = soldeTresoAgricole + totalAjustementsAgricoles
 
   const voletAgricole: SMTVolet = {
@@ -639,9 +723,25 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const empruntsPassifN = saisies.emprunts !== undefined ? n(saisies.emprunts) : encoursCreditEquipementN
   const creditsCampagnePassifN = encoursCreditCampagneN
 
-  // Capital et fonds propres du GIE (équilibre du bilan SMT)
-  const capitalN = totalActifNetN - (resultatNetGlobal + subventionsAgricolesN + empruntsPassifN + creditsCampagnePassifN + dettesFournisseursN)
-  const capitalN1 = totalActifNetN1 - (subventionsAgricolesN + encoursCreditEquipementN1 + encoursCreditCampagneN1 + dettesFournisseursN1)
+  // Capital et fonds propres du GIE (équilibre strict du bilan SMT)
+  const capitalN =
+    totalActifNetN -
+    (resultatNetGlobal +
+      subventionsAgricolesN +
+      empruntsPassifN +
+      creditsCampagnePassifN +
+      dettesFournisseursN +
+      dettesMembresSurplusN +
+      dettesTiersEmpruntsN)
+
+  const capitalN1 =
+    totalActifNetN1 -
+    (subventionsAgricolesN +
+      encoursCreditEquipementN1 +
+      encoursCreditCampagneN1 +
+      dettesFournisseursN1 +
+      dettesMembresSurplusN1 +
+      dettesTiersEmpruntsN1)
 
   const bilan: SMTBilan = {
     actif: {
@@ -774,6 +874,22 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         net: dettesFournisseursN,
         netN1: dettesFournisseursN1,
         note: 'Factures d\'intrants et prestations reçues restant à payer',
+      },
+      dettesMembresSurplus: {
+        libelle: 'Dettes envers les membres (Surplus de remboursement)',
+        brut: dettesMembresSurplusN,
+        amortissement: 0,
+        net: dettesMembresSurplusN,
+        netN1: dettesMembresSurplusN1,
+        note: 'Trop-perçus et excédents de remboursements des membres à régulariser',
+      },
+      dettesTiersEmprunts: {
+        libelle: 'Dettes financières à court terme (Prêts de tiers / membres à la caisse)',
+        brut: dettesTiersEmpruntsN,
+        amortissement: 0,
+        net: dettesTiersEmpruntsN,
+        netN1: dettesTiersEmpruntsN1,
+        note: 'Prêts, emprunts et avances consentis par des membres, clients ou fournisseurs à la caisse',
       },
       totalPassif: {
         libelle: 'TOTAL PASSIF SMT',

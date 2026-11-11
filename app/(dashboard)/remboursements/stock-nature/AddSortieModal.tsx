@@ -292,11 +292,10 @@ export default function AddSortieModal({
                       <button
                         type="button"
                         onClick={() => setOrigineStock('exploitation')}
-                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${
-                          origineStock === 'exploitation'
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${origineStock === 'exploitation'
                             ? 'bg-primary/10 border-primary text-primary font-bold ring-1 ring-primary'
                             : 'bg-background border-surface-border text-foreground-muted hover:text-foreground'
-                        }`}
+                          }`}
                       >
                         <div>🌾 Exploitation Agricole</div>
                         <div className="text-[10px] font-normal opacity-75 mt-0.5">
@@ -306,11 +305,10 @@ export default function AddSortieModal({
                       <button
                         type="button"
                         onClick={() => setOrigineStock('materiel')}
-                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${
-                          origineStock === 'materiel'
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${origineStock === 'materiel'
                             ? 'bg-primary/10 border-primary text-primary font-bold ring-1 ring-primary'
                             : 'bg-background border-surface-border text-foreground-muted hover:text-foreground'
-                        }`}
+                          }`}
                       >
                         <div>🚜 Matériel & Équipements</div>
                         <div className="text-[10px] font-normal opacity-75 mt-0.5">
