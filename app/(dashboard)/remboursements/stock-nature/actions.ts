@@ -605,6 +605,7 @@ export async function addSortieStockNature(input: {
   unite_vente?: string
   quantite_vente?: number
   nb_contenance?: number
+  origine_stock?: 'exploitation' | 'materiel'
 }) {
   const denied = await requirePermission('stock_nature', 'create')
   if (denied) return denied as never
@@ -630,6 +631,11 @@ export async function addSortieStockNature(input: {
   const nbContenance = input.nb_contenance != null ? input.nb_contenance : null
   const produitChoisi = cleanNomProduit(input.produit, 'Riz Paddy')
 
+  const cleanMotif = (input.motif || '').replace(/\[[^\]]*\]/g, '').trim()
+  const detectedOrigine = input.origine_stock || (
+    /moissonneuse|materiel|matériel|prestation|labour|battage/i.test(cleanMotif) ? 'materiel' : 'exploitation'
+  )
+
   // Méta-tags pour traçabilité parfaite sans dépendance de colonnes
   const metaTags = [
     `[PRODUIT:${produitChoisi}]`,
@@ -637,9 +643,9 @@ export async function addSortieStockNature(input: {
     `[VENTE_UNITE:${venteUnite}]`,
     `[VENTE_QTE:${quantiteVente}]`,
     nbContenance ? `[NB_CONTENANCE:${nbContenance}]` : '',
+    `[ORIGINE:${detectedOrigine}]`,
   ].filter(Boolean).join(' ')
 
-  const cleanMotif = (input.motif || '').replace(/\[[^\]]*\]/g, '').trim()
   const motifComplet = `${metaTags} ${cleanMotif}`.trim()
 
   const { error } = await supabase.from('sorties_stock_nature').insert({
@@ -684,6 +690,7 @@ export async function updateSortieStockNature(id: string, input: {
   unite_vente?: string
   quantite_vente?: number
   nb_contenance?: number
+  origine_stock?: 'exploitation' | 'materiel'
 }) {
   const denied = await requirePermission('stock_nature', 'update')
   if (denied) return denied as never
@@ -696,13 +703,20 @@ export async function updateSortieStockNature(id: string, input: {
   const quantiteVente = input.quantite_vente != null ? input.quantite_vente : input.quantite
   const nbContenance = input.nb_contenance != null ? input.nb_contenance : null
 
-  // Récupérer le motif existant pour conserver le produit s'il n'est pas fourni
+  // Récupérer le motif existant pour conserver le produit et l'origine s'ils ne sont pas fournis
+  const { data: current } = await supabase.from('sorties_stock_nature').select('motif').eq('id', id).single()
+  const rawCurrentMotif = String(current?.motif || '')
+
   let produitFinal = input.produit
   if (!produitFinal) {
-    const { data: current } = await supabase.from('sorties_stock_nature').select('motif').eq('id', id).single()
-    const pMatch = String(current?.motif || '').match(/\[PRODUIT:([^\]]+)\]/)
+    const pMatch = rawCurrentMotif.match(/\[PRODUIT:([^\]]+)\]/)
     if (pMatch) produitFinal = pMatch[1].trim()
   }
+
+  const cleanMotif = (input.motif || '').replace(/\[[^\]]*\]/g, '').trim()
+  const origMatch = rawCurrentMotif.match(/\[ORIGINE:([^\]]+)\]/)
+  const currentOrigine = origMatch ? origMatch[1].trim() : (/moissonneuse|materiel|matériel|prestation|labour|battage/i.test(cleanMotif || rawCurrentMotif) ? 'materiel' : 'exploitation')
+  const detectedOrigine = input.origine_stock || currentOrigine
 
   const metaTags = [
     produitFinal ? `[PRODUIT:${cleanNomProduit(produitFinal)}]` : '',
@@ -710,9 +724,9 @@ export async function updateSortieStockNature(id: string, input: {
     `[VENTE_UNITE:${venteUnite}]`,
     `[VENTE_QTE:${quantiteVente}]`,
     nbContenance ? `[NB_CONTENANCE:${nbContenance}]` : '',
+    `[ORIGINE:${detectedOrigine}]`,
   ].filter(Boolean).join(' ')
 
-  const cleanMotif = (input.motif || '').replace(/\[[^\]]*\]/g, '').trim()
   const motifComplet = `${metaTags} ${cleanMotif}`.trim()
 
   const payload: any = {

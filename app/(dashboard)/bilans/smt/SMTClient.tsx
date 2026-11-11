@@ -473,7 +473,10 @@ export default function SMTClient({
                       <td className="px-3 py-2.5 text-foreground font-medium">
                         {data.bilan.actif.creancesTotal.libelle}
                         <span className="block text-[11px] text-foreground-muted">
-                          Membres ({fmt(data.bilan.actif.creancesMembres.net)}) + Acheteurs ({fmt(data.bilan.actif.creancesClients.net)})
+                          Exploitation Membres ({fmt(data.bilan.actif.creancesMembres.net)}) + Acheteurs ({fmt(data.bilan.actif.creancesClients.net)})
+                          {data.bilan.actif.creancesMateriel && (
+                            <> + Matériel ({fmt(data.bilan.actif.creancesMateriel.net)})</>
+                          )}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-foreground-muted">

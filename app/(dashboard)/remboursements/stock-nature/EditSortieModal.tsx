@@ -35,6 +35,12 @@ export default function EditSortieModal({
   const [poidsKgStock, setPoidsKgStock] = useState('')
   const [dateSortie, setDateSortie] = useState(mouvement.date ? mouvement.date.slice(0, 10) : new Date().toISOString().slice(0, 10))
   const [motif, setMotif] = useState(mouvement.motif || '')
+  const initialOrigine: 'exploitation' | 'materiel' =
+    (mouvement as any).origine_stock === 'materiel' ||
+    /moissonneuse|materiel|matériel|prestation|labour|battage/i.test(mouvement.motif || '')
+      ? 'materiel'
+      : 'exploitation'
+  const [origineStock, setOrigineStock] = useState<'exploitation' | 'materiel'>(initialOrigine)
   const [error, setError] = useState('')
 
   const isPaddy = produitChoisi.toLowerCase().includes('paddy') || produitChoisi.toLowerCase().includes('riz')
@@ -112,6 +118,7 @@ export default function EditSortieModal({
       nb_contenance: nbContenanceFinal,
       motif: motif || undefined,
       date_sortie: dateSortie,
+      origine_stock: origineStock,
     })
 
     setLoading(false)
@@ -177,6 +184,42 @@ export default function EditSortieModal({
                       </select>
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Origine & Affectation du stock vendu *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOrigineStock('exploitation')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${
+                          origineStock === 'exploitation'
+                            ? 'bg-primary/10 border-primary text-primary font-bold ring-1 ring-primary'
+                            : 'bg-background border-surface-border text-foreground-muted hover:text-foreground'
+                        }`}
+                      >
+                        <div>🌾 Exploitation Agricole</div>
+                        <div className="text-[10px] font-normal opacity-75 mt-0.5">
+                          Remboursements factures de campagne
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrigineStock('materiel')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${
+                          origineStock === 'materiel'
+                            ? 'bg-primary/10 border-primary text-primary font-bold ring-1 ring-primary'
+                            : 'bg-background border-surface-border text-foreground-muted hover:text-foreground'
+                        }`}
+                      >
+                        <div>🚜 Matériel & Équipements</div>
+                        <div className="text-[10px] font-normal opacity-75 mt-0.5">
+                          Règlements prestations (moissonneuse)
+                        </div>
+                      </button>
+                    </div>
+                  </div>
 
                   {/* Bloc Quantités & Unités */}
                   <div className="p-3 bg-surface-hover/50 rounded-lg border border-surface-border space-y-3">

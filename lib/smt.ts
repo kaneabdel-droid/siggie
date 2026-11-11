@@ -57,6 +57,7 @@ export type SMTBilan = {
     stocksTotal: SMTBilanLigne
     creancesMembres: SMTBilanLigne
     creancesClients: SMTBilanLigne
+    creancesMateriel?: SMTBilanLigne
     creancesTotal: SMTBilanLigne
     disponibilites: SMTBilanLigne
     totalActif: SMTBilanLigne
@@ -101,6 +102,26 @@ const dansAnnee = (d: string | null | undefined, y: number) => {
   return t >= debutAnnee(y) && t <= finAnnee(y)
 }
 const somme = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((s, r) => s + f(r), 0)
+
+export function isSortieMateriel(s: { motif?: string | null }): boolean {
+  const m = String(s.motif || '').toLowerCase()
+  if (m.includes('[origine:materiel]') || m.includes('[origine:matériel]')) return true
+  if (m.includes('moissonneuse') || m.includes('prestation') || m.includes('labour') || m.includes('battage')) return true
+  return false
+}
+
+export function isPaiementMateriel(p: { motif?: string | null }): boolean {
+  const m = String(p.motif || '').toLowerCase()
+  if (m.includes('[origine:materiel]') || m.includes('[origine:matériel]')) return true
+  if (m.includes('moissonneuse') || m.includes('prestation') || m.includes('labour') || m.includes('battage')) return true
+  return false
+}
+
+export function calcMontantSortie(s: { quantite: number | null; prix_unitaire: number | null; motif?: string | null }): number {
+  const vQteMatch = String(s.motif || '').match(/\[VENTE_QTE:([^\]]+)\]/)
+  const qte = vQteMatch ? n(vQteMatch[1]) : n(s.quantite)
+  return qte * n(s.prix_unitaire)
+}
 
 function amortissement(m: BilanRaw['materiels'][number], limite: number): number {
   const valeur = n(m.valeur_acquisition)
@@ -191,7 +212,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   let depIntrants = 0
   let depCarburant = 0
   let depElectricite = 0
-  let depEntretien = 0
+  let depHydraulique = 0
+  let depEntretienMateriel = 0
   let depFraisGestion = 0
   let depRemboursementCredits = 0
   let depAutres = 0
@@ -218,10 +240,12 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         depIntrants += montant
       } else if (motif.includes('gasoil') || motif.includes('carburant') || motif.includes('essence')) {
         depCarburant += montant
-      } else if (motif.includes('senelec') || motif.includes('electricité') || motif.includes('pompage')) {
+      } else if (motif.includes('senelec') || motif.includes('electricité') || motif.includes('électricité') || motif.includes('pompage')) {
         depElectricite += montant
-      } else if (motif.includes('entretien') || motif.includes('réparation') || motif.includes('pièce') || motif.includes('faucardage')) {
-        depEntretien += montant
+      } else if (motif.includes('faucardage') || motif.includes('drain') || motif.includes('canal') || motif.includes('curage')) {
+        depHydraulique += montant
+      } else if (motif.includes('entretien') || motif.includes('réparation') || motif.includes('reparation') || motif.includes('pièce') || motif.includes('piece')) {
+        depEntretienMateriel += montant
       } else if (motif.includes('transport') || motif.includes('indemnité') || motif.includes('bureau') || motif.includes('réunion') || motif.includes('frais')) {
         depFraisGestion += montant
       } else if (piece === 'remboursement_credit' || motif.includes('remboursement crédit')) {
@@ -241,7 +265,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   if (depIntrants > 0) depensesParPoste.push({ libelle: 'Achats & règlements intrants (engrais, semences)', montant: depIntrants })
   if (depCarburant > 0) depensesParPoste.push({ libelle: 'Carburant et lubrifiants matériel', montant: depCarburant })
   if (depElectricite > 0) depensesParPoste.push({ libelle: 'Électricité station de pompage & eau', montant: depElectricite })
-  if (depEntretien > 0) depensesParPoste.push({ libelle: 'Entretien réseau & réparations matériel', montant: depEntretien })
+  if (depHydraulique > 0) depensesParPoste.push({ libelle: "Entretien réseau d'irrigation & faucardage", montant: depHydraulique })
+  if (depEntretienMateriel > 0) depensesParPoste.push({ libelle: 'Entretien & réparations matériel', montant: depEntretienMateriel })
   if (depFraisGestion > 0) depensesParPoste.push({ libelle: 'Charges de fonctionnement & indemnités bureau', montant: depFraisGestion })
   if (depRemboursementCredits > 0) depensesParPoste.push({ libelle: 'Remboursements d\'échéances crédits bancaires', montant: depRemboursementCredits })
   if (depAutres > 0) depensesParPoste.push({ libelle: 'Autres décaissements d\'exploitation', montant: depAutres })
@@ -258,7 +283,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
       return Math.max(0, n(i.quantite_stock) + distribuesApres - achetesApres) * n(i.prix_unitaire)
     })
 
-  const calcStockNature = (limite: number) => {
+  // Stock en nature issu de l'exploitation agricole (remboursements des factures d'intrants par les membres)
+  const calcStockNatureAgricole = (limite: number) => {
     let totalNature = 0
     for (const c of raw.campagnes) {
       let qteEntrees = 0
@@ -274,7 +300,7 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
       }
       let qteSorties = 0
       for (const s of raw.sorties) {
-        if (s.campagne_id === c.id && avant(s.date_sortie, limite)) {
+        if (s.campagne_id === c.id && !isSortieMateriel(s) && avant(s.date_sortie, limite)) {
           qteSorties += n(s.quantite)
         }
       }
@@ -284,54 +310,116 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     return totalNature
   }
 
+  // Stock en nature issu des prestations du matériel (remboursements en nature des prestations)
+  const calcStockNatureMateriel = (limite: number) => {
+    let totalNature = 0
+    for (const c of raw.campagnes) {
+      let qteEntreesSacs = 0
+      for (const p of raw.paiementsClients) {
+        if (isPaiementMateriel(p) && avant(p.date_paiement, limite)) {
+          const m = String(p.motif || '')
+          if (m.includes('[MODE:nature]')) {
+            const q = m.match(/\[QTE:([^\]]+)\]/)
+            if (q) qteEntreesSacs += n(q[1])
+          }
+        }
+      }
+      let qteSortiesSacs = 0
+      for (const s of raw.sorties) {
+        if (s.campagne_id === c.id && isSortieMateriel(s) && avant(s.date_sortie, limite)) {
+          qteSortiesSacs += n(s.quantite)
+        }
+      }
+      const qteRestante = Math.max(0, qteEntreesSacs - qteSortiesSacs)
+      totalNature += qteRestante * (prixCollecte.get(c.id) ? (prixCollecte.get(c.id)! * 80) : 10000)
+    }
+    return totalNature
+  }
+
+  const calcStockNature = (limite: number) => calcStockNatureAgricole(limite) + calcStockNatureMateriel(limite)
+
   const stockIntrantsN = calcStockIntrants(finN)
   const stockIntrantsN1 = calcStockIntrants(finN1)
-  const stockNatureN = calcStockNature(finN)
-  const stockNatureN1 = calcStockNature(finN1)
+  const stockNatureAgriN = calcStockNatureAgricole(finN)
+  const stockNatureAgriN1 = calcStockNatureAgricole(finN1)
+  const stockNatureMatN = calcStockNatureMateriel(finN)
+  const stockNatureMatN1 = calcStockNatureMateriel(finN1)
+  const stockNatureN = stockNatureAgriN + stockNatureMatN
+  const stockNatureN1 = stockNatureAgriN1 + stockNatureMatN1
 
   const stockTotalN = stockIntrantsN + stockNatureN
   const stockTotalN1 = stockIntrantsN1 + stockNatureN1
   const varStockTotal = stockTotalN - stockTotalN1
   const varStockIntrants = stockIntrantsN - stockIntrantsN1
+  const varStockNatureAgri = stockNatureAgriN - stockNatureAgriN1
+  const varStockNatureMat = stockNatureMatN - stockNatureMatN1
   const varStockNature = stockNatureN - stockNatureN1
 
-  // Créances membres et clients
-  const facturesN = raw.factures.filter((f) => avant(f.date_emission, finN))
-  const facturesN1 = raw.factures.filter((f) => avant(f.date_emission, finN1))
-  const paiementsN = raw.remboursements.filter((r) => avant(r.date_paiement, finN))
-  const paiementsN1 = raw.remboursements.filter((r) => avant(r.date_paiement, finN1))
+  // --------------------------------------------------------------------------
+  // CRÉANCES DIFFÉRENCIÉES : EXPLOITATION AGRICOLE VS MATÉRIEL
+  // --------------------------------------------------------------------------
+  const calcCreances = (limite: number) => {
+    // 1. Créances exploitation sur membres (factures intrants/campagne - remboursements)
+    const facturesAgri = raw.factures.filter((f) => avant(f.date_emission, limite))
+    const rembAgri = raw.remboursements.filter((r) => avant(r.date_paiement, limite))
+    const totalFacturesMembres = somme(facturesAgri, (f) => n(f.montant_total) + n(f.montant_interet))
+    const totalRembMembres = somme(rembAgri, (r) => n(r.montant_fcfa))
+    const creancesMembres = Math.max(0, totalFacturesMembres - totalRembMembres)
 
-  const totalFactureMembresN = somme(facturesN, (f) => n(f.montant_total) + n(f.montant_interet))
-  const totalRembMembresN = somme(paiementsN, (r) => n(r.montant_fcfa))
-  const creancesMembresN = Math.max(0, totalFactureMembresN - totalRembMembresN)
+    // 2. Créances exploitation sur clients acheteurs de récoltes agricoles
+    const ventesClientsAgri = somme(
+      raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && !isSortieMateriel(s) && avant(s.date_sortie, limite)),
+      calcMontantSortie
+    )
+    const paiementsClientsAgri = somme(
+      raw.paiementsClients.filter((p) => !isPaiementMateriel(p) && avant(p.date_paiement, limite)),
+      (p) => n(p.montant)
+    )
+    const creancesClientsAgri = Math.max(0, ventesClientsAgri - paiementsClientsAgri)
+    const creancesExploitation = creancesMembres + creancesClientsAgri
 
-  const totalFactureMembresN1 = somme(facturesN1, (f) => n(f.montant_total) + n(f.montant_interet))
-  const totalRembMembresN1 = somme(paiementsN1, (r) => n(r.montant_fcfa))
-  const creancesMembresN1 = Math.max(0, totalFactureMembresN1 - totalRembMembresN1)
+    // 3. Créances matériel sur prestations facturées & ventes stock matériel
+    const prestationsFacturees = somme(
+      raw.prestations.filter((p) => avant(p.date_prestation, limite)),
+      (p) => n(p.montant_facture)
+    )
+    const ventesClientsMat = somme(
+      raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && isSortieMateriel(s) && avant(s.date_sortie, limite)),
+      calcMontantSortie
+    )
+    const paiementsClientsMat = somme(
+      raw.paiementsClients.filter((p) => isPaiementMateriel(p) && avant(p.date_paiement, limite)),
+      (p) => n(p.montant)
+    )
+    const creancesMateriel = Math.max(0, prestationsFacturees + ventesClientsMat - paiementsClientsMat)
 
-  // Créances clients acheteurs
-  const ventesClientsN = somme(
-    raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && avant(s.date_sortie, finN)),
-    (s) => n(s.quantite) * n(s.prix_unitaire)
-  )
-  const paiementsClientsN = somme(
-    raw.paiementsClients.filter((p) => avant(p.date_paiement, finN)),
-    (p) => n(p.montant)
-  )
-  const creancesClientsN = Math.max(0, ventesClientsN - paiementsClientsN)
+    const creancesTotal = creancesExploitation + creancesMateriel
 
-  const ventesClientsN1 = somme(
-    raw.sorties.filter((s) => s.type_sortie === 'vente' && s.tiers_type === 'client' && avant(s.date_sortie, finN1)),
-    (s) => n(s.quantite) * n(s.prix_unitaire)
-  )
-  const paiementsClientsN1 = somme(
-    raw.paiementsClients.filter((p) => avant(p.date_paiement, finN1)),
-    (p) => n(p.montant)
-  )
-  const creancesClientsN1 = Math.max(0, ventesClientsN1 - paiementsClientsN1)
+    return {
+      creancesMembres,
+      creancesClientsAgri,
+      creancesExploitation,
+      creancesMateriel,
+      creancesTotal,
+    }
+  }
 
-  const creancesTotalN = creancesMembresN + creancesClientsN
-  const creancesTotalN1 = creancesMembresN1 + creancesClientsN1
+  const crN = calcCreances(finN)
+  const crN1 = calcCreances(finN1)
+
+  const creancesMembresN = crN.creancesMembres
+  const creancesMembresN1 = crN1.creancesMembres
+  const creancesClientsN = crN.creancesClientsAgri
+  const creancesClientsN1 = crN1.creancesClientsAgri
+  const creancesExploitationN = crN.creancesExploitation
+  const creancesExploitationN1 = crN1.creancesExploitation
+  const creancesMaterielN = crN.creancesMateriel
+  const creancesMaterielN1 = crN1.creancesMateriel
+  const creancesTotalN = crN.creancesTotal
+  const creancesTotalN1 = crN1.creancesTotal
+
+  const varCreancesAgricoles = creancesExploitationN - creancesExploitationN1
+  const varCreancesMateriel = creancesMaterielN - creancesMaterielN1
   const varCreancesTotal = creancesTotalN - creancesTotalN1
 
   // Dettes fournisseurs intrants
@@ -370,39 +458,77 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     raw.prestations.filter((p) => dansAnnee(p.date_prestation, annee)),
     (p) => n(p.montant_facture)
   )
-  const carburantMaterielN = somme(
-    raw.consommations.filter((c) => dansAnnee(c.date_consommation, annee)),
-    (c) => n(c.montant_total)
+
+  // Vente de paddy/récoltes issu du remboursement en nature des prestations matériel
+  const ventesStockMaterielN = somme(
+    raw.sorties.filter((s) => s.type_sortie === 'vente' && dansAnnee(s.date_sortie, annee) && isSortieMateriel(s)),
+    calcMontantSortie
   )
-  // Réparations matériel et entretien enregistrés en trésorerie
-  const entretienMaterielN = depEntretien
-  const totalDepensesMateriel = carburantMaterielN + entretienMaterielN
-  const soldeTresoMateriel = prestationsMaterielN - totalDepensesMateriel
-  const resultatNetMateriel = soldeTresoMateriel - dotationAmoN
+  const totalRecettesMateriel = prestationsMaterielN + ventesStockMaterielN
+
+  // Répartition des charges pour le matériel (consommations directes par catégorie)
+  const consommationsMaterielAnnee = raw.consommations.filter((c) => dansAnnee(c.date_consommation, annee))
+  let carbMateriel = 0
+  let repMateriel = 0
+  let moMateriel = 0
+  let logMateriel = 0
+
+  for (const c of consommationsMaterielAnnee) {
+    const t = String(c.type_consommation || '').toLowerCase()
+    const mt = n(c.montant_total)
+    if (/carburant|gasoil|essence|huile|lubrifiant/.test(t)) {
+      carbMateriel += mt
+    } else if (/piece|pièce|repar|répar|entretien|maintenance/.test(t)) {
+      repMateriel += mt
+    } else if (/conducteur|superviseur|gardien|restauration|personnel|main d'oeuvre|mo/.test(t)) {
+      moMateriel += mt
+    } else {
+      logMateriel += mt
+    }
+  }
+
+  // Si pas de consommations détaillées, repli sur trésorerie
+  if (consommationsMaterielAnnee.length === 0) {
+    carbMateriel = depCarburant
+    repMateriel = depEntretienMateriel
+  }
+
+  const depensesMaterielList: SMTLignePoste[] = [
+    { libelle: 'Consommations carburant & lubrifiants', montant: carbMateriel },
+    { libelle: 'Entretien courant, pièces de rechange & réparations matériel', montant: repMateriel },
+    ...(moMateriel > 0 ? [{ libelle: 'Main d\'œuvre opérationnelle matériel (conducteurs, superviseurs)', montant: moMateriel }] : []),
+    ...(logMateriel > 0 ? [{ libelle: 'Frais de suivi, transport & logistique matériel', montant: logMateriel }] : []),
+  ]
+  const totalDepensesMateriel = carbMateriel + repMateriel + moMateriel + logMateriel
+  const soldeTresoMateriel = totalRecettesMateriel - totalDepensesMateriel
+
+  const ajustementsMateriel: SMTLignePoste[] = [
+    ...(varStockNatureMat !== 0 ? [{ libelle: 'Variation du stock de paddy issu des prestations (SF - SI)', montant: varStockNatureMat }] : []),
+    { libelle: 'Variation des créances de prestations & ventes matériel (CF - CI)', montant: varCreancesMateriel },
+    { libelle: 'Dotation aux amortissements du matériel de l\'exercice (-)', montant: -dotationAmoN },
+  ]
+  const totalAjustementsMateriel = varStockNatureMat + varCreancesMateriel - dotationAmoN
+  const resultatNetMateriel = soldeTresoMateriel + totalAjustementsMateriel
 
   const voletMateriel: SMTVolet = {
     titre: 'Activité Matériel & Équipements',
     recettes: [
       { libelle: 'Prestations de services agricoles (labour, moisson, battage)', montant: prestationsMaterielN },
+      ...(ventesStockMaterielN > 0 ? [{ libelle: 'Ventes de paddy collecté en remboursement de prestations', montant: ventesStockMaterielN }] : []),
     ],
-    totalRecettes: prestationsMaterielN,
-    depenses: [
-      { libelle: 'Consommations carburant & lubrifiants', montant: carburantMaterielN },
-      { libelle: 'Entretien courant, réparations et pièces détachées', montant: entretienMaterielN },
-    ],
+    totalRecettes: totalRecettesMateriel,
+    depenses: depensesMaterielList,
     totalDepenses: totalDepensesMateriel,
     soldeTresorerie: soldeTresoMateriel,
-    ajustements: [
-      { libelle: 'Dotation aux amortissements du matériel de l\'exercice (-)', montant: -dotationAmoN },
-    ],
-    totalAjustements: -dotationAmoN,
+    ajustements: ajustementsMateriel,
+    totalAjustements: totalAjustementsMateriel,
     resultatNet: resultatNetMateriel,
   }
 
   // --- Volet Agricole ---
   const ventesAgricolesN = somme(
-    raw.sorties.filter((s) => s.type_sortie === 'vente' && dansAnnee(s.date_sortie, annee)),
-    (s) => n(s.quantite) * n(s.prix_unitaire)
+    raw.sorties.filter((s) => s.type_sortie === 'vente' && dansAnnee(s.date_sortie, annee) && !isSortieMateriel(s)),
+    calcMontantSortie
   )
   const facturationCampagnesN = somme(
     raw.factures.filter((f) => dansAnnee(f.date_emission, annee)),
@@ -416,23 +542,24 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     (a) => n(a.quantite) * n(a.prix_unitaire)
   )
   const electriciteStationN = depElectricite
+  const faucardageHydrauliqueN = depHydraulique
   const fraisGestionAgricolesN = depFraisGestion
-  const totalDepensesAgricoles = achatsIntrantsAnnee + electriciteStationN + fraisGestionAgricolesN
+  const totalDepensesAgricoles = achatsIntrantsAnnee + electriciteStationN + faucardageHydrauliqueN + fraisGestionAgricolesN
   const soldeTresoAgricole = totalRecettesAgricoles - totalDepensesAgricoles
 
   const ajustementsAgricoles: SMTLignePoste[] = [
     { libelle: 'Variation des stocks d\'intrants (SF - SI)', montant: varStockIntrants },
-    { libelle: 'Variation des stocks de récoltes en nature (SF - SI)', montant: varStockNature },
-    { libelle: 'Variation des créances d\'exploitation (CF - CI)', montant: varCreancesTotal },
+    { libelle: 'Variation des stocks de récoltes en nature (SF - SI)', montant: varStockNatureAgri },
+    { libelle: 'Variation des créances d\'exploitation agricole (CF - CI)', montant: varCreancesAgricoles },
     { libelle: 'Variation des dettes fournisseurs (- [DF - DI])', montant: -varDettesFournisseurs },
   ]
-  const totalAjustementsAgricoles = varStockIntrants + varStockNature + varCreancesTotal - varDettesFournisseurs
+  const totalAjustementsAgricoles = varStockIntrants + varStockNatureAgri + varCreancesAgricoles - varDettesFournisseurs
   const resultatNetAgricole = soldeTresoAgricole + totalAjustementsAgricoles
 
   const voletAgricole: SMTVolet = {
     titre: 'Exploitation Agricole',
     recettes: [
-      { libelle: 'Ventes de paddy et récoltes collectées', montant: ventesAgricolesN },
+      { libelle: 'Ventes de paddy et récoltes collectées (exploitation)', montant: ventesAgricolesN },
       { libelle: 'Facturation intrants et services aux membres', montant: facturationCampagnesN },
       ...(subventionsAgricolesN > 0 ? [{ libelle: 'Subventions d\'exploitation', montant: subventionsAgricolesN }] : []),
     ],
@@ -440,7 +567,8 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     depenses: [
       { libelle: 'Achats d\'intrants agricoles (semences, engrais, urée)', montant: achatsIntrantsAnnee },
       { libelle: 'Électricité station de pompage & eau d\'irrigation', montant: electriciteStationN },
-      { libelle: 'Frais de campagne, faucardage & gestion coopérative', montant: fraisGestionAgricolesN },
+      ...(faucardageHydrauliqueN > 0 ? [{ libelle: 'Faucardage, curage des canaux & réseau d\'irrigation', montant: faucardageHydrauliqueN }] : []),
+      { libelle: 'Charges de fonctionnement, indemnités & gestion coopérative', montant: fraisGestionAgricolesN },
     ],
     totalDepenses: totalDepensesAgricoles,
     soldeTresorerie: soldeTresoAgricole,
@@ -450,10 +578,10 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   }
 
   // --- Volet Global ---
-  const totalRecettesGlobal = totalRecettesAgricoles + prestationsMaterielN
+  const totalRecettesGlobal = totalRecettesAgricoles + totalRecettesMateriel
   const totalDepensesGlobal = totalDepensesAgricoles + totalDepensesMateriel
   const soldeTresoGlobal = totalRecettesGlobal - totalDepensesGlobal
-  const totalAjustementsGlobal = totalAjustementsAgricoles - dotationAmoN
+  const totalAjustementsGlobal = totalAjustementsAgricoles + totalAjustementsMateriel
   const resultatNetGlobal = soldeTresoGlobal + totalAjustementsGlobal
 
   const voletGlobal: SMTVolet = {
@@ -471,7 +599,7 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     soldeTresorerie: soldeTresoGlobal,
     ajustements: [
       ...ajustementsAgricoles,
-      { libelle: 'Dotation aux amortissements du matériel (-)', montant: -dotationAmoN },
+      ...ajustementsMateriel,
     ],
     totalAjustements: totalAjustementsGlobal,
     resultatNet: resultatNetGlobal,
@@ -555,7 +683,7 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         amortissement: 0,
         net: creancesMembresN,
         netN1: creancesMembresN1,
-        note: 'Reliquats facturés sur intrants et prestations de campagne',
+        note: 'Reliquats facturés sur intrants et charges de campagne des membres',
       },
       creancesClients: {
         libelle: 'Créances d\'exploitation sur clients acheteurs',
@@ -565,13 +693,21 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
         netN1: creancesClientsN1,
         note: 'Factures de vente de récoltes à terme en attente de règlement',
       },
+      creancesMateriel: {
+        libelle: 'Créances d\'activité matériel (prestations & ventes)',
+        brut: creancesMaterielN,
+        amortissement: 0,
+        net: creancesMaterielN,
+        netN1: creancesMaterielN1,
+        note: 'Prestations et ventes de paddy moissonneuse restant à recouvrer',
+      },
       creancesTotal: {
-        libelle: 'Total des Créances d\'Exploitation',
+        libelle: 'Total des Créances d\'Exploitation & Matériel',
         brut: creancesTotalN,
         amortissement: 0,
         net: creancesTotalN,
         netN1: creancesTotalN1,
-        note: 'Créances membres et acheteurs',
+        note: 'Créances membres, clients acheteurs et prestations matériel',
       },
       disponibilites: {
         libelle: 'Disponibilités (Banques & Caisses)',

@@ -31,7 +31,7 @@ export async function getSMT(annee: number): Promise<SMTData | { error: string }
       fetchAll<BilanRaw['paiementsClients'][number]>(supabase, 'paiements_clients', 'id, client_id, montant, date_paiement, motif'),
       fetchAll<BilanRaw['materiels'][number]>(supabase, 'materiels', 'id, valeur_acquisition, duree_vie_economique, date_acquisition'),
       fetchAll<BilanRaw['prestations'][number]>(supabase, 'materiel_prestations', '*'),
-      fetchAll<BilanRaw['consommations'][number]>(supabase, 'materiel_consommations', 'id, montant_total, date_consommation'),
+      fetchAll<BilanRaw['consommations'][number]>(supabase, 'materiel_consommations', 'id, montant_total, date_consommation, type_consommation'),
       fetchAll<BilanRaw['comptes'][number]>(supabase, 'comptes', 'id, nom, solde_initial'),
       fetchAll<BilanRaw['transactions'][number]>(supabase, 'transactions', 'id, compte_id, type_transaction, montant, date_transaction, type_piece, credit_id, motif'),
       fetchAll<BilanRaw['credits'][number]>(supabase, 'credits', 'id, statut, montant_accorde, taux_interet, duree_credit, date_demande, but_credit'),

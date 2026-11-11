@@ -53,6 +53,7 @@ export default function AddSortieModal({
 
   const [dateSortie, setDateSortie] = useState(new Date().toISOString().slice(0, 10))
   const [motif, setMotif] = useState('')
+  const [origineStock, setOrigineStock] = useState<'exploitation' | 'materiel'>('exploitation')
   const [error, setError] = useState('')
 
   const t = dict?.remboursements_pages?.stock_nature?.form || {}
@@ -156,6 +157,7 @@ export default function AddSortieModal({
       nb_contenance: nbContenanceFinal,
       motif: motif || undefined,
       date_sortie: dateSortie,
+      origine_stock: origineStock,
     })
 
     setLoading(false)
@@ -279,6 +281,42 @@ export default function AddSortieModal({
                         <option value="membre">Membre du GIE</option>
                         <option value="client">Client externe</option>
                       </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Origine & Affectation du stock vendu *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOrigineStock('exploitation')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${
+                          origineStock === 'exploitation'
+                            ? 'bg-primary/10 border-primary text-primary font-bold ring-1 ring-primary'
+                            : 'bg-background border-surface-border text-foreground-muted hover:text-foreground'
+                        }`}
+                      >
+                        <div>🌾 Exploitation Agricole</div>
+                        <div className="text-[10px] font-normal opacity-75 mt-0.5">
+                          Remboursements factures de campagne
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrigineStock('materiel')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border transition text-left ${
+                          origineStock === 'materiel'
+                            ? 'bg-primary/10 border-primary text-primary font-bold ring-1 ring-primary'
+                            : 'bg-background border-surface-border text-foreground-muted hover:text-foreground'
+                        }`}
+                      >
+                        <div>🚜 Matériel & Équipements</div>
+                        <div className="text-[10px] font-normal opacity-75 mt-0.5">
+                          Règlements prestations (moissonneuse)
+                        </div>
+                      </button>
                     </div>
                   </div>
 

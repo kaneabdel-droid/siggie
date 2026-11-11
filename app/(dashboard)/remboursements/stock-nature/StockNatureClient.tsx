@@ -356,6 +356,18 @@ export default function StockNatureClient({
                             </span>
                           )}
 
+                          {isVente && (
+                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                              m.origine_stock === 'materiel' || /moissonneuse|materiel|matériel|prestation/i.test(m.motif || '')
+                                ? 'bg-secondary/15 text-secondary border border-secondary/20'
+                                : 'bg-primary/10 text-primary border border-primary/20'
+                            }`}>
+                              {m.origine_stock === 'materiel' || /moissonneuse|materiel|matériel|prestation/i.test(m.motif || '')
+                                ? 'CA Matériel'
+                                : 'CA Exploitation'}
+                            </span>
+                          )}
+
                           {m.variete && (
                             <span className="inline-flex items-center rounded bg-background px-1.5 py-0.5 text-[10px] font-mono text-foreground-muted border border-surface-border">
                               Var. {m.variete}
