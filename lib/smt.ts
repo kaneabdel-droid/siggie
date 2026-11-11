@@ -10,6 +10,7 @@
 
 import type { BilanRaw, Saisies } from './bilan-annuel'
 import { getCreditType } from './credits-types'
+import { isStockableIntrant } from './intrants/types'
 
 export type SMTFluxCompte = {
   id: string
@@ -248,8 +249,10 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   // --------------------------------------------------------------------------
   // 2. STOCKS, CRÉANCES ET DETTES (Pour ajustements SMT et Bilan)
   // --------------------------------------------------------------------------
+  // Les services (façon culturale, service hydraulique, refacturation...) n'étant pas stockés,
+  // ils sont formellement exclus du calcul des stocks physiques et de la variation de stock.
   const calcStockIntrants = (limite: number) =>
-    somme(raw.intrants, (i) => {
+    somme(raw.intrants.filter((i) => isStockableIntrant(i)), (i) => {
       const distribuesApres = somme(raw.distributions.filter((d) => d.intrant_id === i.id && !avant(d.date_distribution, limite)), (d) => n(d.quantite))
       const achetesApres = somme(raw.achats.filter((a) => a.intrant_id === i.id && !avant(a.date_achat, limite)), (a) => n(a.quantite))
       return Math.max(0, n(i.quantite_stock) + distribuesApres - achetesApres) * n(i.prix_unitaire)
@@ -666,3 +669,4 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     bilan,
   }
 }
+

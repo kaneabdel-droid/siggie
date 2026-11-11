@@ -4,9 +4,10 @@
 // l'exercice N et l'exercice N-1 avec un seul chargement de données.
 
 import { getCreditType } from './credits-types'
+import { isStockableIntrant } from './intrants/types'
 
 export type BilanRaw = {
-  intrants: { id: string; quantite_stock: number | null; prix_unitaire: number | null }[]
+  intrants: { id: string; nom?: string | null; type_intrant?: string | null; quantite_stock: number | null; prix_unitaire: number | null }[]
   achats: { intrant_id: string; quantite: number | null; prix_unitaire: number | null; date_achat: string }[]
   distributions: { intrant_id: string; quantite: number | null; date_distribution: string | null }[]
   factures: { id: string; membre_id: string | null; campagne_id: string | null; montant_total: number | null; montant_interet: number | null; date_emission: string | null }[]
@@ -174,8 +175,10 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
 
   // Stock d'intrants à une date : stock actuel, en remontant les mouvements postérieurs.
   // Valorisé au dernier prix connu de l'intrant.
+  // Les services (façon culturale, service hydraulique, refacturation...) n'étant pas stockés,
+  // ils sont formellement exclus du calcul des stocks et de la variation de stock.
   const stockIntrantsA = (limite: number) =>
-    somme(raw.intrants, (i) => {
+    somme(raw.intrants.filter((i) => isStockableIntrant(i)), (i) => {
       const distribuesApres = somme(raw.distributions.filter((d) => d.intrant_id === i.id && !avant(d.date_distribution, limite)), (d) => n(d.quantite))
       const achetesApres = somme(raw.achats.filter((a) => a.intrant_id === i.id && !avant(a.date_achat, limite)), (a) => n(a.quantite))
       return Math.max(0, n(i.quantite_stock) + distribuesApres - achetesApres) * n(i.prix_unitaire)

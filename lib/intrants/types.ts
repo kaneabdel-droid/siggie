@@ -17,7 +17,52 @@ export const NON_STOCKABLE_INTRANT_TYPES = [
 export const FORFAITAIRE_INTRANT_TYPES = ['Refacturation', 'Rebilling']
 
 export function isStockableType(type: string | null | undefined): boolean {
-  return !NON_STOCKABLE_INTRANT_TYPES.includes(type || '')
+  if (!type) return true
+  const lower = type.trim().toLowerCase()
+  if (NON_STOCKABLE_INTRANT_TYPES.some((t) => t.toLowerCase() === lower)) {
+    return false
+  }
+  if (
+    lower.includes('service') ||
+    lower.includes('façon') ||
+    lower.includes('facon') ||
+    lower.includes('refactur') ||
+    lower.includes('rebill')
+  ) {
+    return false
+  }
+  return true
+}
+
+/**
+ * Détermine si un intrant est un bien physique stocké ou un service/prestation/refacturation
+ * sans stock physique. Les services ne doivent JAMAIS être inclus dans les stocks ou
+ * dans le calcul de la variation de stock.
+ */
+export function isStockableIntrant(intrant: {
+  type_intrant?: string | null
+  nom?: string | null
+}): boolean {
+  if (intrant.type_intrant && !isStockableType(intrant.type_intrant)) {
+    return false
+  }
+  const nom = (intrant.nom || '').trim().toLowerCase()
+  if (
+    nom.includes('hydraulique') ||
+    nom.includes('fomaed') ||
+    nom.includes('offsetage') ||
+    nom.includes('labour') ||
+    nom.includes('battage') ||
+    nom.includes('repiquage') ||
+    nom.includes('faucardage') ||
+    nom.includes('avance') ||
+    nom.includes('impayé') ||
+    nom.includes('impaye') ||
+    nom.includes('prestation')
+  ) {
+    return false
+  }
+  return true
 }
 
 export function isForfaitaireType(type: string | null | undefined): boolean {

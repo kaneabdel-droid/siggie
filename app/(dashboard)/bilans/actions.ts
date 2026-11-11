@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { isStockableIntrant } from '@/lib/intrants/types'
 
 export async function getGlobalStats() {
   const supabase = await createClient()
@@ -39,7 +40,7 @@ export async function getGlobalStats() {
     supabase.from('materiel_prestations').select('montant_facture'),
     supabase.from('materiel_consommations').select('montant_total'),
     // 5. Stocks (Intrants & Remboursements en Nature)
-    supabase.from('intrants').select('quantite_stock, prix_unitaire'),
+    supabase.from('intrants').select('nom, type_intrant, quantite_stock, prix_unitaire'),
     supabase.from('remboursements').select('id, montant_fcfa, quantite_nature, type_remboursement, produit_nature, facture_id'),
     supabase.from('paiements_clients').select('id, montant, motif'),
     supabase.from('sorties_stock_nature').select('quantite, prix_unitaire'),
@@ -94,10 +95,12 @@ export async function getGlobalStats() {
   const rentabiliteMateriel = totalRecettesMateriel - totalDepensesMateriel - totalAmortissement
 
   // 5. État des Stocks (Intrants & Remboursements)
-  const stockIntrants = (intrants || []).reduce(
-    (sum, i) => sum + Math.max(0, Number(i.quantite_stock || 0)) * Number(i.prix_unitaire || 0),
-    0
-  )
+  const stockIntrants = (intrants || [])
+    .filter((i) => isStockableIntrant(i))
+    .reduce(
+      (sum, i) => sum + Math.max(0, Number(i.quantite_stock || 0)) * Number(i.prix_unitaire || 0),
+      0
+    )
 
   let stockRemboursement = 0
   const rembIdsIncluded = new Set<string>()
