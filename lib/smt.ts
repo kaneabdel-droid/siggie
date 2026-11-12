@@ -807,11 +807,9 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const soldeTresoMateriel = totalRecettesMateriel - totalDepensesMateriel
 
   const ajustementsMateriel: SMTLignePoste[] = [
-    ...(varStockNatureMat !== 0 ? [{ libelle: 'Variation du stock de paddy issu des prestations (SF - SI)', montant: varStockNatureMat }] : []),
-    { libelle: 'Variation des créances de prestations & ventes matériel (CF - CI)', montant: varCreancesMateriel },
     { libelle: 'Dotation aux amortissements du matériel de l\'exercice (-)', montant: -dotationAmoN },
   ]
-  const totalAjustementsMateriel = varStockNatureMat + varCreancesMateriel - dotationAmoN
+  const totalAjustementsMateriel = -dotationAmoN
   const resultatNetMateriel = soldeTresoMateriel + totalAjustementsMateriel
 
   const voletMateriel: SMTVolet = {
@@ -911,16 +909,11 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const soldeTresoAgricole = totalRecettesAgricoles - totalDepensesAgricoles
 
   const ajustementsAgricoles: SMTLignePoste[] = [
-    { libelle: 'Variation des stocks d\'intrants (SF - SI)', montant: varStockIntrants },
-    { libelle: 'Variation des stocks de récoltes en nature (SF - SI)', montant: varStockNatureAgri },
-    { libelle: 'Variation des créances d\'exploitation agricole (CF - CI)', montant: varCreancesAgricoles },
-    ...(varDettesMembresSurplus !== 0
-      ? [{ libelle: 'Variation des dettes envers membres / surplus (- [DF - DI])', montant: -varDettesMembresSurplus }]
+    ...(varStockIntrants !== 0
+      ? [{ libelle: 'Variation des stocks d\'intrants (SF - SI)', montant: varStockIntrants }]
       : []),
-    { libelle: 'Variation des dettes fournisseurs (- [DF - DI])', montant: -varDettesFournisseurs },
   ]
-  const totalAjustementsAgricoles =
-    varStockIntrants + varStockNatureAgri + varCreancesAgricoles - varDettesMembresSurplus - varDettesFournisseurs
+  const totalAjustementsAgricoles = varStockIntrants
   const resultatNetAgricole = soldeTresoAgricole + totalAjustementsAgricoles
 
   const voletAgricole: SMTVolet = {
