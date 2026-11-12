@@ -5,7 +5,7 @@
 
 import { getCreditType, isCreditLongTerme } from './credits-types'
 import { isStockableIntrant } from './intrants/types'
-import { parseStockInitialCampagne } from './smt'
+import { parseStockInitialCampagne, calcDifferentialSortie } from './smt'
 
 export type BilanRaw = {
   intrants: { id: string; nom?: string | null; type_intrant?: string | null; quantite_stock: number | null; prix_unitaire: number | null }[]
@@ -480,16 +480,14 @@ export function calculerBilan(raw: BilanRaw, annee: number, saisies: Saisies): B
   // ---- Compte de résultat ----
   const ventes = somme(raw.factures.filter((f) => dansAnnee(f.date_emission, annee)), (f) => n(f.montant_total) + n(f.montant_interet))
 
-  // Uniquement la vente du produit issu des remboursements en nature (stock en nature) ;
-  // la vente d'intrants aux membres est dans "ventes" (factures), les ristournes sont prises en compte dans le solde de chaque membre.
+  // Uniquement la marge différentielle sur la vente du produit issu des remboursements en nature (stock en nature) ;
+  // la valeur correspondant au prix de collecte est déjà intégrée dans les prestations de matériel ou la facturation d'exploitation.
   let gain = 0
   let perte = 0
   for (const s of raw.sorties.filter((x) => x.type_sortie === 'vente' && dansAnnee(x.date_sortie, annee))) {
-    const vQteMatch = String(s.motif || '').match(/\[VENTE_QTE:([^\]]+)\]/)
-    const quantiteFacturee = vQteMatch ? n(vQteMatch[1]) : n(s.quantite)
-    const ecart = (n(s.prix_unitaire) - (prixCollecte.get(s.campagne_id) || 0)) * quantiteFacturee
-    if (ecart >= 0) gain += ecart
-    else perte += -ecart
+    const { differentiel } = calcDifferentialSortie(s, prixCollecte, raw.campagnes)
+    if (differentiel >= 0) gain += differentiel
+    else perte += Math.abs(differentiel)
   }
 
   const prestations = somme(raw.prestations.filter((p) => dansAnnee(p.date_prestation, annee)), (p) => n(p.montant_facture))

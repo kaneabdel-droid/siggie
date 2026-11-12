@@ -134,6 +134,71 @@ export function calcMontantSortie(s: { quantite: number | null; prix_unitaire: n
   return qte * n(s.prix_unitaire)
 }
 
+export type DifferentialSortieResult = {
+  valeurVente: number
+  valeurCollecte: number
+  differentiel: number
+  qteStock: number
+  puVente: number
+  puCollecte: number
+  isMateriel: boolean
+}
+
+/**
+ * Calcule la marge différentielle (valeur vente - valeur collecte) sur une sortie de stock en nature.
+ * Seul le différentiel est pris en compte dans le chiffre d'affaires / produits,
+ * car la valeur de collecte est déjà intégrée dans les prestations de matériel ou la facturation d'exploitation.
+ */
+export function calcDifferentialSortie(
+  s: { campagne_id: string; quantite: number | null; prix_unitaire: number | null; motif?: string | null },
+  prixCollecte: Map<string, number>,
+  rawCampagnes: { id: string; produit_collecte?: string | null; prix_collecte?: number | null; stock_initial_quantite?: number | null; stock_initial_valeur?: number | null; stock_initial_secteur?: string | null }[]
+): DifferentialSortieResult {
+  const valeurVente = calcMontantSortie(s)
+  const qteStock = n(s.quantite)
+  const puVente = n(s.prix_unitaire)
+  const isMat = isSortieMateriel(s)
+  const c = rawCampagnes.find((x) => x.id === s.campagne_id)
+  const siTag = c ? parseStockInitialCampagne(c) : null
+
+  let puCollecte = 0
+  const matchPc = String(s.motif || '').match(/\[PRIX_COLLECTE:([^\]]+)\]/)
+  if (matchPc && Number(matchPc[1]) > 0) {
+    puCollecte = Number(matchPc[1])
+  } else if (isMat) {
+    if (siTag && siTag.secteur === 'materiel' && siTag.valeur > 0) {
+      puCollecte = siTag.valeur
+    } else if (prixCollecte.get(s.campagne_id)) {
+      puCollecte = s.motif?.toLowerCase().includes('sac')
+        ? prixCollecte.get(s.campagne_id)! * 80
+        : prixCollecte.get(s.campagne_id)!
+    } else {
+      puCollecte = s.motif?.toLowerCase().includes('sac') ? 10000 : 160
+    }
+  } else {
+    if (prixCollecte.get(s.campagne_id) && prixCollecte.get(s.campagne_id)! > 0) {
+      puCollecte = prixCollecte.get(s.campagne_id)!
+    } else if (siTag && siTag.valeur > 0) {
+      puCollecte = siTag.valeur
+    } else {
+      puCollecte = 160
+    }
+  }
+
+  const valeurCollecte = qteStock * puCollecte
+  const differentiel = valeurVente - valeurCollecte
+
+  return {
+    valeurVente,
+    valeurCollecte,
+    differentiel,
+    qteStock,
+    puVente,
+    puCollecte,
+    isMateriel: isMat,
+  }
+}
+
 export function extractClientSoldeInitial(nom?: string | null): number {
   if (!nom) return 0
   const match = String(nom).match(/\[SOLDE_INIT:([+-]?\d+(?:\.\d+)?)\]/)
@@ -658,12 +723,47 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     (p) => n(p.montant_facture)
   )
 
-  // Vente de paddy/récoltes issu du remboursement en nature des prestations matériel
-  const ventesStockMaterielN = somme(
-    raw.sorties.filter((s) => s.type_sortie === 'vente' && dansAnnee(s.date_sortie, annee) && isSortieMateriel(s)),
-    calcMontantSortie
+  // Vente de paddy issu du remboursement en nature des prestations matériel :
+  // Seul le prix différentiel (valeur vente - valeur collecte) est pris en compte dans le chiffre d'affaires,
+  // car la valeur de collecte est déjà intégrée dans les prestations facturées.
+  const sortiesVentesMatN = raw.sorties.filter(
+    (s) => s.type_sortie === 'vente' && dansAnnee(s.date_sortie, annee) && isSortieMateriel(s)
   )
-  const totalRecettesMateriel = prestationsMaterielN + ventesStockMaterielN
+
+  let gainDiffMateriel = 0
+  let perteDiffMateriel = 0
+  const detailsGainDiffMat: SMTDetailItem[] = []
+  const detailsPerteDiffMat: SMTDetailItem[] = []
+
+  for (const s of sortiesVentesMatN) {
+    const { valeurVente, valeurCollecte, differentiel, qteStock, puVente, puCollecte } = calcDifferentialSortie(
+      s,
+      prixCollecte,
+      raw.campagnes
+    )
+    const tiersTxt = s.tiers_nom || 'Client externe'
+    const uniteTxt = s.motif?.toLowerCase().includes('sac') ? 'sac(s)' : 'kg'
+    const cInfo = `Quantité : ${qteStock} ${uniteTxt} | Vente : ${puVente.toLocaleString('fr-FR')} FCFA/u (${valeurVente.toLocaleString('fr-FR')} FCFA) | Collecte : ${puCollecte.toLocaleString('fr-FR')} FCFA/u (${valeurCollecte.toLocaleString('fr-FR')} FCFA)`
+
+    if (differentiel >= 0) {
+      gainDiffMateriel += differentiel
+      detailsGainDiffMat.push({
+        libelle: `${tiersTxt} (${s.date_sortie}) - Gain vente stock matériel`,
+        valeur: differentiel,
+        commentaire: cInfo,
+      })
+    } else {
+      const perte = Math.abs(differentiel)
+      perteDiffMateriel += perte
+      detailsPerteDiffMat.push({
+        libelle: `${tiersTxt} (${s.date_sortie}) - Perte vente stock matériel`,
+        valeur: perte,
+        commentaire: cInfo,
+      })
+    }
+  }
+
+  const totalRecettesMateriel = prestationsMaterielN + gainDiffMateriel
 
   // Répartition des charges pour le matériel (consommations directes par catégorie)
   const consommationsMaterielAnnee = raw.consommations.filter((c) => dansAnnee(c.date_consommation, annee))
@@ -697,8 +797,13 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
     { libelle: 'Entretien courant, pièces de rechange & réparations matériel', montant: repMateriel },
     ...(moMateriel > 0 ? [{ libelle: 'Main d\'œuvre opérationnelle matériel (conducteurs, superviseurs)', montant: moMateriel }] : []),
     ...(logMateriel > 0 ? [{ libelle: 'Frais de suivi, transport & logistique matériel', montant: logMateriel }] : []),
+    ...(perteDiffMateriel > 0 ? [{
+      libelle: 'Perte différentielle sur ventes de paddy matériel (valeur vente < valeur collecte)',
+      montant: perteDiffMateriel,
+      details: detailsPerteDiffMat,
+    }] : []),
   ]
-  const totalDepensesMateriel = carbMateriel + repMateriel + moMateriel + logMateriel
+  const totalDepensesMateriel = carbMateriel + repMateriel + moMateriel + logMateriel + perteDiffMateriel
   const soldeTresoMateriel = totalRecettesMateriel - totalDepensesMateriel
 
   const ajustementsMateriel: SMTLignePoste[] = [
@@ -712,8 +817,19 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const voletMateriel: SMTVolet = {
     titre: 'Activité Matériel & Équipements',
     recettes: [
-      { libelle: 'Prestations de services agricoles (labour, moisson, battage)', montant: prestationsMaterielN },
-      ...(ventesStockMaterielN > 0 ? [{ libelle: 'Ventes de paddy collecté en remboursement de prestations', montant: ventesStockMaterielN }] : []),
+      {
+        libelle: 'Prestations de services agricoles (labour, moisson, battage)',
+        montant: prestationsMaterielN,
+        details: raw.prestations.filter((p) => dansAnnee(p.date_prestation, annee)).map((p) => ({
+          libelle: `${p.client_nom || 'Client'} (${p.date_prestation})`,
+          valeur: n(p.montant_facture),
+        })),
+      },
+      ...(gainDiffMateriel > 0 ? [{
+        libelle: 'Gain différentiel sur ventes de paddy matériel (valeur vente - valeur collecte)',
+        montant: gainDiffMateriel,
+        details: detailsGainDiffMat,
+      }] : []),
     ],
     totalRecettes: totalRecettesMateriel,
     depenses: depensesMaterielList,
@@ -725,16 +841,52 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   }
 
   // --- Volet Agricole ---
-  const ventesAgricolesN = somme(
-    raw.sorties.filter((s) => s.type_sortie === 'vente' && dansAnnee(s.date_sortie, annee) && !isSortieMateriel(s)),
-    calcMontantSortie
+  // Vente de paddy/récoltes issu du remboursement en nature de l'exploitation :
+  // Seul le prix différentiel (valeur vente - valeur collecte) est pris en compte dans le chiffre d'affaires,
+  // car la valeur de collecte est déjà intégrée dans la facturation de campagne ou le remboursement.
+  const sortiesVentesAgriN = raw.sorties.filter(
+    (s) => s.type_sortie === 'vente' && dansAnnee(s.date_sortie, annee) && !isSortieMateriel(s)
   )
+
+  let gainDiffAgricole = 0
+  let perteDiffAgricole = 0
+  const detailsGainDiffAgri: SMTDetailItem[] = []
+  const detailsPerteDiffAgri: SMTDetailItem[] = []
+
+  for (const s of sortiesVentesAgriN) {
+    const { valeurVente, valeurCollecte, differentiel, qteStock, puVente, puCollecte } = calcDifferentialSortie(
+      s,
+      prixCollecte,
+      raw.campagnes
+    )
+    const tiersTxt = s.tiers_nom || 'Client / Membre'
+    const uniteTxt = s.motif?.toLowerCase().includes('sac') ? 'sac(s)' : 'kg'
+    const cInfo = `Quantité : ${qteStock} ${uniteTxt} | Vente : ${puVente.toLocaleString('fr-FR')} FCFA/u (${valeurVente.toLocaleString('fr-FR')} FCFA) | Collecte : ${puCollecte.toLocaleString('fr-FR')} FCFA/u (${valeurCollecte.toLocaleString('fr-FR')} FCFA)`
+
+    if (differentiel >= 0) {
+      gainDiffAgricole += differentiel
+      detailsGainDiffAgri.push({
+        libelle: `${tiersTxt} (${s.date_sortie}) - Gain vente récoltes en nature`,
+        valeur: differentiel,
+        commentaire: cInfo,
+      })
+    } else {
+      const perte = Math.abs(differentiel)
+      perteDiffAgricole += perte
+      detailsPerteDiffAgri.push({
+        libelle: `${tiersTxt} (${s.date_sortie}) - Perte vente récoltes en nature`,
+        valeur: perte,
+        commentaire: cInfo,
+      })
+    }
+  }
+
   const facturationCampagnesN = somme(
     raw.factures.filter((f) => dansAnnee(f.date_emission, annee)),
     (f) => n(f.montant_total) + n(f.montant_interet)
   )
   const subventionsAgricolesN = n(saisies.subventions)
-  const totalRecettesAgricoles = ventesAgricolesN + facturationCampagnesN + subventionsAgricolesN
+  const totalRecettesAgricoles = facturationCampagnesN + gainDiffAgricole + subventionsAgricolesN
 
   const achatsIntrantsAnnee = somme(
     raw.achats.filter((a) => dansAnnee(a.date_achat, annee)),
@@ -743,7 +895,19 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const electriciteStationN = depElectricite
   const faucardageHydrauliqueN = depHydraulique
   const fraisGestionAgricolesN = depFraisGestion
-  const totalDepensesAgricoles = achatsIntrantsAnnee + electriciteStationN + faucardageHydrauliqueN + fraisGestionAgricolesN
+
+  const depensesAgricolesList: SMTLignePoste[] = [
+    { libelle: 'Achats d\'intrants agricoles (semences, engrais, urée)', montant: achatsIntrantsAnnee },
+    { libelle: 'Électricité station de pompage & eau d\'irrigation', montant: electriciteStationN },
+    ...(faucardageHydrauliqueN > 0 ? [{ libelle: 'Faucardage, curage des canaux & réseau d\'irrigation', montant: faucardageHydrauliqueN }] : []),
+    { libelle: 'Charges de fonctionnement, indemnités & gestion coopérative', montant: fraisGestionAgricolesN },
+    ...(perteDiffAgricole > 0 ? [{
+      libelle: 'Perte différentielle sur ventes de stock en nature (valeur vente < valeur collecte)',
+      montant: perteDiffAgricole,
+      details: detailsPerteDiffAgri,
+    }] : []),
+  ]
+  const totalDepensesAgricoles = achatsIntrantsAnnee + electriciteStationN + faucardageHydrauliqueN + fraisGestionAgricolesN + perteDiffAgricole
   const soldeTresoAgricole = totalRecettesAgricoles - totalDepensesAgricoles
 
   const ajustementsAgricoles: SMTLignePoste[] = [
@@ -762,17 +926,23 @@ export function calculerSMT(raw: BilanRaw, annee: number, saisies: Saisies = {})
   const voletAgricole: SMTVolet = {
     titre: 'Exploitation Agricole',
     recettes: [
-      { libelle: 'Ventes de paddy et récoltes collectées (exploitation)', montant: ventesAgricolesN },
-      { libelle: 'Facturation intrants et services aux membres', montant: facturationCampagnesN },
+      {
+        libelle: 'Facturation intrants et services aux membres',
+        montant: facturationCampagnesN,
+        details: raw.factures.filter((f) => dansAnnee(f.date_emission, annee)).map((f) => ({
+          libelle: `Facture (${f.date_emission || '-'})`,
+          valeur: n(f.montant_total) + n(f.montant_interet),
+        })),
+      },
+      ...(gainDiffAgricole > 0 ? [{
+        libelle: 'Gain différentiel sur ventes de récoltes collectées (valeur vente - valeur collecte)',
+        montant: gainDiffAgricole,
+        details: detailsGainDiffAgri,
+      }] : []),
       ...(subventionsAgricolesN > 0 ? [{ libelle: 'Subventions d\'exploitation', montant: subventionsAgricolesN }] : []),
     ],
     totalRecettes: totalRecettesAgricoles,
-    depenses: [
-      { libelle: 'Achats d\'intrants agricoles (semences, engrais, urée)', montant: achatsIntrantsAnnee },
-      { libelle: 'Électricité station de pompage & eau d\'irrigation', montant: electriciteStationN },
-      ...(faucardageHydrauliqueN > 0 ? [{ libelle: 'Faucardage, curage des canaux & réseau d\'irrigation', montant: faucardageHydrauliqueN }] : []),
-      { libelle: 'Charges de fonctionnement, indemnités & gestion coopérative', montant: fraisGestionAgricolesN },
-    ],
+    depenses: depensesAgricolesList,
     totalDepenses: totalDepensesAgricoles,
     soldeTresorerie: soldeTresoAgricole,
     ajustements: ajustementsAgricoles,
