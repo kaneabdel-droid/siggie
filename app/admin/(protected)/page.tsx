@@ -28,7 +28,7 @@ const produits = [
   {
     nom: 'D-HOTEL',
     description: 'Gestion hôtelière complète — PMS chambres, POS restaurant/bar, MICE séminaires, gouvernance et RevPAR.',
-    href: 'https://d-hotel.dembasolution.com/admin',
+    href: 'https://d-hotel.dembasolution.com/admin/hotel',
     externe: true,
     icon: BedDouble,
     statut: 'en_ligne' as const,
@@ -36,7 +36,7 @@ const produits = [
   {
     nom: 'D-SANTÉ',
     description: 'Système hospitalier et clinique — DPI, consultations, triage, ordonnances QR, lits et tiers-payant IPM.',
-    href: 'https://d-sante.dembasolution.com/admin',
+    href: 'https://d-sante.dembasolution.com/admin/sante',
     externe: true,
     icon: Activity,
     statut: 'en_ligne' as const,
