@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X, ChevronDown, LogIn, WifiOff } from 'lucide-react'
+import { Menu, X, ChevronDown, LogIn, WifiOff, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import LanguageSelector from '@/components/LanguageSelector'
 import OfflineLandingBanner from './offline/OfflineLandingBanner'
@@ -109,20 +109,21 @@ export default function ClientNavbar({
                 <span>Connexion Hors-Ligne</span>
               </Link>
             ) : isSiggieOnly ? (
-              /* Mode SIGGIE DIRECT : Bouton Connexion directe */
+              /* Mode SIGGIE DIRECT : Boutons Connexion et Inscription */
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-surface-border px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-foreground hover:border-primary hover:text-primary transition-all"
                 >
                   <LogIn className="w-4 h-4" />
                   <span>Connexion</span>
                 </Link>
                 <Link
-                  href="/tarifs"
-                  className="hidden sm:inline-flex items-center gap-1 rounded-full border border-surface-border px-3.5 py-1.5 text-xs font-semibold text-foreground hover:border-primary hover:text-primary transition-all"
+                  href="/signup"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all"
                 >
-                  S&apos;abonner
+                  <Sparkles className="w-4 h-4" />
+                  <span>Créer mon GIE</span>
                 </Link>
               </div>
             ) : (
@@ -208,7 +209,10 @@ export default function ClientNavbar({
               <Link href="/decouvrir-siggie" onClick={() => setMobileMenuOpen(false)} className="block text-base font-semibold text-primary">
                 Découvrir SIGGIE
               </Link>
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center rounded-xl bg-primary py-2.5 text-sm font-bold text-white shadow-sm">
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center rounded-xl bg-primary py-2.5 text-sm font-bold text-white shadow-sm">
+                Créer mon GIE (Essai gratuit)
+              </Link>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center rounded-xl border border-surface-border py-2 text-sm font-semibold text-foreground hover:bg-surface">
                 Connexion SIGGIE
               </Link>
               <Link href="/tarifs" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground hover:text-primary">
