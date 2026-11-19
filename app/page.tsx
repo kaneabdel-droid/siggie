@@ -71,25 +71,9 @@ export default async function LandingPage({
                   {dict.landing.hero.title_2}
                 </span>
               </h1>
-              <p className="mt-4 text-xl md:text-2xl text-foreground-muted mb-10 leading-relaxed">
+              <p className="mt-4 text-xl md:text-2xl text-foreground-muted mb-6 leading-relaxed">
                 {dict.landing.hero.desc}
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
-                <Link
-                  href="/signup"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 hover:bg-primary-hover hover:scale-[1.02] transition-all"
-                >
-                  <Package className="w-5 h-5" />
-                  <span>Créer mon entreprise (Essai gratuit 7j)</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link
-                  href="/decouvrir-siggie"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-surface-border bg-surface px-6 py-4 text-base font-semibold text-foreground hover:bg-surface-hover hover:border-primary/40 transition-all"
-                >
-                  <span>Découvrir la plateforme</span>
-                </Link>
-              </div>
             </div>
           </div>
           {/* Background decorative elements */}
