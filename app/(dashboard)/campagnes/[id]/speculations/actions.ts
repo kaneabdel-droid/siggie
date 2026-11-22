@@ -77,6 +77,21 @@ export async function getSpeculationsCampagne(campagneId: string): Promise<Campa
   return []
 }
 
+function formatSupabaseError(error: any): string {
+  if (!error) return "Une erreur inattendue est survenue."
+  const msg = error.message || String(error)
+  if (
+    msg.toLowerCase().includes('campagne_speculations') ||
+    msg.toLowerCase().includes('campagne_membre_speculations') ||
+    msg.toLowerCase().includes('schema cache') ||
+    msg.toLowerCase().includes('pgrst205') ||
+    error.code === 'PGRST205'
+  ) {
+    return "La table 'campagne_speculations' ou 'campagne_membre_speculations' n'existe pas encore dans votre base Supabase. Veuillez exécuter le script SQL de la migration 66 dans le SQL Editor de Supabase pour activer la gestion multi-spéculations."
+  }
+  return msg
+}
+
 export async function addSpeculation(campagneId: string, formData: FormData) {
   const denied = await requirePermission('campagnes', 'update')
   if (denied) return denied as never
@@ -110,17 +125,21 @@ export async function addSpeculation(campagneId: string, formData: FormData) {
     statut: (formData.get('statut') as string) || 'active',
   }
 
-  const { error } = await supabase.from('campagne_speculations').insert([data])
+  try {
+    const { error } = await supabase.from('campagne_speculations').insert([data])
 
-  if (error) {
-    console.error("Erreur ajout spéculation:", error)
-    return { error: error.message }
+    if (error) {
+      console.error("Erreur ajout spéculation:", error)
+      return { error: formatSupabaseError(error) }
+    }
+
+    revalidatePath(`/campagnes/${campagneId}`)
+    revalidatePath(`/campagnes/${campagneId}/speculations`)
+    revalidatePath(`/campagnes/${campagneId}/bilan`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: formatSupabaseError(err) }
   }
-
-  revalidatePath(`/campagnes/${campagneId}`)
-  revalidatePath(`/campagnes/${campagneId}/speculations`)
-  revalidatePath(`/campagnes/${campagneId}/bilan`)
-  return { success: true }
 }
 
 export async function updateSpeculation(id: string, campagneId: string, formData: FormData) {
@@ -143,20 +162,24 @@ export async function updateSpeculation(id: string, campagneId: string, formData
     statut: (formData.get('statut') as string) || 'active',
   }
 
-  const { error } = await supabase
-    .from('campagne_speculations')
-    .update(data)
-    .eq('id', id)
+  try {
+    const { error } = await supabase
+      .from('campagne_speculations')
+      .update(data)
+      .eq('id', id)
 
-  if (error) {
-    console.error("Erreur modification spéculation:", error)
-    return { error: error.message }
+    if (error) {
+      console.error("Erreur modification spéculation:", error)
+      return { error: formatSupabaseError(error) }
+    }
+
+    revalidatePath(`/campagnes/${campagneId}`)
+    revalidatePath(`/campagnes/${campagneId}/speculations`)
+    revalidatePath(`/campagnes/${campagneId}/bilan`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: formatSupabaseError(err) }
   }
-
-  revalidatePath(`/campagnes/${campagneId}`)
-  revalidatePath(`/campagnes/${campagneId}/speculations`)
-  revalidatePath(`/campagnes/${campagneId}/bilan`)
-  return { success: true }
 }
 
 export async function deleteSpeculation(id: string, campagneId: string) {
@@ -164,20 +187,24 @@ export async function deleteSpeculation(id: string, campagneId: string) {
   if (denied) return denied as never
   const supabase = await createClient()
 
-  const { error } = await supabase
-    .from('campagne_speculations')
-    .delete()
-    .eq('id', id)
+  try {
+    const { error } = await supabase
+      .from('campagne_speculations')
+      .delete()
+      .eq('id', id)
 
-  if (error) {
-    console.error("Erreur suppression spéculation:", error)
-    return { error: error.message }
+    if (error) {
+      console.error("Erreur suppression spéculation:", error)
+      return { error: formatSupabaseError(error) }
+    }
+
+    revalidatePath(`/campagnes/${campagneId}`)
+    revalidatePath(`/campagnes/${campagneId}/speculations`)
+    revalidatePath(`/campagnes/${campagneId}/bilan`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: formatSupabaseError(err) }
   }
-
-  revalidatePath(`/campagnes/${campagneId}`)
-  revalidatePath(`/campagnes/${campagneId}/speculations`)
-  revalidatePath(`/campagnes/${campagneId}/bilan`)
-  return { success: true }
 }
 
 export async function affecterMembreSpeculation(
@@ -219,7 +246,7 @@ export async function affecterMembreSpeculation(
         { onConflict: 'campagne_id,membre_id,speculation_id' }
       )
 
-    if (error) return { error: error.message }
+    if (error) return { error: formatSupabaseError(error) }
 
     // Synchronisation de la superficie totale déclarée sur campagne_membres
     const { data: allSpecs } = await supabase
@@ -240,7 +267,7 @@ export async function affecterMembreSpeculation(
     revalidatePath(`/campagnes/${campagneId}/config`)
     return { success: true }
   } catch (err: any) {
-    return { error: err.message }
+    return { error: formatSupabaseError(err) }
   }
 }
 
@@ -259,7 +286,7 @@ export async function supprimerAffectationMembreSpeculation(
       .delete()
       .match({ campagne_id: campagneId, membre_id: membreId, speculation_id: speculationId })
 
-    if (error) return { error: error.message }
+    if (error) return { error: formatSupabaseError(error) }
 
     // Recalculer le total
     const { data: allSpecs } = await supabase
@@ -279,7 +306,7 @@ export async function supprimerAffectationMembreSpeculation(
     revalidatePath(`/campagnes/${campagneId}/speculations`)
     return { success: true }
   } catch (err: any) {
-    return { error: err.message }
+    return { error: formatSupabaseError(err) }
   }
 }
 
