@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 import {
@@ -15,6 +16,14 @@ import {
 function formatSupabaseError(err: any): string {
   if (!err) return "Une erreur inattendue est survenue."
   return err.message || String(err)
+}
+
+function getDbClient(fallback: any) {
+  try {
+    return createAdminClient()
+  } catch {
+    return fallback
+  }
 }
 
 export function extraireParcellesObservations(observations?: string | null): MembreSpeculationEntry[] {
@@ -72,7 +81,8 @@ export async function getSpeculationsCampagne(campagneId: string): Promise<Campa
 
   // 2. Tenter lecture depuis le stockage automatique (imputations compte = SPEC:campagneId)
   try {
-    const { data: impData, error: impError } = await supabase
+    const db = getDbClient(supabase)
+    const { data: impData, error: impError } = await db
       .from('imputations')
       .select('*')
       .eq('compte', `SPEC:${campagneId}`)
@@ -202,7 +212,8 @@ export async function addSpeculation(campagneId: string, formData: FormData) {
       created_at: new Date().toISOString(),
     })
 
-    const { error: fallbackError } = await supabase.from('imputations').insert({
+    const db = getDbClient(supabase)
+    const { error: fallbackError } = await db.from('imputations').insert({
       gie_id: userData.gie_id,
       compte: `SPEC:${campagneId}`,
       categorie: 'exploitation',
@@ -281,7 +292,8 @@ export async function updateSpeculation(id: string, campagneId: string, formData
       statut: data.statut,
     })
 
-    const { error: fallbackError } = await supabase
+    const db = getDbClient(supabase)
+    const { error: fallbackError } = await db
       .from('imputations')
       .update({ libelle: jsonMeta })
       .eq('id', id)
@@ -317,7 +329,8 @@ export async function deleteSpeculation(id: string, campagneId: string) {
 
   // 2. Suppression dans imputations
   try {
-    await supabase.from('imputations').delete().eq('id', id)
+    const db = getDbClient(supabase)
+    await db.from('imputations').delete().eq('id', id)
   } catch {
     // continuer
   }
@@ -418,7 +431,8 @@ export async function affecterMembreSpeculation(
   // 2. Stockage automatique dans campagne_membres.observations si table dédiée absente
   if (!savedDedicated) {
     try {
-      const { data: cm } = await supabase
+      const db = getDbClient(supabase)
+      const { data: cm } = await db
         .from('campagne_membres')
         .select('superficie, observations')
         .match({ campagne_id: campagneId, membre_id: membreId })
@@ -445,7 +459,7 @@ export async function affecterMembreSpeculation(
       const totalHa = parcelles.reduce((acc, p) => acc + (Number(p.superficie) || 0), 0)
       const updatedObs = encoderParcellesObservations(cm?.observations, parcelles)
 
-      const { error: updErr } = await supabase
+      const { error: updErr } = await db
         .from('campagne_membres')
         .update({
           superficie: totalHa,
@@ -506,7 +520,8 @@ export async function supprimerAffectationMembreSpeculation(
 
   // Nettoyage dans observations
   try {
-    const { data: cm } = await supabase
+    const db = getDbClient(supabase)
+    const { data: cm } = await db
       .from('campagne_membres')
       .select('observations')
       .match({ campagne_id: campagneId, membre_id: membreId })
@@ -519,7 +534,7 @@ export async function supprimerAffectationMembreSpeculation(
       const totalHa = filtered.reduce((acc, p) => acc + (Number(p.superficie) || 0), 0)
       const updatedObs = encoderParcellesObservations(cm?.observations, filtered)
 
-      await supabase
+      await db
         .from('campagne_membres')
         .update({
           superficie: totalHa,
