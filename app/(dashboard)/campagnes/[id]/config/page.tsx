@@ -68,7 +68,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
     // est ensuite tirée de materiel_prestations / materiel_consommations
     // plutôt que des imputations de trésorerie (voir suivi-budgetaire/actions.ts).
     const [{ data: imputations }, { data: budgetPrevisions }, { data: materielsData }] = await Promise.all([
-      supabase.from('imputations').select('*').order('libelle'),
+      supabase.from('imputations').select('*').not('compte', 'ilike', 'SPEC:%').order('libelle'),
       supabase.from('budget_previsions').select('imputation_id, montant_prevu').eq('campagne_id', id),
       supabase.from('materiels').select('id, nom').order('nom'),
     ])

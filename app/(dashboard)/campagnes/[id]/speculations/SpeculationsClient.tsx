@@ -47,77 +47,6 @@ type Props = {
   creditBancaireCampagne: number
 }
 
-const SQL_MIGRATION_TEXT = `-- Migration 66: Suivi multi-spéculations par campagne
-CREATE TABLE IF NOT EXISTS public.campagne_speculations (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    gie_id UUID REFERENCES public.gies(id) ON DELETE CASCADE NOT NULL,
-    campagne_id UUID REFERENCES public.campagnes(id) ON DELETE CASCADE NOT NULL,
-    nom VARCHAR(150) NOT NULL,
-    variete VARCHAR(150),
-    produit_collecte VARCHAR(150),
-    prix_collecte NUMERIC DEFAULT 0,
-    poids_standard NUMERIC DEFAULT 50,
-    unite_mesure VARCHAR(50) DEFAULT 'kg',
-    credit_alloue NUMERIC DEFAULT 0,
-    rendement_prevu_tonne_ha NUMERIC DEFAULT 0,
-    statut VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_campagne_speculations_campagne ON public.campagne_speculations(campagne_id);
-CREATE INDEX IF NOT EXISTS idx_campagne_speculations_gie ON public.campagne_speculations(gie_id);
-
-ALTER TABLE public.campagne_speculations ENABLE ROW LEVEL SECURITY;
-
-DO $$ BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies WHERE tablename = 'campagne_speculations' AND policyname = 'Acces Campagne Speculations par GIE'
-    ) THEN
-        CREATE POLICY "Acces Campagne Speculations par GIE"
-        ON public.campagne_speculations FOR ALL USING (
-            gie_id IN (SELECT gie_id FROM public.utilisateurs WHERE id = auth.uid())
-        );
-    END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public.campagne_membre_speculations (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    gie_id UUID REFERENCES public.gies(id) ON DELETE CASCADE NOT NULL,
-    campagne_id UUID REFERENCES public.campagnes(id) ON DELETE CASCADE NOT NULL,
-    membre_id UUID REFERENCES public.membres(id) ON DELETE CASCADE NOT NULL,
-    speculation_id UUID REFERENCES public.campagne_speculations(id) ON DELETE CASCADE NOT NULL,
-    superficie NUMERIC DEFAULT 0,
-    superficie_validee NUMERIC,
-    casier VARCHAR(100),
-    statut_validation VARCHAR(50) DEFAULT 'en_attente',
-    credit_attribue NUMERIC DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(campagne_id, membre_id, speculation_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_membre_speculations_campagne ON public.campagne_membre_speculations(campagne_id);
-CREATE INDEX IF NOT EXISTS idx_membre_speculations_membre ON public.campagne_membre_speculations(membre_id);
-CREATE INDEX IF NOT EXISTS idx_membre_speculations_spec ON public.campagne_membre_speculations(speculation_id);
-
-ALTER TABLE public.campagne_membre_speculations ENABLE ROW LEVEL SECURITY;
-
-DO $$ BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies WHERE tablename = 'campagne_membre_speculations' AND policyname = 'Acces Campagne Membre Speculations par GIE'
-    ) THEN
-        CREATE POLICY "Acces Campagne Membre Speculations par GIE"
-        ON public.campagne_membre_speculations FOR ALL USING (
-            gie_id IN (SELECT gie_id FROM public.utilisateurs WHERE id = auth.uid())
-        );
-    END IF;
-END $$;
-
-ALTER TABLE public.remboursements
-    ADD COLUMN IF NOT EXISTS speculation_id UUID REFERENCES public.campagne_speculations(id) ON DELETE SET NULL;
-
-ALTER TABLE public.distribution_intrants
-    ADD COLUMN IF NOT EXISTS speculation_id UUID REFERENCES public.campagne_speculations(id) ON DELETE SET NULL;`
-
 export default function SpeculationsClient({
   campagneId,
   campagneNom,
@@ -129,8 +58,6 @@ export default function SpeculationsClient({
 }: Props) {
   const [activeTab, setActiveTab] = useState<'synthese' | 'membres' | 'config' | 'affectations'>('synthese')
   const [modalOpen, setModalOpen] = useState(false)
-  const [sqlModalOpen, setSqlModalOpen] = useState(false)
-  const [copiedSql, setCopiedSql] = useState(false)
   const [editSpec, setEditSpec] = useState<CampagneSpeculation | null>(null)
   const [loading, setLoading] = useState(false)
   const [filterSpec, setFilterSpec] = useState<string>('all')
@@ -184,11 +111,7 @@ export default function SpeculationsClient({
 
     setLoading(false)
     if (res?.error) {
-      if (res.error.includes('migration 66') || res.error.includes('campagne_speculations') || res.error.includes('schema cache')) {
-        setSqlModalOpen(true)
-      } else {
-        alert(`Erreur : ${res.error}`)
-      }
+      alert(`Erreur : ${res.error}`)
     } else {
       setModalOpen(false)
       setEditSpec(null)
@@ -201,11 +124,7 @@ export default function SpeculationsClient({
     const res = await deleteSpeculation(id, campagneId)
     setLoading(false)
     if (res?.error) {
-      if (res.error.includes('migration 66') || res.error.includes('campagne_speculations') || res.error.includes('schema cache')) {
-        setSqlModalOpen(true)
-      } else {
-        alert(res.error)
-      }
+      alert(res.error)
     }
   }
 
@@ -228,51 +147,40 @@ export default function SpeculationsClient({
     )
     setLoading(false)
     if (res?.error) {
-      if (res.error.includes('migration 66') || res.error.includes('campagne_speculations') || res.error.includes('schema cache')) {
-        setSqlModalOpen(true)
-      } else {
-        alert(res.error)
-      }
+      alert(res.error)
     } else {
       setEditingCell(null)
     }
   }
 
-  const handleCopySql = async () => {
-    try {
-      await navigator.clipboard.writeText(SQL_MIGRATION_TEXT)
-      setCopiedSql(true)
-      setTimeout(() => setCopiedSql(false), 3000)
-    } catch {
-      alert("Veuillez sélectionner le texte du script SQL et le copier manuellement.")
-    }
-  }
-
   return (
     <div className="space-y-6">
-      {/* Bandeau d'information si la table est en mode secours */}
+      {/* Bandeau d'information si la campagne est en culture unique standard */}
       {isDefaultMode && (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs text-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 print:hidden">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs text-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-amber-500/20 p-2.5 text-amber-600 dark:text-amber-400 shrink-0">
-              <AlertCircle className="w-5 h-5" />
+            <div className="rounded-xl bg-primary/10 p-2.5 text-primary shrink-0">
+              <Wheat className="w-5 h-5" />
             </div>
             <div>
               <p className="font-bold text-sm text-foreground">
-                Spéculation principale active (Mode standard)
+                Culture principale ({speculations[0]?.nom || 'Principale'})
               </p>
               <p className="text-foreground-muted mt-0.5">
-                Pour créer plusieurs spéculations personnalisées (Oignon, Tomate, etc.) et ventiler les parcelles membre par membre, exécutez la migration SQL <span className="font-mono font-semibold">66_campagne_speculations</span> dans le SQL Editor de Supabase.
+                Cette campagne utilise actuellement une culture principale unique. Vous pouvez ajouter d&apos;autres spéculations (Oignon, Tomate, Riz...) pour ventiler les parcelles membre par membre et suivre automatiquement tous les indicateurs séparément.
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setSqlModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 shadow-sm transition flex items-center gap-1.5"
+            onClick={() => {
+              setEditSpec(null)
+              setModalOpen(true)
+            }}
+            className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs shrink-0 shadow-sm transition flex items-center gap-1.5"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Script SQL Supabase</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Ajouter une culture</span>
           </button>
         </div>
       )}
@@ -970,14 +878,16 @@ export default function SpeculationsClient({
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteSpec(spec.id, spec.nom)}
-                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition"
-                    title="Supprimer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {!spec.id.startsWith('spec-default-') && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSpec(spec.id, spec.nom)}
+                      className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1245,62 +1155,6 @@ export default function SpeculationsClient({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-      {/* Modal Script SQL de la migration Supabase */}
-      {sqlModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-surface rounded-2xl border border-surface-border p-6 w-full max-w-3xl shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
-                  <AlertCircle className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">
-                    Activation des tables Multi-Spéculations (Supabase)
-                  </h3>
-                  <p className="text-xs text-foreground-muted mt-0.5">
-                    Copiez et collez ce script dans l&apos;éditeur SQL de votre console Supabase (<span className="font-semibold text-foreground">SQL Editor &gt; New Query &gt; Run</span>).
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSqlModalOpen(false)}
-                className="text-foreground-muted hover:text-foreground text-sm font-bold p-1 rounded-lg"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="relative">
-              <pre className="p-4 rounded-xl bg-background border border-surface-border text-[11px] font-mono text-foreground overflow-x-auto max-h-80 select-all leading-relaxed">
-                {SQL_MIGRATION_TEXT}
-              </pre>
-              <button
-                type="button"
-                onClick={handleCopySql}
-                className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md transition flex items-center gap-1.5"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{copiedSql ? '✓ Copié !' : 'Copier le script SQL'}</span>
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-surface-border">
-              <span className="text-xs text-foreground-muted">
-                Une fois exécuté sur Supabase, rechargez cette page pour profiter pleinement du suivi multi-spéculations.
-              </span>
-              <button
-                type="button"
-                onClick={() => setSqlModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-surface border border-surface-border text-foreground text-xs font-semibold hover:bg-background transition"
-              >
-                Fermer
-              </button>
-            </div>
           </div>
         </div>
       )}

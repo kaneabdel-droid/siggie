@@ -10,6 +10,7 @@ export async function getImputations() {
   const { data, error } = await supabase
     .from('imputations')
     .select('*')
+    .not('compte', 'ilike', 'SPEC:%')
     .order('libelle')
 
   if (error) return { error: error.message }

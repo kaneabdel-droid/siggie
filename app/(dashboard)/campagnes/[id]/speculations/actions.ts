@@ -12,10 +12,36 @@ import {
   extraireTagSpeculation,
 } from '@/lib/speculations'
 
+function formatSupabaseError(err: any): string {
+  if (!err) return "Une erreur inattendue est survenue."
+  return err.message || String(err)
+}
+
+export function extraireParcellesObservations(observations?: string | null): MembreSpeculationEntry[] {
+  if (!observations) return []
+  const match = observations.match(/\[SPEC_PARCELLES:([\s\S]*?)\]/)
+  if (!match) return []
+  try {
+    const list = JSON.parse(match[1])
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+
+export function encoderParcellesObservations(
+  observations: string | null | undefined,
+  parcelles: MembreSpeculationEntry[]
+): string {
+  const clean = (observations || '').replace(/\[SPEC_PARCELLES:[\s\S]*?\]/g, '').trim()
+  const tag = `[SPEC_PARCELLES:${JSON.stringify(parcelles)}]`
+  return clean ? `${clean}\n${tag}` : tag
+}
+
 export async function getSpeculationsCampagne(campagneId: string): Promise<CampagneSpeculation[]> {
   const supabase = await createClient()
 
-  // 1. Tenter lecture depuis la table dédiée
+  // 1. Tenter lecture depuis la table dédiée si existante
   try {
     const { data, error } = await supabase
       .from('campagne_speculations')
@@ -40,11 +66,49 @@ export async function getSpeculationsCampagne(campagneId: string): Promise<Campa
         created_at: d.created_at,
       }))
     }
-  } catch (err) {
-    console.warn("Table campagne_speculations non disponible, bascule de secours:", err)
+  } catch {
+    // bascule automatique
   }
 
-  // 2. Repli de secours : dériver depuis la campagne parente
+  // 2. Tenter lecture depuis le stockage automatique (imputations compte = SPEC:campagneId)
+  try {
+    const { data: impData, error: impError } = await supabase
+      .from('imputations')
+      .select('*')
+      .eq('compte', `SPEC:${campagneId}`)
+      .order('created_at', { ascending: true })
+
+    if (!impError && impData && impData.length > 0) {
+      const parsedList: CampagneSpeculation[] = []
+      for (const row of impData) {
+        try {
+          const meta = JSON.parse(row.libelle)
+          parsedList.push({
+            id: row.id,
+            campagne_id: campagneId,
+            gie_id: row.gie_id,
+            nom: meta.nom || 'Culture',
+            variete: meta.variete || null,
+            produit_collecte: meta.produit_collecte || meta.nom,
+            prix_collecte: Number(meta.prix_collecte || 0),
+            poids_standard: Number(meta.poids_standard || 50),
+            unite_mesure: meta.unite_mesure || 'kg',
+            credit_alloue: Number(meta.credit_alloue || 0),
+            rendement_prevu_tonne_ha: Number(meta.rendement_prevu_tonne_ha || 0),
+            statut: meta.statut || 'active',
+            created_at: row.created_at,
+          })
+        } catch {
+          // ignorer format invalide
+        }
+      }
+      if (parsedList.length > 0) return parsedList
+    }
+  } catch {
+    // bascule vers repli standard
+  }
+
+  // 3. Repli standard : dériver depuis la campagne parente
   try {
     const { data: campagne } = await supabase
       .from('campagnes')
@@ -75,21 +139,6 @@ export async function getSpeculationsCampagne(campagneId: string): Promise<Campa
   }
 
   return []
-}
-
-function formatSupabaseError(error: any): string {
-  if (!error) return "Une erreur inattendue est survenue."
-  const msg = error.message || String(error)
-  if (
-    msg.toLowerCase().includes('campagne_speculations') ||
-    msg.toLowerCase().includes('campagne_membre_speculations') ||
-    msg.toLowerCase().includes('schema cache') ||
-    msg.toLowerCase().includes('pgrst205') ||
-    error.code === 'PGRST205'
-  ) {
-    return "La table 'campagne_speculations' ou 'campagne_membre_speculations' n'existe pas encore dans votre base Supabase. Veuillez exécuter le script SQL de la migration 66 dans le SQL Editor de Supabase pour activer la gestion multi-spéculations."
-  }
-  return msg
 }
 
 export async function addSpeculation(campagneId: string, formData: FormData) {
@@ -125,12 +174,45 @@ export async function addSpeculation(campagneId: string, formData: FormData) {
     statut: (formData.get('statut') as string) || 'active',
   }
 
+  // 1. Tenter l'insertion dans la table dédiée
   try {
-    const { error } = await supabase.from('campagne_speculations').insert([data])
+    const tryDedicated = await supabase.from('campagne_speculations').insert([data])
+    if (!tryDedicated.error) {
+      revalidatePath(`/campagnes/${campagneId}`)
+      revalidatePath(`/campagnes/${campagneId}/speculations`)
+      revalidatePath(`/campagnes/${campagneId}/bilan`)
+      return { success: true }
+    }
+  } catch {
+    // continuer vers stockage automatique
+  }
 
-    if (error) {
-      console.error("Erreur ajout spéculation:", error)
-      return { error: formatSupabaseError(error) }
+  // 2. Si la table dédiée n'existe pas, stockage automatique et transparent dans imputations
+  try {
+    const jsonMeta = JSON.stringify({
+      nom: data.nom,
+      variete: data.variete,
+      produit_collecte: data.produit_collecte,
+      prix_collecte: data.prix_collecte,
+      poids_standard: data.poids_standard,
+      unite_mesure: data.unite_mesure,
+      credit_alloue: data.credit_alloue,
+      rendement_prevu_tonne_ha: data.rendement_prevu_tonne_ha,
+      statut: data.statut,
+      created_at: new Date().toISOString(),
+    })
+
+    const { error: fallbackError } = await supabase.from('imputations').insert({
+      gie_id: userData.gie_id,
+      compte: `SPEC:${campagneId}`,
+      categorie: 'exploitation',
+      nature: 'recette',
+      libelle: jsonMeta,
+    })
+
+    if (fallbackError) {
+      console.error("Erreur enregistrement spéculation:", fallbackError)
+      return { error: fallbackError.message }
     }
 
     revalidatePath(`/campagnes/${campagneId}`)
@@ -138,7 +220,7 @@ export async function addSpeculation(campagneId: string, formData: FormData) {
     revalidatePath(`/campagnes/${campagneId}/bilan`)
     return { success: true }
   } catch (err: any) {
-    return { error: formatSupabaseError(err) }
+    return { error: err.message || "Erreur enregistrement spéculation" }
   }
 }
 
@@ -146,6 +228,11 @@ export async function updateSpeculation(id: string, campagneId: string, formData
   const denied = await requirePermission('campagnes', 'update')
   if (denied) return denied as never
   const supabase = await createClient()
+
+  // Si c'est la spéculation par défaut virtuelle, on la transforme en spéculation réelle
+  if (id.startsWith('spec-default-')) {
+    return await addSpeculation(campagneId, formData)
+  }
 
   const nom = (formData.get('nom') as string)?.trim()
   if (!nom) return { error: "Le nom de la spéculation est obligatoire." }
@@ -162,15 +249,45 @@ export async function updateSpeculation(id: string, campagneId: string, formData
     statut: (formData.get('statut') as string) || 'active',
   }
 
+  // 1. Tenter la mise à jour sur la table dédiée
   try {
-    const { error } = await supabase
+    const { data: updatedRows, error: tryDedicatedError } = await supabase
       .from('campagne_speculations')
       .update(data)
       .eq('id', id)
+      .select('id')
 
-    if (error) {
-      console.error("Erreur modification spéculation:", error)
-      return { error: formatSupabaseError(error) }
+    if (!tryDedicatedError && updatedRows && updatedRows.length > 0) {
+      revalidatePath(`/campagnes/${campagneId}`)
+      revalidatePath(`/campagnes/${campagneId}/speculations`)
+      revalidatePath(`/campagnes/${campagneId}/bilan`)
+      return { success: true }
+    }
+  } catch {
+    // continuer vers imputations
+  }
+
+  // 2. Mise à jour automatique dans imputations
+  try {
+    const jsonMeta = JSON.stringify({
+      nom: data.nom,
+      variete: data.variete,
+      produit_collecte: data.produit_collecte,
+      prix_collecte: data.prix_collecte,
+      poids_standard: data.poids_standard,
+      unite_mesure: data.unite_mesure,
+      credit_alloue: data.credit_alloue,
+      rendement_prevu_tonne_ha: data.rendement_prevu_tonne_ha,
+      statut: data.statut,
+    })
+
+    const { error: fallbackError } = await supabase
+      .from('imputations')
+      .update({ libelle: jsonMeta })
+      .eq('id', id)
+
+    if (fallbackError) {
+      return { error: fallbackError.message }
     }
 
     revalidatePath(`/campagnes/${campagneId}`)
@@ -178,7 +295,7 @@ export async function updateSpeculation(id: string, campagneId: string, formData
     revalidatePath(`/campagnes/${campagneId}/bilan`)
     return { success: true }
   } catch (err: any) {
-    return { error: formatSupabaseError(err) }
+    return { error: err.message || "Erreur modification spéculation" }
   }
 }
 
@@ -187,24 +304,53 @@ export async function deleteSpeculation(id: string, campagneId: string) {
   if (denied) return denied as never
   const supabase = await createClient()
 
-  try {
-    const { error } = await supabase
-      .from('campagne_speculations')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      console.error("Erreur suppression spéculation:", error)
-      return { error: formatSupabaseError(error) }
-    }
-
-    revalidatePath(`/campagnes/${campagneId}`)
-    revalidatePath(`/campagnes/${campagneId}/speculations`)
-    revalidatePath(`/campagnes/${campagneId}/bilan`)
-    return { success: true }
-  } catch (err: any) {
-    return { error: formatSupabaseError(err) }
+  if (id.startsWith('spec-default-')) {
+    return { error: "La culture principale de la campagne ne peut pas être supprimée. Vous pouvez la modifier ou ajouter d'autres cultures." }
   }
+
+  // 1. Tenter suppression sur table dédiée
+  try {
+    await supabase.from('campagne_speculations').delete().eq('id', id)
+  } catch {
+    // continuer
+  }
+
+  // 2. Suppression dans imputations
+  try {
+    await supabase.from('imputations').delete().eq('id', id)
+  } catch {
+    // continuer
+  }
+
+  // 3. Nettoyer les affectations dans observations des membres de la campagne
+  try {
+    const { data: members } = await supabase
+      .from('campagne_membres')
+      .select('membre_id, observations')
+      .eq('campagne_id', campagneId)
+
+    for (const m of members || []) {
+      const parcelles = extraireParcellesObservations(m.observations)
+      const filtered = parcelles.filter((p) => p.speculation_id !== id)
+      if (filtered.length !== parcelles.length) {
+        const totalHa = filtered.reduce((acc, p) => acc + (Number(p.superficie) || 0), 0)
+        await supabase
+          .from('campagne_membres')
+          .update({
+            superficie: totalHa,
+            observations: encoderParcellesObservations(m.observations, filtered),
+          })
+          .match({ campagne_id: campagneId, membre_id: m.membre_id })
+      }
+    }
+  } catch (err) {
+    console.warn("Nettoyage parcelles:", err)
+  }
+
+  revalidatePath(`/campagnes/${campagneId}`)
+  revalidatePath(`/campagnes/${campagneId}/speculations`)
+  revalidatePath(`/campagnes/${campagneId}/bilan`)
+  return { success: true }
 }
 
 export async function affecterMembreSpeculation(
@@ -230,6 +376,9 @@ export async function affecterMembreSpeculation(
 
   if (!userData) throw new Error("Utilisateur introuvable")
 
+  let savedDedicated = false
+
+  // 1. Tenter l'enregistrement dans la table dédiée
   try {
     const { error } = await supabase
       .from('campagne_membre_speculations')
@@ -246,29 +395,76 @@ export async function affecterMembreSpeculation(
         { onConflict: 'campagne_id,membre_id,speculation_id' }
       )
 
-    if (error) return { error: formatSupabaseError(error) }
+    if (!error) {
+      savedDedicated = true
+      // Synchronisation de la superficie totale déclarée sur campagne_membres
+      const { data: allSpecs } = await supabase
+        .from('campagne_membre_speculations')
+        .select('superficie')
+        .eq('campagne_id', campagneId)
+        .eq('membre_id', membreId)
 
-    // Synchronisation de la superficie totale déclarée sur campagne_membres
-    const { data: allSpecs } = await supabase
-      .from('campagne_membre_speculations')
-      .select('superficie')
-      .eq('campagne_id', campagneId)
-      .eq('membre_id', membreId)
+      const totalHa = (allSpecs || []).reduce((acc: number, item: any) => acc + Number(item.superficie || 0), 0)
 
-    const totalHa = (allSpecs || []).reduce((acc: number, item: any) => acc + Number(item.superficie || 0), 0)
-
-    await supabase
-      .from('campagne_membres')
-      .update({ superficie: totalHa })
-      .match({ campagne_id: campagneId, membre_id: membreId })
-
-    revalidatePath(`/campagnes/${campagneId}`)
-    revalidatePath(`/campagnes/${campagneId}/speculations`)
-    revalidatePath(`/campagnes/${campagneId}/config`)
-    return { success: true }
-  } catch (err: any) {
-    return { error: formatSupabaseError(err) }
+      await supabase
+        .from('campagne_membres')
+        .update({ superficie: totalHa })
+        .match({ campagne_id: campagneId, membre_id: membreId })
+    }
+  } catch {
+    savedDedicated = false
   }
+
+  // 2. Stockage automatique dans campagne_membres.observations si table dédiée absente
+  if (!savedDedicated) {
+    try {
+      const { data: cm } = await supabase
+        .from('campagne_membres')
+        .select('superficie, observations')
+        .match({ campagne_id: campagneId, membre_id: membreId })
+        .single()
+
+      const parcelles = extraireParcellesObservations(cm?.observations)
+      const existingIdx = parcelles.findIndex((p) => p.speculation_id === speculationId)
+
+      const entry: MembreSpeculationEntry = {
+        campagne_id: campagneId,
+        membre_id: membreId,
+        speculation_id: speculationId,
+        superficie: Number(superficie || 0),
+        credit_attribue: Number(creditAttribue || 0),
+        casier: casier || null,
+      }
+
+      if (existingIdx >= 0) {
+        parcelles[existingIdx] = entry
+      } else {
+        parcelles.push(entry)
+      }
+
+      const totalHa = parcelles.reduce((acc, p) => acc + (Number(p.superficie) || 0), 0)
+      const updatedObs = encoderParcellesObservations(cm?.observations, parcelles)
+
+      const { error: updErr } = await supabase
+        .from('campagne_membres')
+        .update({
+          superficie: totalHa,
+          observations: updatedObs,
+        })
+        .match({ campagne_id: campagneId, membre_id: membreId })
+
+      if (updErr) {
+        return { error: updErr.message }
+      }
+    } catch (fallbackErr: any) {
+      return { error: fallbackErr.message || "Erreur enregistrement de la parcelle" }
+    }
+  }
+
+  revalidatePath(`/campagnes/${campagneId}`)
+  revalidatePath(`/campagnes/${campagneId}/speculations`)
+  revalidatePath(`/campagnes/${campagneId}/config`)
+  return { success: true }
 }
 
 export async function supprimerAffectationMembreSpeculation(
@@ -280,34 +476,64 @@ export async function supprimerAffectationMembreSpeculation(
   if (denied) return denied as never
   const supabase = await createClient()
 
+  let deletedDedicated = false
+
   try {
     const { error } = await supabase
       .from('campagne_membre_speculations')
       .delete()
       .match({ campagne_id: campagneId, membre_id: membreId, speculation_id: speculationId })
 
-    if (error) return { error: formatSupabaseError(error) }
+    if (!error) {
+      deletedDedicated = true
+      // Recalculer le total
+      const { data: allSpecs } = await supabase
+        .from('campagne_membre_speculations')
+        .select('superficie')
+        .eq('campagne_id', campagneId)
+        .eq('membre_id', membreId)
 
-    // Recalculer le total
-    const { data: allSpecs } = await supabase
-      .from('campagne_membre_speculations')
-      .select('superficie')
-      .eq('campagne_id', campagneId)
-      .eq('membre_id', membreId)
+      const totalHa = (allSpecs || []).reduce((acc: number, item: any) => acc + Number(item.superficie || 0), 0)
 
-    const totalHa = (allSpecs || []).reduce((acc: number, item: any) => acc + Number(item.superficie || 0), 0)
-
-    await supabase
-      .from('campagne_membres')
-      .update({ superficie: totalHa })
-      .match({ campagne_id: campagneId, membre_id: membreId })
-
-    revalidatePath(`/campagnes/${campagneId}`)
-    revalidatePath(`/campagnes/${campagneId}/speculations`)
-    return { success: true }
-  } catch (err: any) {
-    return { error: formatSupabaseError(err) }
+      await supabase
+        .from('campagne_membres')
+        .update({ superficie: totalHa })
+        .match({ campagne_id: campagneId, membre_id: membreId })
+    }
+  } catch {
+    deletedDedicated = false
   }
+
+  // Nettoyage dans observations
+  try {
+    const { data: cm } = await supabase
+      .from('campagne_membres')
+      .select('observations')
+      .match({ campagne_id: campagneId, membre_id: membreId })
+      .single()
+
+    const parcelles = extraireParcellesObservations(cm?.observations)
+    const filtered = parcelles.filter((p) => p.speculation_id !== speculationId)
+
+    if (filtered.length !== parcelles.length || !deletedDedicated) {
+      const totalHa = filtered.reduce((acc, p) => acc + (Number(p.superficie) || 0), 0)
+      const updatedObs = encoderParcellesObservations(cm?.observations, filtered)
+
+      await supabase
+        .from('campagne_membres')
+        .update({
+          superficie: totalHa,
+          observations: updatedObs,
+        })
+        .match({ campagne_id: campagneId, membre_id: membreId })
+    }
+  } catch (err) {
+    console.warn("Nettoyage parcelles observations:", err)
+  }
+
+  revalidatePath(`/campagnes/${campagneId}`)
+  revalidatePath(`/campagnes/${campagneId}/speculations`)
+  return { success: true }
 }
 
 export async function getDonneesCompletCampagneSpeculations(campagneId: string) {
@@ -318,7 +544,7 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     { data: campagne },
     speculations,
     { data: campagneMembres },
-    { data: membreSpecs },
+    membreSpecsRes,
     { data: distributionsData },
     { data: campagneIntrantsData },
     { data: facturesData },
@@ -334,21 +560,26 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
       superficie_validee,
       casier,
       statut_validation,
+      observations,
       membres (id, nom, prenom, code_membre, telephone, village)
     `).eq('campagne_id', campagneId),
     supabase.from('campagne_membre_speculations').select('*').eq('campagne_id', campagneId),
     supabase.from('distribution_intrants').select(`
-      id, membre_id, intrant_id, quantite, speculation_id,
+      id, membre_id, intrant_id, quantite,
       intrants (nom, type_intrant, prix_unitaire)
     `).eq('campagne_id', campagneId),
     supabase.from('campagne_intrants').select('intrant_id, prix_facturation').eq('campagne_id', campagneId),
     supabase.from('factures').select('id, membre_id, montant_total, montant_paye, montant_interet').eq('campagne_id', campagneId),
-    supabase.from('remboursements').select('id, facture_id, membre_id, type_remboursement, montant_fcfa, quantite_nature, produit_nature, speculation_id, date_paiement'),
+    supabase.from('remboursements').select('id, facture_id, membre_id, type_remboursement, montant_fcfa, quantite_nature, produit_nature, date_paiement'),
     supabase.from('paiements_clients').select('id, client_id, montant, motif, date_paiement'),
     supabase.from('credits').select('id, montant_accorde, but_credit, banque_nom').eq('campagne_id', campagneId),
   ])
 
   if (!campagne) return { error: "Campagne introuvable" }
+
+  const membreSpecs = (membreSpecsRes && !membreSpecsRes.error && Array.isArray(membreSpecsRes.data))
+    ? membreSpecsRes.data
+    : []
 
   // Maps de calcul
   const intrantPriceMap = new Map<string, number>()
@@ -388,8 +619,8 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     if (r.type_remboursement === 'nature') {
       const qte = Number(r.quantite_nature || 0)
       const specTag = extraireTagSpeculation(r.produit_nature)
-      const matchedSpec = speculations.find(s =>
-        s.id === r.speculation_id ||
+      const matchedSpec = speculations.find((s: CampagneSpeculation) =>
+        s.id === (r as any).speculation_id ||
         (specTag && s.nom.toLowerCase() === specTag.toLowerCase()) ||
         (r.produit_nature && s.produit_collecte && r.produit_nature.toLowerCase().includes(s.produit_collecte.toLowerCase())) ||
         (r.produit_nature && s.nom && r.produit_nature.toLowerCase().includes(s.nom.toLowerCase()))
@@ -417,7 +648,7 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     if (!mId) continue
 
     const specTag = extraireTagSpeculation(motifStr)
-    const matchedSpec = speculations.find(s =>
+    const matchedSpec = speculations.find((s: CampagneSpeculation) =>
       specTag && s.nom.toLowerCase() === specTag.toLowerCase()
     ) || speculations[0]
 
@@ -449,7 +680,17 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     membreSpecsMap.set(ms.membre_id, list)
   })
 
-  // Si aucune affectation explicite n'existe encore pour un membre inscrit, on lui attribue la 1ère spéculation avec sa superficie globale
+  // S'il n'y a pas d'affectation dédiée pour un membre, charger depuis observations
+  ;(campagneMembres || []).forEach((cm: any) => {
+    if (!membreSpecsMap.has(cm.membre_id) || membreSpecsMap.get(cm.membre_id)!.length === 0) {
+      const parcelles = extraireParcellesObservations(cm.observations)
+      if (parcelles && parcelles.length > 0) {
+        membreSpecsMap.set(cm.membre_id, parcelles)
+      }
+    }
+  })
+
+  // Inscriptions membres avec affectations de spéculations
   const enrolledMembres = (campagneMembres || []).map((cm: any) => {
     const m = Array.isArray(cm.membres) ? cm.membres[0] : cm.membres
     const supGlobale = Number(cm.superficie || 0)
@@ -484,7 +725,7 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
   })
 
   // 2. Construction de la Synthèse par Spéculation
-  const syntheses: SyntheseSpeculation[] = speculations.map((spec) => {
+  const syntheses: SyntheseSpeculation[] = speculations.map((spec: CampagneSpeculation) => {
     let membresCount = 0
     let superficieTotale = 0
     let superficieValideeTotale = 0
@@ -492,8 +733,8 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     let poidsCollecteKg = 0
     let valeurCollecte = 0
 
-    enrolledMembres.forEach((em) => {
-      const match = em.specs.find((s) => s.speculation_id === spec.id)
+    enrolledMembres.forEach((em: any) => {
+      const match = em.specs.find((s: MembreSpeculationEntry) => s.speculation_id === spec.id)
       if (match && match.superficie > 0) {
         membresCount += 1
         superficieTotale += match.superficie
@@ -509,7 +750,7 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     })
 
     // Répartition de la facturation proportionnellement à la superficie de cette spéculation par rapport à la surface totale de la campagne
-    const totalSurfaceCampagne = enrolledMembres.reduce((sum, em) => sum + em.superficieGlobale, 0)
+    const totalSurfaceCampagne = enrolledMembres.reduce((sum: number, em: any) => sum + em.superficieGlobale, 0)
     const ratioSpec = totalSurfaceCampagne > 0 ? superficieTotale / totalSurfaceCampagne : (1 / Math.max(1, speculations.length))
 
     // Total facturé global campagne
@@ -544,9 +785,9 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
   })
 
   // 3. Construction du Récapitulatif par Membre
-  const recapitulatifMembres: RecapitulatifMembre[] = enrolledMembres.map((em) => {
-    const memberSpecsDetail: MembreSpeculationDetail[] = speculations.map((spec) => {
-      const match = em.specs.find((s) => s.speculation_id === spec.id)
+  const recapitulatifMembres: RecapitulatifMembre[] = enrolledMembres.map((em: any) => {
+    const memberSpecsDetail: MembreSpeculationDetail[] = speculations.map((spec: CampagneSpeculation) => {
+      const match = em.specs.find((s: MembreSpeculationEntry) => s.speculation_id === spec.id)
       const sup = match ? match.superficie : 0
       const supVal = match && match.superficie_validee !== null && match.superficie_validee !== undefined ? match.superficie_validee : sup
       const cred = match ? match.credit_attribue : 0
@@ -565,10 +806,10 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
       }
     })
 
-    const superficieTotale = memberSpecsDetail.reduce((acc, s) => acc + s.superficie, 0)
-    const creditTotal = memberSpecsDetail.reduce((acc, s) => acc + s.creditAttribue, 0)
-    const collecteQteTotale = memberSpecsDetail.reduce((acc, s) => acc + s.collecteQte, 0)
-    const collecteValeurTotale = memberSpecsDetail.reduce((acc, s) => acc + s.collecteVal, 0)
+    const superficieTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.superficie, 0)
+    const creditTotal = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.creditAttribue, 0)
+    const collecteQteTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.collecteQte, 0)
+    const collecteValeurTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.collecteVal, 0)
 
     const fac = factureByMembre.get(em.membreId)
     const facturationTotale = fac
@@ -600,7 +841,7 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
       soldeNet,
       statutSolde,
     }
-  }).sort((a, b) => a.nom.localeCompare(b.nom))
+  }).sort((a: RecapitulatifMembre, b: RecapitulatifMembre) => a.nom.localeCompare(b.nom))
 
   // Total crédit bancaire campagne
   const creditBancaireCampagne = (creditsData || []).reduce((sum: number, c: any) => sum + Number(c.montant_accorde || 0), 0)
@@ -613,4 +854,3 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     creditBancaireCampagne,
   }
 }
-
