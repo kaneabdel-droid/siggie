@@ -75,40 +75,52 @@ export default async function CampagnesPage({
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {campagnes && campagnes.length > 0 ? (
           campagnes.map((campagne) => (
-            <div key={campagne.id} className="col-span-1 divide-y divide-surface-border rounded-lg bg-surface border border-surface-border shadow">
-              <div className="flex w-full items-center justify-between space-x-6 p-6">
-                <div className="flex-1 truncate">
-                  <div className="flex items-center justify-between space-x-3 mb-2">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="truncate text-lg font-medium text-foreground">{campagne.nom}</h3>
-                      <span className={`inline-flex flex-shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                        campagne.statut === 'en_cours' ? 'bg-primary/10 text-primary ring-primary/20' : 
-                        campagne.statut === 'terminee' ? 'bg-success/10 text-success ring-success/20' : 
-                        'bg-danger/10 text-danger ring-danger/20'
-                      }`}>
-                        {campagne.statut === 'en_cours' ? dict.campagnes.status.active : campagne.statut === 'terminee' ? dict.campagnes.status.completed : dict.campagnes.status.cancelled}
-                      </span>
-                    </div>
+            <div key={campagne.id} className="col-span-1 flex flex-col justify-between rounded-xl bg-surface border border-surface-border shadow-xs hover:border-surface-border/80 transition overflow-hidden">
+              <div className="p-5 flex-1 flex flex-col">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="min-w-0 flex-1 flex flex-wrap items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-foreground break-words" title={campagne.nom}>
+                      {campagne.nom}
+                    </h3>
+                    <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                      campagne.statut === 'en_cours' ? 'bg-primary/10 text-primary ring-primary/20' : 
+                      campagne.statut === 'terminee' ? 'bg-success/10 text-success ring-success/20' : 
+                      'bg-danger/10 text-danger ring-danger/20'
+                    }`}>
+                      {campagne.statut === 'en_cours' ? dict.campagnes.status.active : campagne.statut === 'terminee' ? dict.campagnes.status.completed : dict.campagnes.status.cancelled}
+                    </span>
+                  </div>
+                  <div className="shrink-0 -mr-1 -mt-1">
                     <CampagneRowActions campagne={campagne} dict={dict} />
                   </div>
-                  <p className="mt-1 truncate text-sm text-foreground-muted">
-                    {dict.campagnes.card.from} {campagne.date_debut ? new Date(campagne.date_debut).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'} {dict.campagnes.card.to} {campagne.date_fin ? new Date(campagne.date_fin).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'}
-                  </p>
-                  <div className="mt-4 flex items-center text-sm text-foreground-muted gap-2">
-                    <span className="font-semibold text-foreground">{dict.campagnes.card.repayment}</span> 
-                    <span className="capitalize">{campagne.mode_remboursement}</span>
-                    {campagne.produit_collecte && ` (${campagne.produit_collecte})`}
-                  </div>
+                </div>
+
+                <p className="mt-1 text-xs sm:text-sm text-foreground-muted flex items-center gap-1.5 flex-wrap">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-foreground-muted" />
+                  <span>{dict.campagnes.card.from} {campagne.date_debut ? new Date(campagne.date_debut).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'}</span>
+                  <span>{dict.campagnes.card.to} {campagne.date_fin ? new Date(campagne.date_fin).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '-'}</span>
+                </p>
+
+                <div className="mt-3 flex items-center text-xs sm:text-sm text-foreground-muted gap-1.5 flex-wrap">
+                  <span className="font-semibold text-foreground">{dict.campagnes.card.repayment} :</span> 
+                  <span className="capitalize font-medium">{campagne.mode_remboursement}</span>
+                  {campagne.produit_collecte && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-surface-border/40 text-foreground text-xs font-medium">
+                      <Wheat className="w-3 h-3 text-primary shrink-0" />
+                      {campagne.produit_collecte}
+                    </span>
+                  )}
                 </div>
               </div>
+
               <div className="p-3 bg-surface/40 border-t border-surface-border">
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-1.5 sm:gap-2">
                   <Link
                     href={`/campagnes/${campagne.id}/config`}
                     className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
                     title={dict.campagnes.card.configure}
                   >
-                    <Settings className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
+                    <Settings className="h-3.5 w-3.5 text-foreground-muted shrink-0" aria-hidden="true" />
                     <span className="truncate">{dict.campagnes.card.configure}</span>
                   </Link>
 
@@ -117,7 +129,7 @@ export default async function CampagnesPage({
                     className="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/15 hover:border-primary px-2 py-2 text-xs font-bold text-primary transition-all text-center"
                     title="Suivi par spéculation (Oignon, Tomate...) et récapitulatif par membre"
                   >
-                    <Wheat className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+                    <Wheat className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
                     <span className="truncate">Spéculations</span>
                   </Link>
 
@@ -126,7 +138,7 @@ export default async function CampagnesPage({
                     className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-emerald-500/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-emerald-500 transition-all text-center"
                     title={isPremium ? "Validation des superficies après tour de casier" : "Module Tour de casier réservé à la formule Premium"}
                   >
-                    <CheckSquare className="h-4 w-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                    <CheckSquare className="h-3.5 w-3.5 text-emerald-500 shrink-0" aria-hidden="true" />
                     <span className="truncate">Tour de casier</span>
                     {!isPremium && (
                       <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-primary/10 text-primary shrink-0">
@@ -140,16 +152,16 @@ export default async function CampagnesPage({
                     className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
                     title={dict.campagnes.card.repartition}
                   >
-                    <PieChart className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
+                    <PieChart className="h-3.5 w-3.5 text-foreground-muted shrink-0" aria-hidden="true" />
                     <span className="truncate">{dict.campagnes.card.repartition}</span>
                   </Link>
 
                   <Link
                     href={`/campagnes/${campagne.id}/bilan`}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center col-span-2 sm:col-span-1"
                     title={dict.campagnes.card.report}
                   >
-                    <FileText className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
+                    <FileText className="h-3.5 w-3.5 text-foreground-muted shrink-0" aria-hidden="true" />
                     <span className="truncate">{dict.campagnes.card.report}</span>
                   </Link>
                 </div>

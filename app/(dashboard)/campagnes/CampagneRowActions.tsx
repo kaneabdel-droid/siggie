@@ -47,14 +47,28 @@ export default function CampagneRowActions({ campagne, dict }: { campagne: Campa
 
   return (
     <>
-      <div className="flex justify-end gap-2">
-        <Link href={`/campagnes/${campagne.id}/config`} className="text-primary hover:text-primary/80 p-1" title={d.configure_tooltip}>
+      <div className="flex items-center justify-end gap-1 shrink-0">
+        <Link
+          href={`/campagnes/${campagne.id}/config`}
+          className="text-foreground-muted hover:text-primary hover:bg-surface-border/50 p-1.5 rounded-md transition"
+          title={d?.configure_tooltip || 'Configurer'}
+        >
           <Settings className="h-4 w-4" />
         </Link>
-        <button onClick={() => setIsEditOpen(true)} className="text-secondary hover:text-secondary/80 p-1" title={dict.common.edit}>
+        <button
+          type="button"
+          onClick={() => setIsEditOpen(true)}
+          className="text-foreground-muted hover:text-secondary hover:bg-surface-border/50 p-1.5 rounded-md transition"
+          title={dict.common?.edit || 'Modifier'}
+        >
           <Edit className="h-4 w-4" />
         </button>
-        <button onClick={() => setIsDeleteOpen(true)} className="text-danger hover:text-danger/80 p-1">
+        <button
+          type="button"
+          onClick={() => setIsDeleteOpen(true)}
+          className="text-danger/80 hover:text-danger hover:bg-danger/10 p-1.5 rounded-md transition"
+          title={dict.common?.delete || 'Supprimer'}
+        >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
