@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { Calendar, Settings, FileText, PieChart, CheckSquare, GitCompare } from 'lucide-react'
+import { Calendar, Settings, FileText, PieChart, CheckSquare, GitCompare, Wheat } from 'lucide-react'
 import Link from 'next/link'
 import CreateCampagneButton from './CreateCampagneButton'
 import CampagneRowActions from './CampagneRowActions'
@@ -102,10 +102,10 @@ export default async function CampagnesPage({
                 </div>
               </div>
               <div className="p-3 bg-surface/40 border-t border-surface-border">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <Link
                     href={`/campagnes/${campagne.id}/config`}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
                     title={dict.campagnes.card.configure}
                   >
                     <Settings className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
@@ -113,8 +113,17 @@ export default async function CampagnesPage({
                   </Link>
 
                   <Link
+                    href={`/campagnes/${campagne.id}/speculations`}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/15 hover:border-primary px-2 py-2 text-xs font-bold text-primary transition-all text-center"
+                    title="Suivi par spéculation (Oignon, Tomate...) et récapitulatif par membre"
+                  >
+                    <Wheat className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+                    <span className="truncate">Spéculations</span>
+                  </Link>
+
+                  <Link
                     href={isPremium ? `/superficies?campagne_id=${campagne.id}` : `/superficies`}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-emerald-500/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-emerald-500 transition-all text-center"
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-emerald-500/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-emerald-500 transition-all text-center"
                     title={isPremium ? "Validation des superficies après tour de casier" : "Module Tour de casier réservé à la formule Premium"}
                   >
                     <CheckSquare className="h-4 w-4 text-emerald-500 shrink-0" aria-hidden="true" />
@@ -128,7 +137,7 @@ export default async function CampagnesPage({
 
                   <Link
                     href={`/campagnes/${campagne.id}/repartition`}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
                     title={dict.campagnes.card.repartition}
                   >
                     <PieChart className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />
@@ -137,7 +146,7 @@ export default async function CampagnesPage({
 
                   <Link
                     href={`/campagnes/${campagne.id}/bilan`}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2.5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-background hover:bg-surface hover:border-primary/40 px-2 py-2 text-xs font-semibold text-foreground hover:text-primary transition-all text-center"
                     title={dict.campagnes.card.report}
                   >
                     <FileText className="h-4 w-4 text-foreground-muted shrink-0" aria-hidden="true" />

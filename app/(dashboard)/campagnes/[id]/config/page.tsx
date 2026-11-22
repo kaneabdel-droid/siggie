@@ -2,12 +2,13 @@ import { createClient } from '@/utils/supabase/server'
 import { getTenantContext } from '@/utils/supabase/tenant'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, Lock, PieChart } from 'lucide-react'
+import { ArrowLeft, Users, Lock, PieChart, Wheat } from 'lucide-react'
 import MembreToggle from './MembreToggle'
 import SuperficieCampagneInput from './SuperficieCampagneInput'
 import CampagneIntrantsManager from './CampagneIntrantsManager'
 import BudgetPrevisionsManager from './BudgetPrevisionsManager'
 import { getDictionary, getLocale } from '@/dictionaries'
+import { getSpeculationsCampagne } from '../speculations/actions'
 
 export default async function CampagneConfigPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
@@ -35,6 +36,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
     { data: intrants },
     { data: campagneIntrants },
     tenant,
+    speculations,
   ] = await Promise.all([
     // Membres actifs du GIE (les inactifs ne peuvent pas être inscrits à une campagne)
     supabase.from('membres').select('*').eq('statut', 'actif').order('prenom', { ascending: true }),
@@ -44,6 +46,7 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
     // Détermine le forfait du GIE pour n'afficher la prévision budgétaire
     // (feature Premium) que si l'abonnement le permet.
     getTenantContext(),
+    getSpeculationsCampagne(id),
   ])
 
   const enrolledIds = new Set(enrolledData?.map(e => e.membre_id) || [])
@@ -106,7 +109,14 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
             {t.desc}
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-2">
+          <Link
+            href={`/campagnes/${id}/speculations`}
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+          >
+            <Wheat className="h-4 w-4" />
+            Spéculations ({speculations.length})
+          </Link>
           <Link
             href={`/campagnes/${id}/repartition`}
             className="inline-flex items-center gap-2 rounded-md bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-surface-border hover:bg-background"
@@ -117,8 +127,8 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {/* Cartes KPI : Inscriptions, Surface admise, Coût Hydraulique */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Cartes KPI : Inscriptions, Surface admise, Spéculations, Coût Hydraulique */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Taux d'inscription */}
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow border border-surface-border flex items-center gap-4">
           <div className="rounded-md bg-secondary/20 p-3 shrink-0">
@@ -151,6 +161,25 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
           </div>
         </div>
 
+        {/* Spéculations / Cultures */}
+        <Link
+          href={`/campagnes/${id}/speculations`}
+          className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow border border-surface-border hover:border-emerald-500 transition-colors flex items-center gap-4 group"
+        >
+          <div className="rounded-md bg-emerald-500/20 p-3 shrink-0 group-hover:scale-105 transition-transform">
+            <Wheat className="h-6 w-6 text-emerald-600" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <dt className="truncate text-xs font-medium text-foreground-muted uppercase tracking-wider">Spéculations Agricoles</dt>
+            <dd className="mt-1 text-2xl font-bold tracking-tight text-emerald-600 truncate">
+              {speculations.length} culture{speculations.length > 1 ? 's' : ''}
+            </dd>
+            <p className="text-xs text-foreground-muted mt-0.5 truncate">
+              {speculations.length > 0 ? speculations.map(s => s.nom).join(', ') : 'Aucune culture configurée'}
+            </p>
+          </div>
+        </Link>
+
         {/* Coût Hydraulique correspondant */}
         <div className="overflow-hidden rounded-lg bg-surface px-4 py-5 shadow border border-surface-border flex items-center gap-4">
           <div className="rounded-md bg-blue-500/20 p-3 shrink-0">
@@ -168,6 +197,31 @@ export default async function CampagneConfigPage({ params }: { params: Promise<{
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Aperçu rapide des spéculations avec lien direct vers la matrice */}
+      <div className="mt-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="rounded-md bg-emerald-600 text-white p-2 shrink-0">
+            <Wheat className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">
+              Suivi Multi-Spéculations ({speculations.length} culture{speculations.length > 1 ? 's' : ''} configurée{speculations.length > 1 ? 's' : ''})
+            </h4>
+            <p className="text-xs text-foreground-muted mt-0.5">
+              {speculations.length > 0
+                ? `Cultures : ${speculations.map(s => `${s.nom}${s.variete ? ` (${s.variete})` : ''} - ${s.prix_collecte.toLocaleString('fr-FR')} F/${s.unite_mesure}`).join(' | ')}`
+                : 'Configurez les spéculations (oignon, tomate, riz...) pour répartir les parcelles et suivre la collecte par culture.'}
+            </p>
+          </div>
+        </div>
+        <Link
+          href={`/campagnes/${id}/speculations`}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 bg-white dark:bg-surface px-3 py-2 rounded-md shadow-xs border border-emerald-500/30 shrink-0"
+        >
+          Gérer & Répartir les parcelles →
+        </Link>
       </div>
 
       <div className="mt-8">

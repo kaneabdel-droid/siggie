@@ -7,6 +7,7 @@ import PrintSectionButton from '@/components/PrintSectionButton'
 import { getDictionary, getLocale } from '@/dictionaries'
 import { getTypeOrderRank } from '@/lib/intrants/types'
 import { uniteMontant } from '@/lib/currency'
+import { getDonneesCompletCampagneSpeculations } from '../speculations/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     { data: rembNatureData },
     { data: sortiesNatureData },
     { data: paiementsClientsData },
+    speculationsComplet,
   ] = await Promise.all([
     getTenantContext(),
     // 2. Counts (Members)
@@ -68,6 +70,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     supabase.from('remboursements').select('id, quantite_nature, produit_nature, montant_fcfa, date_paiement, facture_id').eq('type_remboursement', 'nature'),
     supabase.from('sorties_stock_nature').select('id, type_sortie, quantite, prix_unitaire, date_sortie').eq('campagne_id', id),
     supabase.from('paiements_clients').select('id, montant, date_paiement, motif'),
+    getDonneesCompletCampagneSpeculations(id),
   ])
 
   const gieName = tenant?.gieName || 'Mon GIE'
@@ -75,7 +78,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
   const campagneIntrants = campagneIntrantsData || []
   const intrantPriceMap = new Map<string, number>()
   const intrantInfoMap = new Map<string, { nom: string, type_intrant: string, prix_unitaire: number }>()
-  
+
   campagneIntrants.forEach((ci: any) => {
     intrantPriceMap.set(ci.intrant_id, Number(ci.prix_facturation))
     intrantInfoMap.set(ci.intrant_id, ci.intrants)
@@ -112,11 +115,11 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
   const membresServis = new Set<string>()
 
   // --- Compute By Product ---
-  const productStats = new Map<string, { 
-    quantite: number, 
-    valeurFacturee: number, 
+  const productStats = new Map<string, {
+    quantite: number,
+    valeurFacturee: number,
     valeurAchat: number,
-    beneficiaires: Set<string> 
+    beneficiaires: Set<string>
   }>()
 
   // --- Compute By Member (Debt & Pivot) ---
@@ -131,7 +134,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
     const qte = Number(d.quantite)
     const prixFacturation = intrantPriceMap.get(d.intrant_id) || 0
     const prixAchat = intrantInfoMap.get(d.intrant_id)?.prix_unitaire || 0
-    
+
     const valeurFact = qte * prixFacturation
     const valeurAchat = qte * prixAchat
 
@@ -268,11 +271,17 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
               {t.desc}
             </p>
           </div>
-          <div className="mt-4 sm:ml-16 sm:mt-0 shrink-0">
-            <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-              campagne.statut === 'en_cours' ? 'bg-primary/10 text-primary' : 
-              campagne.statut === 'terminee' ? 'bg-success/10 text-success' : 'bg-secondary/10 text-secondary'
-            }`}>
+          <div className="mt-4 sm:ml-16 sm:mt-0 shrink-0 flex items-center gap-2">
+            <Link
+              href={`/campagnes/${id}/speculations`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+            >
+              <Wheat className="h-4 w-4" />
+              Suivi Spéculations
+            </Link>
+            <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${campagne.statut === 'en_cours' ? 'bg-primary/10 text-primary' :
+                campagne.statut === 'terminee' ? 'bg-success/10 text-success' : 'bg-secondary/10 text-secondary'
+              }`}>
               {campagne.statut.replace('_', ' ').toUpperCase()}
             </span>
           </div>
@@ -405,6 +414,97 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                 {stockNatureRestantQte.toLocaleString(dateLocale)} en magasin
               </span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Synthèse par Spéculation & Cultures */}
+      {speculationsComplet?.syntheses && speculationsComplet.syntheses.length > 0 && (
+        <div className="overflow-hidden rounded-lg bg-surface border border-emerald-500/30 p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-surface-border pb-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-md bg-emerald-500/20 p-2 shrink-0">
+                <Wheat className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">
+                  Suivi par Spéculation Agricole ({speculationsComplet.syntheses.length} culture{speculationsComplet.syntheses.length > 1 ? 's' : ''})
+                </h3>
+                <p className="text-xs text-foreground-muted">
+                  Superficies emblavées, membres impliqués, crédits, facturation d&apos;intrants, collecte et recouvrement par culture
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/campagnes/${id}/speculations`}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors shrink-0"
+            >
+              <Wheat className="h-4 w-4" />
+              Voir le tableau complet & récapitulatif par membre →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {speculationsComplet.syntheses.map((synth: any) => {
+              const spec = synth.speculation
+              return (
+                <div key={spec.id} className="rounded-lg bg-background/50 border border-surface-border p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-foreground text-base">
+                        {spec.nom} {spec.variete ? <span className="text-xs font-normal text-foreground-muted">({spec.variete})</span> : null}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium">
+                        {synth.membresCount} membre{synth.membresCount > 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2 rounded bg-surface border border-surface-border">
+                        <span className="text-foreground-muted block text-[11px]">Superficie</span>
+                        <span className="font-semibold text-foreground">{synth.superficieTotale.toLocaleString(dateLocale)} ha</span>
+                      </div>
+                      <div className="p-2 rounded bg-surface border border-surface-border">
+                        <span className="text-foreground-muted block text-[11px]">Crédit Alloué</span>
+                        <span className="font-semibold text-foreground">{synth.creditAlloue.toLocaleString(dateLocale)} F</span>
+                      </div>
+                      <div className="p-2 rounded bg-surface border border-surface-border">
+                        <span className="text-foreground-muted block text-[11px]">Facturation Intrants</span>
+                        <span className="font-semibold text-foreground">{synth.facturationTotale.toLocaleString(dateLocale)} F</span>
+                      </div>
+                      <div className="p-2 rounded bg-surface border border-surface-border">
+                        <span className="text-foreground-muted block text-[11px]">Prix Collecte</span>
+                        <span className="font-semibold text-foreground">{spec.prix_collecte.toLocaleString(dateLocale)} F/{spec.unite_mesure}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 p-2 rounded bg-warning/10 border border-warning/20 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-foreground-muted text-[11px]">Collecte récoltée :</span>
+                        <span className="font-bold text-foreground">{synth.poidsCollecteKg.toLocaleString(dateLocale)} {spec.unite_mesure}</span>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-foreground-muted text-[11px]">Valeur collecte :</span>
+                        <span className="font-semibold text-foreground">{synth.valeurCollecte.toLocaleString(dateLocale)} F</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-surface-border flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-foreground-muted text-[11px] block">Taux Recouvrement</span>
+                      <span className={`font-bold ${synth.tauxRecouvrement >= 100 ? 'text-success' : synth.tauxRecouvrement >= 75 ? 'text-primary' : 'text-danger'}`}>
+                        {synth.tauxRecouvrement}%
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-foreground-muted text-[11px] block">Remboursements</span>
+                      <span className="font-semibold text-foreground">{synth.remboursementsTotaux.toLocaleString(dateLocale)} F</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -586,7 +686,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                       </th>
                       {intrantsList.map(i => (
                         <th key={i.id} scope="col" colSpan={2} className="px-3 py-2 text-center font-semibold text-foreground border-r border-surface-border bg-primary/5">
-                          {i.nom} <br/>
+                          {i.nom} <br />
                           <span className="text-xs font-normal text-foreground-muted">{i.prix_facturation.toLocaleString(dateLocale)}{unite}/u</span>
                         </th>
                       ))}
@@ -646,7 +746,7 @@ export default async function BilanCampagnePage({ params }: { params: Promise<{ 
                         </td>
                       </tr>
                     )}
-                    
+
                     {/* Total Row */}
                     {memberList.length > 0 && (
                       <tr className="bg-background/80 font-bold border-t-2 border-surface-border">

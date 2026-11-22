@@ -502,6 +502,8 @@ export async function enregistrerRemboursement(
     typeDocument?: 'campagne' | 'prestation' | 'vente_stock'
     campagneId?: string | null
     datePaiement?: string | null
+    speculationId?: string | null
+    speculationNom?: string | null
   }
 ) {
   const denied = await requirePermission('remboursements', 'create')
@@ -588,8 +590,9 @@ export async function enregistrerRemboursement(
   // 1. Enregistrer dans la table remboursements (avec tolérance schéma)
   const cleanProdName = (produitNature || 'Produit').trim()
   const uniteNature = options?.uniteNature?.trim() || 'kg'
+  const specTag = options?.speculationNom ? ` [SPEC:${options.speculationNom.trim()}]` : ''
   const safeProduitNature = type === 'nature'
-    ? `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''} [ORIGINE:${origineStock}] [UNITE:${uniteNature}]${!membreId && nomTiers ? ` [CLIENT:${nomTiers}]` : ''}${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
+    ? `${cleanProdName}${variete ? ` [VARIETE:${variete}]` : ''}${specTag} [ORIGINE:${origineStock}] [UNITE:${uniteNature}]${!membreId && nomTiers ? ` [CLIENT:${nomTiers}]` : ''}${effectiveCampagneId ? ` [CAMPAGNE:${effectiveCampagneId}]` : ''}`
     : null
 
   const dateEffectuee = options?.datePaiement?.trim() || new Date().toISOString().slice(0, 10)
@@ -638,6 +641,9 @@ export async function enregistrerRemboursement(
   if (resolvedClientId) {
     rembInsertPayload.client_id = resolvedClientId
   }
+  if (options?.speculationId) {
+    rembInsertPayload.speculation_id = options.speculationId
+  }
 
   let rembId: string | null = null
 
@@ -650,6 +656,7 @@ export async function enregistrerRemboursement(
       variete: variete,
       document_id: rawId,
       document_type: docType,
+      speculation_id: options?.speculationId || null,
     })
     .select('id')
     .maybeSingle()
@@ -658,7 +665,7 @@ export async function enregistrerRemboursement(
     rembId = tryInsert.data.id
   } else {
     // Fallback without extended columns if schema cache misses them
-    const { client_id: _cid, compte_id: _cpid, reference_piece: _ref, ...basePayload } = rembInsertPayload
+    const { client_id: _cid, compte_id: _cpid, reference_piece: _ref, speculation_id: _specId, ...basePayload } = rembInsertPayload
     const fallbackInsert = await supabase
       .from('remboursements')
       .insert(basePayload)
@@ -719,6 +726,7 @@ export async function enregistrerRemboursement(
       type === 'nature' && puNature ? `[PU:${puNature}]` : '',
       type === 'nature' && cleanProdName ? `[PRODUIT:${cleanProdName}]` : '',
       type === 'nature' && variete ? `[VARIETE:${variete}]` : '',
+      type === 'nature' && options?.speculationNom ? `[SPEC:${options.speculationNom.trim()}]` : '',
       type === 'nature' ? `[ORIGINE:${origineStock}]` : '',
       type === 'nature' && effectiveCampagneId ? `[CAMPAGNE:${effectiveCampagneId}]` : '',
     ]

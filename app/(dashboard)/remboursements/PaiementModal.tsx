@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { enregistrerRemboursement } from './actions'
 import { executeOfflineSafe } from '@/lib/offline/offline-action-helper'
 import { useUnite } from '@/components/DeviseProvider'
+import { getSpeculationsCampagne } from '@/app/(dashboard)/campagnes/[id]/speculations/actions'
+import type { CampagneSpeculation } from '@/lib/speculations'
 
 type PaiementModalProps = {
   facture: any
@@ -17,6 +19,8 @@ type PaiementModalProps = {
 export default function PaiementModal({ facture, type, onClose, dict, locale, comptes }: PaiementModalProps) {
   const unite = useUnite()
   const [loading, setLoading] = useState(false)
+  const [speculations, setSpeculations] = useState<CampagneSpeculation[]>([])
+  const [selectedSpecId, setSelectedSpecId] = useState<string>('')
   const [quantiteNature, setQuantiteNature] = useState<string>('')
   const [produitNature, setProduitNature] = useState<string>('')
   const [variete, setVariete] = useState<string>('')
@@ -38,6 +42,45 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
 
   const uniteEffective = uniteMesure === 'autre' ? (uniteMesureAutre.trim() || 'unité') : uniteMesure
   const unitePrixLabel = uniteEffective === 'sacs' ? 'sac' : uniteEffective
+
+  // Chargement dynamique des spéculations de la campagne associée
+  useEffect(() => {
+    const cId = facture.campagne_id || facture.campagne?.id
+    if (cId && type === 'nature') {
+      getSpeculationsCampagne(cId)
+        .then((specs) => {
+          if (specs && specs.length > 0) {
+            setSpeculations(specs)
+            const first = specs[0]
+            setSelectedSpecId(first.id)
+            setProduitNature(first.produit_collecte || first.nom)
+            if (first.prix_collecte > 0) setPrixUnitaire(first.prix_collecte)
+            if (first.variete) setVariete(first.variete)
+            if (first.unite_mesure === 'sacs' || first.unite_mesure === 'kg') {
+              setUniteMesure(first.unite_mesure as any)
+            }
+          }
+        })
+        .catch((e) => console.error("Erreur chargement spéculations:", e))
+    }
+  }, [facture.campagne_id, facture.campagne?.id, type])
+
+  const handleSpeculationChange = (specId: string) => {
+    setSelectedSpecId(specId)
+    if (specId === 'autre' || !specId) {
+      setProduitNature(facture.campagne?.produit_collecte || '')
+      return
+    }
+    const spec = speculations.find((s) => s.id === specId)
+    if (spec) {
+      setProduitNature(spec.produit_collecte || spec.nom)
+      if (spec.prix_collecte > 0) setPrixUnitaire(spec.prix_collecte)
+      if (spec.variete) setVariete(spec.variete)
+      if (spec.unite_mesure === 'sacs' || spec.unite_mesure === 'kg') {
+        setUniteMesure(spec.unite_mesure as any)
+      }
+    }
+  }
 
   // Calculate equivalent in FCFA when typing nature quantity
   const qteNum = parseFloat(quantiteNature)
@@ -100,6 +143,9 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
       return
     }
 
+    const chosenSpec = speculations.find((s) => s.id === selectedSpecId)
+    const specNom = chosenSpec ? chosenSpec.nom : (produitNature.trim() || null)
+
     const res = await executeOfflineSafe({
       actionType: 'remboursement',
       label: `Remboursement ${facture.membre?.nom || facture.client_nom || 'Tiers'} — ${montantFcfa} ${unite}`,
@@ -123,6 +169,8 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
           typeDocument: facture.type_document || 'campagne',
           campagneId: facture.campagne_id || facture.campagne?.id || null,
           datePaiement,
+          speculationId: chosenSpec?.id || null,
+          speculationNom: specNom,
         }
       },
       onlineAction: () => enregistrerRemboursement(
@@ -144,6 +192,8 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
           typeDocument: facture.type_document || 'campagne',
           campagneId: facture.campagne_id || facture.campagne?.id || null,
           datePaiement,
+          speculationId: chosenSpec?.id || null,
+          speculationNom: specNom,
         }
       )
     })
@@ -368,6 +418,32 @@ export default function PaiementModal({ facture, type, onClose, dict, locale, co
 
               {type === 'nature' && (
                 <>
+                  {speculations.length > 0 && (
+                    <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 mb-3">
+                      <label className="block text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                        <span>Spéculation / Culture *</span>
+                        <span className="text-[11px] font-normal lowercase text-foreground-muted">
+                          {speculations.length} culture{speculations.length > 1 ? 's' : ''} définie{speculations.length > 1 ? 's' : ''}
+                        </span>
+                      </label>
+                      <select
+                        value={selectedSpecId}
+                        onChange={(e) => handleSpeculationChange(e.target.value)}
+                        className="block w-full rounded-md border border-emerald-500/40 bg-background px-3 py-2 text-foreground shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 sm:text-sm font-medium"
+                      >
+                        {speculations.map((spec) => (
+                          <option key={spec.id} value={spec.id}>
+                            {spec.nom} {spec.variete ? `(${spec.variete})` : ''} — {spec.prix_collecte.toLocaleString(localeCode)} F/{spec.unite_mesure}
+                          </option>
+                        ))}
+                        <option value="autre">Autre produit / Saisie libre</option>
+                      </select>
+                      <p className="mt-1 text-[11px] text-foreground-muted">
+                        Sélectionner la culture remplit automatiquement le prix de collecte convenu et ventile le remboursement par spéculation.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-foreground">
