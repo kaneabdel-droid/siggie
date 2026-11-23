@@ -11,6 +11,8 @@ import {
   RecapitulatifMembre,
   MembreSpeculationDetail,
   extraireTagSpeculation,
+  extraireParcellesObservations,
+  encoderParcellesObservations,
 } from '@/lib/speculations'
 
 function formatSupabaseError(err: any): string {
@@ -24,27 +26,6 @@ function getDbClient(fallback: any) {
   } catch {
     return fallback
   }
-}
-
-export function extraireParcellesObservations(observations?: string | null): MembreSpeculationEntry[] {
-  if (!observations) return []
-  const match = observations.match(/\[SPEC_PARCELLES:([\s\S]*?)\]/)
-  if (!match) return []
-  try {
-    const list = JSON.parse(match[1])
-    return Array.isArray(list) ? list : []
-  } catch {
-    return []
-  }
-}
-
-export function encoderParcellesObservations(
-  observations: string | null | undefined,
-  parcelles: MembreSpeculationEntry[]
-): string {
-  const clean = (observations || '').replace(/\[SPEC_PARCELLES:[\s\S]*?\]/g, '').trim()
-  const tag = `[SPEC_PARCELLES:${JSON.stringify(parcelles)}]`
-  return clean ? `${clean}\n${tag}` : tag
 }
 
 export async function getSpeculationsCampagne(campagneId: string): Promise<CampagneSpeculation[]> {
