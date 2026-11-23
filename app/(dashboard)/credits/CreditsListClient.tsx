@@ -25,6 +25,8 @@ import {
   isCreditIndependant,
   resolveCreditEquipementStartDate,
   parseLocalDate,
+  getCreditSpeculationId,
+  getCreditSpeculationNom,
 } from '@/lib/credits-types'
 
 type CreditItem = {
@@ -79,6 +81,8 @@ export default function CreditsListClient({
       const cleanedReason = cleanButCredit(c.but_credit)
       const isIndep = isCreditIndependant(c)
       const startDate = type === 'equipement' ? resolveCreditEquipementStartDate(c, materiels) : null
+      const speculationId = getCreditSpeculationId(c)
+      const speculationNom = getCreditSpeculationNom(c)
       return {
         ...c,
         computedType: type,
@@ -86,6 +90,8 @@ export default function CreditsListClient({
         computedPeriodicite: periodicite,
         computedIsIndependant: isIndep,
         computedStartDate: startDate,
+        computedSpeculationId: speculationId,
+        computedSpeculationNom: speculationNom,
         cleanedReason,
       }
     })
@@ -102,8 +108,9 @@ export default function CreditsListClient({
         const matchBank = c.banque_nom?.toLowerCase().includes(q)
         const matchCampagne = c.campagnes?.nom?.toLowerCase().includes(q)
         const matchEquip = c.computedEquipementNom?.toLowerCase().includes(q)
+        const matchSpec = c.computedSpeculationNom?.toLowerCase().includes(q)
         const matchReason = c.cleanedReason?.toLowerCase().includes(q)
-        if (!matchBank && !matchCampagne && !matchEquip && !matchReason) return false
+        if (!matchBank && !matchCampagne && !matchEquip && !matchSpec && !matchReason) return false
       }
 
       return true
@@ -225,11 +232,10 @@ export default function CreditsListClient({
         <div className="inline-flex rounded-xl bg-surface border border-surface-border p-1 gap-1">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'all'
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'all'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
-            }`}
+              }`}
           >
             Tous les crédits
             <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px]">
@@ -239,11 +245,10 @@ export default function CreditsListClient({
 
           <button
             onClick={() => setActiveTab('campagne')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'campagne'
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'campagne'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
-            }`}
+              }`}
           >
             <Sprout className="h-3.5 w-3.5" />
             Crédits Campagne (Trésorerie)
@@ -254,11 +259,10 @@ export default function CreditsListClient({
 
           <button
             onClick={() => setActiveTab('equipement')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'equipement'
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'equipement'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
-            }`}
+              }`}
           >
             <Tractor className="h-3.5 w-3.5" />
             Crédits Équipement (Moyen terme)
@@ -331,17 +335,24 @@ export default function CreditsListClient({
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                                isEquip
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${isEquip
                                   ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20'
                                   : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
-                              }`}
+                                }`}
                             >
                               {isEquip ? '🚜 Équipement' : '🌾 Campagne'}
                             </span>
                             <span className="font-semibold text-foreground text-sm">
                               {isEquip ? (equipNom || 'Matériel agricole') : (credit.campagnes?.nom || 'Campagne en cours')}
                             </span>
+                            {!isEquip && credit.computedSpeculationNom && (
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20"
+                                title="Spéculation financée par ce crédit bancaire"
+                              >
+                                🌾 {credit.computedSpeculationNom}
+                              </span>
+                            )}
                             {isEquip && (credit.computedIsIndependant ? (
                               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface text-foreground-muted border border-surface-border" title="Non rattaché à une campagne spécifique (pluriannuel)">
                                 Indépendant
@@ -432,19 +443,18 @@ export default function CreditsListClient({
                     {/* Colonne 6 : Statut */}
                     <td className="px-3 py-4 text-xs text-center whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                          credit.statut === 'en_attente'
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${credit.statut === 'en_attente'
                             ? 'bg-warning/10 text-warning ring-warning/20'
                             : credit.statut === 'valide'
-                            ? 'bg-success/10 text-success ring-success/20'
-                            : 'bg-danger/10 text-danger ring-danger/20'
-                        }`}
+                              ? 'bg-success/10 text-success ring-success/20'
+                              : 'bg-danger/10 text-danger ring-danger/20'
+                          }`}
                       >
                         {credit.statut === 'en_attente'
                           ? dict.credits.table.status_pending
                           : credit.statut === 'valide'
-                          ? dict.credits.table.status_valid
-                          : dict.credits.table.status_rejected}
+                            ? dict.credits.table.status_valid
+                            : dict.credits.table.status_rejected}
                       </span>
                     </td>
 

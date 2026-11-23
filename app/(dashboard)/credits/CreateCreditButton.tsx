@@ -18,18 +18,37 @@ type MaterielRef = {
   duree_vie_economique?: number | null
 }
 
+type SpeculationRef = {
+  id: string
+  campagne_id: string
+  nom: string
+}
+
 export default function CreateCreditButton({
   campagnes,
   materiels = [],
+  speculations = [],
   dict,
 }: {
   campagnes: Campagne[]
   materiels?: MaterielRef[]
+  speculations?: SpeculationRef[]
   dict: any
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [typeCredit, setTypeCredit] = useState<'campagne' | 'equipement'>('campagne')
+
+  // Champs pour le crédit de campagne et spéculation financée
+  const [selectedCampagneId, setSelectedCampagneId] = useState<string>('')
+  const [selectedSpecId, setSelectedSpecId] = useState<string>('')
+  const [selectedSpecNom, setSelectedSpecNom] = useState<string>('')
+
+  // Spéculations rattachées à la campagne sélectionnée
+  const availableSpecs = useMemo(() => {
+    if (!selectedCampagneId) return []
+    return (speculations || []).filter((s) => s.campagne_id === selectedCampagneId)
+  }, [speculations, selectedCampagneId])
 
   // Champs de calcul dynamique pour le crédit d'équipement
   const [selectedMaterielId, setSelectedMaterielId] = useState<string>('')
@@ -121,11 +140,10 @@ export default function CreateCreditButton({
                           setTypeCredit('campagne')
                           setDureeMois(12)
                         }}
-                        className={`text-left p-3.5 rounded-xl border transition-all flex items-start gap-3 ${
-                          typeCredit === 'campagne'
+                        className={`text-left p-3.5 rounded-xl border transition-all flex items-start gap-3 ${typeCredit === 'campagne'
                             ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500 text-foreground'
                             : 'border-surface-border bg-background/50 hover:bg-background text-foreground-muted'
-                        }`}
+                          }`}
                       >
                         <div className={`p-2 rounded-lg ${typeCredit === 'campagne' ? 'bg-emerald-500 text-white' : 'bg-surface text-foreground-muted'}`}>
                           <Sprout className="h-5 w-5 shrink-0" />
@@ -149,11 +167,10 @@ export default function CreateCreditButton({
                           setTypeCredit('equipement')
                           setDureeMois(36)
                         }}
-                        className={`text-left p-3.5 rounded-xl border transition-all flex items-start gap-3 ${
-                          typeCredit === 'equipement'
+                        className={`text-left p-3.5 rounded-xl border transition-all flex items-start gap-3 ${typeCredit === 'equipement'
                             ? 'border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500 text-foreground'
                             : 'border-surface-border bg-background/50 hover:bg-background text-foreground-muted'
-                        }`}
+                          }`}
                       >
                         <div className={`p-2 rounded-lg ${typeCredit === 'equipement' ? 'bg-indigo-500 text-white' : 'bg-surface text-foreground-muted'}`}>
                           <Tractor className="h-5 w-5 shrink-0" />
@@ -324,13 +341,54 @@ export default function CreateCreditButton({
                     /* Section Spécifique Crédit Campagne (Trésorerie) */
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-foreground mb-1">{d.modal.linked_campaign} *</label>
-                        <select name="campagne_id" required className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-primary focus:outline-none">
+                        <label className="block text-xs font-semibold text-foreground mb-1">{d.modal.linked_campaign} *</label>
+                        <select
+                          name="campagne_id"
+                          required
+                          value={selectedCampagneId}
+                          onChange={(e) => {
+                            setSelectedCampagneId(e.target.value)
+                            setSelectedSpecId('')
+                            setSelectedSpecNom('')
+                          }}
+                          className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                        >
                           <option value="">{d.modal.select_campaign}</option>
                           {campagnes.map(c => (
                             <option key={c.id} value={c.id}>{c.nom}</option>
                           ))}
                         </select>
+                      </div>
+
+                      {/* Sélecteur de Spéculation financée */}
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground mb-1">
+                          Spéculation / Culture financée (facultatif)
+                        </label>
+                        <select
+                          name="speculation_id"
+                          value={selectedSpecId}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setSelectedSpecId(val)
+                            const sObj = availableSpecs.find(s => s.id === val)
+                            setSelectedSpecNom(sObj ? sObj.nom : '')
+                          }}
+                          className="block w-full rounded-md bg-background border border-surface-border text-foreground px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                        >
+                          <option value="">— Financement Global (Toutes les spéculations) —</option>
+                          {availableSpecs.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              🌾 {s.nom}
+                            </option>
+                          ))}
+                        </select>
+                        <input type="hidden" name="speculation_nom" value={selectedSpecNom} />
+                        <p className="mt-1 text-[11px] text-foreground-muted">
+                          {availableSpecs.length > 0
+                            ? `Sélectionnez la production ciblée par ce crédit de campagne (${availableSpecs.map(s => s.nom).join(', ')}), ou laissez global.`
+                            : "Si la campagne produit plusieurs cultures (Oignon, Tomate, etc.), ce crédit peut être fléché sur une production précise."}
+                        </p>
                       </div>
 
                       <div>

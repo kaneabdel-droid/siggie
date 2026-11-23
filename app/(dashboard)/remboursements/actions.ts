@@ -626,7 +626,7 @@ export async function enregistrerRemboursement(
     type_remboursement: type,
     montant_fcfa: montantFcfa,
     quantite_nature: type === 'nature' ? quantiteNature : null,
-    produit_nature: safeProduitNature,
+    produit_nature: safeProduitNature || (options?.speculationNom ? `[SPEC:${options.speculationNom.trim()}]` : null),
     compte_id: compteId || null,
     reference_piece: referencePiece?.trim() || null,
     date_paiement: dateEffectuee,
@@ -726,9 +726,9 @@ export async function enregistrerRemboursement(
       type === 'nature' && puNature ? `[PU:${puNature}]` : '',
       type === 'nature' && cleanProdName ? `[PRODUIT:${cleanProdName}]` : '',
       type === 'nature' && variete ? `[VARIETE:${variete}]` : '',
-      type === 'nature' && options?.speculationNom ? `[SPEC:${options.speculationNom.trim()}]` : '',
+      options?.speculationNom ? `[SPEC:${options.speculationNom.trim()}]` : '',
       type === 'nature' ? `[ORIGINE:${origineStock}]` : '',
-      type === 'nature' && effectiveCampagneId ? `[CAMPAGNE:${effectiveCampagneId}]` : '',
+      effectiveCampagneId ? `[CAMPAGNE:${effectiveCampagneId}]` : '',
     ]
       .filter(Boolean)
       .join(' ')
@@ -809,6 +809,12 @@ export async function enregistrerRemboursement(
   revalidatePath('/tresorerie')
   revalidatePath('/tresorerie/journaux')
   revalidatePath('/facturation')
+  revalidatePath('/campagnes')
+  if (effectiveCampagneId) {
+    revalidatePath(`/campagnes/${effectiveCampagneId}`)
+    revalidatePath(`/campagnes/${effectiveCampagneId}/speculations`)
+    revalidatePath(`/campagnes/${effectiveCampagneId}/bilan`)
+  }
   revalidatePath('/materiel/prestations')
   revalidatePath('/bilans')
   revalidatePath('/bilans/releve-membre')

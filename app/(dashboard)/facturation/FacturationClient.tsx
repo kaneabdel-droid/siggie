@@ -484,6 +484,15 @@ export default function FacturationClient({
                                 {docType === 'prestation' && <span>Prestation Matériel</span>}
                                 {docType === 'vente_stock' && <span>Vente de Stock</span>}
                                 {docType === 'campagne' && <span>Facture Intrants & Crédits</span>}
+                                {docType === 'campagne' && (facture.campagne_id || facture.campagne?.id) && (
+                                  <Link
+                                    href={`/campagnes/${facture.campagne_id || facture.campagne?.id}/speculations`}
+                                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
+                                    title="Consulter le suivi par spéculation et l'état récapitulatif"
+                                  >
+                                    🌾 Suivi spéculations
+                                  </Link>
+                                )}
                                 {facture.campagne?.nom && docType !== 'campagne' && (
                                   <span>· {facture.campagne.nom}</span>
                                 )}

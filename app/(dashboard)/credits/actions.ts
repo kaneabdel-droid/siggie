@@ -10,6 +10,8 @@ import {
   getCreditEquipementNom,
   getCreditPeriodicite,
   getCreditType,
+  getCreditSpeculationId,
+  getCreditSpeculationNom,
 } from '@/lib/credits-types'
 
 export async function addCredit(formData: FormData) {
@@ -116,8 +118,14 @@ export async function addCredit(formData: FormData) {
     }
   }
 
+  const rawSpeculationId = (formData.get('speculation_id') as string)?.trim() || null
+  const rawSpeculationNom = (formData.get('speculation_nom') as string)?.trim() || null
+
   // Tag de méta-données pour compatibilité absolue
-  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''}${matchedMaterielId ? ` [MATERIEL_ID:${matchedMaterielId}]` : ''}${effectiveDateAcquisition ? ` [DATE_ACQUISITION:${effectiveDateAcquisition}]` : ''} [PERIODICITE:${periodicite}]${isIndependant ? ' [INDEPENDANT:true]' : ''}`
+  const specTag = typeCredit === 'campagne' && (rawSpeculationId || rawSpeculationNom)
+    ? `${rawSpeculationId ? ` [SPEC_ID:${rawSpeculationId}]` : ''}${rawSpeculationNom ? ` [SPEC_NOM:${rawSpeculationNom}]` : ''}`
+    : ''
+  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''}${matchedMaterielId ? ` [MATERIEL_ID:${matchedMaterielId}]` : ''}${effectiveDateAcquisition ? ` [DATE_ACQUISITION:${effectiveDateAcquisition}]` : ''} [PERIODICITE:${periodicite}]${isIndependant ? ' [INDEPENDANT:true]' : ''}${specTag}`
   const butCreditWithMeta = rawBut ? `${metaTag} ${rawBut}` : metaTag
 
   const insertData: any = {
@@ -144,6 +152,10 @@ export async function addCredit(formData: FormData) {
 
   revalidatePath('/credits')
   revalidatePath('/materiel')
+  if (campagneId) {
+    revalidatePath(`/campagnes/${campagneId}/speculations`)
+    revalidatePath(`/campagnes/${campagneId}`)
+  }
   return { success: true }
 }
 
@@ -180,7 +192,12 @@ export async function updateCreditStatus(
       const isIndep = existingCredit?.but_credit?.includes('[INDEPENDANT:true]')
       const existingMatId = getCreditMaterielId(existingCredit || {})
       const effectiveDateAcq = extra.date_acquisition || getCreditDateAcquisition(existingCredit || {})
-      const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''}${existingMatId ? ` [MATERIEL_ID:${existingMatId}]` : ''}${effectiveDateAcq ? ` [DATE_ACQUISITION:${effectiveDateAcq}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]${isIndep ? ' [INDEPENDANT:true]' : ''}`
+      const existingSpecId = getCreditSpeculationId(existingCredit || {})
+      const existingSpecNom = getCreditSpeculationNom(existingCredit || {})
+      const specTag = (existingSpecId || existingSpecNom)
+        ? `${existingSpecId ? ` [SPEC_ID:${existingSpecId}]` : ''}${existingSpecNom ? ` [SPEC_NOM:${existingSpecNom}]` : ''}`
+        : ''
+      const metaTag = `[TYPE:${extra.type_credit || 'equipement'}]${extra.equipement_nom ? ` [EQUIPEMENT:${extra.equipement_nom}]` : ''}${existingMatId ? ` [MATERIEL_ID:${existingMatId}]` : ''}${effectiveDateAcq ? ` [DATE_ACQUISITION:${effectiveDateAcq}]` : ''} [PERIODICITE:${extra.periodicite_remboursement || 'annuelle'}]${isIndep ? ' [INDEPENDANT:true]' : ''}${specTag}`
       data.but_credit = cleanOld ? `${metaTag} ${cleanOld}` : metaTag
       if (effectiveDateAcq) {
         data.date_demande = effectiveDateAcq

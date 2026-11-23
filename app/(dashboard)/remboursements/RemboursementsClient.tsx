@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Search, Wallet, Scale, CreditCard, FileCheck, MoreHorizontal, Coins, CheckCircle2, AlertCircle } from 'lucide-react'
 import PaiementModal from './PaiementModal'
 import { useUnite } from '@/components/DeviseProvider'
@@ -184,8 +185,17 @@ export default function RemboursementsClient({
                       />
                     )}
                   </div>
-                  <div className="text-xs text-foreground-muted mt-1">
-                    {selectedFacture.designation}
+                  <div className="text-xs text-foreground-muted mt-1 flex items-center gap-2 flex-wrap">
+                    <span>{selectedFacture.designation}</span>
+                    {(selectedFacture.campagne_id || selectedFacture.campagne?.id) && (
+                      <Link
+                        href={`/campagnes/${selectedFacture.campagne_id || selectedFacture.campagne?.id}/speculations`}
+                        className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium ml-1"
+                        title="Voir le suivi multi-spéculations de cette campagne"
+                      >
+                        🌾 Suivi par spéculation
+                      </Link>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

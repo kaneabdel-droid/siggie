@@ -27,6 +27,7 @@ import {
   updateCreditTypeFinancement
 } from '../actions'
 import { useUnite } from '@/components/DeviseProvider'
+import { getCreditSpeculationNom } from '@/lib/credits-types'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -273,7 +274,11 @@ export default function FinancementIntrantsManager({
                 Financement Décliné par Intrant & Service
               </h1>
               <p className="text-sm text-foreground-muted">
-                {credit.banque_nom || 'Banque partenaire'} · Campagne : <strong>{credit.campagnes?.nom || '-'}</strong> · Crédit accordé : <strong>{montantTotalCredit.toLocaleString(localeCode)}{unite}</strong>
+                {credit.banque_nom || 'Banque partenaire'} · Campagne : <strong>{credit.campagnes?.nom || '-'}</strong>
+                {getCreditSpeculationNom(credit) && (
+                  <> · Spéculation : <strong className="text-amber-600 dark:text-amber-400">🌾 {getCreditSpeculationNom(credit)}</strong></>
+                )}
+                {' '}· Crédit accordé : <strong>{montantTotalCredit.toLocaleString(localeCode)}{unite}</strong>
               </p>
             </div>
           </div>
@@ -285,18 +290,16 @@ export default function FinancementIntrantsManager({
             <button
               onClick={() => handleToggleMode('global')}
               disabled={isPending}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                typeFinancement === 'global' ? 'bg-background text-foreground shadow-sm' : 'text-foreground-muted hover:text-foreground'
-              }`}
+              className={`px-3 py-1.5 rounded-md transition-colors ${typeFinancement === 'global' ? 'bg-background text-foreground shadow-sm' : 'text-foreground-muted hover:text-foreground'
+                }`}
             >
               Financement Global
             </button>
             <button
               onClick={() => handleToggleMode('par_intrant')}
               disabled={isPending}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                typeFinancement === 'par_intrant' ? 'bg-primary text-white shadow-sm' : 'text-foreground-muted hover:text-foreground'
-              }`}
+              className={`px-3 py-1.5 rounded-md transition-colors ${typeFinancement === 'par_intrant' ? 'bg-primary text-white shadow-sm' : 'text-foreground-muted hover:text-foreground'
+                }`}
             >
               Décliné par Intrant (Banque Agricole)
             </button>
@@ -326,13 +329,12 @@ export default function FinancementIntrantsManager({
 
       {/* Règle d'or de la banque agricole & Alerte de conformité */}
       <div
-        className={`rounded-xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-          estConforme
+        className={`rounded-xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${estConforme
             ? 'bg-success/5 border-success/30 text-success'
             : ecartConformite > 0
-            ? 'bg-warning/5 border-warning/30 text-warning'
-            : 'bg-danger/5 border-danger/30 text-danger'
-        }`}
+              ? 'bg-warning/5 border-warning/30 text-warning'
+              : 'bg-danger/5 border-danger/30 text-danger'
+          }`}
       >
         <div className="flex items-start gap-3">
           {estConforme ? (
@@ -347,8 +349,8 @@ export default function FinancementIntrantsManager({
               {estConforme
                 ? 'Conformité Bancaire Validée : 100% du crédit est alloué'
                 : ecartConformite > 0
-                ? `Reste à allouer : ${ecartConformite.toLocaleString(localeCode)} ${unite}`
-                : `Dépassement du crédit accordé : +${Math.abs(ecartConformite).toLocaleString(localeCode)} ${unite}`}
+                  ? `Reste à allouer : ${ecartConformite.toLocaleString(localeCode)} ${unite}`
+                  : `Dépassement du crédit accordé : +${Math.abs(ecartConformite).toLocaleString(localeCode)} ${unite}`}
             </h3>
             <p className="text-sm text-foreground-muted mt-0.5">
               Règle banque agricole : la somme des rubriques accordées (<strong>{totalAccordeRubriques.toLocaleString(localeCode)}{unite}</strong>) doit être exactement égale au montant total du crédit accordé (<strong>{montantTotalCredit.toLocaleString(localeCode)}{unite}</strong>).
@@ -358,13 +360,12 @@ export default function FinancementIntrantsManager({
 
         <div className="shrink-0 text-right">
           <span
-            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-              estConforme
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${estConforme
                 ? 'bg-success/20 text-success'
                 : ecartConformite > 0
-                ? 'bg-warning/20 text-warning'
-                : 'bg-danger/20 text-danger'
-            }`}
+                  ? 'bg-warning/20 text-warning'
+                  : 'bg-danger/20 text-danger'
+              }`}
           >
             {estConforme ? 'Conforme' : ecartConformite > 0 ? 'Non alloué' : 'Dépassement'}
           </span>
@@ -447,11 +448,10 @@ export default function FinancementIntrantsManager({
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-2.5">
                           <span
-                            className={`mt-0.5 inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
-                              ligne.type_rubrique === 'service'
+                            className={`mt-0.5 inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-xs font-semibold ${ligne.type_rubrique === 'service'
                                 ? 'bg-secondary/10 text-secondary border border-secondary/20'
                                 : 'bg-primary/10 text-primary border border-primary/20'
-                            }`}
+                              }`}
                           >
                             {ligne.type_rubrique === 'service' ? 'Service' : 'Intrant'}
                           </span>
@@ -508,13 +508,12 @@ export default function FinancementIntrantsManager({
                       {/* Colonne 4: Écart = Accordé - Payé */}
                       <td className="px-6 py-4 text-right font-bold whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                            ecart === 0
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${ecart === 0
                               ? 'bg-success/10 text-success border border-success/20'
                               : ecart > 0
-                              ? 'bg-primary/10 text-primary border border-primary/20'
-                              : 'bg-danger/10 text-danger border border-danger/20'
-                          }`}
+                                ? 'bg-primary/10 text-primary border border-primary/20'
+                                : 'bg-danger/10 text-danger border border-danger/20'
+                            }`}
                         >
                           {ecart.toLocaleString(localeCode)}{unite}
                           {ecart === 0 ? ' (Soldé)' : ecart > 0 ? ' (Disponible)' : ' (Dépassement)'}

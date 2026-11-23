@@ -52,6 +52,38 @@ export function getCreditEquipementNom(credit: {
 }
 
 /**
+ * Récupère l'ID de la spéculation financée par le crédit de campagne
+ */
+export function getCreditSpeculationId(credit: {
+  speculation_id?: string | null
+  but_credit?: string | null
+}): string | null {
+  if (credit.speculation_id) return credit.speculation_id
+  if (credit.but_credit) {
+    const match = credit.but_credit.match(/\[SPEC_ID:([^\]]+)\]/)
+    if (match && match[1] && match[1].trim()) return match[1].trim()
+  }
+  return null
+}
+
+/**
+ * Récupère le nom de la spéculation financée par le crédit de campagne
+ */
+export function getCreditSpeculationNom(credit: {
+  speculation_nom?: string | null
+  but_credit?: string | null
+}): string | null {
+  if (credit.speculation_nom) return credit.speculation_nom
+  if (credit.but_credit) {
+    const matchNom = credit.but_credit.match(/\[SPEC_NOM:([^\]]+)\]/)
+    if (matchNom && matchNom[1] && matchNom[1].trim()) return matchNom[1].trim()
+    const matchSpec = credit.but_credit.match(/\[SPEC:([^\]]+)\]/)
+    if (matchSpec && matchSpec[1] && matchSpec[1].trim()) return matchSpec[1].trim()
+  }
+  return null
+}
+
+/**
  * Récupère la périodicité de remboursement
  */
 export function getCreditPeriodicite(credit: {
@@ -197,6 +229,9 @@ export function cleanButCredit(butCredit: string | null | undefined): string {
     .replace(/\[PERIODICITE:[^\]]*\]/g, '')
     .replace(/\[ECHEANCE:[^\]]*\]/g, '')
     .replace(/\[INDEPENDANT:[^\]]*\]/g, '')
+    .replace(/\[SPEC_ID:[^\]]*\]/g, '')
+    .replace(/\[SPEC_NOM:[^\]]*\]/g, '')
+    .replace(/\[SPEC:[^\]]*\]/g, '')
     .trim()
 }
 

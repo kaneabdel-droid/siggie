@@ -52,8 +52,11 @@ export interface MembreSpeculationDetail {
   superficie: number
   superficieValidee: number
   creditAttribue: number
+  facturation: number
   collecteQte: number
   collecteVal: number
+  remboursements: number
+  solde: number
 }
 
 export interface RecapitulatifMembre {

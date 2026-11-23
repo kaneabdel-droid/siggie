@@ -126,10 +126,10 @@ export default function SpeculationsClient({
       ? (specDetail ? specDetail.creditAttribue : 0)
       : m.creditTotal
 
-    // Facturation au prorata de la superficie de cette spéculation pour ce membre
+    // Facturation de cette spéculation pour ce membre
     const ratio = m.superficieTotale > 0 ? rowSurface / m.superficieTotale : 0
     const rowFacturation = isFiltered
-      ? Math.round(m.facturationTotale * ratio)
+      ? (specDetail?.facturation ?? Math.round(m.facturationTotale * ratio))
       : m.facturationTotale
 
     // Collecte spécifique à la culture
@@ -141,13 +141,15 @@ export default function SpeculationsClient({
       ? (specDetail ? specDetail.collecteVal : 0)
       : m.collecteValeurTotale
 
-    // Remboursements : collecte en nature de cette culture + quote-part espèces
+    // Remboursements spécifiques à cette culture
     const cashRembGlobal = Math.max(0, m.remboursementsTotaux - m.collecteValeurTotale)
     const rowRemboursements = isFiltered
-      ? rowCollecteVal + Math.round(cashRembGlobal * ratio)
+      ? (specDetail?.remboursements ?? (rowCollecteVal + Math.round(cashRembGlobal * ratio)))
       : m.remboursementsTotaux
 
-    const rowSoldeNet = rowFacturation - rowRemboursements
+    const rowSoldeNet = isFiltered
+      ? (specDetail?.solde ?? (rowFacturation - rowRemboursements))
+      : (rowFacturation - rowRemboursements)
     let rowStatutSolde: 'solde' | 'excedent' | 'reliquat' = 'solde'
     if (rowSoldeNet > 0) rowStatutSolde = 'reliquat'
     else if (rowSoldeNet < 0) rowStatutSolde = 'excedent'
@@ -243,8 +245,11 @@ export default function SpeculationsClient({
             superficie: sup,
             superficieValidee: sup,
             creditAttribue: isNaN(cred) ? 0 : cred,
+            facturation: 0,
             collecteQte: 0,
             collecteVal: 0,
+            remboursements: 0,
+            solde: 0,
           })
         }
 

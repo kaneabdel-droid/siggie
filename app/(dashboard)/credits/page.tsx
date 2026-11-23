@@ -42,6 +42,40 @@ export default async function CreditsPage() {
     totalDecaisse = decaissements?.reduce((sum, d) => sum + Number(d.montant || 0), 0) || 0
   }
 
+  // Récupération des spéculations des campagnes pour le ciblage fin des crédits
+  let speculations: Array<{ id: string; campagne_id: string; nom: string }> = []
+  try {
+    const { data: dedicatedSpecs } = await supabase
+      .from('campagne_speculations')
+      .select('id, campagne_id, nom')
+
+    if (dedicatedSpecs && dedicatedSpecs.length > 0) {
+      speculations = dedicatedSpecs
+    } else {
+      const { data: impSpecs } = await supabase
+        .from('imputations')
+        .select('id, compte, libelle')
+        .like('compte', 'SPEC:%')
+
+      if (impSpecs) {
+        speculations = impSpecs.map((row: any) => {
+          let nom = 'Culture'
+          try {
+            const meta = JSON.parse(row.libelle)
+            nom = meta.nom || nom
+          } catch {}
+          return {
+            id: row.id,
+            campagne_id: (row.compte || '').replace('SPEC:', ''),
+            nom,
+          }
+        })
+      }
+    }
+  } catch (err) {
+    console.warn("Erreur chargement spéculations crédits:", err)
+  }
+
   return (
     <div className="space-y-6">
       <div className="sm:flex sm:items-center justify-between gap-4">
@@ -54,7 +88,12 @@ export default async function CreditsPage() {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 sm:flex-none">
-          <CreateCreditButton campagnes={campagnes || []} materiels={materiels || []} dict={dict} />
+          <CreateCreditButton
+            campagnes={campagnes || []}
+            materiels={materiels || []}
+            speculations={speculations}
+            dict={dict}
+          />
         </div>
       </div>
 

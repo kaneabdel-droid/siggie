@@ -14,6 +14,7 @@ import {
   extraireParcellesObservations,
   encoderParcellesObservations,
 } from '@/lib/speculations'
+import { getCreditSpeculationId, getCreditSpeculationNom } from '@/lib/credits-types'
 
 function formatSupabaseError(err: any): string {
   if (!err) return "Une erreur inattendue est survenue."
@@ -619,6 +620,8 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
   // Collecte et Remboursements par membre et spéculation
   const collecteParMembreEtSpec: Record<string, { qte: number; val: number }> = {}
   const rembTotalParMembre: Record<string, number> = {}
+  const rembParMembreEtSpec: Record<string, number> = {}
+  const rembNonVentileParMembre: Record<string, number> = {}
 
   for (const r of (remboursementsData || []) as any[]) {
     const isCampagneRemb = facturesCampagneIds.has(r.facture_id)
@@ -628,49 +631,76 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     const montant = Number(r.montant_fcfa || 0)
     rembTotalParMembre[mId] = (rembTotalParMembre[mId] || 0) + montant
 
+    const specTag = extraireTagSpeculation(r.produit_nature)
+    const matchedSpec = speculations.find((s: CampagneSpeculation) =>
+      s.id === (r as any).speculation_id ||
+      (specTag && s.nom.toLowerCase() === specTag.toLowerCase()) ||
+      (r.type_remboursement === 'nature' && r.produit_nature && s.produit_collecte && r.produit_nature.toLowerCase().includes(s.produit_collecte.toLowerCase())) ||
+      (r.type_remboursement === 'nature' && r.produit_nature && s.nom && r.produit_nature.toLowerCase().includes(s.nom.toLowerCase()))
+    )
+
     if (r.type_remboursement === 'nature') {
       const qte = Number(r.quantite_nature || 0)
-      const specTag = extraireTagSpeculation(r.produit_nature)
-      const matchedSpec = speculations.find((s: CampagneSpeculation) =>
-        s.id === (r as any).speculation_id ||
-        (specTag && s.nom.toLowerCase() === specTag.toLowerCase()) ||
-        (r.produit_nature && s.produit_collecte && r.produit_nature.toLowerCase().includes(s.produit_collecte.toLowerCase())) ||
-        (r.produit_nature && s.nom && r.produit_nature.toLowerCase().includes(s.nom.toLowerCase()))
-      ) || speculations[0]
+      const effectiveSpec = matchedSpec || speculations[0]
 
+      if (effectiveSpec) {
+        const key = `${mId}:${effectiveSpec.id}`
+        if (!collecteParMembreEtSpec[key]) collecteParMembreEtSpec[key] = { qte: 0, val: 0 }
+        const val = montant > 0 ? montant : qte * effectiveSpec.prix_collecte
+        collecteParMembreEtSpec[key].qte += qte
+        collecteParMembreEtSpec[key].val += val
+        rembParMembreEtSpec[key] = (rembParMembreEtSpec[key] || 0) + val
+      }
+    } else {
       if (matchedSpec) {
         const key = `${mId}:${matchedSpec.id}`
-        if (!collecteParMembreEtSpec[key]) collecteParMembreEtSpec[key] = { qte: 0, val: 0 }
-        collecteParMembreEtSpec[key].qte += qte
-        collecteParMembreEtSpec[key].val += montant > 0 ? montant : qte * matchedSpec.prix_collecte
+        rembParMembreEtSpec[key] = (rembParMembreEtSpec[key] || 0) + montant
+      } else {
+        rembNonVentileParMembre[mId] = (rembNonVentileParMembre[mId] || 0) + montant
       }
     }
   }
 
-  // Traitement des paiements clients contenant [MODE:nature]
+  // Traitement des paiements clients contenant [MODE:nature] ou rattachés à la campagne
   for (const pc of (paiementsClientsData || []) as any[]) {
     const motifStr = String(pc.motif || '')
-    if (!motifStr.includes('[MODE:nature]')) continue
     const campMatch = motifStr.match(/\[CAMPAGNE:([^\]]+)\]/)
-    if (!campMatch || campMatch[1].trim() !== campagneId) continue
+    const hasCampagne = campMatch && campMatch[1].trim() === campagneId
+    const isNature = motifStr.includes('[MODE:nature]')
+    if (!hasCampagne && !isNature) continue
 
-    const qMatch = motifStr.match(/\[QTE:([^\]]+)\]/)
-    const qte = qMatch ? Number(qMatch[1]) : 0
     const mId = pc.client_id // Souvent le membre
     if (!mId) continue
 
     const specTag = extraireTagSpeculation(motifStr)
     const matchedSpec = speculations.find((s: CampagneSpeculation) =>
       specTag && s.nom.toLowerCase() === specTag.toLowerCase()
-    ) || speculations[0]
+    )
 
-    if (matchedSpec) {
-      const key = `${mId}:${matchedSpec.id}`
-      if (!collecteParMembreEtSpec[key]) collecteParMembreEtSpec[key] = { qte: 0, val: 0 }
-      const val = Number(pc.montant || 0) > 0 ? Number(pc.montant) : qte * matchedSpec.prix_collecte
-      collecteParMembreEtSpec[key].qte += qte
-      collecteParMembreEtSpec[key].val += val
-      rembTotalParMembre[mId] = (rembTotalParMembre[mId] || 0) + val
+    const montant = Number(pc.montant || 0)
+
+    if (isNature) {
+      if (!hasCampagne) continue
+      const qMatch = motifStr.match(/\[QTE:([^\]]+)\]/)
+      const qte = qMatch ? Number(qMatch[1]) : 0
+      const effectiveSpec = matchedSpec || speculations[0]
+      if (effectiveSpec) {
+        const key = `${mId}:${effectiveSpec.id}`
+        if (!collecteParMembreEtSpec[key]) collecteParMembreEtSpec[key] = { qte: 0, val: 0 }
+        const val = montant > 0 ? montant : qte * effectiveSpec.prix_collecte
+        collecteParMembreEtSpec[key].qte += qte
+        collecteParMembreEtSpec[key].val += val
+        rembParMembreEtSpec[key] = (rembParMembreEtSpec[key] || 0) + val
+        rembTotalParMembre[mId] = (rembTotalParMembre[mId] || 0) + val
+      }
+    } else if (hasCampagne) {
+      if (matchedSpec) {
+        const key = `${mId}:${matchedSpec.id}`
+        rembParMembreEtSpec[key] = (rembParMembreEtSpec[key] || 0) + montant
+      } else {
+        rembNonVentileParMembre[mId] = (rembNonVentileParMembre[mId] || 0) + montant
+      }
+      rembTotalParMembre[mId] = (rembTotalParMembre[mId] || 0) + montant
     }
   }
 
@@ -736,43 +766,129 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
     }
   })
 
-  // 2. Construction de la Synthèse par Spéculation
+  // 2. Construction du Récapitulatif par Membre (avec suivi individuel par spéculation et consolidé)
+  const recapitulatifMembres: RecapitulatifMembre[] = enrolledMembres.map((em: any) => {
+    const fac = factureByMembre.get(em.membreId)
+    const facturationTotaleMembre = fac
+      ? Number(fac.montant_total || 0) + Number(fac.montant_interet || 0)
+      : (facturationParMembre[em.membreId] || 0)
+
+    const sumMembreSuperficie = em.specs.reduce((acc: number, s: MembreSpeculationEntry) => acc + (Number(s.superficie) || 0), 0)
+
+    const memberSpecsDetail: MembreSpeculationDetail[] = speculations.map((spec: CampagneSpeculation) => {
+      const match = em.specs.find((s: MembreSpeculationEntry) => s.speculation_id === spec.id)
+      const sup = match ? Number(match.superficie || 0) : 0
+      const supVal = match && match.superficie_validee !== null && match.superficie_validee !== undefined ? Number(match.superficie_validee) : sup
+      const cred = match ? Number(match.credit_attribue || 0) : 0
+
+      const colKey = `${em.membreId}:${spec.id}`
+      const col = collecteParMembreEtSpec[colKey] || { qte: 0, val: 0 }
+
+      // Répartition de la facturation au prorata de la superficie de cette spéculation pour ce membre
+      const ratioMembreSpec = sumMembreSuperficie > 0
+        ? sup / sumMembreSuperficie
+        : (speculations.length > 0 ? 1 / speculations.length : 1)
+
+      const specFacturation = Math.round(facturationTotaleMembre * ratioMembreSpec)
+
+      // Remboursements directement fléchés sur cette spéculation + quote-part des remboursements généraux non fléchés
+      const rembDirect = rembParMembreEtSpec[`${em.membreId}:${spec.id}`] || 0
+      const nonVentileMembre = rembNonVentileParMembre[em.membreId] || 0
+      const partNonVentilee = Math.round(nonVentileMembre * ratioMembreSpec)
+      const specRemboursements = rembDirect + partNonVentilee
+
+      const specSolde = specFacturation - specRemboursements
+
+      return {
+        speculationId: spec.id,
+        nom: spec.nom,
+        superficie: sup,
+        superficieValidee: supVal,
+        creditAttribue: cred,
+        facturation: specFacturation,
+        collecteQte: col.qte,
+        collecteVal: col.val,
+        remboursements: specRemboursements,
+        solde: specSolde,
+      }
+    })
+
+    const superficieTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.superficie, 0)
+    const creditTotal = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.creditAttribue, 0)
+    const collecteQteTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.collecteQte, 0)
+    const collecteValeurTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.collecteVal, 0)
+
+    const remboursementsTotaux = rembTotalParMembre[em.membreId] || (fac ? Number(fac.montant_paye || 0) : 0)
+    const soldeNet = facturationTotaleMembre - remboursementsTotaux
+
+    let statutSolde: 'solde' | 'excedent' | 'reliquat' = 'solde'
+    if (soldeNet > 0) statutSolde = 'reliquat'
+    else if (soldeNet < 0) statutSolde = 'excedent'
+    else statutSolde = 'solde'
+
+    return {
+      membreId: em.membreId,
+      nom: em.nom,
+      prenom: em.prenom,
+      codeMembre: em.codeMembre,
+      telephone: em.telephone,
+      village: em.village,
+      speculations: memberSpecsDetail,
+      superficieTotale,
+      creditTotal,
+      facturationTotale: facturationTotaleMembre,
+      collecteQteTotale,
+      collecteValeurTotale,
+      remboursementsTotaux,
+      soldeNet,
+      statutSolde,
+    }
+  }).sort((a: RecapitulatifMembre, b: RecapitulatifMembre) => a.nom.localeCompare(b.nom))
+
+  // 3. Construction de la Synthèse par Spéculation
   const syntheses: SyntheseSpeculation[] = speculations.map((spec: CampagneSpeculation) => {
     let membresCount = 0
     let superficieTotale = 0
     let superficieValideeTotale = 0
+    // Crédits bancaires fléchés sur cette spéculation
+    const creditsSpec = (creditsData || []).filter((c: any) => {
+      const sId = getCreditSpeculationId(c)
+      const sNom = getCreditSpeculationNom(c)
+      if (sId && sId === spec.id) return true
+      if (sNom && sNom.toLowerCase() === spec.nom.toLowerCase()) return true
+      return false
+    })
+    const creditBancaireSpec = creditsSpec.reduce((sum: number, c: any) => sum + Number(c.montant_accorde || c.montant_demande || 0), 0)
+
     let creditTotalSpec = Number(spec.credit_alloue || 0)
+    if (creditBancaireSpec > 0 && creditTotalSpec === 0) {
+      creditTotalSpec = creditBancaireSpec
+    }
     let poidsCollecteKg = 0
     let valeurCollecte = 0
 
-    enrolledMembres.forEach((em: any) => {
-      const match = em.specs.find((s: MembreSpeculationEntry) => s.speculation_id === spec.id)
-      if (match && match.superficie > 0) {
+    recapitulatifMembres.forEach((rm) => {
+      const s = rm.speculations.find((sd) => sd.speculationId === spec.id)
+      if (s && s.superficie > 0) {
         membresCount += 1
-        superficieTotale += match.superficie
-        superficieValideeTotale += match.superficie_validee !== null && match.superficie_validee !== undefined ? match.superficie_validee : match.superficie
-        creditTotalSpec += Number(match.credit_attribue || 0)
-
-        const colKey = `${em.membreId}:${spec.id}`
-        if (collecteParMembreEtSpec[colKey]) {
-          poidsCollecteKg += collecteParMembreEtSpec[colKey].qte
-          valeurCollecte += collecteParMembreEtSpec[colKey].val
-        }
+        superficieTotale += s.superficie
+        superficieValideeTotale += s.superficieValidee
+        creditTotalSpec += s.creditAttribue
+        poidsCollecteKg += s.collecteQte
+        valeurCollecte += s.collecteVal
       }
     })
 
-    // Répartition de la facturation proportionnellement à la superficie de cette spéculation par rapport à la surface totale de la campagne
-    const totalSurfaceCampagne = enrolledMembres.reduce((sum: number, em: any) => sum + em.superficieGlobale, 0)
-    const ratioSpec = totalSurfaceCampagne > 0 ? superficieTotale / totalSurfaceCampagne : (1 / Math.max(1, speculations.length))
+    // Facturation et Remboursements totaux consolidés pour cette spéculation
+    const facturationTotale = recapitulatifMembres.reduce((sum, rm) => {
+      const s = rm.speculations.find((sd) => sd.speculationId === spec.id)
+      return sum + (s?.facturation || 0)
+    }, 0)
 
-    // Total facturé global campagne
-    const totalFactureGlobal = Object.values(facturationParMembre).reduce((a, b) => a + b, 0)
-    const facturationTotale = Math.round(totalFactureGlobal * ratioSpec)
-
-    // Remboursements affectés à la spéculation : valeur collectée en nature + part espèces
-    const rembNatureValeur = valeurCollecte
-    const totalRembGlobal = Object.values(rembTotalParMembre).reduce((a, b) => a + b, 0)
-    const remboursementsTotaux = Math.round(rembNatureValeur > 0 ? rembNatureValeur : totalRembGlobal * ratioSpec)
+    const remboursementsTotaux = recapitulatifMembres.reduce((sum, rm) => {
+      const s = rm.speculations.find((sd) => sd.speculationId === spec.id)
+      return sum + (s?.remboursements || 0)
+    }, 0)
 
     const tauxRecouvrement = facturationTotale > 0
       ? Math.min(100, Math.round((remboursementsTotaux / facturationTotale) * 100))
@@ -795,65 +911,6 @@ export async function getDonneesCompletCampagneSpeculations(campagneId: string) 
       soldeRestant,
     }
   })
-
-  // 3. Construction du Récapitulatif par Membre
-  const recapitulatifMembres: RecapitulatifMembre[] = enrolledMembres.map((em: any) => {
-    const memberSpecsDetail: MembreSpeculationDetail[] = speculations.map((spec: CampagneSpeculation) => {
-      const match = em.specs.find((s: MembreSpeculationEntry) => s.speculation_id === spec.id)
-      const sup = match ? match.superficie : 0
-      const supVal = match && match.superficie_validee !== null && match.superficie_validee !== undefined ? match.superficie_validee : sup
-      const cred = match ? match.credit_attribue : 0
-
-      const colKey = `${em.membreId}:${spec.id}`
-      const col = collecteParMembreEtSpec[colKey] || { qte: 0, val: 0 }
-
-      return {
-        speculationId: spec.id,
-        nom: spec.nom,
-        superficie: sup,
-        superficieValidee: supVal,
-        creditAttribue: cred,
-        collecteQte: col.qte,
-        collecteVal: col.val,
-      }
-    })
-
-    const superficieTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.superficie, 0)
-    const creditTotal = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.creditAttribue, 0)
-    const collecteQteTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.collecteQte, 0)
-    const collecteValeurTotale = memberSpecsDetail.reduce((acc: number, s: MembreSpeculationDetail) => acc + s.collecteVal, 0)
-
-    const fac = factureByMembre.get(em.membreId)
-    const facturationTotale = fac
-      ? Number(fac.montant_total || 0) + Number(fac.montant_interet || 0)
-      : (facturationParMembre[em.membreId] || 0)
-
-    const remboursementsTotaux = rembTotalParMembre[em.membreId] || (fac ? Number(fac.montant_paye || 0) : 0)
-    const soldeNet = facturationTotale - remboursementsTotaux
-
-    let statutSolde: 'solde' | 'excedent' | 'reliquat' = 'solde'
-    if (soldeNet > 0) statutSolde = 'reliquat'
-    else if (soldeNet < 0) statutSolde = 'excedent'
-    else statutSolde = 'solde'
-
-    return {
-      membreId: em.membreId,
-      nom: em.nom,
-      prenom: em.prenom,
-      codeMembre: em.codeMembre,
-      telephone: em.telephone,
-      village: em.village,
-      speculations: memberSpecsDetail,
-      superficieTotale,
-      creditTotal,
-      facturationTotale,
-      collecteQteTotale,
-      collecteValeurTotale,
-      remboursementsTotaux,
-      soldeNet,
-      statutSolde,
-    }
-  }).sort((a: RecapitulatifMembre, b: RecapitulatifMembre) => a.nom.localeCompare(b.nom))
 
   // Total crédit bancaire campagne
   const creditBancaireCampagne = (creditsData || []).reduce((sum: number, c: any) => sum + Number(c.montant_accorde || 0), 0)
