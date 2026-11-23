@@ -422,6 +422,24 @@ export async function affecterMembreSpeculation(
       const parcelles = extraireParcellesObservations(cm?.observations)
       const existingIdx = parcelles.findIndex((p) => p.speculation_id === speculationId)
 
+      // Si c'est la première affectation détaillée pour ce membre et qu'il avait déjà une superficie globale
+      if (parcelles.length === 0 && Number(cm?.superficie || 0) > 0) {
+        const specList = await getSpeculationsCampagne(campagneId)
+        if (specList.length > 0 && specList[0].id !== speculationId) {
+          const supInitiale = Number(cm?.superficie || 0)
+          const supNouvelle = Number(superficie || 0)
+          const restant = Math.max(0, Math.round((supInitiale - supNouvelle) * 100) / 100)
+          parcelles.push({
+            campagne_id: campagneId,
+            membre_id: membreId,
+            speculation_id: specList[0].id,
+            superficie: restant,
+            credit_attribue: 0,
+            casier: null,
+          })
+        }
+      }
+
       const entry: MembreSpeculationEntry = {
         campagne_id: campagneId,
         membre_id: membreId,
@@ -511,7 +529,7 @@ export async function supprimerAffectationMembreSpeculation(
     const parcelles = extraireParcellesObservations(cm?.observations)
     const filtered = parcelles.filter((p) => p.speculation_id !== speculationId)
 
-    if (filtered.length !== parcelles.length || !deletedDedicated) {
+    if (filtered.length !== parcelles.length) {
       const totalHa = filtered.reduce((acc, p) => acc + (Number(p.superficie) || 0), 0)
       const updatedObs = encoderParcellesObservations(cm?.observations, filtered)
 

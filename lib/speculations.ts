@@ -85,22 +85,60 @@ export function extraireTagSpeculation(str?: string | null): string | null {
 
 export function extraireParcellesObservations(observations?: string | null): MembreSpeculationEntry[] {
   if (!observations) return []
-  const match = observations.match(/\[SPEC_PARCELLES:([\s\S]*?)\]/)
-  if (!match) return []
-  try {
-    const list = JSON.parse(match[1])
-    return Array.isArray(list) ? list : []
-  } catch {
-    return []
+
+  // 1. Décodage base64 (prioritaire, 100% insensible aux caractères spéciaux et crochets)
+  const mB64 = observations.match(/\[SPEC_PARCELLES_B64:([A-Za-z0-9+/=]+)\]/)
+  if (mB64) {
+    try {
+      const json = typeof Buffer !== 'undefined'
+        ? Buffer.from(mB64[1], 'base64').toString('utf8')
+        : decodeURIComponent(escape(atob(mB64[1])))
+      const list = JSON.parse(json)
+      if (Array.isArray(list)) return list
+    } catch {
+      // continuer vers repli
+    }
   }
+
+  // 2. Décodage tag JSON brut [SPEC_PARCELLES:[...]] (compatible avec données existantes)
+  const startIdx = observations.indexOf('[SPEC_PARCELLES:')
+  if (startIdx !== -1) {
+    const after = observations.slice(startIdx + '[SPEC_PARCELLES:'.length)
+    const lastBracket = after.lastIndexOf(']')
+    if (lastBracket !== -1) {
+      try {
+        const json = after.slice(0, lastBracket)
+        const list = JSON.parse(json)
+        if (Array.isArray(list)) return list
+      } catch {
+        // continuer
+      }
+    }
+  }
+
+  return []
 }
 
 export function encoderParcellesObservations(
   observations: string | null | undefined,
   parcelles: MembreSpeculationEntry[]
 ): string {
-  const clean = (observations || '').replace(/\[SPEC_PARCELLES:[\s\S]*?\]/g, '').trim()
-  const tag = `[SPEC_PARCELLES:${JSON.stringify(parcelles)}]`
+  // Nettoyer tout ancien tag base64 ou brut
+  let clean = (observations || '')
+    .replace(/\[SPEC_PARCELLES_B64:[A-Za-z0-9+/=]+\]/g, '')
+    .replace(/\[SPEC_PARCELLES:[\s\S]*?\]\]/g, '')
+    .replace(/\[SPEC_PARCELLES:[\s\S]*?\]/g, '')
+    .trim()
+
+  // Supprimer d'éventuels crochets orphelins résiduels
+  clean = clean.replace(/^[\]\s]+/g, '').trim()
+
+  const jsonStr = JSON.stringify(parcelles)
+  const b64 = typeof Buffer !== 'undefined'
+    ? Buffer.from(jsonStr).toString('base64')
+    : btoa(unescape(encodeURIComponent(jsonStr)))
+
+  const tag = `[SPEC_PARCELLES_B64:${b64}]`
   return clean ? `${clean}\n${tag}` : tag
 }
 
