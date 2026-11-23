@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Wheat,
@@ -56,12 +57,18 @@ export default function SpeculationsClient({
   recapitulatifMembres,
   creditBancaireCampagne,
 }: Props) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'synthese' | 'membres' | 'config' | 'affectations'>('synthese')
   const [modalOpen, setModalOpen] = useState(false)
   const [editSpec, setEditSpec] = useState<CampagneSpeculation | null>(null)
   const [loading, setLoading] = useState(false)
   const [filterSpec, setFilterSpec] = useState<string>('all')
   const [searchMember, setSearchMember] = useState<string>('')
+  const [membresList, setMembresList] = useState<RecapitulatifMembre[]>(recapitulatifMembres)
+
+  useEffect(() => {
+    setMembresList(recapitulatifMembres)
+  }, [recapitulatifMembres])
 
   const isDefaultMode = speculations.length === 1 && speculations[0].id.startsWith('spec-default-')
 
@@ -71,8 +78,8 @@ export default function SpeculationsClient({
   const [tempCredit, setTempCredit] = useState<string>('')
 
   // Totaux globaux
-  const totalMembresUniques = recapitulatifMembres.length
-  const totalSuperficie = syntheses.reduce((acc, s) => acc + s.superficieTotale, 0)
+  const totalMembresUniques = membresList.length
+  const totalSuperficie = membresList.reduce((acc, m) => acc + m.superficieTotale, 0)
   const totalCreditAlloue = syntheses.reduce((acc, s) => acc + s.creditAlloue, 0)
   const totalFacturation = syntheses.reduce((acc, s) => acc + s.facturationTotale, 0)
   const totalPoidsCollecte = syntheses.reduce((acc, s) => acc + s.poidsCollecteKg, 0)
@@ -84,7 +91,7 @@ export default function SpeculationsClient({
     : 100
 
   // Filtrage membres
-  const filteredMembres = recapitulatifMembres.filter((m) => {
+  const filteredMembres = membresList.filter((m) => {
     const matchSearch =
       searchMember.trim() === '' ||
       `${m.nom} ${m.prenom} ${m.codeMembre} ${m.village || ''}`.toLowerCase().includes(searchMember.toLowerCase())
@@ -115,6 +122,7 @@ export default function SpeculationsClient({
     } else {
       setModalOpen(false)
       setEditSpec(null)
+      router.refresh()
     }
   }
 
@@ -125,6 +133,8 @@ export default function SpeculationsClient({
     setLoading(false)
     if (res?.error) {
       alert(res.error)
+    } else {
+      router.refresh()
     }
   }
 
@@ -137,7 +147,51 @@ export default function SpeculationsClient({
       return
     }
 
+    // Mise à jour optimiste immédiate dans l'interface
+    setMembresList((prev) =>
+      prev.map((m) => {
+        if (m.membreId !== membreId) return m
+
+        const updatedSpecs = m.speculations.map((s) => {
+          if (s.speculationId === specId) {
+            return {
+              ...s,
+              superficie: sup,
+              creditAttribue: isNaN(cred) ? 0 : cred,
+            }
+          }
+          return s
+        })
+
+        // Si la spéculation n'était pas encore présente dans m.speculations
+        if (!updatedSpecs.some((s) => s.speculationId === specId)) {
+          const specObj = speculations.find((s) => s.id === specId)
+          updatedSpecs.push({
+            speculationId: specId,
+            nom: specObj?.nom || '',
+            superficie: sup,
+            superficieValidee: sup,
+            creditAttribue: isNaN(cred) ? 0 : cred,
+            collecteQte: 0,
+            collecteVal: 0,
+          })
+        }
+
+        const totalHa = updatedSpecs.reduce((acc, s) => acc + (Number(s.superficie) || 0), 0)
+        const totalCred = updatedSpecs.reduce((acc, s) => acc + (Number(s.creditAttribue) || 0), 0)
+
+        return {
+          ...m,
+          speculations: updatedSpecs,
+          superficieTotale: Math.round(totalHa * 100) / 100,
+          creditTotal: totalCred,
+        }
+      })
+    )
+
+    setEditingCell(null)
     setLoading(true)
+
     const res = await affecterMembreSpeculation(
       campagneId,
       membreId,
@@ -145,11 +199,13 @@ export default function SpeculationsClient({
       sup,
       isNaN(cred) ? 0 : cred
     )
+
     setLoading(false)
     if (res?.error) {
-      alert(res.error)
+      alert(`Erreur : ${res.error}`)
+      setMembresList(recapitulatifMembres)
     } else {
-      setEditingCell(null)
+      router.refresh()
     }
   }
 
@@ -922,7 +978,7 @@ export default function SpeculationsClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border text-foreground">
-                  {recapitulatifMembres.map((m) => (
+                  {membresList.map((m) => (
                     <tr key={m.membreId} className="hover:bg-background/40 transition-colors">
                       <td className="py-3 px-4 font-bold text-foreground">
                         {m.nom} {m.prenom}

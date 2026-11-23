@@ -427,13 +427,11 @@ export async function affecterMembreSpeculation(
         const specList = await getSpeculationsCampagne(campagneId)
         if (specList.length > 0 && specList[0].id !== speculationId) {
           const supInitiale = Number(cm?.superficie || 0)
-          const supNouvelle = Number(superficie || 0)
-          const restant = Math.max(0, Math.round((supInitiale - supNouvelle) * 100) / 100)
           parcelles.push({
             campagne_id: campagneId,
             membre_id: membreId,
             speculation_id: specList[0].id,
-            superficie: restant,
+            superficie: supInitiale,
             credit_attribue: 0,
             casier: null,
           })
