@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/client'
 import { getSpeculationsCampagne } from '@/app/(dashboard)/campagnes/[id]/speculations/actions'
-import { extraireParcellesObservations } from '@/lib/speculations'
+import { extraireParcellesObservations, extraireTagSpeculation } from '@/lib/speculations'
 import { getCreditSpeculationId, getCreditSpeculationNom } from '@/lib/credits-types'
 
 // Formatage propre des montants sans espaces insécables qui posent problème à jsPDF
@@ -52,6 +52,7 @@ export function buildFactureWhatsAppText({
   credits = [],
   speculations = [],
   memberParcelles = [],
+  remboursementsParSpeculation = [],
 }: {
   facture: any
   gieName: string
@@ -60,6 +61,7 @@ export function buildFactureWhatsAppText({
   credits?: any[]
   speculations?: any[]
   memberParcelles?: any[]
+  remboursementsParSpeculation?: any[]
 }): string {
   if (facture?.type_document === 'prestation') {
     return buildPrestationWhatsAppText({
@@ -192,6 +194,54 @@ export function buildFactureWhatsAppText({
     recapConsolideBlock += `💳 *Crédits accordés :*\n${creditsLines.join('\n')}\n\n`
   }
 
+  // 4. Suivi des remboursements par spéculation d'abord
+  let specRembWhatsAppBlock = ''
+  const effectiveSpecRemb = (remboursementsParSpeculation && remboursementsParSpeculation.length > 0)
+    ? remboursementsParSpeculation
+    : (facture.remboursements_par_speculation && facture.remboursements_par_speculation.length > 0)
+      ? facture.remboursements_par_speculation
+      : (memberParcelles && memberParcelles.length > 0 && montantPaye > 0)
+        ? memberParcelles.map((p: any) => {
+            const ratio = totalMemberSuperficie > 0 ? Number(p.superficie) / totalMemberSuperficie : 1 / memberParcelles.length
+            const specDu = Math.round(totalDu * ratio)
+            const specPaye = Math.round(montantPaye * ratio)
+            const solde = specDu - specPaye
+            const taux = specDu > 0 ? Math.min(100, Math.round((specPaye / specDu) * 100)) : 100
+            return {
+              nom: p.nom,
+              superficie: Number(p.superficie || 0),
+              montant_du: specDu,
+              montant_rembourse: specPaye,
+              quantite_nature: 0,
+              valeur_nature: 0,
+              montant_numeraire: specPaye,
+              solde,
+              taux_recouvrement: taux,
+            }
+          })
+        : []
+
+  if (effectiveSpecRemb.length > 0) {
+    const rembLines = effectiveSpecRemb.map((sp: any) => {
+      const supStr = sp.superficie ? ` (${Number(sp.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha)` : ''
+      const detailParts: string[] = []
+      if (sp.quantite_nature > 0) {
+        detailParts.push(`Nature: ${Number(sp.quantite_nature).toLocaleString('fr-FR')} ${sp.unite_mesure || 'kg'} = ${formatFactureAmount(sp.valeur_nature)}${unitStr}`)
+      }
+      if (sp.montant_numeraire > 0) {
+        detailParts.push(`Numéraire: ${formatFactureAmount(sp.montant_numeraire)}${unitStr}`)
+      }
+      const detailStr = detailParts.length > 0 ? ` [${detailParts.join(', ')}]` : ''
+      const soldeStr = sp.solde > 0
+        ? `Reste : ${formatFactureAmount(sp.solde)}${unitStr}`
+        : sp.solde < 0
+        ? `Surplus : +${formatFactureAmount(Math.abs(sp.solde))}${unitStr}`
+        : `Soldé ✅`
+      return `▫️ *${sp.nom.toUpperCase()}*${supStr} :\n  • Dû : ${formatFactureAmount(sp.montant_du)}${unitStr}\n  • Réglé : ${formatFactureAmount(sp.montant_rembourse)}${unitStr}${detailStr}\n  • ${soldeStr} (Taux : ${sp.taux_recouvrement ?? 0}%)`
+    })
+    specRembWhatsAppBlock = `━━━━━━━━━━━━━━━━━━━\n🌾 *REMBOURSEMENTS PAR SPÉCULATION*\n━━━━━━━━━━━━━━━━━━━\n${rembLines.join('\n\n')}\n\n`
+  }
+
   let statutMsg = ''
   if (facture.statut === 'payee' || resteAPayer <= 0) {
     statutMsg = `✅ *STATUT : FACTURE SOLDÉE / PAYÉE*`
@@ -231,8 +281,8 @@ export function buildFactureWhatsAppText({
 ${village ? `📍 *Village :* ${village}\n` : ''}🌱 *Campagne :* ${nomCampagne}
 📅 *Date d'émission :* ${new Date().toLocaleDateString('fr-FR')}
 ${culturesBlock}
-${specDetailsBlock}${recapConsolideBlock}━━━━━━━━━━━━━━━━━━━
-📊 *SITUATION FINANCIÈRE*
+${specDetailsBlock}${recapConsolideBlock}${specRembWhatsAppBlock}━━━━━━━━━━━━━━━━━━━
+📊 *RÉCAPITULATIF CONSOLIDÉ DES REMBOURSEMENTS*
 ━━━━━━━━━━━━━━━━━━━
 • Fournitures & Crédits : ${formatFactureAmount(montantTotal)}${unitStr}
 ${montantInteret > 0 ? `• Intérêts de campagne : ${formatFactureAmount(montantInteret)}${unitStr}\n` : ''}• *TOTAL GÉNÉRAL DÛ :* ${formatFactureAmount(totalDu)}${unitStr}
@@ -288,6 +338,7 @@ export async function generateFacturePdf({
   let distributions: any[] = []
   let credits: any[] = []
   let speculations: any[] = []
+  let remboursementsList: any[] = []
   let memberParcelles: Array<{
     speculationId: string
     nom: string
@@ -306,7 +357,7 @@ export async function generateFacturePdf({
       if (mData) membreDetails = mData
     }
 
-    const [distRes, ciRes, cmRes, specList, memSpecsRes, creditsRes] = await Promise.all([
+    const [distRes, ciRes, cmRes, specList, memSpecsRes, creditsRes, rembRes] = await Promise.all([
       supabase
         .from('distribution_intrants')
         .select(`
@@ -338,6 +389,10 @@ export async function generateFacturePdf({
         .from('credits')
         .select('id, montant_demande, montant_accorde, but_credit, membre_id')
         .eq('campagne_id', campagneId),
+      supabase
+        .from('remboursements')
+        .select('*')
+        .eq('facture_id', facture.id),
     ])
 
     speculations = specList || []
@@ -372,6 +427,10 @@ export async function generateFacturePdf({
     // Crédits accordés au membre
     if (creditsRes?.data) {
       credits = creditsRes.data.filter((c: any) => !c.membre_id || c.membre_id === membreId)
+    }
+
+    if (rembRes?.data) {
+      remboursementsList = rembRes.data
     }
 
     // Récupération des parcelles du membre
@@ -512,6 +571,148 @@ export async function generateFacturePdf({
   const montantTotal = Number(facture.montant_total || 0)
   const totalDu = montantTotal + montantInteret
   const resteAPayer = totalDu - (facture.montant_paye || 0)
+
+  // 3. Suivi individuel des remboursements par spéculation d'abord
+  let rembParSpecList: any[] = facture.remboursements_par_speculation || []
+  if (rembParSpecList.length === 0 && memberParcelles.length > 0) {
+    const fRembList = remboursementsList
+    const specAccMap = new Map<string, {
+      speculation_id: string
+      nom: string
+      variete: string | null
+      superficie: number
+      casier: string | null
+      prix_collecte: number
+      produit_collecte: string | null
+      unite_mesure: string
+      ratio: number
+      montant_du: number
+      quantite_nature: number
+      valeur_nature: number
+      montant_numeraire: number
+    }>()
+
+    let allocatedDuSum = 0
+    memberParcelles.forEach((p: any, idx: number) => {
+      const specObj = speculations.find((s: any) => s.id === p.speculationId)
+      const nom = specObj?.nom || p.nom || 'Culture'
+      const ratio = totalMemberSuperficie > 0 ? (Number(p.superficie) || 0) / totalMemberSuperficie : 1 / memberParcelles.length
+      let mDu = Math.round(totalDu * ratio)
+      if (idx === memberParcelles.length - 1) {
+        mDu = Math.max(0, totalDu - allocatedDuSum)
+      } else {
+        allocatedDuSum += mDu
+      }
+
+      specAccMap.set(p.speculationId, {
+        speculation_id: p.speculationId,
+        nom,
+        variete: p.variete || null,
+        superficie: Number(p.superficie || 0),
+        casier: p.casier || null,
+        prix_collecte: Number(p.prixCollecte || 0),
+        produit_collecte: p.produitCollecte || nom,
+        unite_mesure: p.uniteMesure || 'kg',
+        ratio,
+        montant_du: mDu,
+        quantite_nature: 0,
+        valeur_nature: 0,
+        montant_numeraire: 0,
+      })
+    })
+
+    let nonVentileMonetaire = 0
+    let sumDetails = 0
+
+    for (const r of fRembList) {
+      const montant = Number(r.montant_fcfa || 0)
+      sumDetails += montant
+      const qte = r.quantite_nature != null ? Number(r.quantite_nature) : null
+      const rawMode = String(r.type_remboursement || '').toLowerCase()
+      const isNature = rawMode === 'nature'
+
+      const specTag = extraireTagSpeculation(r.produit_nature)
+      let matchedSpecId: string | null = null
+
+      if ((r as any).speculation_id && specAccMap.has((r as any).speculation_id)) {
+        matchedSpecId = (r as any).speculation_id
+      } else if (specTag) {
+        for (const [sId, sData] of specAccMap.entries()) {
+          if (sData.nom.toLowerCase() === specTag.toLowerCase()) {
+            matchedSpecId = sId
+            break
+          }
+        }
+      } else if (isNature && r.produit_nature) {
+        const prodLower = String(r.produit_nature).toLowerCase()
+        for (const [sId, sData] of specAccMap.entries()) {
+          if (sData.produit_collecte && prodLower.includes(sData.produit_collecte.toLowerCase())) {
+            matchedSpecId = sId
+            break
+          }
+          if (prodLower.includes(sData.nom.toLowerCase())) {
+            matchedSpecId = sId
+            break
+          }
+        }
+      }
+
+      if (isNature) {
+        const targetId = matchedSpecId || memberParcelles[0]?.speculationId
+        if (targetId && specAccMap.has(targetId)) {
+          const acc = specAccMap.get(targetId)!
+          const qVal = qte || 0
+          const val = montant > 0 ? montant : qVal * acc.prix_collecte
+          acc.quantite_nature += qVal
+          acc.valeur_nature += val
+        }
+      } else {
+        if (matchedSpecId && specAccMap.has(matchedSpecId)) {
+          specAccMap.get(matchedSpecId)!.montant_numeraire += montant
+        } else {
+          nonVentileMonetaire += montant
+        }
+      }
+    }
+
+    const mPaye = Number(facture.montant_paye || 0)
+    if (mPaye > sumDetails) {
+      nonVentileMonetaire += (mPaye - sumDetails)
+    }
+
+    for (const acc of specAccMap.values()) {
+      const partNonVentilee = Math.round(nonVentileMonetaire * acc.ratio)
+      acc.montant_numeraire += partNonVentilee
+    }
+
+    rembParSpecList = Array.from(specAccMap.values()).map((acc) => {
+      const montantRembourse = acc.valeur_nature + acc.montant_numeraire
+      const solde = acc.montant_du - montantRembourse
+      const taux = acc.montant_du > 0 ? Math.min(100, Math.round((montantRembourse / acc.montant_du) * 100)) : 100
+      let statutSolde: 'solde' | 'excedent' | 'reliquat' = 'solde'
+      if (solde > 0) statutSolde = 'reliquat'
+      else if (solde < 0) statutSolde = 'excedent'
+
+      return {
+        speculation_id: acc.speculation_id,
+        nom: acc.nom,
+        variete: acc.variete,
+        superficie: acc.superficie,
+        casier: acc.casier,
+        prix_collecte: acc.prix_collecte,
+        produit_collecte: acc.produit_collecte,
+        unite_mesure: acc.unite_mesure,
+        montant_du: acc.montant_du,
+        quantite_nature: acc.quantite_nature,
+        valeur_nature: acc.valeur_nature,
+        montant_numeraire: acc.montant_numeraire,
+        montant_rembourse: montantRembourse,
+        taux_recouvrement: taux,
+        solde,
+        statut_solde: statutSolde,
+      }
+    })
+  }
 
   // En-tête officiel
   doc.setFont('helvetica', 'bold')
@@ -744,7 +945,81 @@ export async function generateFacturePdf({
     },
   })
 
-  // Récapitulatif financier & Solde
+  // TABLEAU 3 : SUIVI DES RÈGLEMENTS & SOLDES PAR SPÉCULATION (D'ABORD)
+  if (rembParSpecList && rembParSpecList.length > 0) {
+    let rembStartY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : 170
+    if (rembStartY + 45 > pageHeight) {
+      doc.addPage()
+      rembStartY = 15
+    }
+
+    const rembTableBody: any[] = []
+    rembParSpecList.forEach((sp: any) => {
+      const appNature = sp.quantite_nature > 0
+        ? `${formatFactureAmount(sp.valeur_nature)} (${Number(sp.quantite_nature).toLocaleString('fr-FR')} ${sp.unite_mesure || 'kg'})`
+        : '-'
+      const soldeStr = sp.solde > 0
+        ? `${formatFactureAmount(sp.solde)}`
+        : sp.solde < 0
+        ? `+${formatFactureAmount(Math.abs(sp.solde))}`
+        : 'Soldé'
+
+      rembTableBody.push([
+        sp.variete ? `${sp.nom} (${sp.variete})` : sp.nom,
+        Number(sp.superficie || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
+        formatFactureAmount(sp.montant_du),
+        appNature,
+        formatFactureAmount(sp.montant_numeraire),
+        formatFactureAmount(sp.montant_rembourse),
+        `${sp.taux_recouvrement ?? 0}%`,
+        soldeStr,
+      ])
+    })
+
+    autoTable(doc, {
+      startY: rembStartY,
+      head: [[
+        "SUIVI DES RÈGLEMENTS PAR SPÉCULATION",
+        "Ha",
+        "Montant Dû",
+        "Apport Nature",
+        "Numéraire",
+        "Total Réglé",
+        "Taux",
+        unite ? `Solde (${unite.trim()})` : "Solde",
+      ]],
+      body: rembTableBody,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [30, 90, 70],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'left',
+        cellPadding: 2,
+        fontSize: 8,
+      },
+      styles: {
+        font: 'helvetica',
+        fontSize: 7.5,
+        cellPadding: 2,
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 'auto', fontStyle: 'bold' },
+        1: { halign: 'center', cellWidth: 14 },
+        2: { halign: 'right', cellWidth: 24 },
+        3: { halign: 'right', cellWidth: 32 },
+        4: { halign: 'right', cellWidth: 22 },
+        5: { halign: 'right', cellWidth: 25, fontStyle: 'bold' },
+        6: { halign: 'center', cellWidth: 14 },
+        7: { halign: 'right', cellWidth: 26, fontStyle: 'bold' },
+      },
+      alternateRowStyles: {
+        fillColor: [249, 250, 251],
+      },
+    })
+  }
+
+  // Récapitulatif financier consolidé & Solde
   const tableEndY = (doc as any).lastAutoTable?.finalY || 140
   const footerBlockHeight = 85
   let finalY = tableEndY
@@ -780,7 +1055,7 @@ export async function generateFacturePdf({
 
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(45, 106, 79)
-  doc.text('Montant Déjà Réglé :', totalBoxX, ty)
+  doc.text('Total Déjà Réglé :', totalBoxX, ty)
   doc.text(`-${formatFactureAmount(facture.montant_paye || 0)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
   ty += 3.5
 
@@ -872,6 +1147,7 @@ export async function generateFacturePdf({
     memberParcelles,
     intrantsConsolides,
     specBreakdowns,
+    remboursementsParSpeculation: rembParSpecList,
     totalDu,
     resteAPayer,
     quantiteNature: memberParcelles.length > 0 && memberParcelles[0].prixCollecte > 0 && resteAPayer > 0

@@ -103,6 +103,7 @@ export default function FactureWhatsAppModal({
         credits: result.credits,
         speculations: (result as any).speculations,
         memberParcelles: (result as any).memberParcelles,
+        remboursementsParSpeculation: (result as any).remboursementsParSpeculation,
       })
       setMessage(generatedText)
     } catch (err) {

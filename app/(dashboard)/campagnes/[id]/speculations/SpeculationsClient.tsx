@@ -964,6 +964,26 @@ export default function SpeculationsClient({
                               montant_total: m.facturationTotale,
                               montant_paye: m.remboursementsTotaux,
                               statut: m.soldeNet <= 0 ? 'payee' : (m.remboursementsTotaux > 0 ? 'partiellement_paye' : 'impayee'),
+                              remboursements_par_speculation: m.speculations.filter(s => s.superficie > 0).map(s => {
+                                const specObj = speculations.find(sp => sp.id === s.speculationId)
+                                return {
+                                  speculation_id: s.speculationId,
+                                  nom: s.nom,
+                                  variete: specObj?.variete || null,
+                                  superficie: s.superficie,
+                                  prix_collecte: specObj?.prix_collecte || 0,
+                                  produit_collecte: specObj?.produit_collecte || s.nom,
+                                  unite_mesure: specObj?.unite_mesure || 'kg',
+                                  montant_du: s.facturation,
+                                  quantite_nature: s.collecteQte,
+                                  valeur_nature: s.collecteVal,
+                                  montant_numeraire: Math.max(0, s.remboursements - s.collecteVal),
+                                  montant_rembourse: s.remboursements,
+                                  taux_recouvrement: s.facturation > 0 ? Math.min(100, Math.round((s.remboursements / s.facturation) * 100)) : 100,
+                                  solde: s.solde,
+                                  statut_solde: s.solde > 0 ? 'reliquat' : s.solde < 0 ? 'excedent' : 'solde',
+                                }
+                              }),
                             }}
                             dict={{}}
                             gieName={gieName}
@@ -990,6 +1010,26 @@ export default function SpeculationsClient({
                               montant_total: m.facturationTotale,
                               montant_paye: m.remboursementsTotaux,
                               statut: m.soldeNet <= 0 ? 'payee' : (m.remboursementsTotaux > 0 ? 'partiellement_paye' : 'impayee'),
+                              remboursements_par_speculation: m.speculations.filter(s => s.superficie > 0).map(s => {
+                                const specObj = speculations.find(sp => sp.id === s.speculationId)
+                                return {
+                                  speculation_id: s.speculationId,
+                                  nom: s.nom,
+                                  variete: specObj?.variete || null,
+                                  superficie: s.superficie,
+                                  prix_collecte: specObj?.prix_collecte || 0,
+                                  produit_collecte: specObj?.produit_collecte || s.nom,
+                                  unite_mesure: specObj?.unite_mesure || 'kg',
+                                  montant_du: s.facturation,
+                                  quantite_nature: s.collecteQte,
+                                  valeur_nature: s.collecteVal,
+                                  montant_numeraire: Math.max(0, s.remboursements - s.collecteVal),
+                                  montant_rembourse: s.remboursements,
+                                  taux_recouvrement: s.facturation > 0 ? Math.min(100, Math.round((s.remboursements / s.facturation) * 100)) : 100,
+                                  solde: s.solde,
+                                  statut_solde: s.solde > 0 ? 'reliquat' : s.solde < 0 ? 'excedent' : 'solde',
+                                }
+                              }),
                             }}
                             gieName={gieName}
                           />

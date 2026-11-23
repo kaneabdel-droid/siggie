@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, Wallet, Scale, CreditCard, FileCheck, MoreHorizontal, Coins, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Search, Wallet, Scale, CreditCard, FileCheck, MoreHorizontal, Coins, CheckCircle2, AlertCircle, Wheat, Layers } from 'lucide-react'
 import PaiementModal from './PaiementModal'
 import { useUnite } from '@/components/DeviseProvider'
 import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
@@ -225,9 +225,132 @@ export default function RemboursementsClient({
                 }
 
                 const paiementsDetails: any[] = selectedFacture.paiements_details || []
+                const specRembList: any[] = selectedFacture.remboursements_par_speculation || []
 
                 return (
                   <>
+                    {/* 🌾 SECTION 1 : SUIVI DES REMBOURSEMENTS PAR SPÉCULATION (D'ABORD) */}
+                    {specRembList.length > 0 && (
+                      <div className="mb-6 p-4 rounded-xl bg-surface border border-surface-border shadow-xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-surface-border">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                              <Wheat className="h-4 w-4" />
+                            </span>
+                            <div>
+                              <h4 className="font-bold text-foreground text-sm flex items-center gap-2">
+                                <span>Suivi des Remboursements par Spéculation</span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                  {specRembList.length} culture{specRembList.length > 1 ? 's' : ''}
+                                </span>
+                              </h4>
+                              <p className="text-[11px] text-foreground-muted">
+                                Détail par culture des dotations dues, versements en récolte (nature), espèces et soldes individuels
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-surface-border text-xs">
+                            <thead className="bg-background/60 font-semibold text-foreground-muted uppercase tracking-wider text-[10px]">
+                              <tr>
+                                <th className="py-2.5 px-3 text-left">Culture</th>
+                                <th className="py-2.5 px-3 text-right">Surface (ha)</th>
+                                <th className="py-2.5 px-3 text-right">Montant Dû</th>
+                                <th className="py-2.5 px-3 text-right">Apport Nature (Récolte)</th>
+                                <th className="py-2.5 px-3 text-right">Numéraire (Espèces/Bons)</th>
+                                <th className="py-2.5 px-3 text-right">Total Remboursé</th>
+                                <th className="py-2.5 px-2 text-center">Taux</th>
+                                <th className="py-2.5 px-3 text-right">Solde Culture</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-surface-border text-foreground">
+                              {specRembList.map((sp: any, idx: number) => {
+                                return (
+                                  <tr key={sp.speculation_id || idx} className="hover:bg-background/50 transition-colors">
+                                    <td className="py-2.5 px-3">
+                                      <div className="font-bold text-foreground">{sp.nom}</div>
+                                      {sp.variete && <div className="text-[10px] text-foreground-muted">Var. {sp.variete}</div>}
+                                      {sp.casier && <div className="text-[10px] text-foreground-muted font-mono">Casier: {sp.casier}</div>}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right font-black text-primary">
+                                      {Number(sp.superficie || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ha
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right font-semibold">
+                                      {Number(sp.montant_du || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right">
+                                      {sp.quantite_nature > 0 ? (
+                                        <div>
+                                          <div className="font-bold text-emerald-600 dark:text-emerald-400">
+                                            {Number(sp.valeur_nature).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
+                                          </div>
+                                          <div className="text-[10px] text-foreground-muted">
+                                            ({Number(sp.quantite_nature).toLocaleString()} {sp.unite_mesure || 'kg'})
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <span className="text-foreground-muted">—</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right">
+                                      {sp.montant_numeraire > 0 ? (
+                                        <span className="font-semibold text-foreground">
+                                          {Number(sp.montant_numeraire).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
+                                        </span>
+                                      ) : (
+                                        <span className="text-foreground-muted">—</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right font-bold text-success">
+                                      {Number(sp.montant_rembourse || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
+                                    </td>
+                                    <td className="py-2.5 px-2 text-center">
+                                      <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                        sp.taux_recouvrement >= 100
+                                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                          : sp.taux_recouvrement >= 50
+                                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                          : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                                      }`}>
+                                        {sp.taux_recouvrement}%
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right font-bold">
+                                      {sp.solde > 0 ? (
+                                        <span className="text-danger">
+                                          {Number(sp.solde).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
+                                        </span>
+                                      ) : sp.solde < 0 ? (
+                                        <span className="text-primary">
+                                          +{Number(Math.abs(sp.solde)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
+                                        </span>
+                                      ) : (
+                                        <span className="text-success flex items-center justify-end gap-1">
+                                          <CheckCircle2 className="w-3.5 h-3.5" /> Soldé
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 📦 SECTION 2 : RÉCAPITULATIF CONSOLIDÉ DES REMBOURSEMENTS */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="p-1 rounded-md bg-foreground/5 text-foreground-muted">
+                        <Layers className="h-4 w-4" />
+                      </span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-foreground-muted">
+                        Récapitulatif Consolidé des Remboursements {specRembList.length > 0 ? '(Toutes Spéculations Confondues)' : ''}
+                      </h4>
+                    </div>
+
                     {/* 3 Cartes KPI Principales : Montant Dû | Montant Remboursé | Reste à Payer */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                       {/* 1. Montant Dû */}
