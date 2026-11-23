@@ -103,6 +103,77 @@ export default function SpeculationsClient({
     return matchSearch && matchSpec
   })
 
+  const isFiltered = filterSpec !== 'all'
+  const selectedSpecObj = isFiltered ? speculations.find((s) => s.id === filterSpec) : null
+
+  // Calcul des données affichées pour chaque membre en isolant la culture sélectionnée
+  const membresAffiches = filteredMembres.map((m) => {
+    const specDetail = isFiltered
+      ? m.speculations.find((s) => s.speculationId === filterSpec)
+      : null
+
+    const rowSpecs = isFiltered
+      ? specDetail && specDetail.superficie > 0
+        ? [specDetail]
+        : []
+      : m.speculations.filter((s) => s.superficie > 0)
+
+    const rowSurface = isFiltered
+      ? (specDetail ? specDetail.superficie : 0)
+      : m.superficieTotale
+
+    const rowCredit = isFiltered
+      ? (specDetail ? specDetail.creditAttribue : 0)
+      : m.creditTotal
+
+    // Facturation au prorata de la superficie de cette spéculation pour ce membre
+    const ratio = m.superficieTotale > 0 ? rowSurface / m.superficieTotale : 0
+    const rowFacturation = isFiltered
+      ? Math.round(m.facturationTotale * ratio)
+      : m.facturationTotale
+
+    // Collecte spécifique à la culture
+    const rowCollecteQte = isFiltered
+      ? (specDetail ? specDetail.collecteQte : 0)
+      : m.collecteQteTotale
+
+    const rowCollecteVal = isFiltered
+      ? (specDetail ? specDetail.collecteVal : 0)
+      : m.collecteValeurTotale
+
+    // Remboursements : collecte en nature de cette culture + quote-part espèces
+    const cashRembGlobal = Math.max(0, m.remboursementsTotaux - m.collecteValeurTotale)
+    const rowRemboursements = isFiltered
+      ? rowCollecteVal + Math.round(cashRembGlobal * ratio)
+      : m.remboursementsTotaux
+
+    const rowSoldeNet = rowFacturation - rowRemboursements
+    let rowStatutSolde: 'solde' | 'excedent' | 'reliquat' = 'solde'
+    if (rowSoldeNet > 0) rowStatutSolde = 'reliquat'
+    else if (rowSoldeNet < 0) rowStatutSolde = 'excedent'
+
+    return {
+      ...m,
+      rowSpecs,
+      rowSurface,
+      rowCredit,
+      rowFacturation,
+      rowCollecteQte,
+      rowCollecteVal,
+      rowRemboursements,
+      rowSoldeNet,
+      rowStatutSolde,
+    }
+  })
+
+  const totalFilteredSurface = membresAffiches.reduce((acc, m) => acc + m.rowSurface, 0)
+  const totalFilteredCredit = membresAffiches.reduce((acc, m) => acc + m.rowCredit, 0)
+  const totalFilteredFacturation = membresAffiches.reduce((acc, m) => acc + m.rowFacturation, 0)
+  const totalFilteredCollecteQte = membresAffiches.reduce((acc, m) => acc + m.rowCollecteQte, 0)
+  const totalFilteredCollecteVal = membresAffiches.reduce((acc, m) => acc + m.rowCollecteVal, 0)
+  const totalFilteredRemboursements = membresAffiches.reduce((acc, m) => acc + m.rowRemboursements, 0)
+  const totalFilteredSolde = totalFilteredFacturation - totalFilteredRemboursements
+
   // Gestion formulaire Spéculation (Ajout / Modif)
   async function handleSpeculationSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -714,18 +785,36 @@ export default function SpeculationsClient({
 
           {/* Grand Tableau Récapitulatif par Membre */}
           <div className="rounded-2xl border border-surface-border bg-surface overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-surface-border flex items-center justify-between bg-surface/50">
+            <div className="p-4 border-b border-surface-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface/50">
               <div>
-                <h3 className="font-heading font-bold text-sm text-foreground">
-                  État Récapitulatif Individuel par Membre — Campagne {campagneNom}
+                <h3 className="font-heading font-bold text-sm text-foreground flex items-center gap-2 flex-wrap">
+                  <span>État Récapitulatif Individuel par Membre — Campagne {campagneNom}</span>
+                  {selectedSpecObj && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                      Culture : {selectedSpecObj.nom}
+                    </span>
+                  )}
                 </h3>
-                <p className="text-[11px] text-foreground-muted">
-                  Ventilation complète des superficies, crédits, facturations, collectes et remboursements par producteur.
+                <p className="text-[11px] text-foreground-muted mt-0.5">
+                  {isFiltered
+                    ? `Affichage exclusif des données de la culture "${selectedSpecObj?.nom}" (surface, facturation, récolte et solde au prorata de cette culture).`
+                    : 'Ventilation consolidée des superficies, crédits, facturations, collectes et remboursements par producteur.'}
                 </p>
               </div>
-              <span className="text-xs font-bold text-foreground">
-                {filteredMembres.length} membres affichés
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-foreground">
+                  {membresAffiches.length} membres
+                </span>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-border bg-background hover:bg-surface text-foreground text-xs font-semibold shadow-xs transition print:hidden"
+                  title="Imprimer cet état récapitulatif"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimer</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -735,10 +824,14 @@ export default function SpeculationsClient({
                     <th className="py-3 px-3 text-left">Code</th>
                     <th className="py-3 px-4 text-left">Membre / Producteur</th>
                     <th className="py-3 px-4 text-left">Village</th>
-                    <th className="py-3 px-4 text-left">Détail Spéculations (ha)</th>
-                    <th className="py-3 px-3 text-right">Surface Totale</th>
+                    <th className="py-3 px-4 text-left">
+                      {isFiltered ? `Culture (${selectedSpecObj?.nom})` : 'Détail Spéculations (ha)'}
+                    </th>
+                    <th className="py-3 px-3 text-right">
+                      {isFiltered ? `Surface ${selectedSpecObj?.nom}` : 'Surface Totale'}
+                    </th>
                     <th className="py-3 px-3 text-right">Crédit Affecté</th>
-                    <th className="py-3 px-3 text-right">Facturation Totale</th>
+                    <th className="py-3 px-3 text-right">Facturation</th>
                     <th className="py-3 px-4 text-right">Collecte Récolte</th>
                     <th className="py-3 px-3 text-right">Remboursements</th>
                     <th className="py-3 px-3 text-right">Solde Net</th>
@@ -746,7 +839,7 @@ export default function SpeculationsClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border text-foreground">
-                  {filteredMembres.map((m) => (
+                  {membresAffiches.map((m) => (
                     <tr key={m.membreId} className="hover:bg-background/50 transition-colors">
                       <td className="py-3 px-3 font-mono font-bold text-foreground-muted text-[11px]">
                         {m.codeMembre || '—'}
@@ -764,42 +857,40 @@ export default function SpeculationsClient({
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex flex-wrap gap-1.5">
-                          {m.speculations
-                            .filter((s) => s.superficie > 0)
-                            .map((s) => (
-                              <span
-                                key={s.speculationId}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-surface-border text-[11px] font-medium"
-                              >
-                                <span className="font-bold text-foreground">{s.nom} :</span>
-                                <span className="text-primary font-semibold">{s.superficie} ha</span>
-                                {s.collecteQte > 0 && (
-                                  <span className="text-emerald-600 font-bold text-[10px]">
-                                    ({s.collecteQte.toLocaleString('fr-FR')} kg)
-                                  </span>
-                                )}
-                              </span>
-                            ))}
-                          {m.speculations.every((s) => s.superficie === 0) && (
+                          {m.rowSpecs.map((s) => (
+                            <span
+                              key={s.speculationId}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-surface-border text-[11px] font-medium"
+                            >
+                              <span className="font-bold text-foreground">{s.nom} :</span>
+                              <span className="text-primary font-semibold">{s.superficie} ha</span>
+                              {s.collecteQte > 0 && (
+                                <span className="text-emerald-600 font-bold text-[10px]">
+                                  ({s.collecteQte.toLocaleString('fr-FR')} kg)
+                                </span>
+                              )}
+                            </span>
+                          ))}
+                          {m.rowSpecs.length === 0 && (
                             <span className="text-foreground-muted italic text-[11px]">Non affecté</span>
                           )}
                         </div>
                       </td>
                       <td className="py-3 px-3 text-right font-black text-primary">
-                        {m.superficieTotale.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha
+                        {m.rowSurface.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha
                       </td>
                       <td className="py-3 px-3 text-right text-foreground-muted">
-                        {m.creditTotal > 0 ? `${m.creditTotal.toLocaleString('fr-FR')} ${unite}` : '—'}
+                        {m.rowCredit > 0 ? `${m.rowCredit.toLocaleString('fr-FR')} ${unite}` : '—'}
                       </td>
                       <td className="py-3 px-3 text-right font-semibold">
-                        {m.facturationTotale.toLocaleString('fr-FR')} {unite}
+                        {m.rowFacturation.toLocaleString('fr-FR')} {unite}
                       </td>
                       <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                        {m.collecteQteTotale > 0 ? (
+                        {m.rowCollecteQte > 0 ? (
                           <>
-                            <span>{m.collecteQteTotale.toLocaleString('fr-FR')} kg</span>
+                            <span>{m.rowCollecteQte.toLocaleString('fr-FR')} kg</span>
                             <span className="block text-[10px] text-foreground-muted font-normal">
-                              {m.collecteValeurTotale.toLocaleString('fr-FR')} {unite}
+                              {m.rowCollecteVal.toLocaleString('fr-FR')} {unite}
                             </span>
                           </>
                         ) : (
@@ -807,33 +898,33 @@ export default function SpeculationsClient({
                         )}
                       </td>
                       <td className="py-3 px-3 text-right font-bold text-foreground">
-                        {m.remboursementsTotaux.toLocaleString('fr-FR')} {unite}
+                        {m.rowRemboursements.toLocaleString('fr-FR')} {unite}
                       </td>
                       <td className="py-3 px-3 text-right font-black">
-                        {m.soldeNet > 0 ? (
+                        {m.rowSoldeNet > 0 ? (
                           <span className="text-rose-600 dark:text-rose-400">
-                            +{m.soldeNet.toLocaleString('fr-FR')} {unite}
+                            +{m.rowSoldeNet.toLocaleString('fr-FR')} {unite}
                           </span>
-                        ) : m.soldeNet < 0 ? (
+                        ) : m.rowSoldeNet < 0 ? (
                           <span className="text-emerald-600 dark:text-emerald-400">
-                            {m.soldeNet.toLocaleString('fr-FR')} {unite}
+                            {m.rowSoldeNet.toLocaleString('fr-FR')} {unite}
                           </span>
                         ) : (
                           <span className="text-emerald-600 font-semibold">0 {unite}</span>
                         )}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        {m.statutSolde === 'solde' && (
+                        {m.rowStatutSolde === 'solde' && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
                             <CheckCircle2 className="w-3 h-3" /> Soldé
                           </span>
                         )}
-                        {m.statutSolde === 'reliquat' && (
+                        {m.rowStatutSolde === 'reliquat' && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold text-[10px]">
                             <AlertCircle className="w-3 h-3" /> Reste dû
                           </span>
                         )}
-                        {m.statutSolde === 'excedent' && (
+                        {m.rowStatutSolde === 'excedent' && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold text-[10px]">
                             Excédent
                           </span>
@@ -842,6 +933,60 @@ export default function SpeculationsClient({
                     </tr>
                   ))}
                 </tbody>
+                <tfoot className="bg-background/80 font-bold border-t-2 border-surface-border text-foreground">
+                  <tr>
+                    <td className="py-3 px-3 uppercase text-[10px]" colSpan={3}>
+                      Total {isFiltered ? `(${selectedSpecObj?.nom})` : 'Campagne'} ({membresAffiches.length} membres)
+                    </td>
+                    <td className="py-3 px-4 text-xs font-semibold text-foreground-muted">
+                      {isFiltered ? selectedSpecObj?.nom : `${speculations.length} spéculations`}
+                    </td>
+                    <td className="py-3 px-3 text-right text-primary font-black">
+                      {totalFilteredSurface.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha
+                    </td>
+                    <td className="py-3 px-3 text-right text-foreground-muted">
+                      {totalFilteredCredit > 0 ? `${totalFilteredCredit.toLocaleString('fr-FR')} ${unite}` : '—'}
+                    </td>
+                    <td className="py-3 px-3 text-right font-semibold">
+                      {totalFilteredFacturation.toLocaleString('fr-FR')} {unite}
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                      {totalFilteredCollecteQte > 0 ? (
+                        <>
+                          <span>{totalFilteredCollecteQte.toLocaleString('fr-FR')} kg</span>
+                          <span className="block text-[10px] text-foreground-muted font-normal">
+                            {totalFilteredCollecteVal.toLocaleString('fr-FR')} {unite}
+                          </span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-right font-bold text-foreground">
+                      {totalFilteredRemboursements.toLocaleString('fr-FR')} {unite}
+                    </td>
+                    <td className="py-3 px-3 text-right font-black">
+                      {totalFilteredSolde > 0 ? (
+                        <span className="text-rose-600 dark:text-rose-400">
+                          +{totalFilteredSolde.toLocaleString('fr-FR')} {unite}
+                        </span>
+                      ) : totalFilteredSolde < 0 ? (
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {totalFilteredSolde.toLocaleString('fr-FR')} {unite}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-600 font-semibold">0 {unite}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-black text-[10px]">
+                        {totalFilteredFacturation > 0
+                          ? Math.min(100, Math.round((totalFilteredRemboursements / totalFilteredFacturation) * 100))
+                          : 100}%
+                      </span>
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
