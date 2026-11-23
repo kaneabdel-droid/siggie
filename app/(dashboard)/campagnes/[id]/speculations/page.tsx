@@ -97,6 +97,7 @@ export default async function CampagneSpeculationsPage({
       <SpeculationsClient
         campagneId={id}
         campagneNom={data.campagne.nom}
+        gieName={tenant?.gieName || 'Mon GIE'}
         unite={unite}
         speculations={data.speculations}
         syntheses={data.syntheses}

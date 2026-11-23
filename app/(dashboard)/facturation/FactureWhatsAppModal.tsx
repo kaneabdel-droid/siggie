@@ -101,6 +101,8 @@ export default function FactureWhatsAppModal({
         unite,
         distributions: result.distributions,
         credits: result.credits,
+        speculations: (result as any).speculations,
+        memberParcelles: (result as any).memberParcelles,
       })
       setMessage(generatedText)
     } catch (err) {

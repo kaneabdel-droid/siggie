@@ -1,4 +1,7 @@
 import { createClient } from '@/utils/supabase/client'
+import { getSpeculationsCampagne } from '@/app/(dashboard)/campagnes/[id]/speculations/actions'
+import { extraireParcellesObservations } from '@/lib/speculations'
+import { getCreditSpeculationId, getCreditSpeculationNom } from '@/lib/credits-types'
 
 // Formatage propre des montants sans espaces insécables qui posent problème à jsPDF
 export const formatFactureAmount = (amount: number | undefined | null) => {
@@ -39,6 +42,7 @@ export function formatWhatsAppPhone(phone: string | null | undefined): {
 
 /**
  * Génère le texte formaté pour WhatsApp avec émojis et mise en page adaptée.
+ * Inclut le détail par spéculation et le récapitulatif consolidé par intrant.
  */
 export function buildFactureWhatsAppText({
   facture,
@@ -46,12 +50,16 @@ export function buildFactureWhatsAppText({
   unite = 'FCFA',
   distributions = [],
   credits = [],
+  speculations = [],
+  memberParcelles = [],
 }: {
   facture: any
   gieName: string
   unite?: string
   distributions?: any[]
   credits?: any[]
+  speculations?: any[]
+  memberParcelles?: any[]
 }): string {
   if (facture?.type_document === 'prestation') {
     return buildPrestationWhatsAppText({
@@ -80,26 +88,80 @@ export function buildFactureWhatsAppText({
   const montantPaye = Number(facture.montant_paye || 0)
   const resteAPayer = totalDu - montantPaye
 
-  const prixCollecte = Number(facture.campagne?.prix_collecte || 0)
-  const produitCollecte = facture.campagne?.produit_collecte || 'produit'
-  const quantiteNature = prixCollecte > 0 && resteAPayer > 0
-    ? `${(resteAPayer / prixCollecte).toFixed(1)} kg de ${produitCollecte}`
-    : null
-
   const unitStr = unite ? ` ${unite.trim()}` : ' FCFA'
 
-  // Détail des intrants
+  // 1. Bloc Cultures & Parcelles exploitées
+  let culturesBlock = ''
+  const totalMemberSuperficie = (memberParcelles || []).reduce((sum: number, p: any) => sum + (Number(p.superficie) || 0), 0)
+  if (memberParcelles && memberParcelles.length > 0) {
+    const lines = memberParcelles.map((p: any) => {
+      const casier = p.casier ? ` (Casier : ${p.casier})` : ''
+      const varStr = p.variete ? ` [Var. ${p.variete}]` : ''
+      return `• *${p.nom}*${varStr} : ${Number(p.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${casier}`
+    })
+    culturesBlock = `\n🌾 *CULTURES EXPLOITÉES :*\n${lines.join('\n')}\n👉 *Superficie totale exploitée : ${totalMemberSuperficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha*\n`
+  }
+
+  // 2. Ventilation des intrants et crédits par spéculation
+  let specDetailsBlock = ''
+  if (memberParcelles && memberParcelles.length > 0 && (distributions.length > 0 || credits.length > 0)) {
+    const specSections: string[] = []
+    memberParcelles.forEach((p: any) => {
+      const ratio = totalMemberSuperficie > 0 ? Number(p.superficie) / totalMemberSuperficie : 1 / memberParcelles.length
+      const pItems: string[] = []
+      let pTotal = 0
+
+      distributions.forEach((d: any) => {
+        const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
+        if (!intrant?.nom) return
+        const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
+        const qteTotal = Number(d.quantite || 0)
+
+        if (d.speculation_id && d.speculation_id === p.speculationId) {
+          const itTotal = qteTotal * prix
+          pTotal += itTotal
+          pItems.push(`  • ${intrant.nom} (x${qteTotal}) : ${formatFactureAmount(itTotal)}${unitStr}`)
+        } else if (!d.speculation_id) {
+          const qAlloc = Math.round(qteTotal * ratio * 100) / 100
+          if (qAlloc > 0) {
+            const itTotal = Math.round(qAlloc * prix)
+            pTotal += itTotal
+            pItems.push(`  • ${intrant.nom} (x${qAlloc}) : ${formatFactureAmount(itTotal)}${unitStr}`)
+          }
+        }
+      })
+
+      credits.forEach((c: any) => {
+        const sId = getCreditSpeculationId(c)
+        const sNom = getCreditSpeculationNom(c)
+        if ((sId && sId === p.speculationId) || (sNom && sNom.toLowerCase() === p.nom.toLowerCase())) {
+          const m = Number(c.montant_demande || c.montant_accorde || 0)
+          pTotal += m
+          pItems.push(`  • Crédit ${c.but_credit || ''} : ${formatFactureAmount(m)}${unitStr}`)
+        }
+      })
+
+      if (pItems.length > 0) {
+        specSections.push(
+          `▫️ *${p.nom.toUpperCase()} (${Number(p.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha) :*\n${pItems.join('\n')}\n  _Sous-total ${p.nom} : ${formatFactureAmount(pTotal)}${unitStr}_`
+        )
+      }
+    })
+
+    if (specSections.length > 0) {
+      specDetailsBlock = `━━━━━━━━━━━━━━━━━━━\n🌾 *DÉTAIL PAR SPÉCULATION*\n━━━━━━━━━━━━━━━━━━━\n${specSections.join('\n\n')}\n\n`
+    }
+  }
+
+  // 3. Regroupement consolidé par intrant (Toutes spéculations confondues)
   const intrantsLines: string[] = []
   if (distributions && distributions.length > 0) {
     const grouped = new Map<string, { nom: string; qte: number; prix: number }>()
-    distributions.forEach((d) => {
+    distributions.forEach((d: any) => {
       const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
       if (intrant?.nom) {
         const key = `${intrant.nom}_${intrant.type_intrant || ''}`
-        // Priorité absolue au prix facturé de campagne (prix_facturation) plutôt qu'au prix d'achat
-        const prix = Number(
-          d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0)
-        )
+        const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
         if (!grouped.has(key)) {
           grouped.set(key, { nom: intrant.nom, qte: 0, prix })
         }
@@ -108,30 +170,26 @@ export function buildFactureWhatsAppText({
     })
     grouped.forEach((item) => {
       const totalItem = item.qte * item.prix
-      intrantsLines.push(`• ${item.nom} (x${item.qte}) : ${formatFactureAmount(totalItem)}${unitStr}`)
+      intrantsLines.push(`• ${item.nom} (x${item.qte.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}) : ${formatFactureAmount(totalItem)}${unitStr}`)
     })
   }
 
-  // Crédits
+  // Crédits généraux
   const creditsLines: string[] = []
   if (credits && credits.length > 0) {
-    credits.forEach((c) => {
+    credits.forEach((c: any) => {
       const but = c.but_credit || 'Crédit de campagne'
-      const m = Number(c.montant_demande || 0)
+      const m = Number(c.montant_demande || c.montant_accorde || 0)
       creditsLines.push(`• ${but} : ${formatFactureAmount(m)}${unitStr}`)
     })
   }
 
-  let detailsBlock = ''
-  if (intrantsLines.length > 0 || creditsLines.length > 0) {
-    const sections: string[] = []
-    if (intrantsLines.length > 0) {
-      sections.push(`📦 *Intrants fournis :*\n${intrantsLines.join('\n')}`)
-    }
-    if (creditsLines.length > 0) {
-      sections.push(`💳 *Crédits accordés :*\n${creditsLines.join('\n')}`)
-    }
-    detailsBlock = `${sections.join('\n\n')}\n\n`
+  let recapConsolideBlock = ''
+  if (intrantsLines.length > 0) {
+    recapConsolideBlock = `━━━━━━━━━━━━━━━━━━━\n📦 *RÉCAPITULATIF CONSOLIDÉ PAR INTRANT*\n_(Toutes spéculations confondues)_\n━━━━━━━━━━━━━━━━━━━\n${intrantsLines.join('\n')}\n\n`
+  }
+  if (creditsLines.length > 0) {
+    recapConsolideBlock += `💳 *Crédits accordés :*\n${creditsLines.join('\n')}\n\n`
   }
 
   let statutMsg = ''
@@ -146,9 +204,23 @@ export function buildFactureWhatsAppText({
     statutMsg = `⚠️ *STATUT : EN ATTENTE DE RÈGLEMENT*\n👉 *RESTE À PAYER : ${formatFactureAmount(resteAPayer)}${unitStr}*`
   }
 
+  // Modalités de remboursement en nature par culture
   let natureBlock = ''
-  if (quantiteNature && resteAPayer > 0) {
-    natureBlock = `\n⚖️ *Règlement en nature possible :*\n• Équivalent : *${quantiteNature}*\n  (sur la base de ${formatFactureAmount(prixCollecte)}${unitStr}/kg)\n`
+  if (resteAPayer > 0 && memberParcelles && memberParcelles.length > 0) {
+    const natLines: string[] = []
+    memberParcelles.forEach((p: any) => {
+      if (p.prixCollecte > 0) {
+        const qKg = (resteAPayer / p.prixCollecte).toFixed(1)
+        natLines.push(`• Équivalent *${p.produitCollecte || p.nom}* : *${qKg} kg* (à ${formatFactureAmount(p.prixCollecte)}${unitStr}/kg)`)
+      }
+    })
+    if (natLines.length > 0) {
+      natureBlock = `\n⚖️ *Règlement en nature possible :*\n${natLines.join('\n')}\n`
+    }
+  } else if (resteAPayer > 0 && Number(facture.campagne?.prix_collecte || 0) > 0) {
+    const pColl = Number(facture.campagne.prix_collecte)
+    const qKg = (resteAPayer / pColl).toFixed(1)
+    natureBlock = `\n⚖️ *Règlement en nature possible :*\n• Équivalent *${facture.campagne.produit_collecte || 'produit'}* : *${qKg} kg* (à ${formatFactureAmount(pColl)}${unitStr}/kg)\n`
   }
 
   return (
@@ -158,12 +230,12 @@ export function buildFactureWhatsAppText({
 👤 *Membre :* ${nomMembre}${codeMembre ? ` (${codeMembre})` : ''}
 ${village ? `📍 *Village :* ${village}\n` : ''}🌱 *Campagne :* ${nomCampagne}
 📅 *Date d'émission :* ${new Date().toLocaleDateString('fr-FR')}
-
+${culturesBlock}
+${specDetailsBlock}${recapConsolideBlock}━━━━━━━━━━━━━━━━━━━
+📊 *SITUATION FINANCIÈRE*
 ━━━━━━━━━━━━━━━━━━━
-📊 *DÉTAIL FINANCIER*
-━━━━━━━━━━━━━━━━━━━
-${detailsBlock}• Fournitures & Crédits : ${formatFactureAmount(montantTotal)}${unitStr}
-${montantInteret > 0 ? `• Intérêts de campagne : ${formatFactureAmount(montantInteret)}${unitStr}\n` : ''}• *TOTAL DÛ :* ${formatFactureAmount(totalDu)}${unitStr}
+• Fournitures & Crédits : ${formatFactureAmount(montantTotal)}${unitStr}
+${montantInteret > 0 ? `• Intérêts de campagne : ${formatFactureAmount(montantInteret)}${unitStr}\n` : ''}• *TOTAL GÉNÉRAL DÛ :* ${formatFactureAmount(totalDu)}${unitStr}
 • Montant déjà réglé : ${formatFactureAmount(montantPaye)}${unitStr}
 ───────────────────
 ${statutMsg}
@@ -176,6 +248,7 @@ _Message généré par SIGGIE_`
 
 /**
  * Génère le document jsPDF et retourne les données associées (blob, file, etc.).
+ * Imprimé individuel enrichi : détail par spéculation et récapitulatif consolidé par intrant.
  */
 export async function generateFacturePdf({
   facture,
@@ -214,6 +287,17 @@ export async function generateFacturePdf({
 
   let distributions: any[] = []
   let credits: any[] = []
+  let speculations: any[] = []
+  let memberParcelles: Array<{
+    speculationId: string
+    nom: string
+    variete?: string | null
+    superficie: number
+    casier?: string | null
+    prixCollecte: number
+    produitCollecte?: string | null
+    uniteMesure: string
+  }> = []
   let membreDetails: any = facture.membre
 
   if (membreId && campagneId) {
@@ -222,13 +306,15 @@ export async function generateFacturePdf({
       if (mData) membreDetails = mData
     }
 
-    const [distRes, ciRes] = await Promise.all([
+    const [distRes, ciRes, cmRes, specList, memSpecsRes, creditsRes] = await Promise.all([
       supabase
         .from('distribution_intrants')
         .select(`
+          id,
           intrant_id,
           quantite,
-          intrants (nom, type_intrant, prix_unitaire)
+          speculation_id,
+          intrants (id, nom, type_intrant, prix_unitaire)
         `)
         .eq('membre_id', membreId)
         .eq('campagne_id', campagneId),
@@ -236,7 +322,25 @@ export async function generateFacturePdf({
         .from('campagne_intrants')
         .select('intrant_id, prix_facturation')
         .eq('campagne_id', campagneId),
+      supabase
+        .from('campagne_membres')
+        .select('superficie, superficie_validee, casier, observations')
+        .eq('campagne_id', campagneId)
+        .eq('membre_id', membreId)
+        .maybeSingle(),
+      getSpeculationsCampagne(campagneId).catch(() => []),
+      supabase
+        .from('campagne_membre_speculations')
+        .select('*')
+        .eq('campagne_id', campagneId)
+        .eq('membre_id', membreId),
+      supabase
+        .from('credits')
+        .select('id, montant_demande, montant_accorde, but_credit, membre_id')
+        .eq('campagne_id', campagneId),
     ])
+
+    speculations = specList || []
 
     const prixFacturationMap = new Map<string, number>()
     if (ciRes?.data) {
@@ -264,7 +368,139 @@ export async function generateFacturePdf({
         }
       })
     }
+
+    // Crédits accordés au membre
+    if (creditsRes?.data) {
+      credits = creditsRes.data.filter((c: any) => !c.membre_id || c.membre_id === membreId)
+    }
+
+    // Récupération des parcelles du membre
+    const rawParcelles = (memSpecsRes?.data && memSpecsRes.data.length > 0)
+      ? memSpecsRes.data
+      : extraireParcellesObservations(cmRes?.data?.observations)
+
+    if (rawParcelles && rawParcelles.length > 0) {
+      memberParcelles = rawParcelles
+        .filter((p: any) => Number(p.superficie || 0) > 0)
+        .map((p: any) => {
+          const sObj = speculations.find((s: any) => s.id === p.speculation_id)
+          return {
+            speculationId: p.speculation_id,
+            nom: sObj?.nom || 'Culture',
+            variete: sObj?.variete || null,
+            superficie: Number(p.superficie || 0),
+            casier: p.casier || cmRes?.data?.casier || null,
+            prixCollecte: Number(sObj?.prix_collecte || 0),
+            produitCollecte: sObj?.produit_collecte || sObj?.nom || null,
+            uniteMesure: sObj?.unite_mesure || 'kg',
+          }
+        })
+    }
+
+    // Repli si pas de découpage détaillé
+    const supGlobale = Number(cmRes?.data?.superficie || 0)
+    if (memberParcelles.length === 0 && (supGlobale > 0 || speculations.length > 0)) {
+      const defSpec = speculations[0]
+      memberParcelles = [
+        {
+          speculationId: defSpec?.id || 'default',
+          nom: defSpec?.nom || facture.campagne?.nom || 'Culture principale',
+          variete: defSpec?.variete || null,
+          superficie: supGlobale > 0 ? supGlobale : 1,
+          casier: cmRes?.data?.casier || null,
+          prixCollecte: Number(defSpec?.prix_collecte || facture.campagne?.prix_collecte || 0),
+          produitCollecte: defSpec?.produit_collecte || facture.campagne?.produit_collecte || 'Produit',
+          uniteMesure: defSpec?.unite_mesure || 'kg',
+        },
+      ]
+    }
   }
+
+  const totalMemberSuperficie = memberParcelles.reduce((sum, p) => sum + (Number(p.superficie) || 0), 0)
+
+  // 1. Regroupement consolidé par intrant (Toutes Spéculations Confondues)
+  const groupedConsolide = new Map<string, {
+    nom: string
+    type_intrant: string
+    quantite_totale: number
+    prix_unitaire: number
+    total: number
+  }>()
+
+  distributions.forEach((d: any) => {
+    const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
+    if (intrant?.nom) {
+      const key = `${intrant.nom}___${intrant.type_intrant || ''}`
+      const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
+      const qte = Number(d.quantite || 0)
+      if (!groupedConsolide.has(key)) {
+        groupedConsolide.set(key, {
+          nom: intrant.nom,
+          type_intrant: intrant.type_intrant || 'Intrant',
+          quantite_totale: 0,
+          prix_unitaire: prix,
+          total: 0,
+        })
+      }
+      const item = groupedConsolide.get(key)!
+      item.quantite_totale += qte
+      item.total += qte * prix
+    }
+  })
+  const intrantsConsolides = Array.from(groupedConsolide.values())
+
+  // 2. Ventilation des intrants et crédits par spéculation
+  const specBreakdowns = memberParcelles.map((p) => {
+    const ratio = totalMemberSuperficie > 0 ? Number(p.superficie) / totalMemberSuperficie : 1 / memberParcelles.length
+    const items: Array<{ nom: string; type_intrant: string; quantite: number; prix: number; total: number }> = []
+
+    distributions.forEach((d: any) => {
+      const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
+      if (!intrant?.nom) return
+      const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
+      const qteTotal = Number(d.quantite || 0)
+
+      if (d.speculation_id && d.speculation_id === p.speculationId) {
+        items.push({
+          nom: intrant.nom,
+          type_intrant: intrant.type_intrant || 'Intrant',
+          quantite: qteTotal,
+          prix,
+          total: qteTotal * prix,
+        })
+      } else if (!d.speculation_id) {
+        // Ventilation au prorata de la superficie
+        const qAlloc = Math.round(qteTotal * ratio * 100) / 100
+        if (qAlloc > 0) {
+          items.push({
+            nom: intrant.nom,
+            type_intrant: intrant.type_intrant || 'Intrant',
+            quantite: qAlloc,
+            prix,
+            total: Math.round(qAlloc * prix),
+          })
+        }
+      }
+    })
+
+    const creditsSpec = credits.filter((c: any) => {
+      const sId = getCreditSpeculationId(c)
+      const sNom = getCreditSpeculationNom(c)
+      if (sId && sId === p.speculationId) return true
+      if (sNom && sNom.toLowerCase() === p.nom.toLowerCase()) return true
+      return false
+    })
+
+    const itemsTotal = items.reduce((sum, it) => sum + it.total, 0)
+    const creditsTotal = creditsSpec.reduce((sum, c) => sum + Number(c.montant_demande || c.montant_accorde || 0), 0)
+
+    return {
+      ...p,
+      items,
+      credits: creditsSpec,
+      subTotal: itemsTotal + creditsTotal,
+    }
+  })
 
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -273,138 +509,243 @@ export async function generateFacturePdf({
   const nomMembre = `${membreDetails?.prenom || ''} ${membreDetails?.nom || ''}`.trim() || 'Membre'
   const nomCampagne = facture.campagne?.nom || 'N/A'
   const montantInteret = Number(facture.montant_interet || 0)
-  const totalDu = Number(facture.montant_total || 0) + montantInteret
+  const montantTotal = Number(facture.montant_total || 0)
+  const totalDu = montantTotal + montantInteret
   const resteAPayer = totalDu - (facture.montant_paye || 0)
-  const prixCollecte = facture.campagne?.prix_collecte || 0
-  const quantiteNature = prixCollecte > 0 ? (resteAPayer / prixCollecte).toFixed(2) + ' kg' : 'N/A'
 
-  // Header
+  // En-tête officiel
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(18)
-  doc.setTextColor(45, 106, 79) // Vert
+  doc.setFontSize(17)
+  doc.setTextColor(45, 106, 79)
   const gieLines = doc.splitTextToSize(gieName, 115)
-  doc.text(gieLines, 14, gieLines.length > 1 ? 23 : 28)
+  doc.text(gieLines, 14, gieLines.length > 1 ? 22 : 27)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(22)
-  doc.setTextColor(180, 180, 180)
-  doc.text('FACTURE', pageWidth - 14, 28, { align: 'right' })
+  doc.setFontSize(20)
+  doc.setTextColor(160, 160, 160)
+  doc.text('FACTURE', pageWidth - 14, 27, { align: 'right' })
 
   // Ligne de séparation
   doc.setDrawColor(45, 106, 79)
   doc.setLineWidth(0.5)
-  doc.line(14, 40, pageWidth - 14, 40)
+  doc.line(14, 38, pageWidth - 14, 38)
 
-  // Infos Facture
+  // Informations Facture
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
+  doc.setFontSize(8.5)
   doc.setTextColor(0, 0, 0)
-  doc.text('Informations de la facture :', 14, 47)
+  doc.text('Informations de la facture :', 14, 45)
 
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(80, 80, 80)
-  doc.text(`N° Facture : ${(facture.id || '').substring(0, 8).toUpperCase()}`, 14, 52)
-  doc.text(`Date d'émission : ${new Date().toLocaleDateString('fr-FR')}`, 14, 57)
-  doc.text(`Campagne : ${nomCampagne}`, 14, 62)
+  doc.setTextColor(70, 70, 70)
+  doc.text(`N° Facture : ${(facture.id || '').substring(0, 8).toUpperCase()}`, 14, 50)
+  doc.text(`Date d'émission : ${new Date().toLocaleDateString('fr-FR')}`, 14, 54.5)
+  doc.text(`Campagne : ${nomCampagne}`, 14, 59)
 
   // Facturé à (Client)
   doc.setFillColor(245, 247, 250)
-  doc.roundedRect(pageWidth - 90, 44, 76, 21, 2, 2, 'F')
+  doc.roundedRect(pageWidth - 92, 42, 78, 22, 1.5, 1.5, 'F')
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
+  doc.setFontSize(8.5)
   doc.setTextColor(0, 0, 0)
-  doc.text('Facturé à :', pageWidth - 85, 49)
+  doc.text('Facturé à :', pageWidth - 87, 47)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
+  doc.setFontSize(9.5)
   doc.setTextColor(45, 106, 79)
-  doc.text(nomMembre.toUpperCase(), pageWidth - 85, 54.5)
+  doc.text(nomMembre.toUpperCase(), pageWidth - 87, 52)
 
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(80, 80, 80)
-  doc.text(`Village : ${membreDetails?.village || 'Non renseigné'}`, pageWidth - 85, 59.5)
+  doc.setFontSize(8.5)
+  doc.setTextColor(70, 70, 70)
+  doc.text(`Village : ${membreDetails?.village || 'Non renseigné'}`, pageWidth - 87, 56.5)
   if (membreDetails?.telephone) {
-    doc.text(`Tél : ${membreDetails.telephone}`, pageWidth - 85, 63.5)
+    doc.text(`Tél : ${membreDetails.telephone}`, pageWidth - 87, 60.5)
   }
 
-  // Tableau des détails
-  const tableBody: any[] = []
+  // Bandeau récapitulatif des spéculations du membre
+  let nextY = 68
+  if (memberParcelles.length > 0) {
+    doc.setFillColor(240, 248, 244)
+    doc.setDrawColor(180, 220, 200)
+    doc.setLineWidth(0.4)
+    doc.roundedRect(14, 67, pageWidth - 28, 14, 1.5, 1.5, 'FD')
 
-  if (distributions && distributions.length > 0) {
-    const groupedDist = new Map()
-    distributions.forEach((d) => {
-      const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
-      if (intrant && intrant.nom) {
-        const key = `${intrant.nom}_${intrant.type_intrant || ''}`
-        const prixFact = Number(
-          d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0)
-        )
-        if (!groupedDist.has(key)) {
-          groupedDist.set(key, { ...intrant, quantite_total: 0, prix_facturation: prixFact })
-        }
-        groupedDist.get(key).quantite_total += Number(d.quantite || 0)
-      }
-    })
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(35, 90, 65)
+    doc.text('🌾 SPÉCULATIONS & PARCELLES EXPLOITÉES PAR LE PRODUCTEUR :', 18, 72.5)
 
-    groupedDist.forEach((item) => {
-      const prix = item.prix_facturation ?? item.prix_unitaire ?? 0
-      const total = item.quantite_total * prix
-      tableBody.push([
-        `${item.nom} (${item.type_intrant || 'Intrant'})`,
-        item.quantite_total.toString(),
-        formatFactureAmount(prix),
-        formatFactureAmount(total),
-      ])
-    })
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    doc.setTextColor(40, 60, 50)
+    const specStr = memberParcelles
+      .map((p) => `${p.nom}${p.variete ? ` (${p.variete})` : ''} : ${p.superficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${p.casier ? ` [Casier ${p.casier}]` : ''}`)
+      .join('   •   ')
+    const totalSurfStr = `Total : ${totalMemberSuperficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha`
+    doc.text(`• ${specStr}    |    ${totalSurfStr}`, 18, 77.5)
+
+    nextY = 85
   }
 
-  if (credits && credits.length > 0) {
-    credits.forEach((c) => {
-      tableBody.push([
-        `Crédit : ${c.but_credit || 'Non spécifié'}`,
+  // TABLEAU 1 : DÉTAIL DES DOTATIONS PAR SPÉCULATION
+  const specTableBody: any[] = []
+  specBreakdowns.forEach((sd) => {
+    specTableBody.push([
+      {
+        content: `🌾 Culture : ${sd.nom.toUpperCase()} (${sd.superficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${sd.casier ? ` - Casier: ${sd.casier}` : ''})`,
+        colSpan: 4,
+        styles: {
+          fillColor: [232, 245, 238],
+          textColor: [35, 90, 65],
+          fontStyle: 'bold',
+          fontSize: 8.5,
+        },
+      },
+    ])
+    if (sd.items.length === 0 && sd.credits.length === 0) {
+      specTableBody.push([
+        '    Dotation générale proportionnelle',
         '-',
         '-',
-        formatFactureAmount(Number(c.montant_demande)),
+        '-',
+      ])
+    }
+    sd.items.forEach((item) => {
+      specTableBody.push([
+        `    • ${item.nom} (${item.type_intrant})`,
+        item.quantite.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
+        formatFactureAmount(item.prix),
+        formatFactureAmount(item.total),
       ])
     })
-  }
-
-  if (tableBody.length === 0) {
-    tableBody.push(['Fournitures & Crédits de la campagne', '-', '-', formatFactureAmount(facture.montant_total)])
-  }
+    sd.credits.forEach((c: any) => {
+      specTableBody.push([
+        `    • Crédit : ${c.but_credit || 'Crédit campagne'}`,
+        '-',
+        '-',
+        formatFactureAmount(Number(c.montant_demande || c.montant_accorde || 0)),
+      ])
+    })
+    specTableBody.push([
+      {
+        content: `Sous-total ${sd.nom} :`,
+        colSpan: 3,
+        styles: { halign: 'right', fontStyle: 'bold', textColor: [35, 90, 65], fontSize: 8 },
+      },
+      {
+        content: `${formatFactureAmount(sd.subTotal)}`,
+        styles: { fontStyle: 'bold', halign: 'right', textColor: [35, 90, 65], fontSize: 8 },
+      },
+    ])
+  })
 
   autoTable(doc, {
-    startY: 70,
-    head: [["Désignation de l'article", 'Qté', 'Prix Unitaire', unite ? `Montant (${unite.trim()})` : 'Montant']],
-    body: tableBody,
+    startY: nextY,
+    head: [["Détail des Dotations par Spéculation", "Qté", "Prix Unit.", unite ? `Montant (${unite.trim()})` : "Montant"]],
+    body: specTableBody,
     theme: 'striped',
     headStyles: {
       fillColor: [45, 106, 79],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       halign: 'left',
-      cellPadding: 2.5,
+      cellPadding: 2,
+      fontSize: 8.5,
     },
     styles: {
       font: 'helvetica',
-      fontSize: 10,
-      cellPadding: 3,
+      fontSize: 8,
+      cellPadding: 2,
     },
     columnStyles: {
       0: { halign: 'left', cellWidth: 'auto' },
       1: { halign: 'center', cellWidth: 20 },
-      2: { halign: 'right', cellWidth: 35 },
-      3: { halign: 'right', cellWidth: 40, fontStyle: 'bold' },
+      2: { halign: 'right', cellWidth: 30 },
+      3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
     },
     alternateRowStyles: {
       fillColor: [249, 250, 251],
     },
   })
 
-  // Récapitulatif financier
-  const tableEndY = (doc as any).lastAutoTable?.finalY || 130
+  // TABLEAU 2 : RÉCAPITULATIF CONSOLIDÉ PAR INTRANT (Toutes Spéculations Confondues)
+  let recapStartY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : 120
+  if (recapStartY + 45 > pageHeight) {
+    doc.addPage()
+    recapStartY = 15
+  }
+
+  const recapTableBody: any[] = []
+  intrantsConsolides.forEach((it) => {
+    recapTableBody.push([
+      it.nom,
+      it.type_intrant,
+      it.quantite_totale.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
+      formatFactureAmount(it.prix_unitaire),
+      formatFactureAmount(it.total),
+    ])
+  })
+
+  credits.forEach((c: any) => {
+    recapTableBody.push([
+      `Crédit : ${c.but_credit || 'Crédit de campagne'}`,
+      'Financement',
+      '-',
+      '-',
+      formatFactureAmount(Number(c.montant_demande || c.montant_accorde || 0)),
+    ])
+  })
+
+  if (recapTableBody.length === 0) {
+    recapTableBody.push([
+      'Fournitures & Crédits de campagne',
+      'Global',
+      '-',
+      '-',
+      formatFactureAmount(facture.montant_total),
+    ])
+  }
+
+  autoTable(doc, {
+    startY: recapStartY,
+    head: [[
+      "RÉCAPITULATIF CONSOLIDÉ PAR INTRANT (Toutes Spéculations)",
+      "Catégorie",
+      "Qté Totale",
+      "Prix Facturé",
+      unite ? `Total (${unite.trim()})` : "Total",
+    ]],
+    body: recapTableBody,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [35, 75, 60],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'left',
+      cellPadding: 2,
+      fontSize: 8.5,
+    },
+    styles: {
+      font: 'helvetica',
+      fontSize: 8,
+      cellPadding: 2,
+    },
+    columnStyles: {
+      0: { halign: 'left', cellWidth: 'auto', fontStyle: 'bold' },
+      1: { halign: 'left', cellWidth: 26 },
+      2: { halign: 'center', cellWidth: 20 },
+      3: { halign: 'right', cellWidth: 26 },
+      4: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+    },
+    alternateRowStyles: {
+      fillColor: [249, 250, 251],
+    },
+  })
+
+  // Récapitulatif financier & Solde
+  const tableEndY = (doc as any).lastAutoTable?.finalY || 140
   const footerBlockHeight = 85
   let finalY = tableEndY
   if (finalY + footerBlockHeight > pageHeight) {
@@ -414,82 +755,105 @@ export async function generateFacturePdf({
 
   const totalBoxX = pageWidth - 85
   doc.setDrawColor(220, 220, 220)
-  doc.line(totalBoxX, finalY + 5, pageWidth - 14, finalY + 5)
+  doc.line(totalBoxX, finalY + 4, pageWidth - 14, finalY + 4)
 
-  let ty = finalY + 11
+  let ty = finalY + 9.5
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
+  doc.setFontSize(8.5)
   doc.setTextColor(80, 80, 80)
 
+  doc.text('Fournitures & Crédits :', totalBoxX, ty)
+  doc.text(`${formatFactureAmount(montantTotal)}`, pageWidth - 14, ty, { align: 'right' })
+  ty += 5
+
   if (montantInteret > 0) {
-    doc.text('Intérêt :', totalBoxX, ty)
+    doc.text('Intérêts de campagne :', totalBoxX, ty)
     doc.text(`${formatFactureAmount(montantInteret)}`, pageWidth - 14, ty, { align: 'right' })
-    ty += 6
+    ty += 5
   }
 
-  doc.text('Total Dû :', totalBoxX, ty)
-  doc.text(`${formatFactureAmount(totalDu)}`, pageWidth - 14, ty, { align: 'right' })
-  ty += 6
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(0, 0, 0)
+  doc.text('TOTAL GÉNÉRAL DÛ :', totalBoxX, ty)
+  doc.text(`${formatFactureAmount(totalDu)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
+  ty += 5
 
-  doc.text('Montant Payé :', totalBoxX, ty)
+  doc.setFont('helvetica', 'normal')
   doc.setTextColor(45, 106, 79)
-  doc.text(`-${formatFactureAmount(facture.montant_paye || 0)}`, pageWidth - 14, ty, { align: 'right' })
-  ty += 3
+  doc.text('Montant Déjà Réglé :', totalBoxX, ty)
+  doc.text(`-${formatFactureAmount(facture.montant_paye || 0)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
+  ty += 3.5
 
-  // Barre grasse pour le Reste à Payer / Surplus
+  // Ligne de solde
   doc.setDrawColor(45, 106, 79)
   doc.setLineWidth(0.5)
   doc.line(totalBoxX, ty, pageWidth - 14, ty)
-  ty += 7
+  ty += 6
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-
+  doc.setFontSize(9.5)
   if (resteAPayer < 0) {
     doc.setTextColor(45, 106, 79)
     doc.text('SURPLUS DE REMB. :', totalBoxX, ty)
-    doc.text(`${formatFactureAmount(Math.abs(resteAPayer))}${unite}`, pageWidth - 14, ty, { align: 'right' })
+    doc.text(`${formatFactureAmount(Math.abs(resteAPayer))} ${unite}`, pageWidth - 14, ty, { align: 'right' })
   } else {
     doc.setTextColor(220, 38, 38)
     doc.text('RESTE À PAYER :', totalBoxX, ty)
-    doc.text(`${formatFactureAmount(resteAPayer)}${unite}`, pageWidth - 14, ty, { align: 'right' })
+    doc.text(`${formatFactureAmount(resteAPayer)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
   }
 
-  // Modalités
+  // Modalités de remboursement à gauche
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
+  doc.setFontSize(8.5)
   doc.setTextColor(0, 0, 0)
-  doc.text('Modalités de remboursement :', 14, finalY + 11)
+  doc.text('Modalités de remboursement :', 14, finalY + 9.5)
 
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(100, 100, 100)
-  doc.text(`• Type de remboursement : Numéraire ou Nature`, 14, finalY + 17)
+  doc.setFontSize(8)
+  doc.setTextColor(90, 90, 90)
+  doc.text('• Modes acceptés : Espèces, Chèque bancaire, Bon de livraison, Nature', 14, finalY + 14.5)
 
-  if (prixCollecte > 0 && resteAPayer > 0) {
-    doc.text(`• Équivalent nature pour solder : ${quantiteNature}`, 14, finalY + 23)
-    doc.text(`  (Calculé sur la base de ${prixCollecte}${unite} / kg)`, 14, finalY + 28)
+  let my = finalY + 19.5
+  if (resteAPayer > 0 && memberParcelles.length > 0) {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(35, 90, 65)
+    doc.text('Équivalents en nature pour solder cette facture :', 14, my)
+    my += 4
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(90, 90, 90)
+
+    memberParcelles.forEach((p) => {
+      if (p.prixCollecte > 0) {
+        const qteKg = (resteAPayer / p.prixCollecte).toFixed(1)
+        doc.text(`  - ${p.produitCollecte || p.nom} : ${qteKg} kg (sur la base de ${p.prixCollecte} ${unite}/kg)`, 14, my)
+        my += 3.8
+      }
+    })
   }
 
   // Mentions
   doc.setFont('helvetica', 'italic')
-  doc.setFontSize(9)
-  doc.setTextColor(150, 150, 150)
-  doc.text('Merci de conserver cette facture précieusement.', 14, finalY + 42)
+  doc.setFontSize(7.5)
+  doc.setTextColor(140, 140, 140)
+  doc.text('Merci de conserver cette facture précieusement pour vos bilans.', 14, finalY + 44)
 
   // Signature Box
   doc.setDrawColor(200, 200, 200)
   doc.setLineDashPattern([2, 2], 0)
-  doc.rect(pageWidth - 70, finalY + 42, 56, 22)
+  doc.rect(pageWidth - 70, finalY + 44, 56, 22)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
-  doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 47)
+  doc.setTextColor(80, 80, 80)
+  doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 49)
 
-  // Footer
+  // Footer sur la page
   doc.setLineDashPattern([], 0)
   doc.setDrawColor(230, 230, 230)
-  doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15)
-  doc.text('Généré par SIGGIE - Système Intégré de Gestion pour GIE', pageWidth / 2, pageHeight - 10, { align: 'center' })
+  doc.line(14, pageHeight - 14, pageWidth - 14, pageHeight - 14)
+  doc.setFontSize(8)
+  doc.setTextColor(140, 140, 140)
+  doc.text('Généré par SIGGIE - Système Intégré de Gestion pour GIE', pageWidth / 2, pageHeight - 9, { align: 'center' })
 
   const safeNom = nomMembre.replace(/\s+/g, '_') || 'Facture'
   const filename = `Facture_${(facture.id || '').substring(0, 8)}_${safeNom}.pdf`
@@ -504,9 +868,15 @@ export async function generateFacturePdf({
     nomMembre,
     distributions,
     credits,
+    speculations,
+    memberParcelles,
+    intrantsConsolides,
+    specBreakdowns,
     totalDu,
     resteAPayer,
-    quantiteNature,
+    quantiteNature: memberParcelles.length > 0 && memberParcelles[0].prixCollecte > 0 && resteAPayer > 0
+      ? `${(resteAPayer / memberParcelles[0].prixCollecte).toFixed(1)} kg de ${memberParcelles[0].produitCollecte || memberParcelles[0].nom}`
+      : 'N/A',
   }
 }
 

@@ -37,10 +37,13 @@ import {
   affecterMembreSpeculation,
   supprimerAffectationMembreSpeculation,
 } from './actions'
+import DownloadPdfButton from '@/app/(dashboard)/facturation/DownloadPdfButton'
+import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
 
 type Props = {
   campagneId: string
   campagneNom: string
+  gieName?: string
   unite: string
   speculations: CampagneSpeculation[]
   syntheses: SyntheseSpeculation[]
@@ -51,6 +54,7 @@ type Props = {
 export default function SpeculationsClient({
   campagneId,
   campagneNom,
+  gieName = 'Mon GIE',
   unite,
   speculations,
   syntheses,
@@ -841,6 +845,7 @@ export default function SpeculationsClient({
                     <th className="py-3 px-3 text-right">Remboursements</th>
                     <th className="py-3 px-3 text-right">Solde Net</th>
                     <th className="py-3 px-3 text-center">Situation</th>
+                    <th className="py-3 px-3 text-right print:hidden">Facture / WhatsApp</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border text-foreground">
@@ -935,6 +940,61 @@ export default function SpeculationsClient({
                           </span>
                         )}
                       </td>
+                      <td className="py-3 px-3 text-right whitespace-nowrap print:hidden">
+                        <div className="flex items-center justify-end gap-1">
+                          <DownloadPdfButton
+                            facture={{
+                              id: `facture-${campagneId}-${m.membreId}`,
+                              membre_id: m.membreId,
+                              campagne_id: campagneId,
+                              membre: {
+                                id: m.membreId,
+                                nom: m.nom,
+                                prenom: m.prenom,
+                                code_membre: m.codeMembre,
+                                telephone: m.telephone,
+                                village: m.village,
+                              },
+                              campagne: {
+                                id: campagneId,
+                                nom: campagneNom,
+                                prix_collecte: selectedSpecObj?.prix_collecte || speculations[0]?.prix_collecte || 0,
+                                produit_collecte: selectedSpecObj?.produit_collecte || speculations[0]?.produit_collecte || 'Produit',
+                              },
+                              montant_total: m.facturationTotale,
+                              montant_paye: m.remboursementsTotaux,
+                              statut: m.soldeNet <= 0 ? 'payee' : (m.remboursementsTotaux > 0 ? 'partiellement_paye' : 'impayee'),
+                            }}
+                            dict={{}}
+                            gieName={gieName}
+                          />
+                          <FactureWhatsAppModal
+                            facture={{
+                              id: `facture-${campagneId}-${m.membreId}`,
+                              membre_id: m.membreId,
+                              campagne_id: campagneId,
+                              membre: {
+                                id: m.membreId,
+                                nom: m.nom,
+                                prenom: m.prenom,
+                                code_membre: m.codeMembre,
+                                telephone: m.telephone,
+                                village: m.village,
+                              },
+                              campagne: {
+                                id: campagneId,
+                                nom: campagneNom,
+                                prix_collecte: selectedSpecObj?.prix_collecte || speculations[0]?.prix_collecte || 0,
+                                produit_collecte: selectedSpecObj?.produit_collecte || speculations[0]?.produit_collecte || 'Produit',
+                              },
+                              montant_total: m.facturationTotale,
+                              montant_paye: m.remboursementsTotaux,
+                              statut: m.soldeNet <= 0 ? 'payee' : (m.remboursementsTotaux > 0 ? 'partiellement_paye' : 'impayee'),
+                            }}
+                            gieName={gieName}
+                          />
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -990,6 +1050,7 @@ export default function SpeculationsClient({
                           : 100}%
                       </span>
                     </td>
+                    <td className="py-3 px-3 print:hidden"></td>
                   </tr>
                 </tfoot>
               </table>
