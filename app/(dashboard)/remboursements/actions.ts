@@ -167,11 +167,11 @@ export async function getFacturesPourRemboursement() {
       try {
         const specs = await getSpeculationsCampagne(cId)
         specsByCampagne.set(cId, specs || [])
-        ;(specs || []).forEach((s) => {
-          if (!allSpeculationsList.some((ex) => ex.id === s.id)) {
-            allSpeculationsList.push(s)
-          }
-        })
+          ; (specs || []).forEach((s) => {
+            if (!allSpeculationsList.some((ex) => ex.id === s.id)) {
+              allSpeculationsList.push(s)
+            }
+          })
       } catch (err) {
         console.warn(`Erreur récupération spéculations campagne ${cId}:`, err)
         specsByCampagne.set(cId, [])

@@ -74,11 +74,11 @@ export async function getFactures() {
       try {
         const specs = await getSpeculationsCampagne(cId)
         specsByCampagne.set(cId, specs || [])
-        ;(specs || []).forEach((s) => {
-          if (!allSpeculationsList.some((ex) => ex.id === s.id)) {
-            allSpeculationsList.push(s)
-          }
-        })
+          ; (specs || []).forEach((s) => {
+            if (!allSpeculationsList.some((ex) => ex.id === s.id)) {
+              allSpeculationsList.push(s)
+            }
+          })
       } catch (err) {
         console.warn(`Erreur récupération spéculations campagne ${cId}:`, err)
         specsByCampagne.set(cId, [])
@@ -98,15 +98,15 @@ export async function getFactures() {
     parcellesByCampagneMembre.set(key, list)
   })
 
-  ;(campagneMembresRes.data || []).forEach((cm: any) => {
-    const key = `${cm.campagne_id}:${cm.membre_id}`
-    if (!parcellesByCampagneMembre.has(key) || parcellesByCampagneMembre.get(key)!.length === 0) {
-      const parcelles = extraireParcellesObservations(cm.observations)
-      if (parcelles && parcelles.length > 0) {
-        parcellesByCampagneMembre.set(key, parcelles)
+    ; (campagneMembresRes.data || []).forEach((cm: any) => {
+      const key = `${cm.campagne_id}:${cm.membre_id}`
+      if (!parcellesByCampagneMembre.has(key) || parcellesByCampagneMembre.get(key)!.length === 0) {
+        const parcelles = extraireParcellesObservations(cm.observations)
+        if (parcelles && parcelles.length > 0) {
+          parcellesByCampagneMembre.set(key, parcelles)
+        }
       }
-    }
-  })
+    })
 
   const paidByDocKey = new Map<string, number>()
   for (const pc of (paiementsClientsRes.data || []) as any[]) {

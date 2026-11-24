@@ -83,128 +83,63 @@ export function buildFactureWhatsAppText({
   const village = facture.membre?.village
   const nomCampagne = facture.campagne?.nom || 'N/A'
   const idCourt = (facture.id || '').substring(0, 8).toUpperCase()
+  const unitStr = unite ? ` ${unite.trim()}` : ' FCFA'
 
   const targetSpecId = facture.filterSpeculationId || (facture as any).filterSpecId || null
-
   let targetNom = ''
-  let effectiveMemberParcelles = memberParcelles || []
-  if (targetSpecId && effectiveMemberParcelles.length > 0) {
-    const matched = effectiveMemberParcelles.find((p: any) => p.speculationId === targetSpecId)
-    if (matched) {
-      effectiveMemberParcelles = [matched]
-      targetNom = matched.nom
+  let targetParcelle: any = null
+  const allMemberParcelles = memberParcelles || []
+  const totalAllSuperficie = allMemberParcelles.reduce((sum: number, p: any) => sum + (Number(p.superficie) || 0), 0)
+
+  if (targetSpecId) {
+    targetParcelle = allMemberParcelles.find((p: any) => p.speculationId === targetSpecId)
+    if (targetParcelle) {
+      targetNom = targetParcelle.nom
     } else {
       const sObj = (speculations || []).find((s: any) => s.id === targetSpecId)
       if (sObj) targetNom = sObj.nom
     }
   }
 
-  let montantInteret = Number(facture.montant_interet || 0)
-  let montantTotal = Number(facture.montant_total || 0)
-  let totalDu = montantTotal + montantInteret
-  let montantPaye = Number(facture.montant_paye || 0)
-  let resteAPayer = totalDu - montantPaye
+  const ratio = (targetSpecId && totalAllSuperficie > 0 && targetParcelle)
+    ? Number(targetParcelle.superficie || 0) / totalAllSuperficie
+    : 1
 
-  const unitStr = unite ? ` ${unite.trim()}` : ' FCFA'
+  // 1. Liste des intrants reçus (chaque intrant sur une ligne avec Qté, Prix et Montant)
+  const itemsLines: string[] = []
+  let totalFournitures = 0
 
-  // 1. Bloc Cultures & Parcelles exploitées
-  let culturesBlock = ''
-  const totalMemberSuperficie = effectiveMemberParcelles.reduce((sum: number, p: any) => sum + (Number(p.superficie) || 0), 0)
-  if (effectiveMemberParcelles && effectiveMemberParcelles.length > 0) {
-    const lines = effectiveMemberParcelles.map((p: any) => {
-      const casier = p.casier ? ` (Casier : ${p.casier})` : ''
-      const varStr = p.variete ? ` [Var. ${p.variete}]` : ''
-      return `• *${p.nom}*${varStr} : ${Number(p.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${casier}`
-    })
-    culturesBlock = targetSpecId
-      ? `\n🌾 *CULTURE SPÉCIFIQUE :*\n${lines.join('\n')}\n👉 *Superficie : ${totalMemberSuperficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha*\n`
-      : `\n🌾 *CULTURES EXPLOITÉES :*\n${lines.join('\n')}\n👉 *Superficie totale exploitée : ${totalMemberSuperficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha*\n`
-  }
-
-  // 2. Ventilation des intrants et crédits par spéculation
-  let specDetailsBlock = ''
-  if (effectiveMemberParcelles && effectiveMemberParcelles.length > 0 && (distributions.length > 0 || credits.length > 0)) {
-    const specSections: string[] = []
-    effectiveMemberParcelles.forEach((p: any) => {
-      const ratio = totalMemberSuperficie > 0 ? Number(p.superficie) / totalMemberSuperficie : 1 / effectiveMemberParcelles.length
-      const pItems: string[] = []
-      let pTotal = 0
-
-      distributions.forEach((d: any) => {
-        const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
-        if (!intrant?.nom) return
-        const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
-        const qteTotal = Number(d.quantite || 0)
-
-        if (d.speculation_id && d.speculation_id === p.speculationId) {
-          const itTotal = qteTotal * prix
-          pTotal += itTotal
-          pItems.push(`  • ${intrant.nom} (x${qteTotal}) : ${formatFactureAmount(itTotal)}${unitStr}`)
-        } else if (!d.speculation_id) {
-          const qAlloc = Math.round(qteTotal * ratio * 100) / 100
-          if (qAlloc > 0) {
-            const itTotal = Math.round(qAlloc * prix)
-            pTotal += itTotal
-            pItems.push(`  • ${intrant.nom} (x${qAlloc}) : ${formatFactureAmount(itTotal)}${unitStr}`)
-          }
-        }
-      })
-
-      credits.forEach((c: any) => {
-        const sId = getCreditSpeculationId(c)
-        const sNom = getCreditSpeculationNom(c)
-        if ((sId && sId === p.speculationId) || (sNom && sNom.toLowerCase() === p.nom.toLowerCase())) {
-          const m = Number(c.montant_demande || c.montant_accorde || 0)
-          pTotal += m
-          pItems.push(`  • Crédit ${c.but_credit || ''} : ${formatFactureAmount(m)}${unitStr}`)
-        }
-      })
-
-      if (pItems.length > 0) {
-        specSections.push(
-          `▫️ *${p.nom.toUpperCase()} (${Number(p.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha) :*\n${pItems.join('\n')}\n  _Sous-total ${p.nom} : ${formatFactureAmount(pTotal)}${unitStr}_`
-        )
-      }
-    })
-
-    if (specSections.length > 0) {
-      specDetailsBlock = `━━━━━━━━━━━━━━━━━━━\n🌾 *DÉTAIL PAR SPÉCULATION*\n━━━━━━━━━━━━━━━━━━━\n${specSections.join('\n\n')}\n\n`
-    }
-  }
-
-  // 3. Regroupement consolidé par intrant
-  const intrantsLines: string[] = []
   if (distributions && distributions.length > 0) {
-    const grouped = new Map<string, { nom: string; qte: number; prix: number }>()
+    const grouped = new Map<string, { nom: string; type: string; qte: number; prix: number }>()
+
     distributions.forEach((d: any) => {
       if (targetSpecId && d.speculation_id && d.speculation_id !== targetSpecId) return
       const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
-      if (intrant?.nom) {
-        const key = `${intrant.nom}_${intrant.type_intrant || ''}`
-        const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
-        let qte = Number(d.quantite || 0)
-        if (targetSpecId && !d.speculation_id && effectiveMemberParcelles.length > 0) {
-          // Prorata si intrant non ventilé
-          const ratio = (memberParcelles && memberParcelles.length > 0)
-            ? Number(effectiveMemberParcelles[0]?.superficie || 0) / (memberParcelles.reduce((s, p) => s + Number(p.superficie || 0), 0) || 1)
-            : 1
-          qte = Math.round(qte * ratio * 100) / 100
-        }
-        if (qte <= 0) return
-        if (!grouped.has(key)) {
-          grouped.set(key, { nom: intrant.nom, qte: 0, prix })
-        }
-        grouped.get(key)!.qte += qte
+      if (!intrant?.nom) return
+
+      const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
+      let qte = Number(d.quantite || 0)
+
+      if (targetSpecId && !d.speculation_id) {
+        qte = Math.round(qte * ratio * 100) / 100
       }
+      if (qte <= 0) return
+
+      const key = `${intrant.nom}___${intrant.type_intrant || ''}___${prix}`
+      if (!grouped.has(key)) {
+        grouped.set(key, { nom: intrant.nom, type: intrant.type_intrant || 'Intrant', qte: 0, prix })
+      }
+      grouped.get(key)!.qte += qte
     })
+
     grouped.forEach((item) => {
-      const totalItem = item.qte * item.prix
-      intrantsLines.push(`• ${item.nom} (x${item.qte.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}) : ${formatFactureAmount(totalItem)}${unitStr}`)
+      const itemTotal = item.qte * item.prix
+      totalFournitures += itemTotal
+      itemsLines.push(`• ${item.nom} : ${item.qte.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} x ${formatFactureAmount(item.prix)} = *${formatFactureAmount(itemTotal)}${unitStr}*`)
     })
   }
 
-  // Crédits
-  const creditsLines: string[] = []
+  // 2. Crédits de campagne
   if (credits && credits.length > 0) {
     credits.forEach((c: any) => {
       if (targetSpecId) {
@@ -215,122 +150,88 @@ export function buildFactureWhatsAppText({
       }
       const but = c.but_credit || 'Crédit de campagne'
       const m = Number(c.montant_demande || c.montant_accorde || 0)
-      creditsLines.push(`• ${but} : ${formatFactureAmount(m)}${unitStr}`)
+      totalFournitures += m
+      itemsLines.push(`• Crédit ${but} : *${formatFactureAmount(m)}${unitStr}*`)
     })
   }
 
-  let recapConsolideBlock = ''
-  if (intrantsLines.length > 0) {
-    recapConsolideBlock = targetSpecId && targetNom
-      ? `━━━━━━━━━━━━━━━━━━━\n📦 *RÉCAPITULATIF DES INTRANTS*\n_(Culture : ${targetNom.toUpperCase()})_\n━━━━━━━━━━━━━━━━━━━\n${intrantsLines.join('\n')}\n\n`
-      : `━━━━━━━━━━━━━━━━━━━\n📦 *RÉCAPITULATIF CONSOLIDÉ PAR INTRANT*\n_(Toutes spéculations confondues)_\n━━━━━━━━━━━━━━━━━━━\n${intrantsLines.join('\n')}\n\n`
-  }
-  if (creditsLines.length > 0) {
-    recapConsolideBlock += `💳 *Crédits accordés :*\n${creditsLines.join('\n')}\n\n`
-  }
+  // 3. Calculs financiers (Intérêts, Total Facturé, Acomptes, Restant à rembourser)
+  let montantInteret = 0
+  let totalDu = 0
+  let montantPaye = 0
+  let resteAPayer = 0
 
-  // 4. Suivi des remboursements par spéculation d'abord
-  let specRembWhatsAppBlock = ''
-  let effectiveSpecRemb = (remboursementsParSpeculation && remboursementsParSpeculation.length > 0)
-    ? [...remboursementsParSpeculation]
-    : (facture.remboursements_par_speculation && facture.remboursements_par_speculation.length > 0)
-      ? [...facture.remboursements_par_speculation]
-      : (effectiveMemberParcelles && effectiveMemberParcelles.length > 0 && montantPaye > 0)
-        ? effectiveMemberParcelles.map((p: any) => {
-            const ratio = totalMemberSuperficie > 0 ? Number(p.superficie) / totalMemberSuperficie : 1 / effectiveMemberParcelles.length
-            const specDu = Math.round(totalDu * ratio)
-            const specPaye = Math.round(montantPaye * ratio)
-            const solde = specDu - specPaye
-            const taux = specDu > 0 ? Math.min(100, Math.round((specPaye / specDu) * 100)) : 100
-            return {
-              speculation_id: p.speculationId,
-              nom: p.nom,
-              superficie: Number(p.superficie || 0),
-              montant_du: specDu,
-              montant_rembourse: specPaye,
-              quantite_nature: 0,
-              valeur_nature: 0,
-              montant_numeraire: specPaye,
-              solde,
-              taux_recouvrement: taux,
-            }
-          })
-        : []
-
-  if (targetSpecId && effectiveSpecRemb.length > 0) {
-    const matched = effectiveSpecRemb.find((s: any) => s.speculation_id === targetSpecId)
-    if (matched) {
-      effectiveSpecRemb = [matched]
-      totalDu = Number(matched.montant_du || 0)
-      montantTotal = totalDu
-      montantInteret = 0
-      montantPaye = Number(matched.montant_rembourse || 0)
-      resteAPayer = Number(matched.solde || 0)
-      if (!targetNom) targetNom = matched.nom
+  const rembList = remboursementsParSpeculation || facture.remboursements_par_speculation || []
+  if (targetSpecId) {
+    const spRemb = rembList.find((s: any) => s.speculation_id === targetSpecId)
+    if (spRemb) {
+      totalDu = Number(spRemb.montant_du || 0)
+      montantPaye = Number(spRemb.montant_rembourse || 0)
+      resteAPayer = Number(spRemb.solde || 0)
+      montantInteret = Math.max(0, totalDu - totalFournitures)
+    } else {
+      montantInteret = Math.round(Number(facture.montant_interet || 0) * ratio)
+      totalDu = totalFournitures + montantInteret
+      montantPaye = Math.round(Number(facture.montant_paye || 0) * ratio)
+      resteAPayer = totalDu - montantPaye
     }
+  } else {
+    montantInteret = Number(facture.montant_interet || 0)
+    totalDu = totalFournitures + montantInteret
+    if (Number(facture.montant_total || 0) > 0 && Math.abs(totalFournitures - Number(facture.montant_total)) > 50) {
+      totalDu = (Number(facture.montant_total) || totalFournitures) + montantInteret
+    }
+    montantPaye = Number(facture.montant_paye || 0)
+    resteAPayer = totalDu - montantPaye
   }
 
-  if (effectiveSpecRemb.length > 0) {
-    const rembLines = effectiveSpecRemb.map((sp: any) => {
-      const supStr = sp.superficie ? ` (${Number(sp.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha)` : ''
-      const detailParts: string[] = []
-      if (sp.quantite_nature > 0) {
-        detailParts.push(`Nature: ${Number(sp.quantite_nature).toLocaleString('fr-FR')} ${sp.unite_mesure || 'kg'} = ${formatFactureAmount(sp.valeur_nature)}${unitStr}`)
-      }
-      if (sp.montant_numeraire > 0) {
-        detailParts.push(`Numéraire: ${formatFactureAmount(sp.montant_numeraire)}${unitStr}`)
-      }
-      const detailStr = detailParts.length > 0 ? ` [${detailParts.join(', ')}]` : ''
-      const soldeStr = sp.solde > 0
-        ? `Reste : ${formatFactureAmount(sp.solde)}${unitStr}`
-        : sp.solde < 0
-        ? `Surplus : +${formatFactureAmount(Math.abs(sp.solde))}${unitStr}`
-        : `Soldé ✅`
-      return `▫️ *${sp.nom.toUpperCase()}*${supStr} :\n  • Dû : ${formatFactureAmount(sp.montant_du)}${unitStr}\n  • Réglé : ${formatFactureAmount(sp.montant_rembourse)}${unitStr}${detailStr}\n  • ${soldeStr} (Taux : ${sp.taux_recouvrement ?? 0}%)`
-    })
-    specRembWhatsAppBlock = targetSpecId
-      ? `━━━━━━━━━━━━━━━━━━━\n🌾 *SUIVI DU RÈGLEMENT (${targetNom.toUpperCase()})*\n━━━━━━━━━━━━━━━━━━━\n${rembLines.join('\n\n')}\n\n`
-      : `━━━━━━━━━━━━━━━━━━━\n🌾 *REMBOURSEMENTS PAR SPÉCULATION*\n━━━━━━━━━━━━━━━━━━━\n${rembLines.join('\n\n')}\n\n`
+  // Prix de collecte & équivalent nature
+  const prixCollecte = targetSpecId
+    ? Number(targetParcelle?.prixCollecte || 0) || Number(facture.campagne?.prix_collecte || 0)
+    : Number(facture.campagne?.prix_collecte || allMemberParcelles[0]?.prixCollecte || 0)
+  const produitCollecte = targetSpecId
+    ? (targetParcelle?.produitCollecte || targetNom || 'récolte')
+    : (facture.campagne?.produit_collecte || allMemberParcelles[0]?.produitCollecte || 'récolte')
+  const uniteMesure = targetSpecId
+    ? (targetParcelle?.uniteMesure || 'kg')
+    : (allMemberParcelles[0]?.uniteMesure || 'kg')
+
+  let quantiteNature = ''
+  if (prixCollecte > 0 && resteAPayer > 0) {
+    quantiteNature = `${(resteAPayer / prixCollecte).toFixed(1)} ${uniteMesure} de ${produitCollecte}`
   }
+
+  // Titre
+  const docTitle = targetSpecId && targetNom
+    ? `*FACTURE ${targetNom.toUpperCase()} N° ${idCourt}*`
+    : `*FACTURE N° ${idCourt}*`
 
   let statutMsg = ''
   if (facture.statut === 'payee' || resteAPayer <= 0) {
     statutMsg = `✅ *STATUT : FACTURE SOLDÉE / PAYÉE*`
     if (resteAPayer < 0) {
-      statutMsg += `\n💚 *Surplus de remboursement : ${formatFactureAmount(Math.abs(resteAPayer))}${unitStr}*`
+      statutMsg += `\n💚 *Surplus de remboursement : +${formatFactureAmount(Math.abs(resteAPayer))}${unitStr}*`
     }
   } else if (facture.statut === 'partiellement_paye' || montantPaye > 0) {
-    statutMsg = `⏳ *STATUT : PARTIELLEMENT PAYÉE*\n👉 *RESTE À RÉGLER : ${formatFactureAmount(resteAPayer)}${unitStr}*`
+    statutMsg = `⏳ *STATUT : PARTIELLEMENT PAYÉE*\n👉 *RESTANT À REMBOURSER : ${formatFactureAmount(resteAPayer)}${unitStr}*`
   } else {
-    statutMsg = `⚠️ *STATUT : EN ATTENTE DE RÈGLEMENT*\n👉 *RESTE À PAYER : ${formatFactureAmount(resteAPayer)}${unitStr}*`
+    statutMsg = `⚠️ *STATUT : EN ATTENTE DE RÈGLEMENT*\n👉 *RESTANT À REMBOURSER : ${formatFactureAmount(resteAPayer)}${unitStr}*`
   }
 
-  // Modalités de remboursement en nature par culture
   let natureBlock = ''
-  if (resteAPayer > 0 && effectiveMemberParcelles && effectiveMemberParcelles.length > 0) {
-    const natLines: string[] = []
-    effectiveMemberParcelles.forEach((p: any) => {
-      if (p.prixCollecte > 0) {
-        const qKg = (resteAPayer / p.prixCollecte).toFixed(1)
-        natLines.push(`• Équivalent *${p.produitCollecte || p.nom}* : *${qKg} kg* (à ${formatFactureAmount(p.prixCollecte)}${unitStr}/kg)`)
-      }
-    })
-    if (natLines.length > 0) {
-      natureBlock = `\n⚖️ *Règlement en nature possible :*\n${natLines.join('\n')}\n`
-    }
-  } else if (resteAPayer > 0 && Number(facture.campagne?.prix_collecte || 0) > 0) {
-    const pColl = Number(facture.campagne.prix_collecte)
-    const qKg = (resteAPayer / pColl).toFixed(1)
-    natureBlock = `\n⚖️ *Règlement en nature possible :*\n• Équivalent *${facture.campagne.produit_collecte || 'produit'}* : *${qKg} kg* (à ${formatFactureAmount(pColl)}${unitStr}/kg)\n`
+  if (quantiteNature && resteAPayer > 0) {
+    natureBlock = `\n⚖️ *Règlement en nature possible :*\n• Équivalent : *${quantiteNature}*\n  (sur la base de ${formatFactureAmount(prixCollecte)}${unitStr}/${uniteMesure})\n`
   }
 
-  const docTitle = targetSpecId && targetNom
-    ? `*FACTURE ${targetNom.toUpperCase()} N° ${idCourt}*`
-    : `*FACTURE N° ${idCourt}*`
+  let detailsBlock = ''
+  if (itemsLines.length > 0) {
+    detailsBlock = `━━━━━━━━━━━━━━━━━━━\n📦 *INTRANTS & CRÉDITS REÇUS*\n━━━━━━━━━━━━━━━━━━━\n${itemsLines.join('\n')}\n\n`
+  }
 
-  const recapTitle = targetSpecId && targetNom
-    ? `📊 *RÉSUMÉ FINANCIER (${targetNom.toUpperCase()})*`
-    : `📊 *RÉCAPITULATIF CONSOLIDÉ DES REMBOURSEMENTS*`
+  let acomptesLine = ''
+  if (montantPaye > 0) {
+    acomptesLine = `• Acomptes / Versements reçus : -${formatFactureAmount(montantPaye)}${unitStr}\n`
+  }
 
   return (
 `${docTitle}
@@ -338,15 +239,14 @@ export function buildFactureWhatsAppText({
 ───────────────────
 👤 *Membre :* ${nomMembre}${codeMembre ? ` (${codeMembre})` : ''}
 ${village ? `📍 *Village :* ${village}\n` : ''}🌱 *Campagne :* ${nomCampagne}
-📅 *Date d'émission :* ${new Date().toLocaleDateString('fr-FR')}
-${culturesBlock}
-${specDetailsBlock}${recapConsolideBlock}${specRembWhatsAppBlock}━━━━━━━━━━━━━━━━━━━
-${recapTitle}
+${targetSpecId && targetNom ? `🌾 *Culture :* ${targetNom}${targetParcelle?.superficie ? ` (${Number(targetParcelle.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha)` : ''}\n` : ''}📅 *Date d'émission :* ${new Date().toLocaleDateString('fr-FR')}
+
+${detailsBlock}━━━━━━━━━━━━━━━━━━━
+📊 *DÉCOMPTE FINANCIER*
 ━━━━━━━━━━━━━━━━━━━
-• Fournitures & Crédits : ${formatFactureAmount(montantTotal)}${unitStr}
-${montantInteret > 0 ? `• Intérêts de campagne : ${formatFactureAmount(montantInteret)}${unitStr}\n` : ''}• *TOTAL DÛ :* ${formatFactureAmount(totalDu)}${unitStr}
-• Montant déjà réglé : ${formatFactureAmount(montantPaye)}${unitStr}
-───────────────────
+• Total Fournitures & Crédits : ${formatFactureAmount(totalFournitures)}${unitStr}
+${montantInteret > 0 ? `• Intérêts de campagne : ${formatFactureAmount(montantInteret)}${unitStr}\n` : ''}• *TOTAL FACTURÉ :* ${formatFactureAmount(totalDu)}${unitStr}
+${acomptesLine}───────────────────
 ${statutMsg}
 ${natureBlock}
 ━━━━━━━━━━━━━━━━━━━
@@ -357,7 +257,8 @@ _Message généré par SIGGIE_`
 
 /**
  * Génère le document jsPDF et retourne les données associées (blob, file, etc.).
- * Imprimé individuel enrichi : détail par spéculation et récapitulatif consolidé par intrant.
+ * Imprimé individuel au format standard SIGGIE (tableau unique des intrants et crédits,
+ * décompte financier avec intérêts/acomptes/solde, équivalent nature et filtre culture).
  */
 export async function generateFacturePdf({
   facture,
@@ -475,9 +376,9 @@ export async function generateFacturePdf({
           prix_facturation: prixFacturation,
           intrants: intrant
             ? {
-                ...intrant,
-                prix_facturation: prixFacturation,
-              }
+              ...intrant,
+              prix_facturation: prixFacturation,
+            }
             : intrant,
         }
       })
@@ -536,294 +437,141 @@ export async function generateFacturePdf({
 
   const targetSpecId = facture.filterSpeculationId || (facture as any).filterSpecId || null
   let targetNom = ''
+  let targetParcelle: any = null
+  const allMemberParcelles = [...memberParcelles]
+  const totalAllSuperficie = allMemberParcelles.reduce((sum, p) => sum + (Number(p.superficie) || 0), 0)
 
   if (targetSpecId) {
-    const matched = memberParcelles.find((p: any) => p.speculationId === targetSpecId)
-    if (matched) {
-      memberParcelles = [matched]
-      targetNom = matched.nom
+    targetParcelle = allMemberParcelles.find((p: any) => p.speculationId === targetSpecId)
+    if (targetParcelle) {
+      targetNom = targetParcelle.nom
     } else {
       const sObj = speculations.find((s: any) => s.id === targetSpecId)
       if (sObj) targetNom = sObj.nom
     }
   }
 
-  const totalMemberSuperficie = memberParcelles.reduce((sum, p) => sum + (Number(p.superficie) || 0), 0)
+  const ratio = (targetSpecId && totalAllSuperficie > 0 && targetParcelle)
+    ? Number(targetParcelle.superficie || 0) / totalAllSuperficie
+    : 1
 
-  // 1. Regroupement consolidé par intrant (Toutes Spéculations Confondues)
-  const groupedConsolide = new Map<string, {
-    nom: string
-    type_intrant: string
-    quantite_totale: number
-    prix_unitaire: number
-    total: number
-  }>()
+  // 1. Tableau unique des intrants et crédits reçus par le membre (chaque intrant sur une ligne)
+  const tableBody: any[] = []
+  let totalFournitures = 0
 
-  distributions.forEach((d: any) => {
-    const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
-    if (intrant?.nom) {
-      const key = `${intrant.nom}___${intrant.type_intrant || ''}`
-      const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
-      const qte = Number(d.quantite || 0)
-      if (!groupedConsolide.has(key)) {
-        groupedConsolide.set(key, {
-          nom: intrant.nom,
-          type_intrant: intrant.type_intrant || 'Intrant',
-          quantite_totale: 0,
-          prix_unitaire: prix,
-          total: 0,
-        })
-      }
-      const item = groupedConsolide.get(key)!
-      item.quantite_totale += qte
-      item.total += qte * prix
-    }
-  })
-  let intrantsConsolides = Array.from(groupedConsolide.values())
-
-  // 2. Ventilation des intrants et crédits par spéculation
-  const specBreakdowns = memberParcelles.map((p) => {
-    const ratio = totalMemberSuperficie > 0 ? Number(p.superficie) / totalMemberSuperficie : 1 / memberParcelles.length
-    const items: Array<{ nom: string; type_intrant: string; quantite: number; prix: number; total: number }> = []
+  if (distributions && distributions.length > 0) {
+    const grouped = new Map<string, { nom: string; type: string; qte: number; prix: number }>()
 
     distributions.forEach((d: any) => {
+      if (targetSpecId && d.speculation_id && d.speculation_id !== targetSpecId) return
       const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
       if (!intrant?.nom) return
+
       const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
-      const qteTotal = Number(d.quantite || 0)
+      let qte = Number(d.quantite || 0)
 
-      if (d.speculation_id && d.speculation_id === p.speculationId) {
-        items.push({
-          nom: intrant.nom,
-          type_intrant: intrant.type_intrant || 'Intrant',
-          quantite: qteTotal,
-          prix,
-          total: qteTotal * prix,
-        })
-      } else if (!d.speculation_id) {
-        // Ventilation au prorata de la superficie
-        const qAlloc = Math.round(qteTotal * ratio * 100) / 100
-        if (qAlloc > 0) {
-          items.push({
-            nom: intrant.nom,
-            type_intrant: intrant.type_intrant || 'Intrant',
-            quantite: qAlloc,
-            prix,
-            total: Math.round(qAlloc * prix),
-          })
-        }
+      if (targetSpecId && !d.speculation_id) {
+        qte = Math.round(qte * ratio * 100) / 100
       }
+      if (qte <= 0) return
+
+      const key = `${intrant.nom}___${intrant.type_intrant || ''}___${prix}`
+      if (!grouped.has(key)) {
+        grouped.set(key, { nom: intrant.nom, type: intrant.type_intrant || 'Intrant', qte: 0, prix })
+      }
+      grouped.get(key)!.qte += qte
     })
 
-    const creditsSpec = credits.filter((c: any) => {
-      const sId = getCreditSpeculationId(c)
-      const sNom = getCreditSpeculationNom(c)
-      if (sId && sId === p.speculationId) return true
-      if (sNom && sNom.toLowerCase() === p.nom.toLowerCase()) return true
-      return false
+    grouped.forEach((item) => {
+      const itemTotal = item.qte * item.prix
+      totalFournitures += itemTotal
+      tableBody.push([
+        `${item.nom} (${item.type})`,
+        item.qte.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
+        formatFactureAmount(item.prix),
+        formatFactureAmount(itemTotal),
+      ])
     })
-
-    const itemsTotal = items.reduce((sum, it) => sum + it.total, 0)
-    const creditsTotal = creditsSpec.reduce((sum, c) => sum + Number(c.montant_demande || c.montant_accorde || 0), 0)
-
-    return {
-      ...p,
-      items,
-      credits: creditsSpec,
-      subTotal: itemsTotal + creditsTotal,
-    }
-  })
-
-  if (targetSpecId && specBreakdowns.length > 0) {
-    intrantsConsolides = specBreakdowns[0].items.map((it) => ({
-      nom: it.nom,
-      type_intrant: it.type_intrant,
-      quantite_totale: it.quantite,
-      prix_unitaire: it.prix,
-      total: it.total,
-    }))
-    credits = specBreakdowns[0].credits
   }
 
+  if (credits && credits.length > 0) {
+    credits.forEach((c: any) => {
+      if (targetSpecId) {
+        const sId = getCreditSpeculationId(c)
+        const sNom = getCreditSpeculationNom(c)
+        if (sId && sId !== targetSpecId) return
+        if (!sId && sNom && targetNom && sNom.toLowerCase() !== targetNom.toLowerCase()) return
+      }
+      const but = c.but_credit || 'Crédit de campagne'
+      const m = Number(c.montant_demande || c.montant_accorde || 0)
+      totalFournitures += m
+      tableBody.push([
+        `Crédit : ${but}`,
+        '-',
+        '-',
+        formatFactureAmount(m),
+      ])
+    })
+  }
+
+  if (tableBody.length === 0) {
+    const fallbackTotal = targetSpecId ? Math.round(Number(facture.montant_total || 0) * ratio) : Number(facture.montant_total || 0)
+    totalFournitures = fallbackTotal
+    tableBody.push([
+      targetSpecId && targetNom ? `Fournitures & Crédits (${targetNom})` : 'Fournitures & Crédits de la campagne',
+      '-',
+      '-',
+      formatFactureAmount(fallbackTotal),
+    ])
+  }
+
+  // 2. Calculs financiers
+  let montantInteret = 0
+  let totalDu = 0
+  let montantPaye = 0
+  let resteAPayer = 0
+
+  const rembList = facture.remboursements_par_speculation || []
+  if (targetSpecId) {
+    const spRemb = rembList.find((s: any) => s.speculation_id === targetSpecId)
+    if (spRemb) {
+      totalDu = Number(spRemb.montant_du || 0)
+      montantPaye = Number(spRemb.montant_rembourse || 0)
+      resteAPayer = Number(spRemb.solde || 0)
+      montantInteret = Math.max(0, totalDu - totalFournitures)
+    } else {
+      montantInteret = Math.round(Number(facture.montant_interet || 0) * ratio)
+      totalDu = totalFournitures + montantInteret
+      montantPaye = Math.round(Number(facture.montant_paye || 0) * ratio)
+      resteAPayer = totalDu - montantPaye
+    }
+  } else {
+    montantInteret = Number(facture.montant_interet || 0)
+    totalDu = totalFournitures + montantInteret
+    if (Number(facture.montant_total || 0) > 0 && Math.abs(totalFournitures - Number(facture.montant_total)) > 50) {
+      totalDu = (Number(facture.montant_total) || totalFournitures) + montantInteret
+    }
+    montantPaye = Number(facture.montant_paye || 0)
+    resteAPayer = totalDu - montantPaye
+  }
+
+  // Document PDF
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
 
   const nomMembre = `${membreDetails?.prenom || ''} ${membreDetails?.nom || ''}`.trim() || 'Membre'
   const nomCampagne = facture.campagne?.nom || 'N/A'
-  let montantInteret = Number(facture.montant_interet || 0)
-  let montantTotal = Number(facture.montant_total || 0)
-  let totalDu = montantTotal + montantInteret
-  let resteAPayer = totalDu - (facture.montant_paye || 0)
-
-  // 3. Suivi individuel des remboursements par spéculation d'abord
-  let rembParSpecList: any[] = facture.remboursements_par_speculation || []
-  if (rembParSpecList.length === 0 && memberParcelles.length > 0) {
-    const fRembList = remboursementsList
-    const specAccMap = new Map<string, {
-      speculation_id: string
-      nom: string
-      variete: string | null
-      superficie: number
-      casier: string | null
-      prix_collecte: number
-      produit_collecte: string | null
-      unite_mesure: string
-      ratio: number
-      montant_du: number
-      quantite_nature: number
-      valeur_nature: number
-      montant_numeraire: number
-    }>()
-
-    let allocatedDuSum = 0
-    memberParcelles.forEach((p: any, idx: number) => {
-      const specObj = speculations.find((s: any) => s.id === p.speculationId)
-      const nom = specObj?.nom || p.nom || 'Culture'
-      const ratio = totalMemberSuperficie > 0 ? (Number(p.superficie) || 0) / totalMemberSuperficie : 1 / memberParcelles.length
-      let mDu = Math.round(totalDu * ratio)
-      if (idx === memberParcelles.length - 1) {
-        mDu = Math.max(0, totalDu - allocatedDuSum)
-      } else {
-        allocatedDuSum += mDu
-      }
-
-      specAccMap.set(p.speculationId, {
-        speculation_id: p.speculationId,
-        nom,
-        variete: p.variete || null,
-        superficie: Number(p.superficie || 0),
-        casier: p.casier || null,
-        prix_collecte: Number(p.prixCollecte || 0),
-        produit_collecte: p.produitCollecte || nom,
-        unite_mesure: p.uniteMesure || 'kg',
-        ratio,
-        montant_du: mDu,
-        quantite_nature: 0,
-        valeur_nature: 0,
-        montant_numeraire: 0,
-      })
-    })
-
-    let nonVentileMonetaire = 0
-    let sumDetails = 0
-
-    for (const r of fRembList) {
-      const montant = Number(r.montant_fcfa || 0)
-      sumDetails += montant
-      const qte = r.quantite_nature != null ? Number(r.quantite_nature) : null
-      const rawMode = String(r.type_remboursement || '').toLowerCase()
-      const isNature = rawMode === 'nature'
-
-      const specTag = extraireTagSpeculation(r.produit_nature)
-      let matchedSpecId: string | null = null
-
-      if ((r as any).speculation_id && specAccMap.has((r as any).speculation_id)) {
-        matchedSpecId = (r as any).speculation_id
-      } else if (specTag) {
-        for (const [sId, sData] of specAccMap.entries()) {
-          if (sData.nom.toLowerCase() === specTag.toLowerCase()) {
-            matchedSpecId = sId
-            break
-          }
-        }
-      } else if (isNature && r.produit_nature) {
-        const prodLower = String(r.produit_nature).toLowerCase()
-        for (const [sId, sData] of specAccMap.entries()) {
-          if (sData.produit_collecte && prodLower.includes(sData.produit_collecte.toLowerCase())) {
-            matchedSpecId = sId
-            break
-          }
-          if (prodLower.includes(sData.nom.toLowerCase())) {
-            matchedSpecId = sId
-            break
-          }
-        }
-      }
-
-      if (isNature) {
-        const targetId = matchedSpecId || memberParcelles[0]?.speculationId
-        if (targetId && specAccMap.has(targetId)) {
-          const acc = specAccMap.get(targetId)!
-          const qVal = qte || 0
-          const val = montant > 0 ? montant : qVal * acc.prix_collecte
-          acc.quantite_nature += qVal
-          acc.valeur_nature += val
-        }
-      } else {
-        if (matchedSpecId && specAccMap.has(matchedSpecId)) {
-          specAccMap.get(matchedSpecId)!.montant_numeraire += montant
-        } else {
-          nonVentileMonetaire += montant
-        }
-      }
-    }
-
-    const mPaye = Number(facture.montant_paye || 0)
-    if (mPaye > sumDetails) {
-      nonVentileMonetaire += (mPaye - sumDetails)
-    }
-
-    for (const acc of specAccMap.values()) {
-      const partNonVentilee = Math.round(nonVentileMonetaire * acc.ratio)
-      acc.montant_numeraire += partNonVentilee
-    }
-
-    rembParSpecList = Array.from(specAccMap.values()).map((acc) => {
-      const montantRembourse = acc.valeur_nature + acc.montant_numeraire
-      const solde = acc.montant_du - montantRembourse
-      const taux = acc.montant_du > 0 ? Math.min(100, Math.round((montantRembourse / acc.montant_du) * 100)) : 100
-      let statutSolde: 'solde' | 'excedent' | 'reliquat' = 'solde'
-      if (solde > 0) statutSolde = 'reliquat'
-      else if (solde < 0) statutSolde = 'excedent'
-
-      return {
-        speculation_id: acc.speculation_id,
-        nom: acc.nom,
-        variete: acc.variete,
-        superficie: acc.superficie,
-        casier: acc.casier,
-        prix_collecte: acc.prix_collecte,
-        produit_collecte: acc.produit_collecte,
-        unite_mesure: acc.unite_mesure,
-        montant_du: acc.montant_du,
-        quantite_nature: acc.quantite_nature,
-        valeur_nature: acc.valeur_nature,
-        montant_numeraire: acc.montant_numeraire,
-        montant_rembourse: montantRembourse,
-        taux_recouvrement: taux,
-        solde,
-        statut_solde: statutSolde,
-      }
-    })
-  }
-
-  if (targetSpecId) {
-    const matchedRemb = rembParSpecList.find((sp: any) => sp.speculation_id === targetSpecId)
-    if (matchedRemb) {
-      rembParSpecList = [matchedRemb]
-      montantTotal = Number(matchedRemb.montant_du || 0)
-      totalDu = montantTotal
-      montantInteret = 0
-      resteAPayer = Number(matchedRemb.solde || 0)
-      facture = {
-        ...facture,
-        montant_paye: Number(matchedRemb.montant_rembourse || 0),
-        montant_total: montantTotal,
-      }
-      if (!targetNom) targetNom = matchedRemb.nom
-    }
-  }
 
   // En-tête officiel
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(17)
+  doc.setFontSize(18)
   doc.setTextColor(45, 106, 79)
   const gieLines = doc.splitTextToSize(gieName, 115)
   doc.text(gieLines, 14, gieLines.length > 1 ? 22 : 27)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(targetSpecId && targetNom ? 13 : 20)
+  doc.setFontSize(targetSpecId && targetNom ? 14 : 20)
   doc.setTextColor(160, 160, 160)
   doc.text(targetSpecId && targetNom ? `FACTURE - ${targetNom.toUpperCase()}` : 'FACTURE', pageWidth - 14, 27, { align: 'right' })
 
@@ -832,7 +580,7 @@ export async function generateFacturePdf({
   doc.setLineWidth(0.5)
   doc.line(14, 38, pageWidth - 14, 38)
 
-  // Informations Facture
+  // Informations Facture (gauche)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8.5)
   doc.setTextColor(0, 0, 0)
@@ -846,12 +594,12 @@ export async function generateFacturePdf({
   if (targetSpecId && targetNom) {
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(35, 90, 65)
-    doc.text(`Spéculation : ${targetNom} (${memberParcelles[0]?.superficie || 0} ha)`, 14, 63.5)
+    doc.text(`Culture : ${targetNom}${targetParcelle?.superficie ? ` (${Number(targetParcelle.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha)` : ''}`, 14, 63.5)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(70, 70, 70)
   }
 
-  // Facturé à (Client)
+  // Facturé à (Client - droite)
   doc.setFillColor(245, 247, 250)
   doc.roundedRect(pageWidth - 92, 42, 78, 22, 1.5, 1.5, 'F')
 
@@ -873,9 +621,9 @@ export async function generateFacturePdf({
     doc.text(`Tél : ${membreDetails.telephone}`, pageWidth - 87, 60.5)
   }
 
-  // Bandeau récapitulatif des spéculations du membre
+  // Bandeau des parcelles
   let nextY = 68
-  if (memberParcelles.length > 0) {
+  if (allMemberParcelles.length > 0) {
     doc.setFillColor(240, 248, 244)
     doc.setDrawColor(180, 220, 200)
     doc.setLineWidth(0.4)
@@ -884,255 +632,63 @@ export async function generateFacturePdf({
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
     doc.setTextColor(35, 90, 65)
-    doc.text('🌾 SPÉCULATIONS & PARCELLES EXPLOITÉES PAR LE PRODUCTEUR :', 18, 72.5)
+    doc.text(targetSpecId ? '🌾 CULTURE FACTURÉE :' : '🌾 SPÉCULATIONS & PARCELLES EXPLOITÉES :', 18, 72.5)
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7.5)
     doc.setTextColor(40, 60, 50)
-    const specStr = memberParcelles
-      .map((p) => `${p.nom}${p.variete ? ` (${p.variete})` : ''} : ${p.superficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${p.casier ? ` [Casier ${p.casier}]` : ''}`)
-      .join('   •   ')
-    const totalSurfStr = `Total : ${totalMemberSuperficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha`
-    doc.text(`• ${specStr}    |    ${totalSurfStr}`, 18, 77.5)
+    if (targetSpecId && targetParcelle) {
+      doc.text(`• ${targetNom}${targetParcelle.variete ? ` (${targetParcelle.variete})` : ''} : ${Number(targetParcelle.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${targetParcelle.casier ? ` [Casier ${targetParcelle.casier}]` : ''}`, 18, 77.5)
+    } else {
+      const specStr = allMemberParcelles
+        .map((p) => `${p.nom}${p.variete ? ` (${p.variete})` : ''} : ${Number(p.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${p.casier ? ` [Casier ${p.casier}]` : ''}`)
+        .join('   •   ')
+      const totalSurfStr = `Total : ${totalAllSuperficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha`
+      doc.text(`• ${specStr}    |    ${totalSurfStr}`, 18, 77.5)
+    }
 
     nextY = 85
   }
 
-  // TABLEAU 1 : DÉTAIL DES DOTATIONS PAR SPÉCULATION
-  const specTableBody: any[] = []
-  specBreakdowns.forEach((sd) => {
-    specTableBody.push([
-      {
-        content: `🌾 Culture : ${sd.nom.toUpperCase()} (${sd.superficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${sd.casier ? ` - Casier: ${sd.casier}` : ''})`,
-        colSpan: 4,
-        styles: {
-          fillColor: [232, 245, 238],
-          textColor: [35, 90, 65],
-          fontStyle: 'bold',
-          fontSize: 8.5,
-        },
-      },
-    ])
-    if (sd.items.length === 0 && sd.credits.length === 0) {
-      specTableBody.push([
-        '    Dotation générale proportionnelle',
-        '-',
-        '-',
-        '-',
-      ])
-    }
-    sd.items.forEach((item) => {
-      specTableBody.push([
-        `    • ${item.nom} (${item.type_intrant})`,
-        item.quantite.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
-        formatFactureAmount(item.prix),
-        formatFactureAmount(item.total),
-      ])
-    })
-    sd.credits.forEach((c: any) => {
-      specTableBody.push([
-        `    • Crédit : ${c.but_credit || 'Crédit campagne'}`,
-        '-',
-        '-',
-        formatFactureAmount(Number(c.montant_demande || c.montant_accorde || 0)),
-      ])
-    })
-    specTableBody.push([
-      {
-        content: `Sous-total ${sd.nom} :`,
-        colSpan: 3,
-        styles: { halign: 'right', fontStyle: 'bold', textColor: [35, 90, 65], fontSize: 8 },
-      },
-      {
-        content: `${formatFactureAmount(sd.subTotal)}`,
-        styles: { fontStyle: 'bold', halign: 'right', textColor: [35, 90, 65], fontSize: 8 },
-      },
-    ])
-  })
-
+  // TABLEAU UNIQUE : DÉTAIL DES ARTICLES & FOURNITURES
   autoTable(doc, {
     startY: nextY,
-    head: [[targetSpecId && targetNom ? `Détail des Dotations - Culture : ${targetNom.toUpperCase()}` : "Détail des Dotations par Spéculation", "Qté", "Prix Unit.", unite ? `Montant (${unite.trim()})` : "Montant"]],
-    body: specTableBody,
+    head: [[
+      targetSpecId && targetNom
+        ? `DÉSIGNATION DE L'ARTICLE (Culture : ${targetNom.toUpperCase()})`
+        : "DÉSIGNATION DE L'ARTICLE",
+      "Qté",
+      "Prix Unitaire",
+      unite ? `Montant (${unite.trim()})` : "Montant",
+    ]],
+    body: tableBody,
     theme: 'striped',
     headStyles: {
       fillColor: [45, 106, 79],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       halign: 'left',
-      cellPadding: 2,
+      cellPadding: 2.5,
       fontSize: 8.5,
     },
     styles: {
       font: 'helvetica',
-      fontSize: 8,
-      cellPadding: 2,
+      fontSize: 8.5,
+      cellPadding: 2.5,
     },
     columnStyles: {
       0: { halign: 'left', cellWidth: 'auto' },
-      1: { halign: 'center', cellWidth: 20 },
-      2: { halign: 'right', cellWidth: 30 },
-      3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'right', cellWidth: 32 },
+      3: { halign: 'right', cellWidth: 38, fontStyle: 'bold' },
     },
     alternateRowStyles: {
       fillColor: [249, 250, 251],
     },
   })
 
-  // TABLEAU 2 : RÉCAPITULATIF CONSOLIDÉ PAR INTRANT (Toutes Spéculations Confondues)
-  let recapStartY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : 120
-  if (recapStartY + 45 > pageHeight) {
-    doc.addPage()
-    recapStartY = 15
-  }
-
-  const recapTableBody: any[] = []
-  intrantsConsolides.forEach((it) => {
-    recapTableBody.push([
-      it.nom,
-      it.type_intrant,
-      it.quantite_totale.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
-      formatFactureAmount(it.prix_unitaire),
-      formatFactureAmount(it.total),
-    ])
-  })
-
-  credits.forEach((c: any) => {
-    recapTableBody.push([
-      `Crédit : ${c.but_credit || 'Crédit de campagne'}`,
-      'Financement',
-      '-',
-      '-',
-      formatFactureAmount(Number(c.montant_demande || c.montant_accorde || 0)),
-    ])
-  })
-
-  if (recapTableBody.length === 0) {
-    recapTableBody.push([
-      'Fournitures & Crédits de campagne',
-      'Global',
-      '-',
-      '-',
-      formatFactureAmount(facture.montant_total),
-    ])
-  }
-
-  autoTable(doc, {
-    startY: recapStartY,
-    head: [[
-      targetSpecId && targetNom
-        ? `RÉCAPITULATIF DES INTRANTS (Culture : ${targetNom.toUpperCase()})`
-        : "RÉCAPITULATIF CONSOLIDÉ PAR INTRANT (Toutes Spéculations)",
-      "Catégorie",
-      "Qté Totale",
-      "Prix Facturé",
-      unite ? `Total (${unite.trim()})` : "Total",
-    ]],
-    body: recapTableBody,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [35, 75, 60],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      halign: 'left',
-      cellPadding: 2,
-      fontSize: 8.5,
-    },
-    styles: {
-      font: 'helvetica',
-      fontSize: 8,
-      cellPadding: 2,
-    },
-    columnStyles: {
-      0: { halign: 'left', cellWidth: 'auto', fontStyle: 'bold' },
-      1: { halign: 'left', cellWidth: 26 },
-      2: { halign: 'center', cellWidth: 20 },
-      3: { halign: 'right', cellWidth: 26 },
-      4: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
-    },
-    alternateRowStyles: {
-      fillColor: [249, 250, 251],
-    },
-  })
-
-  // TABLEAU 3 : SUIVI DES RÈGLEMENTS & SOLDES PAR SPÉCULATION (D'ABORD)
-  if (rembParSpecList && rembParSpecList.length > 0) {
-    let rembStartY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 8 : 170
-    if (rembStartY + 45 > pageHeight) {
-      doc.addPage()
-      rembStartY = 15
-    }
-
-    const rembTableBody: any[] = []
-    rembParSpecList.forEach((sp: any) => {
-      const appNature = sp.quantite_nature > 0
-        ? `${formatFactureAmount(sp.valeur_nature)} (${Number(sp.quantite_nature).toLocaleString('fr-FR')} ${sp.unite_mesure || 'kg'})`
-        : '-'
-      const soldeStr = sp.solde > 0
-        ? `${formatFactureAmount(sp.solde)}`
-        : sp.solde < 0
-        ? `+${formatFactureAmount(Math.abs(sp.solde))}`
-        : 'Soldé'
-
-      rembTableBody.push([
-        sp.variete ? `${sp.nom} (${sp.variete})` : sp.nom,
-        Number(sp.superficie || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
-        formatFactureAmount(sp.montant_du),
-        appNature,
-        formatFactureAmount(sp.montant_numeraire),
-        formatFactureAmount(sp.montant_rembourse),
-        `${sp.taux_recouvrement ?? 0}%`,
-        soldeStr,
-      ])
-    })
-
-    autoTable(doc, {
-      startY: rembStartY,
-      head: [[
-        targetSpecId && targetNom
-          ? `SUIVI DU RÈGLEMENT (${targetNom.toUpperCase()})`
-          : "SUIVI DES RÈGLEMENTS PAR SPÉCULATION",
-        "Ha",
-        "Montant Dû",
-        "Apport Nature",
-        "Numéraire",
-        "Total Réglé",
-        "Taux",
-        unite ? `Solde (${unite.trim()})` : "Solde",
-      ]],
-      body: rembTableBody,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [30, 90, 70],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        halign: 'left',
-        cellPadding: 2,
-        fontSize: 8,
-      },
-      styles: {
-        font: 'helvetica',
-        fontSize: 7.5,
-        cellPadding: 2,
-      },
-      columnStyles: {
-        0: { halign: 'left', cellWidth: 'auto', fontStyle: 'bold' },
-        1: { halign: 'center', cellWidth: 14 },
-        2: { halign: 'right', cellWidth: 24 },
-        3: { halign: 'right', cellWidth: 32 },
-        4: { halign: 'right', cellWidth: 22 },
-        5: { halign: 'right', cellWidth: 25, fontStyle: 'bold' },
-        6: { halign: 'center', cellWidth: 14 },
-        7: { halign: 'right', cellWidth: 26, fontStyle: 'bold' },
-      },
-      alternateRowStyles: {
-        fillColor: [249, 250, 251],
-      },
-    })
-  }
-
-  // Récapitulatif financier consolidé & Solde
-  const tableEndY = (doc as any).lastAutoTable?.finalY || 140
+  // Récapitulatif financier
+  const tableEndY = (doc as any).lastAutoTable?.finalY || 130
   const footerBlockHeight = 85
   let finalY = tableEndY
   if (finalY + footerBlockHeight > pageHeight) {
@@ -1140,36 +696,41 @@ export async function generateFacturePdf({
     finalY = 15
   }
 
-  const totalBoxX = pageWidth - 85
+  // DÉCOMPTE FINANCIER (à droite)
+  const totalBoxX = pageWidth - 88
   doc.setDrawColor(220, 220, 220)
-  doc.line(totalBoxX, finalY + 4, pageWidth - 14, finalY + 4)
+  doc.line(totalBoxX, finalY + 5, pageWidth - 14, finalY + 5)
 
-  let ty = finalY + 9.5
+  let ty = finalY + 11
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.5)
   doc.setTextColor(80, 80, 80)
 
-  doc.text('Fournitures & Crédits :', totalBoxX, ty)
-  doc.text(`${formatFactureAmount(montantTotal)}`, pageWidth - 14, ty, { align: 'right' })
-  ty += 5
+  doc.text('Total Fournitures & Crédits :', totalBoxX, ty)
+  doc.text(`${formatFactureAmount(totalFournitures)}`, pageWidth - 14, ty, { align: 'right' })
+  ty += 5.5
 
   if (montantInteret > 0) {
     doc.text('Intérêts de campagne :', totalBoxX, ty)
     doc.text(`${formatFactureAmount(montantInteret)}`, pageWidth - 14, ty, { align: 'right' })
-    ty += 5
+    ty += 5.5
   }
 
   doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
   doc.setTextColor(0, 0, 0)
-  doc.text('TOTAL GÉNÉRAL DÛ :', totalBoxX, ty)
+  doc.text('TOTAL FACTURÉ :', totalBoxX, ty)
   doc.text(`${formatFactureAmount(totalDu)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
-  ty += 5
+  ty += 5.5
 
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(45, 106, 79)
-  doc.text('Total Déjà Réglé :', totalBoxX, ty)
-  doc.text(`-${formatFactureAmount(facture.montant_paye || 0)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
-  ty += 3.5
+  if (montantPaye > 0) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    doc.setTextColor(45, 106, 79)
+    doc.text('Avances / Acomptes reçus :', totalBoxX, ty)
+    doc.text(`-${formatFactureAmount(montantPaye)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
+    ty += 4
+  }
 
   // Ligne de solde
   doc.setDrawColor(45, 106, 79)
@@ -1182,41 +743,66 @@ export async function generateFacturePdf({
   if (resteAPayer < 0) {
     doc.setTextColor(45, 106, 79)
     doc.text('SURPLUS DE REMB. :', totalBoxX, ty)
-    doc.text(`${formatFactureAmount(Math.abs(resteAPayer))} ${unite}`, pageWidth - 14, ty, { align: 'right' })
+    doc.text(`+${formatFactureAmount(Math.abs(resteAPayer))} ${unite}`, pageWidth - 14, ty, { align: 'right' })
+  } else if (resteAPayer === 0) {
+    doc.setTextColor(45, 106, 79)
+    doc.text('FACTURE SOLDÉE :', totalBoxX, ty)
+    doc.text(`0 ${unite}`, pageWidth - 14, ty, { align: 'right' })
   } else {
     doc.setTextColor(220, 38, 38)
-    doc.text('RESTE À PAYER :', totalBoxX, ty)
+    doc.text('RESTANT À REMBOURSER :', totalBoxX, ty)
     doc.text(`${formatFactureAmount(resteAPayer)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
   }
 
-  // Modalités de remboursement à gauche
+  // MODALITÉS DE REMBOURSEMENT (à gauche)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8.5)
   doc.setTextColor(0, 0, 0)
-  doc.text('Modalités de remboursement :', 14, finalY + 9.5)
+  doc.text('Modalités de remboursement :', 14, finalY + 11)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(90, 90, 90)
-  doc.text('• Modes acceptés : Espèces, Chèque bancaire, Bon de livraison, Nature', 14, finalY + 14.5)
+  doc.text('• Modes acceptés : Espèces, Chèque bancaire, Bon de livraison, Nature', 14, finalY + 16)
 
-  let my = finalY + 19.5
-  if (resteAPayer > 0 && memberParcelles.length > 0) {
+  let my = finalY + 21
+  let quantiteNatureStr = 'N/A'
+  if (resteAPayer > 0) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
     doc.setTextColor(35, 90, 65)
-    doc.text('Équivalents en nature pour solder cette facture :', 14, my)
-    my += 4
+    doc.text('Règlement en nature possible pour solder :', 14, my)
+    my += 4.5
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(90, 90, 90)
+    doc.setFontSize(8)
+    doc.setTextColor(80, 80, 80)
 
-    memberParcelles.forEach((p) => {
-      if (p.prixCollecte > 0) {
-        const qteKg = (resteAPayer / p.prixCollecte).toFixed(1)
-        doc.text(`  - ${p.produitCollecte || p.nom} : ${qteKg} kg (sur la base de ${p.prixCollecte} ${unite}/kg)`, 14, my)
-        my += 3.8
+    if (targetSpecId && targetParcelle) {
+      const pCol = Number(targetParcelle.prixCollecte || facture.campagne?.prix_collecte || 0)
+      const uMes = targetParcelle.uniteMesure || 'kg'
+      const prodNom = targetParcelle.produitCollecte || targetNom || 'récolte'
+      if (pCol > 0) {
+        const qteNat = (resteAPayer / pCol).toFixed(1)
+        quantiteNatureStr = `${qteNat} ${uMes} de ${prodNom}`
+        doc.text(`• Équivalent : ${qteNat} ${uMes} de ${prodNom}`, 14, my)
+        my += 4
+        doc.text(`  (sur la base de ${formatFactureAmount(pCol)} ${unite}/${uMes})`, 14, my)
+        my += 4
       }
-    })
+    } else if (allMemberParcelles.length > 0) {
+      allMemberParcelles.forEach((p, idx) => {
+        const pCol = Number(p.prixCollecte || facture.campagne?.prix_collecte || 0)
+        if (pCol > 0) {
+          const qteNat = (resteAPayer / pCol).toFixed(1)
+          const prodNom = p.produitCollecte || p.nom
+          if (idx === 0) {
+            quantiteNatureStr = `${qteNat} ${p.uniteMesure || 'kg'} de ${prodNom}`
+          }
+          doc.text(`• Équivalent ${prodNom} : ${qteNat} ${p.uniteMesure || 'kg'} (à ${formatFactureAmount(pCol)} ${unite}/${p.uniteMesure || 'kg'})`, 14, my)
+          my += 4
+        }
+      })
+    }
   }
 
   // Mentions
@@ -1257,15 +843,13 @@ export async function generateFacturePdf({
     distributions,
     credits,
     speculations,
-    memberParcelles,
-    intrantsConsolides,
-    specBreakdowns,
-    remboursementsParSpeculation: rembParSpecList,
+    memberParcelles: allMemberParcelles,
+    intrantsConsolides: tableBody,
+    specBreakdowns: [],
+    remboursementsParSpeculation: facture.remboursements_par_speculation || [],
     totalDu,
     resteAPayer,
-    quantiteNature: memberParcelles.length > 0 && memberParcelles[0].prixCollecte > 0 && resteAPayer > 0
-      ? `${(resteAPayer / memberParcelles[0].prixCollecte).toFixed(1)} kg de ${memberParcelles[0].produitCollecte || memberParcelles[0].nom}`
-      : 'N/A',
+    quantiteNature: quantiteNatureStr,
   }
 }
 

@@ -200,10 +200,10 @@ export default function FacturationClient({
 
   const hasActiveFilters = Boolean(
     searchTerm ||
-      selectedCampagneId !== defaultCampagneId ||
-      selectedSpecId !== 'all' ||
-      selectedStatut !== 'all' ||
-      selectedTypeDoc !== 'all'
+    selectedCampagneId !== defaultCampagneId ||
+    selectedSpecId !== 'all' ||
+    selectedStatut !== 'all' ||
+    selectedTypeDoc !== 'all'
   )
 
   const resetFilters = () => {
@@ -309,11 +309,10 @@ export default function FacturationClient({
         <button
           type="button"
           onClick={() => setSelectedTypeDoc('all')}
-          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-            selectedTypeDoc === 'all'
+          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${selectedTypeDoc === 'all'
               ? 'bg-primary text-white shadow-sm'
               : 'bg-surface text-foreground-muted hover:text-foreground border border-surface-border'
-          }`}
+            }`}
         >
           <span>Toutes les factures</span>
           <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${selectedTypeDoc === 'all' ? 'bg-white/20 text-white' : 'bg-background text-foreground'}`}>
@@ -324,11 +323,10 @@ export default function FacturationClient({
         <button
           type="button"
           onClick={() => setSelectedTypeDoc('campagne')}
-          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-            selectedTypeDoc === 'campagne'
+          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${selectedTypeDoc === 'campagne'
               ? 'bg-primary text-white shadow-sm'
               : 'bg-surface text-foreground-muted hover:text-foreground border border-surface-border'
-          }`}
+            }`}
         >
           <ReceiptText className="h-3.5 w-3.5" />
           <span>Campagne (Intrants)</span>
@@ -340,11 +338,10 @@ export default function FacturationClient({
         <button
           type="button"
           onClick={() => setSelectedTypeDoc('prestation')}
-          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-            selectedTypeDoc === 'prestation'
+          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${selectedTypeDoc === 'prestation'
               ? 'bg-primary text-white shadow-sm'
               : 'bg-surface text-foreground-muted hover:text-foreground border border-surface-border'
-          }`}
+            }`}
         >
           <Tractor className="h-3.5 w-3.5" />
           <span>Factures Prestations Matériel</span>
@@ -356,11 +353,10 @@ export default function FacturationClient({
         <button
           type="button"
           onClick={() => setSelectedTypeDoc('vente_stock')}
-          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-            selectedTypeDoc === 'vente_stock'
+          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${selectedTypeDoc === 'vente_stock'
               ? 'bg-primary text-white shadow-sm'
               : 'bg-surface text-foreground-muted hover:text-foreground border border-surface-border'
-          }`}
+            }`}
         >
           <Package className="h-3.5 w-3.5" />
           <span>Factures Ventes de Stock</span>
@@ -506,29 +502,28 @@ export default function FacturationClient({
 
                         const factureForActions = isCropFiltered && spDetail
                           ? {
-                              ...facture,
-                              filterSpeculationId: selectedSpecId,
-                              filterSpeculationNom: spDetail.nom,
-                              montant_total: spDetail.montant_du,
-                              montant_interet: 0,
-                              montant_paye: spDetail.montant_rembourse,
-                              total_du: spDetail.montant_du,
-                              reste: spDetail.solde,
-                              designation: `Facture ${spDetail.nom} (${spDetail.superficie} ha) — ${facture.campagne?.nom || 'Campagne'}`,
-                            }
+                            ...facture,
+                            filterSpeculationId: selectedSpecId,
+                            filterSpeculationNom: spDetail.nom,
+                            montant_total: spDetail.montant_du,
+                            montant_interet: 0,
+                            montant_paye: spDetail.montant_rembourse,
+                            total_du: spDetail.montant_du,
+                            reste: spDetail.solde,
+                            designation: `Facture ${spDetail.nom} (${spDetail.superficie} ha) — ${facture.campagne?.nom || 'Campagne'}`,
+                          }
                           : facture
 
                         return (
                           <tr key={facture.id} className="hover:bg-background/50 transition-colors">
                             <td className="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-6">
                               <div className="flex items-center gap-3">
-                                <div className={`rounded-md p-2 ${
-                                  docType === 'prestation'
+                                <div className={`rounded-md p-2 ${docType === 'prestation'
                                     ? 'bg-secondary/10 text-secondary'
                                     : docType === 'vente_stock'
-                                    ? 'bg-emerald-500/10 text-emerald-600'
-                                    : 'bg-primary/10 text-primary'
-                                }`}>
+                                      ? 'bg-emerald-500/10 text-emerald-600'
+                                      : 'bg-primary/10 text-primary'
+                                  }`}>
                                   {docType === 'prestation' ? (
                                     <Tractor className="h-5 w-5" />
                                   ) : docType === 'vente_stock' ? (
@@ -540,11 +535,10 @@ export default function FacturationClient({
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium text-foreground">{nomAffiche}</span>
-                                    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                                      isMembre
+                                    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${isMembre
                                         ? 'bg-primary/10 text-primary'
                                         : 'bg-secondary/15 text-secondary'
-                                    }`}>
+                                      }`}>
                                       {isMembre ? 'Membre GIE' : 'Client externe'}
                                     </span>
                                   </div>
@@ -598,8 +592,8 @@ export default function FacturationClient({
                                     {docType === 'prestation'
                                       ? facture.designation
                                       : docType === 'vente_stock'
-                                      ? facture.designation
-                                      : facture.campagne?.nom || 'Campagne'}
+                                        ? facture.designation
+                                        : facture.campagne?.nom || 'Campagne'}
                                   </div>
                                   <div className="text-xs text-foreground-muted flex items-center gap-2 mt-0.5">
                                     {docType === 'prestation' && <span>Prestation Matériel</span>}
@@ -648,13 +642,12 @@ export default function FacturationClient({
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-center text-sm">
                               {docType === 'campagne' ? (
-                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                                  statutAffiche === 'impayee' ? 'bg-danger/10 text-danger ring-danger/20' : 
-                                  statutAffiche === 'payee' ? 'bg-success/10 text-success ring-success/20' :
-                                  'bg-secondary/10 text-secondary ring-secondary/20'
-                                }`}>
-                                  {statutAffiche === 'impayee' ? dict.facturation.table.status_unpaid : 
-                                   statutAffiche === 'payee' ? dict.facturation.table.status_paid : dict.facturation.table.status_partial}
+                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statutAffiche === 'impayee' ? 'bg-danger/10 text-danger ring-danger/20' :
+                                    statutAffiche === 'payee' ? 'bg-success/10 text-success ring-success/20' :
+                                      'bg-secondary/10 text-secondary ring-secondary/20'
+                                  }`}>
+                                  {statutAffiche === 'impayee' ? dict.facturation.table.status_unpaid :
+                                    statutAffiche === 'payee' ? dict.facturation.table.status_paid : dict.facturation.table.status_partial}
                                 </span>
                               ) : (
                                 <Link
@@ -676,7 +669,7 @@ export default function FacturationClient({
                           </tr>
                         )
                       })}
-                      
+
                       {filteredFactures.length === 0 && (
                         <tr>
                           <td colSpan={hasAnyInteret ? 8 : 7} className="px-6 py-8 text-center text-sm text-foreground-muted italic">

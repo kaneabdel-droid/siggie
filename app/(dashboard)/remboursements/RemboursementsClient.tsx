@@ -34,9 +34,9 @@ export default function RemboursementsClient({
   // Extraire la liste unique des spéculations disponibles
   const availableSpeculations = useMemo(() => {
     const map = new Map<string, { id: string; nom: string; superficie?: number }>()
-    ;(speculations || []).forEach((s: any) => {
-      if (s?.id) map.set(s.id, { id: s.id, nom: s.nom || 'Culture', superficie: Number(s.superficie_totale || 0) })
-    })
+      ; (speculations || []).forEach((s: any) => {
+        if (s?.id) map.set(s.id, { id: s.id, nom: s.nom || 'Culture', superficie: Number(s.superficie_totale || 0) })
+      })
     factures.forEach((f: any) => {
       if (Array.isArray(f.remboursements_par_speculation)) {
         f.remboursements_par_speculation.forEach((sp: any) => {
@@ -216,10 +216,10 @@ export default function RemboursementsClient({
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[10px] font-medium ${facture.type_document === 'prestation'
-                            ? 'bg-secondary/15 text-secondary'
-                            : facture.type_document === 'vente_stock'
-                              ? 'bg-emerald-500/10 text-emerald-600'
-                              : 'bg-primary/10 text-primary'
+                          ? 'bg-secondary/15 text-secondary'
+                          : facture.type_document === 'vente_stock'
+                            ? 'bg-emerald-500/10 text-emerald-600'
+                            : 'bg-primary/10 text-primary'
                           }`}>
                           {facture.type_document === 'prestation' ? 'Prestation' : facture.type_document === 'vente_stock' ? 'Vente stock' : 'Campagne'}
                         </span>
@@ -309,7 +309,7 @@ export default function RemboursementsClient({
               {(() => {
                 const currentSp = (selectedSpecId !== 'all' && selectedFacture.type_document === 'campagne')
                   ? (selectedFacture.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
-                     || selectedFacture.member_parcelles?.find((p: any) => p.speculationId === selectedSpecId))
+                    || selectedFacture.member_parcelles?.find((p: any) => p.speculationId === selectedSpecId))
                   : null
 
                 const isSpecFiltered = !!currentSp
@@ -441,13 +441,12 @@ export default function RemboursementsClient({
                                       {Number(sp.montant_rembourse || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
                                     </td>
                                     <td className="py-2.5 px-2 text-center">
-                                      <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                                        sp.taux_recouvrement >= 100
+                                      <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${sp.taux_recouvrement >= 100
                                           ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
                                           : sp.taux_recouvrement >= 50
-                                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                                          : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
-                                      }`}>
+                                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                            : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                                        }`}>
                                         {sp.taux_recouvrement}%
                                       </span>
                                     </td>
@@ -641,20 +640,19 @@ export default function RemboursementsClient({
                             {paiementsDetails.map((p, idx) => (
                               <div key={p.id || idx} className="px-3 py-2 text-xs flex items-center justify-between hover:bg-surface/50 transition-colors">
                                 <div className="flex items-center gap-2">
-                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                                    p.mode === 'nature' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
-                                    p.mode === 'bon' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
-                                    p.mode === 'cheque' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
-                                    'bg-primary/10 text-primary border border-primary/20'
-                                  }`}>
+                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${p.mode === 'nature' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                                      p.mode === 'bon' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                                        p.mode === 'cheque' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
+                                          'bg-primary/10 text-primary border border-primary/20'
+                                    }`}>
                                     {p.modeLabel}
                                   </span>
                                   <span className="text-foreground-muted font-mono">{p.date || '-'}</span>
                                   <span className="text-foreground truncate max-w-xs">
                                     {p.quantite_nature ? `${Number(p.quantite_nature).toLocaleString()} ${p.unite_nature || 'kg'}${p.produit_nature ? ` de ${p.produit_nature}` : ''}` :
-                                     p.reference_piece ? `Réf: ${p.reference_piece}` :
-                                     p.compte_nom ? `Compte: ${p.compte_nom}` :
-                                     p.motif || 'Règlement'}
+                                      p.reference_piece ? `Réf: ${p.reference_piece}` :
+                                        p.compte_nom ? `Compte: ${p.compte_nom}` :
+                                          p.motif || 'Règlement'}
                                   </span>
                                 </div>
                                 <div className="font-bold text-foreground text-right shrink-0">
