@@ -521,7 +521,7 @@ export async function generateFacturePdf({
       totalFournitures += item.totalMontant
       const prixMoyen = item.totalQte > 0 ? Math.round(item.totalMontant / item.totalQte) : 0
       tableBody.push([
-        `${item.nom} (${item.type})`,
+        item.nom,
         item.totalQte.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
         formatFactureAmount(prixMoyen),
         formatFactureAmount(item.totalMontant),
@@ -794,20 +794,21 @@ export async function generateFacturePdf({
     }
   }
 
-  // Mentions
-  doc.setFont('helvetica', 'italic')
-  doc.setFontSize(7.5)
-  doc.setTextColor(140, 140, 140)
-  doc.text('Merci de conserver cette facture précieusement pour vos bilans.', 14, finalY + 28)
-
-  // Signature Box
+  // Signature Box (sur la gauche, séparée du décompte financier sur la droite)
   doc.setDrawColor(200, 200, 200)
   doc.setLineDashPattern([2, 2], 0)
-  doc.rect(pageWidth - 70, finalY + 28, 56, 20)
+  doc.rect(14, finalY + 11, 65, 24)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(80, 80, 80)
-  doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 33)
+  doc.text('Cachet et Signature du GIE', 18, finalY + 16.5)
+
+  // Mentions
+  const mentionY = Math.max(ty + 6, finalY + 40)
+  doc.setFont('helvetica', 'italic')
+  doc.setFontSize(7.5)
+  doc.setTextColor(140, 140, 140)
+  doc.text('Merci de conserver cette facture précieusement pour vos bilans.', 14, mentionY)
 
   // Footer sur la page
   doc.setLineDashPattern([], 0)
