@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Search, ReceiptText, Filter, RotateCcw, CheckCircle2, Clock, Wallet, Tractor, Package, ExternalLink } from 'lucide-react'
+import { Search, ReceiptText, Filter, RotateCcw, CheckCircle2, Clock, Wallet, Tractor, Package, ExternalLink, Wheat } from 'lucide-react'
 import DownloadPdfButton from './DownloadPdfButton'
 import FactureWhatsAppModal from './FactureWhatsAppModal'
 
@@ -14,12 +14,14 @@ import FicheClientModal from '@/components/FicheClientModal'
 export default function FacturationClient({
   factures = [],
   campagnes = [],
+  speculations = [],
   dict,
   locale,
   gieName,
 }: {
   factures: any[]
   campagnes: { id: string; nom: string; statut?: string }[]
+  speculations?: any[]
   dict: any
   locale: string
   gieName: string
@@ -32,8 +34,39 @@ export default function FacturationClient({
 
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCampagneId, setSelectedCampagneId] = useState(defaultCampagneId)
+  const [selectedSpecId, setSelectedSpecId] = useState<string>('all')
   const [selectedStatut, setSelectedStatut] = useState<string>('all')
   const [selectedTypeDoc, setSelectedTypeDoc] = useState<'all' | 'campagne' | 'prestation' | 'vente_stock'>('all')
+
+  const availableSpeculations = useMemo(() => {
+    const list: { id: string; nom: string; campagne_id?: string }[] = []
+    const seen = new Set<string>()
+
+    // Depuis les spéculations chargées du serveur
+    speculations.forEach((s) => {
+      if (!selectedCampagneId || s.campagne_id === selectedCampagneId) {
+        if (!seen.has(s.id)) {
+          seen.add(s.id)
+          list.push({ id: s.id, nom: s.nom, campagne_id: s.campagne_id })
+        }
+      }
+    })
+
+    // Compléter depuis les factures
+    factures.forEach((f: any) => {
+      if (selectedCampagneId && f.campagne_id !== selectedCampagneId && f.campagne?.id !== selectedCampagneId) return
+      if (f.remboursements_par_speculation) {
+        f.remboursements_par_speculation.forEach((sp: any) => {
+          if (sp.speculation_id && !seen.has(sp.speculation_id)) {
+            seen.add(sp.speculation_id)
+            list.push({ id: sp.speculation_id, nom: sp.nom, campagne_id: f.campagne_id || f.campagne?.id })
+          }
+        })
+      }
+    })
+
+    return list
+  }, [speculations, factures, selectedCampagneId])
 
   const countsByType = useMemo(() => {
     let campagne = 0
@@ -90,18 +123,36 @@ export default function FacturationClient({
         return false
       }
 
-      // 3. Filtre statut
+      // 3. Filtre spéculation / culture
+      if (selectedSpecId !== 'all') {
+        if (docType !== 'campagne') return false
+        const sp = f.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+        if (!sp || (Number(sp.superficie || 0) <= 0 && Number(sp.montant_du || 0) <= 0)) {
+          return false
+        }
+      }
+
+      // 4. Filtre statut
       if (selectedStatut !== 'all') {
-        if (selectedStatut === 'impayee' && f.statut !== 'impayee') return false
-        if (selectedStatut === 'payee' && f.statut !== 'payee') return false
-        if (selectedStatut === 'partiellement_paye' && f.statut !== 'partiellement_paye') return false
+        const isCropFiltered = selectedSpecId !== 'all'
+        const spDetail = isCropFiltered && docType === 'campagne'
+          ? f.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+          : null
+
+        const currentStatut = spDetail
+          ? (spDetail.solde <= 0 ? 'payee' : spDetail.montant_rembourse > 0 ? 'partiellement_paye' : 'impayee')
+          : f.statut
+
+        if (selectedStatut === 'impayee' && currentStatut !== 'impayee') return false
+        if (selectedStatut === 'payee' && currentStatut !== 'payee') return false
+        if (selectedStatut === 'partiellement_paye' && currentStatut !== 'partiellement_paye') return false
       }
 
       return true
     })
-  }, [factures, searchTerm, selectedCampagneId, selectedStatut, selectedTypeDoc])
+  }, [factures, searchTerm, selectedCampagneId, selectedSpecId, selectedStatut, selectedTypeDoc])
 
-  // KPIs
+  // KPIs adaptés à la culture sélectionnée ou au cumul
   const stats = useMemo(() => {
     let totalFacture = 0
     let totalPaye = 0
@@ -109,16 +160,26 @@ export default function FacturationClient({
     let countPartiel = 0
     let countPayee = 0
 
+    const isCropFiltered = selectedSpecId !== 'all'
+
     filteredFactures.forEach((f) => {
-      const montantInteret = Number(f.montant_interet || 0)
-      const totalDu = Number(f.montant_total || 0) + montantInteret
-      const paye = Number(f.montant_paye || 0)
+      const spDetail = isCropFiltered && f.type_document === 'campagne'
+        ? f.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+        : null
+
+      const montantInteret = spDetail ? 0 : Number(f.montant_interet || 0)
+      const totalDu = spDetail ? Number(spDetail.montant_du || 0) : (Number(f.montant_total || 0) + montantInteret)
+      const paye = spDetail ? Number(spDetail.montant_rembourse || 0) : Number(f.montant_paye || 0)
+      const solde = totalDu - paye
+      const statutEffective = spDetail
+        ? (solde <= 0 ? 'payee' : paye > 0 ? 'partiellement_paye' : 'impayee')
+        : f.statut
 
       totalFacture += totalDu
       totalPaye += paye
 
-      if (f.statut === 'payee') countPayee++
-      else if (f.statut === 'partiellement_paye') countPartiel++
+      if (statutEffective === 'payee') countPayee++
+      else if (statutEffective === 'partiellement_paye') countPartiel++
       else countImpayee++
     })
 
@@ -135,11 +196,12 @@ export default function FacturationClient({
       countPayee,
       totalCount: filteredFactures.length,
     }
-  }, [filteredFactures])
+  }, [filteredFactures, selectedSpecId])
 
   const hasActiveFilters = Boolean(
     searchTerm ||
       selectedCampagneId !== defaultCampagneId ||
+      selectedSpecId !== 'all' ||
       selectedStatut !== 'all' ||
       selectedTypeDoc !== 'all'
   )
@@ -147,6 +209,7 @@ export default function FacturationClient({
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedCampagneId(defaultCampagneId)
+    setSelectedSpecId('all')
     setSelectedStatut('all')
     setSelectedTypeDoc('all')
   }
@@ -325,7 +388,7 @@ export default function FacturationClient({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Recherche texte */}
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -351,6 +414,22 @@ export default function FacturationClient({
               {campagnes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nom}{c.statut === 'en_cours' ? ' (En cours)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtre spéculation / culture */}
+          <div>
+            <select
+              value={selectedSpecId}
+              onChange={(e) => setSelectedSpecId(e.target.value)}
+              className="block w-full rounded-md border border-surface-border py-2 px-3 bg-background text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm shadow-sm"
+            >
+              <option value="all">Toutes les cultures (Cumul)</option>
+              {availableSpeculations.map((s) => (
+                <option key={s.id} value={s.id}>
+                  🌾 {s.nom}
                 </option>
               ))}
             </select>
@@ -411,9 +490,33 @@ export default function FacturationClient({
                             : facture.client_nom || facture.client?.nom || 'Client externe'
                         const telephoneAffiche = facture.membre?.telephone || facture.client_telephone || facture.client?.telephone || null
                         const idCourt = String(facture.id || '').replace(/^(prestation|vente)-/, '').substring(0, 8)
-                        const montantInteret = Number(facture.montant_interet || 0)
-                        const totalDu = Number(facture.montant_total || 0) + montantInteret
-                        const resteAPayer = totalDu - (facture.montant_paye || 0)
+
+                        const isCropFiltered = selectedSpecId !== 'all'
+                        const spDetail = isCropFiltered && docType === 'campagne'
+                          ? facture.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+                          : null
+
+                        const montantInteret = spDetail ? 0 : Number(facture.montant_interet || 0)
+                        const totalDu = spDetail ? Number(spDetail.montant_du || 0) : (Number(facture.montant_total || 0) + montantInteret)
+                        const montantPaye = spDetail ? Number(spDetail.montant_rembourse || 0) : Number(facture.montant_paye || 0)
+                        const resteAPayer = totalDu - montantPaye
+                        const statutAffiche = spDetail
+                          ? (resteAPayer <= 0 ? 'payee' : montantPaye > 0 ? 'partiellement_paye' : 'impayee')
+                          : facture.statut
+
+                        const factureForActions = isCropFiltered && spDetail
+                          ? {
+                              ...facture,
+                              filterSpeculationId: selectedSpecId,
+                              filterSpeculationNom: spDetail.nom,
+                              montant_total: spDetail.montant_du,
+                              montant_interet: 0,
+                              montant_paye: spDetail.montant_rembourse,
+                              total_du: spDetail.montant_du,
+                              reste: spDetail.solde,
+                              designation: `Facture ${spDetail.nom} (${spDetail.superficie} ha) — ${facture.campagne?.nom || 'Campagne'}`,
+                            }
+                          : facture
 
                         return (
                           <tr key={facture.id} className="hover:bg-background/50 transition-colors">
@@ -473,33 +576,53 @@ export default function FacturationClient({
                               </div>
                             </td>
                             <td className="px-3 py-4 text-left text-sm">
-                              <div className="font-medium text-foreground">
-                                {docType === 'prestation'
-                                  ? facture.designation
-                                  : docType === 'vente_stock'
-                                  ? facture.designation
-                                  : facture.campagne?.nom || 'Campagne'}
-                              </div>
-                              <div className="text-xs text-foreground-muted flex items-center gap-2 mt-0.5">
-                                {docType === 'prestation' && <span>Prestation Matériel</span>}
-                                {docType === 'vente_stock' && <span>Vente de Stock</span>}
-                                {docType === 'campagne' && <span>Facture Intrants & Crédits</span>}
-                                {docType === 'campagne' && (facture.campagne_id || facture.campagne?.id) && (
-                                  <Link
-                                    href={`/campagnes/${facture.campagne_id || facture.campagne?.id}/speculations`}
-                                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
-                                    title="Consulter le suivi par spéculation et l'état récapitulatif"
-                                  >
-                                    🌾 Suivi spéculations
-                                  </Link>
-                                )}
-                                {facture.campagne?.nom && docType !== 'campagne' && (
-                                  <span>· {facture.campagne.nom}</span>
-                                )}
-                                {facture.date_emission && (
-                                  <span>· {new Date(facture.date_emission).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</span>
-                                )}
-                              </div>
+                              {isCropFiltered && spDetail ? (
+                                <div>
+                                  <div className="font-bold text-primary flex items-center gap-1.5">
+                                    <Wheat className="h-4 w-4 shrink-0 text-primary" />
+                                    <span>{spDetail.nom} ({Number(spDetail.superficie).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ha)</span>
+                                  </div>
+                                  <div className="text-xs text-foreground-muted flex items-center gap-2 mt-0.5">
+                                    <span>{facture.campagne?.nom || 'Campagne'}</span>
+                                    {spDetail.casier && <span className="font-mono">· Casier: {spDetail.casier}</span>}
+                                    {spDetail.quantite_nature > 0 && (
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                        · {Number(spDetail.quantite_nature).toLocaleString()} {spDetail.unite_mesure || 'kg'} pesé(s)
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="font-medium text-foreground">
+                                    {docType === 'prestation'
+                                      ? facture.designation
+                                      : docType === 'vente_stock'
+                                      ? facture.designation
+                                      : facture.campagne?.nom || 'Campagne'}
+                                  </div>
+                                  <div className="text-xs text-foreground-muted flex items-center gap-2 mt-0.5">
+                                    {docType === 'prestation' && <span>Prestation Matériel</span>}
+                                    {docType === 'vente_stock' && <span>Vente de Stock</span>}
+                                    {docType === 'campagne' && <span>Facture Intrants & Crédits (Cumul)</span>}
+                                    {docType === 'campagne' && (facture.campagne_id || facture.campagne?.id) && (
+                                      <Link
+                                        href={`/campagnes/${facture.campagne_id || facture.campagne?.id}/speculations`}
+                                        className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
+                                        title="Consulter le suivi par spéculation et l'état récapitulatif"
+                                      >
+                                        🌾 Suivi spéculations
+                                      </Link>
+                                    )}
+                                    {facture.campagne?.nom && docType !== 'campagne' && (
+                                      <span>· {facture.campagne.nom}</span>
+                                    )}
+                                    {facture.date_emission && (
+                                      <span>· {new Date(facture.date_emission).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </td>
                             {hasAnyInteret && (
                               <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-foreground-muted">
@@ -510,7 +633,7 @@ export default function FacturationClient({
                               {formatAmount(totalDu)} {unite}
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-success">
-                              {docType === 'campagne' ? `${formatAmount(facture.montant_paye || 0)} ${unite}` : '-'}
+                              {docType === 'campagne' ? `${formatAmount(montantPaye)} ${unite}` : '-'}
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-bold">
                               {resteAPayer > 0 ? (
@@ -526,12 +649,12 @@ export default function FacturationClient({
                             <td className="whitespace-nowrap px-3 py-4 text-center text-sm">
                               {docType === 'campagne' ? (
                                 <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                                  facture.statut === 'impayee' ? 'bg-danger/10 text-danger ring-danger/20' : 
-                                  facture.statut === 'payee' ? 'bg-success/10 text-success ring-success/20' :
+                                  statutAffiche === 'impayee' ? 'bg-danger/10 text-danger ring-danger/20' : 
+                                  statutAffiche === 'payee' ? 'bg-success/10 text-success ring-success/20' :
                                   'bg-secondary/10 text-secondary ring-secondary/20'
                                 }`}>
-                                  {facture.statut === 'impayee' ? dict.facturation.table.status_unpaid : 
-                                   facture.statut === 'payee' ? dict.facturation.table.status_paid : dict.facturation.table.status_partial}
+                                  {statutAffiche === 'impayee' ? dict.facturation.table.status_unpaid : 
+                                   statutAffiche === 'payee' ? dict.facturation.table.status_paid : dict.facturation.table.status_partial}
                                 </span>
                               ) : (
                                 <Link
@@ -546,8 +669,8 @@ export default function FacturationClient({
                             </td>
                             <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                               <div className="flex justify-end items-center gap-1.5">
-                                <FactureWhatsAppModal facture={facture} gieName={gieName} dict={dict} />
-                                <DownloadPdfButton facture={facture} dict={dict} gieName={gieName} />
+                                <FactureWhatsAppModal facture={factureForActions} gieName={gieName} dict={dict} />
+                                <DownloadPdfButton facture={factureForActions} dict={dict} gieName={gieName} />
                               </div>
                             </td>
                           </tr>

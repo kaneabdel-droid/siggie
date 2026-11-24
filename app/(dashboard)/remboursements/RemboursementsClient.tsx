@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Search, Wallet, Scale, CreditCard, FileCheck, MoreHorizontal, Coins, CheckCircle2, AlertCircle, Wheat, Layers } from 'lucide-react'
+import { Search, Wallet, Scale, CreditCard, FileCheck, MoreHorizontal, Coins, CheckCircle2, AlertCircle, Wheat, Layers, Info } from 'lucide-react'
 import PaiementModal from './PaiementModal'
 import { useUnite } from '@/components/DeviseProvider'
 import FactureWhatsAppModal from '@/app/(dashboard)/facturation/FactureWhatsAppModal'
@@ -14,26 +14,76 @@ export default function RemboursementsClient({
   comptes,
   dict,
   locale,
-  gieName = 'Mon GIE'
+  gieName = 'Mon GIE',
+  speculations = [],
 }: {
   factures: any[],
   comptes: { id: string; nom: string }[],
   dict: any,
   locale: string,
-  gieName?: string
+  gieName?: string,
+  speculations?: any[],
 }) {
   const unite = useUnite()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterMode, setFilterMode] = useState<'a_recouvrer' | 'surplus' | 'all'>('a_recouvrer')
+  const [selectedSpecId, setSelectedSpecId] = useState<string>('all')
   const [selectedFactureId, setSelectedFactureId] = useState<string | null>(null)
   const [paiementType, setPaiementType] = useState<'espece' | 'nature' | 'bon' | 'cheque' | 'autre' | null>(null)
 
-  const selectedFacture = factures.find((f) => f.id === selectedFactureId) || null
+  // Extraire la liste unique des spéculations disponibles
+  const availableSpeculations = useMemo(() => {
+    const map = new Map<string, { id: string; nom: string; superficie?: number }>()
+    ;(speculations || []).forEach((s: any) => {
+      if (s?.id) map.set(s.id, { id: s.id, nom: s.nom || 'Culture', superficie: Number(s.superficie_totale || 0) })
+    })
+    factures.forEach((f: any) => {
+      if (Array.isArray(f.remboursements_par_speculation)) {
+        f.remboursements_par_speculation.forEach((sp: any) => {
+          if (sp.speculation_id && !map.has(sp.speculation_id)) {
+            map.set(sp.speculation_id, { id: sp.speculation_id, nom: sp.nom || 'Culture', superficie: Number(sp.superficie || 0) })
+          }
+        })
+      }
+      if (Array.isArray(f.member_parcelles)) {
+        f.member_parcelles.forEach((p: any) => {
+          if (p.speculationId && !map.has(p.speculationId)) {
+            map.set(p.speculationId, { id: p.speculationId, nom: p.nom || 'Culture', superficie: Number(p.superficie || 0) })
+          }
+        })
+      }
+    })
+    return Array.from(map.values())
+  }, [speculations, factures])
 
   const filteredFactures = factures.filter((f) => {
-    const reste = Number(f.montant_total || 0) + Number(f.montant_interet || 0) - Number(f.montant_paye || 0)
-    if (filterMode === 'a_recouvrer' && f.statut !== 'impayee' && f.statut !== 'partiellement_paye' && reste <= 0) {
-      return false
+    // Si un filtre spéculation spécifique est actif, exclure les factures qui ne concernent pas cette spéculation
+    let spDetail: any = null
+    if (selectedSpecId !== 'all') {
+      if (f.type_document !== 'campagne') return false
+      spDetail = f.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+      if (!spDetail && Array.isArray(f.member_parcelles)) {
+        spDetail = f.member_parcelles.find((p: any) => p.speculationId === selectedSpecId)
+      }
+      if (!spDetail) return false
+    }
+
+    const totalDu = spDetail
+      ? Number(spDetail.montant_du || 0)
+      : (Number(f.montant_total || 0) + Number(f.montant_interet || 0))
+    const totalPaye = spDetail
+      ? Number(spDetail.montant_rembourse || 0)
+      : Number(f.montant_paye || 0)
+    const reste = totalDu - totalPaye
+
+    if (filterMode === 'a_recouvrer') {
+      if (selectedSpecId === 'all') {
+        if (f.statut !== 'impayee' && f.statut !== 'partiellement_paye' && reste <= 0) {
+          return false
+        }
+      } else {
+        if (reste <= 0) return false
+      }
     }
     if (filterMode === 'surplus' && reste >= 0) {
       return false
@@ -53,6 +103,17 @@ export default function RemboursementsClient({
       f.id.toLowerCase().includes(term)
     )
   })
+
+  const selectedFacture = factures.find((f) => f.id === selectedFactureId) || filteredFactures[0] || null
+
+  const factureForActions = useMemo(() => {
+    if (!selectedFacture) return null
+    if (selectedSpecId === 'all') return selectedFacture
+    return {
+      ...selectedFacture,
+      filterSpeculationId: selectedSpecId,
+    }
+  }, [selectedFacture, selectedSpecId])
 
   return (
     <div>
@@ -99,12 +160,43 @@ export default function RemboursementsClient({
                 Toutes
               </button>
             </div>
+            {availableSpeculations.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedSpecId}
+                  onChange={(e) => setSelectedSpecId(e.target.value)}
+                  className="block w-full rounded-md border-0 py-1.5 pl-8 pr-3 bg-background text-foreground ring-1 ring-inset ring-surface-border text-xs focus:ring-2 focus:ring-primary shadow-xs cursor-pointer"
+                  title="Filtrer les remboursements par culture / spéculation"
+                >
+                  <option value="all">🌾 Toutes les cultures (Cumul)</option>
+                  {availableSpeculations.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      🌾 {sp.nom}
+                    </option>
+                  ))}
+                </select>
+                <Wheat className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground-muted" />
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-2">
             {filteredFactures.map((facture) => {
               const isSelected = selectedFacture?.id === facture.id
-              const reste = Number(facture.montant_total || 0) + Number(facture.montant_interet || 0) - Number(facture.montant_paye || 0)
+              let cardTotalDu = Number(facture.montant_total || 0) + Number(facture.montant_interet || 0)
+              let cardMontantPaye = Number(facture.montant_paye || 0)
+              let cardSpecDetail: any = null
+
+              if (selectedSpecId !== 'all') {
+                cardSpecDetail = facture.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+                  || facture.member_parcelles?.find((p: any) => p.speculationId === selectedSpecId)
+                if (cardSpecDetail) {
+                  cardTotalDu = Number(cardSpecDetail.montant_du || 0)
+                  cardMontantPaye = Number(cardSpecDetail.montant_rembourse || 0)
+                }
+              }
+
+              const reste = cardTotalDu - cardMontantPaye
               const isMembre = facture.tiers_type !== 'client'
               const nomAffiche = isMembre
                 ? `${facture.membre?.prenom || ''} ${facture.membre?.nom || ''}`.trim()
@@ -122,7 +214,7 @@ export default function RemboursementsClient({
                       <div className="font-medium text-foreground truncate">
                         {nomAffiche}
                       </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[10px] font-medium ${facture.type_document === 'prestation'
                             ? 'bg-secondary/15 text-secondary'
                             : facture.type_document === 'vente_stock'
@@ -136,6 +228,11 @@ export default function RemboursementsClient({
                             {facture.client?.code_client || 'CLI'}
                           </span>
                         )}
+                        {cardSpecDetail && (
+                          <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.2 text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                            🌾 {cardSpecDetail.nom} ({Number(cardSpecDetail.superficie || 0).toLocaleString()} ha)
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-xs text-foreground-muted shrink-0 text-right">
@@ -143,8 +240,8 @@ export default function RemboursementsClient({
                     </div>
                   </div>
                   <div className="mt-2 text-xs flex items-center justify-between text-foreground-muted border-t border-surface-border/50 pt-1.5">
-                    <span>Dû: <strong className="text-foreground">{(Number(facture.montant_total || 0) + Number(facture.montant_interet || 0)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</strong></span>
-                    <span>Payé: <strong className="text-success">{Number(facture.montant_paye || 0).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</strong></span>
+                    <span>Dû: <strong className="text-foreground">{cardTotalDu.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</strong></span>
+                    <span>Payé: <strong className="text-success">{cardMontantPaye.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })}{unite}</strong></span>
                   </div>
                   <div className={`mt-1 text-sm font-semibold flex items-center justify-between ${reste < 0 ? 'text-primary' : reste === 0 ? 'text-success' : 'text-danger'}`}>
                     <span>{reste < 0 ? dict.remboursements.list.surplus : dict.remboursements.list.reste}</span>
@@ -200,18 +297,28 @@ export default function RemboursementsClient({
                 </div>
                 <div className="flex items-center gap-2">
                   <FactureWhatsAppModal
-                    facture={selectedFacture}
+                    facture={factureForActions || selectedFacture}
                     gieName={gieName}
                     dict={dict}
                     buttonVariant="button"
                   />
-                  <DownloadPdfButton facture={selectedFacture} dict={dict} gieName={gieName} />
+                  <DownloadPdfButton facture={factureForActions || selectedFacture} dict={dict} gieName={gieName} />
                 </div>
               </div>
 
               {(() => {
-                const totalDu = Number(selectedFacture.montant_total || 0) + Number(selectedFacture.montant_interet || 0)
-                const montantPaye = Number(selectedFacture.montant_paye || 0)
+                const currentSp = (selectedSpecId !== 'all' && selectedFacture.type_document === 'campagne')
+                  ? (selectedFacture.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+                     || selectedFacture.member_parcelles?.find((p: any) => p.speculationId === selectedSpecId))
+                  : null
+
+                const isSpecFiltered = !!currentSp
+                const totalDu = isSpecFiltered
+                  ? Number(currentSp.montant_du || 0)
+                  : Number(selectedFacture.montant_total || 0) + Number(selectedFacture.montant_interet || 0)
+                const montantPaye = isSpecFiltered
+                  ? Number(currentSp.montant_rembourse || 0)
+                  : Number(selectedFacture.montant_paye || 0)
                 const reste = totalDu - montantPaye
                 const tauxPaye = totalDu > 0 ? Math.min(100, Math.round((montantPaye / totalDu) * 100)) : 100
 
@@ -229,6 +336,24 @@ export default function RemboursementsClient({
 
                 return (
                   <>
+                    {/* Alerte si filtre spéculation actif */}
+                    {isSpecFiltered && (
+                      <div className="mb-5 p-3.5 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-between text-xs text-primary font-medium">
+                        <div className="flex items-center gap-2">
+                          <Wheat className="h-4 w-4 shrink-0 text-primary" />
+                          <span>
+                            Filtre actif sur la culture : <strong className="font-bold underline">{currentSp.nom}</strong> {currentSp.superficie ? `(${currentSp.superficie} ha)` : ''} — Les montants dû, remboursé, solde, ainsi que les exports PDF et WhatsApp sont restreints à cette culture.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSpecId('all')}
+                          className="text-[11px] underline hover:text-foreground font-bold shrink-0 ml-3 cursor-pointer"
+                        >
+                          Voir le cumul
+                        </button>
+                      </div>
+                    )}
                     {/* 🌾 SECTION 1 : SUIVI DES REMBOURSEMENTS PAR SPÉCULATION (D'ABORD) */}
                     {specRembList.length > 0 && (
                       <div className="mb-6 p-4 rounded-xl bg-surface border border-surface-border shadow-xs">
@@ -267,10 +392,19 @@ export default function RemboursementsClient({
                             </thead>
                             <tbody className="divide-y divide-surface-border text-foreground">
                               {specRembList.map((sp: any, idx: number) => {
+                                const isCurrentSpec = selectedSpecId !== 'all' && sp.speculation_id === selectedSpecId
                                 return (
-                                  <tr key={sp.speculation_id || idx} className="hover:bg-background/50 transition-colors">
+                                  <tr
+                                    key={sp.speculation_id || idx}
+                                    className={`transition-colors ${isCurrentSpec ? 'bg-primary/10 font-medium' : 'hover:bg-background/50'}`}
+                                  >
                                     <td className="py-2.5 px-3">
-                                      <div className="font-bold text-foreground">{sp.nom}</div>
+                                      <div className="font-bold text-foreground flex items-center gap-1.5">
+                                        {sp.nom}
+                                        {isCurrentSpec && (
+                                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary text-white font-bold">Sélectionné</span>
+                                        )}
+                                      </div>
                                       {sp.variete && <div className="text-[10px] text-foreground-muted">Var. {sp.variete}</div>}
                                       {sp.casier && <div className="text-[10px] text-foreground-muted font-mono">Casier: {sp.casier}</div>}
                                     </td>
@@ -347,7 +481,7 @@ export default function RemboursementsClient({
                         <Layers className="h-4 w-4" />
                       </span>
                       <h4 className="text-xs font-bold uppercase tracking-wider text-foreground-muted">
-                        Récapitulatif Consolidé des Remboursements {specRembList.length > 0 ? '(Toutes Spéculations Confondues)' : ''}
+                        {isSpecFiltered ? `Indicateurs Financiers Spécifiques : Culture ${currentSp.nom}` : `Récapitulatif Consolidé des Remboursements ${specRembList.length > 0 ? '(Toutes Spéculations Confondues)' : ''}`}
                       </h4>
                     </div>
 
@@ -364,7 +498,11 @@ export default function RemboursementsClient({
                         <div className="text-2xl font-black text-foreground mt-2 tracking-tight">
                           {totalDu.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 0 })} {unite}
                         </div>
-                        {selectedFacture.montant_interet > 0 ? (
+                        {isSpecFiltered ? (
+                          <div className="text-xs text-foreground-muted mt-1">
+                            Dotations & intrants pour {currentSp.nom} ({Number(currentSp.superficie || 0).toLocaleString()} ha)
+                          </div>
+                        ) : selectedFacture.montant_interet > 0 ? (
                           <div className="text-xs text-foreground-muted mt-1">
                             Principal: {Number(selectedFacture.montant_total).toLocaleString()} + Intérêts: {Number(selectedFacture.montant_interet).toLocaleString()} {unite}
                           </div>

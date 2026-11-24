@@ -161,11 +161,17 @@ export async function getFacturesPourRemboursement() {
   ) as string[]
 
   const specsByCampagne = new Map<string, any[]>()
+  const allSpeculationsList: any[] = []
   await Promise.all(
     uniqueCampagneIds.map(async (cId) => {
       try {
         const specs = await getSpeculationsCampagne(cId)
         specsByCampagne.set(cId, specs || [])
+        ;(specs || []).forEach((s) => {
+          if (!allSpeculationsList.some((ex) => ex.id === s.id)) {
+            allSpeculationsList.push(s)
+          }
+        })
       } catch (err) {
         console.warn(`Erreur récupération spéculations campagne ${cId}:`, err)
         specsByCampagne.set(cId, [])
@@ -709,7 +715,7 @@ export async function getFacturesPourRemboursement() {
     })
   }
 
-  return { factures: facturesUnifiees }
+  return { factures: facturesUnifiees, allSpeculations: allSpeculationsList }
 }
 
 export async function enregistrerRemboursement(

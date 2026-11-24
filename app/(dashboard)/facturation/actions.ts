@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
 import { getCreditType } from '@/lib/credits-types'
 import { reconcilierPrestationsEtPaiements } from '@/lib/recouvrement-reconciliation'
+import { extraireTagSpeculation, extraireParcellesObservations } from '@/lib/speculations'
+import { getSpeculationsCampagne } from '@/app/(dashboard)/campagnes/[id]/speculations/actions'
 
 export async function getFactures() {
   const supabase = await createClient()
@@ -12,7 +14,18 @@ export async function getFactures() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Non authentifié")
 
-  const [facturesRes, prestationsRes, ventesRes, membresRes, clientsRes, paiementsClientsRes, transactionsRes, remboursementsRes] = await Promise.all([
+  const [
+    facturesRes,
+    prestationsRes,
+    ventesRes,
+    membresRes,
+    clientsRes,
+    paiementsClientsRes,
+    transactionsRes,
+    remboursementsRes,
+    campagneMembresRes,
+    campagneMembreSpecsRes,
+  ] = await Promise.all([
     supabase
       .from('factures')
       .select(`
@@ -42,10 +55,58 @@ export async function getFactures() {
     supabase.from('clients_externes').select('id, nom, telephone'),
     supabase.from('paiements_clients').select('id, client_id, montant, motif, date_paiement'),
     supabase.from('transactions').select('id, date_transaction, type_transaction, type_piece, montant, motif, compte_id, campagne_id'),
-    supabase.from('remboursements').select('id, montant_fcfa, type_remboursement, facture_id, membre_id, date_paiement'),
+    supabase.from('remboursements').select('id, montant_fcfa, type_remboursement, facture_id, membre_id, quantite_nature, produit_nature, date_paiement'),
+    supabase.from('campagne_membres').select('campagne_id, membre_id, superficie, superficie_validee, casier, observations'),
+    supabase.from('campagne_membre_speculations').select('*'),
   ])
 
   if (facturesRes.error) return { error: facturesRes.error.message }
+
+  // Spéculations par campagne
+  const uniqueCampagneIds = Array.from(
+    new Set((facturesRes.data || []).map((f: any) => f.campagne_id).filter(Boolean))
+  ) as string[]
+
+  const specsByCampagne = new Map<string, any[]>()
+  const allSpeculationsList: any[] = []
+  await Promise.all(
+    uniqueCampagneIds.map(async (cId) => {
+      try {
+        const specs = await getSpeculationsCampagne(cId)
+        specsByCampagne.set(cId, specs || [])
+        ;(specs || []).forEach((s) => {
+          if (!allSpeculationsList.some((ex) => ex.id === s.id)) {
+            allSpeculationsList.push(s)
+          }
+        })
+      } catch (err) {
+        console.warn(`Erreur récupération spéculations campagne ${cId}:`, err)
+        specsByCampagne.set(cId, [])
+      }
+    })
+  )
+
+  const membreSpecsData = (campagneMembreSpecsRes && !campagneMembreSpecsRes.error && Array.isArray(campagneMembreSpecsRes.data))
+    ? campagneMembreSpecsRes.data
+    : []
+
+  const parcellesByCampagneMembre = new Map<string, any[]>()
+  membreSpecsData.forEach((ms: any) => {
+    const key = `${ms.campagne_id}:${ms.membre_id}`
+    const list = parcellesByCampagneMembre.get(key) || []
+    list.push(ms)
+    parcellesByCampagneMembre.set(key, list)
+  })
+
+  ;(campagneMembresRes.data || []).forEach((cm: any) => {
+    const key = `${cm.campagne_id}:${cm.membre_id}`
+    if (!parcellesByCampagneMembre.has(key) || parcellesByCampagneMembre.get(key)!.length === 0) {
+      const parcelles = extraireParcellesObservations(cm.observations)
+      if (parcelles && parcelles.length > 0) {
+        parcellesByCampagneMembre.set(key, parcelles)
+      }
+    }
+  })
 
   const paidByDocKey = new Map<string, number>()
   for (const pc of (paiementsClientsRes.data || []) as any[]) {
@@ -82,12 +143,191 @@ export async function getFactures() {
   const recMap = new Map<string, any>()
   reconciledPrestations.forEach((r) => recMap.set(r.prestationId, r))
 
-  const facturesCampagne = (facturesRes.data || []).map((f: any) => ({
-    ...f,
-    type_document: 'campagne' as const,
-    tiers_type: 'membre' as const,
-    designation: f.campagne?.nom ? `Facture Campagne — ${f.campagne.nom}` : 'Facture Campagne',
-  }))
+  const facturesCampagne = (facturesRes.data || []).map((f: any) => {
+    const montantTotal = Number(f.montant_total || 0)
+    const montantInteret = Number(f.montant_interet || 0)
+    const montantPaye = Number(f.montant_paye || 0)
+    const totalDu = montantTotal + montantInteret
+
+    const cId = f.campagne_id
+    const mId = f.membre_id
+    const key = `${cId}:${mId}`
+    const specsCampagne = specsByCampagne.get(cId) || []
+    let memberParcelles = parcellesByCampagneMembre.get(key) || []
+
+    const cmRow = (campagneMembresRes.data || []).find((cm: any) => cm.campagne_id === cId && cm.membre_id === mId)
+    const supGlobale = Number(cmRow?.superficie || 0)
+
+    if (memberParcelles.length === 0) {
+      if (specsCampagne.length > 0) {
+        const firstSpec = specsCampagne[0]
+        memberParcelles = [
+          {
+            speculation_id: firstSpec.id,
+            superficie: supGlobale > 0 ? supGlobale : 1,
+            casier: cmRow?.casier || null,
+          },
+        ]
+      } else {
+        memberParcelles = [
+          {
+            speculation_id: `spec-default-${cId}`,
+            superficie: supGlobale > 0 ? supGlobale : 1,
+            casier: cmRow?.casier || null,
+          },
+        ]
+      }
+    }
+
+    const totalMemberSup = memberParcelles.reduce((sum: number, p: any) => sum + (Number(p.superficie) || 0), 0)
+
+    // Préparation des accumulateurs par spéculation
+    const specAccMap = new Map<string, {
+      speculation_id: string
+      nom: string
+      variete: string | null
+      superficie: number
+      casier: string | null
+      prix_collecte: number
+      produit_collecte: string | null
+      unite_mesure: string
+      ratio: number
+      montant_du: number
+      quantite_nature: number
+      valeur_nature: number
+      montant_numeraire: number
+    }>()
+
+    let allocatedDuSum = 0
+    memberParcelles.forEach((p: any, idx: number) => {
+      const specObj = specsCampagne.find((s: any) => s.id === p.speculation_id)
+      const nom = specObj?.nom || f.campagne?.nom || 'Culture'
+      const ratio = totalMemberSup > 0 ? (Number(p.superficie) || 0) / totalMemberSup : 1 / memberParcelles.length
+      let mDu = Math.round(totalDu * ratio)
+      if (idx === memberParcelles.length - 1) {
+        mDu = Math.max(0, totalDu - allocatedDuSum)
+      } else {
+        allocatedDuSum += mDu
+      }
+
+      specAccMap.set(p.speculation_id, {
+        speculation_id: p.speculation_id,
+        nom,
+        variete: specObj?.variete || null,
+        superficie: Number(p.superficie || 0),
+        casier: p.casier || cmRow?.casier || null,
+        prix_collecte: Number(specObj?.prix_collecte || f.campagne?.prix_collecte || 0),
+        produit_collecte: specObj?.produit_collecte || f.campagne?.produit_collecte || nom,
+        unite_mesure: specObj?.unite_mesure || 'kg',
+        ratio,
+        montant_du: mDu,
+        quantite_nature: 0,
+        valeur_nature: 0,
+        montant_numeraire: 0,
+      })
+    })
+
+    const fRembList = (remboursementsRes.data || []).filter((r: any) => r.facture_id === f.id)
+    let nonVentileMonetaire = 0
+    let sumDetails = 0
+
+    for (const r of fRembList) {
+      const montant = Number(r.montant_fcfa || 0)
+      sumDetails += montant
+      const qte = r.quantite_nature != null ? Number(r.quantite_nature) : null
+      const rawMode = String(r.type_remboursement || '').toLowerCase()
+      const isNature = rawMode === 'nature'
+
+      const specTag = extraireTagSpeculation(r.produit_nature)
+      let matchedSpecId: string | null = null
+
+      if ((r as any).speculation_id && specAccMap.has((r as any).speculation_id)) {
+        matchedSpecId = (r as any).speculation_id
+      } else if (specTag) {
+        for (const [sId, sData] of specAccMap.entries()) {
+          if (sData.nom.toLowerCase() === specTag.toLowerCase()) {
+            matchedSpecId = sId
+            break
+          }
+        }
+      } else if (isNature && r.produit_nature) {
+        const prodLower = String(r.produit_nature).toLowerCase()
+        for (const [sId, sData] of specAccMap.entries()) {
+          if (sData.produit_collecte && prodLower.includes(sData.produit_collecte.toLowerCase())) {
+            matchedSpecId = sId
+            break
+          }
+          if (prodLower.includes(sData.nom.toLowerCase())) {
+            matchedSpecId = sId
+            break
+          }
+        }
+      }
+
+      if (isNature) {
+        const targetId = matchedSpecId || memberParcelles[0]?.speculation_id
+        if (targetId && specAccMap.has(targetId)) {
+          const acc = specAccMap.get(targetId)!
+          const qVal = qte || 0
+          const val = montant > 0 ? montant : qVal * acc.prix_collecte
+          acc.quantite_nature += qVal
+          acc.valeur_nature += val
+        }
+      } else {
+        if (matchedSpecId && specAccMap.has(matchedSpecId)) {
+          specAccMap.get(matchedSpecId)!.montant_numeraire += montant
+        } else {
+          nonVentileMonetaire += montant
+        }
+      }
+    }
+
+    if (montantPaye > sumDetails) {
+      nonVentileMonetaire += (montantPaye - sumDetails)
+    }
+
+    for (const acc of specAccMap.values()) {
+      const partNonVentilee = Math.round(nonVentileMonetaire * acc.ratio)
+      acc.montant_numeraire += partNonVentilee
+    }
+
+    const rembParSpecList = Array.from(specAccMap.values()).map((acc) => {
+      const montantRembourse = acc.valeur_nature + acc.montant_numeraire
+      const solde = acc.montant_du - montantRembourse
+      const taux = acc.montant_du > 0 ? Math.min(100, Math.round((montantRembourse / acc.montant_du) * 100)) : 100
+      let statutSolde: 'solde' | 'excedent' | 'reliquat' = 'solde'
+      if (solde > 0) statutSolde = 'reliquat'
+      else if (solde < 0) statutSolde = 'excedent'
+
+      return {
+        speculation_id: acc.speculation_id,
+        nom: acc.nom,
+        variete: acc.variete,
+        superficie: acc.superficie,
+        casier: acc.casier,
+        prix_collecte: acc.prix_collecte,
+        produit_collecte: acc.produit_collecte,
+        unite_mesure: acc.unite_mesure,
+        montant_du: acc.montant_du,
+        quantite_nature: acc.quantite_nature,
+        valeur_nature: acc.valeur_nature,
+        montant_numeraire: acc.montant_numeraire,
+        montant_rembourse: montantRembourse,
+        taux_recouvrement: taux,
+        solde,
+        statut_solde: statutSolde,
+      }
+    })
+
+    return {
+      ...f,
+      type_document: 'campagne' as const,
+      tiers_type: 'membre' as const,
+      designation: f.campagne?.nom ? `Facture Campagne — ${f.campagne.nom}` : 'Facture Campagne',
+      remboursements_par_speculation: rembParSpecList,
+      member_parcelles: memberParcelles,
+    }
+  })
 
   const facturesPrestations = (prestationsRes.data || []).map((p: any) => {
     const cNomLower = String(p.client_nom || '').trim().toLowerCase()
@@ -193,7 +433,7 @@ export async function getFactures() {
     return tb - ta
   })
 
-  return { factures }
+  return { factures, allSpeculations: allSpeculationsList }
 }
 
 export async function updateMembreTelephone(membreId: string, telephone: string) {

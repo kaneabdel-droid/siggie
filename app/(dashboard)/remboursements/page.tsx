@@ -6,7 +6,7 @@ import { getTenantContext } from '@/utils/supabase/tenant'
 
 export default async function RemboursementsPage() {
   const supabase = await createClient()
-  const [{ factures, error }, { data: comptes }, tenant, locale] = await Promise.all([
+  const [{ factures, allSpeculations, error }, { data: comptes }, tenant, locale] = await Promise.all([
     getFacturesPourRemboursement(),
     supabase.from('comptes').select('id, nom').order('nom', { ascending: true }),
     getTenantContext(),
@@ -19,5 +19,14 @@ export default async function RemboursementsPage() {
     return <div className="p-4 bg-danger/10 text-danger rounded-md">Erreur: {error}</div>
   }
 
-  return <RemboursementsClient factures={factures || []} comptes={comptes || []} dict={dict} locale={locale} gieName={gieName} />
+  return (
+    <RemboursementsClient
+      factures={factures || []}
+      comptes={comptes || []}
+      speculations={allSpeculations || []}
+      dict={dict}
+      locale={locale}
+      gieName={gieName}
+    />
+  )
 }
