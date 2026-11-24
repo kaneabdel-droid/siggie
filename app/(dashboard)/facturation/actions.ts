@@ -160,12 +160,15 @@ export async function getFactures() {
 
     if (memberParcelles.length === 0) {
       if (specsCampagne.length > 0) {
-        const share = supGlobale > 0 ? supGlobale / specsCampagne.length : 1
-        memberParcelles = specsCampagne.map((s: any) => ({
-          speculation_id: s.id,
-          superficie: share,
-          casier: cmRow?.casier || null,
-        }))
+        // Le membre sans parcelles explicites n'exploite que la culture principale (specsCampagne[0])
+        const firstSpec = specsCampagne[0]
+        memberParcelles = [
+          {
+            speculation_id: firstSpec.id,
+            superficie: supGlobale > 0 ? supGlobale : 1,
+            casier: cmRow?.casier || null,
+          },
+        ]
       } else {
         memberParcelles = [
           {
@@ -604,13 +607,11 @@ export async function calculerInteret(
     } else {
       const sup = Number(cm.superficie || 0)
       if (speculations.length > 0) {
-        // En multi-spéculations, si le membre a une superficie globale sans ventilation explicite,
-        // on alloue sa superficie entre les spéculations de la campagne
-        const share = sup / speculations.length
-        memberSpecsMap.set(cm.membre_id, speculations.map(s => ({
-          speculation_id: s.id,
-          superficie: share,
-        })))
+        // Le membre sans parcelles explicites n'exploite que la culture principale (speculations[0])
+        memberSpecsMap.set(cm.membre_id, [{
+          speculation_id: speculations[0].id,
+          superficie: sup,
+        }])
       } else {
         memberSpecsMap.set(cm.membre_id, [{
           speculation_id: 'default',
