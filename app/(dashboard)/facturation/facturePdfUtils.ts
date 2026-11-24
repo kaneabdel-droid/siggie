@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/client'
 import { getSpeculationsCampagne } from '@/app/(dashboard)/campagnes/[id]/speculations/actions'
 import { extraireParcellesObservations, extraireTagSpeculation } from '@/lib/speculations'
 import { getCreditSpeculationId, getCreditSpeculationNom } from '@/lib/credits-types'
+import { getFactureItemRank } from '@/lib/intrants/types'
 
 // Formatage propre des montants sans espaces insécables qui posent problème à jsPDF
 export const formatFactureAmount = (amount: number | undefined | null) => {
@@ -144,7 +145,16 @@ export function buildFactureWhatsAppText({
       item.totalMontant += qte * prix
     })
 
-    grouped.forEach((item) => {
+    // Tri croissant par article dans l'ordre de leur type :
+    // Façon cultural -> Service hydraulique -> Semences -> Engrais -> Produits phytosanitaires -> Refacturation -> Autres
+    const sortedItems = Array.from(grouped.values()).sort((a, b) => {
+      const rankA = getFactureItemRank(a.type, a.nom)
+      const rankB = getFactureItemRank(b.type, b.nom)
+      if (rankA !== rankB) return rankA - rankB
+      return a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' })
+    })
+
+    sortedItems.forEach((item) => {
       totalFournitures += item.totalMontant
       const prixMoyen = item.totalQte > 0 ? Math.round(item.totalMontant / item.totalQte) : 0
       itemsLines.push(`• ${item.nom} : ${item.totalQte.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} x ${formatFactureAmount(prixMoyen)} = *${formatFactureAmount(item.totalMontant)}${unitStr}*`)
@@ -498,7 +508,16 @@ export async function generateFacturePdf({
       item.totalMontant += qte * prix
     })
 
-    grouped.forEach((item) => {
+    // Tri croissant par article dans l'ordre de leur type :
+    // Façon cultural -> Service hydraulique -> Semences -> Engrais -> Produits phytosanitaires -> Refacturation -> Autres
+    const sortedItems = Array.from(grouped.values()).sort((a, b) => {
+      const rankA = getFactureItemRank(a.type, a.nom)
+      const rankB = getFactureItemRank(b.type, b.nom)
+      if (rankA !== rankB) return rankA - rankB
+      return a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' })
+    })
+
+    sortedItems.forEach((item) => {
       totalFournitures += item.totalMontant
       const prixMoyen = item.totalQte > 0 ? Math.round(item.totalMontant / item.totalQte) : 0
       tableBody.push([
@@ -679,7 +698,7 @@ export async function generateFacturePdf({
 
   // Récapitulatif financier
   const tableEndY = (doc as any).lastAutoTable?.finalY || 130
-  const footerBlockHeight = 85
+  const footerBlockHeight = 55
   let finalY = tableEndY
   if (finalY + footerBlockHeight > pageHeight) {
     doc.addPage()
@@ -745,29 +764,9 @@ export async function generateFacturePdf({
     doc.text(`${formatFactureAmount(resteAPayer)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
   }
 
-  // MODALITÉS DE REMBOURSEMENT (à gauche)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8.5)
-  doc.setTextColor(0, 0, 0)
-  doc.text('Modalités de remboursement :', 14, finalY + 11)
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(90, 90, 90)
-  doc.text('• Modes acceptés : Espèces, Chèque bancaire, Bon de livraison, Nature', 14, finalY + 16)
-
-  let my = finalY + 21
+  // Calcul équivalent en nature si applicable pour l'information du décompte
   let quantiteNatureStr = 'N/A'
   if (resteAPayer > 0) {
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(35, 90, 65)
-    doc.text('Règlement en nature possible pour solder :', 14, my)
-    my += 4.5
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(80, 80, 80)
-
     if (targetSpecId && targetParcelle) {
       const pCol = Number(targetParcelle.prixCollecte || facture.campagne?.prix_collecte || 0)
       const uMes = targetParcelle.uniteMesure || 'kg'
@@ -775,24 +774,23 @@ export async function generateFacturePdf({
       if (pCol > 0) {
         const qteNat = (resteAPayer / pCol).toFixed(1)
         quantiteNatureStr = `${qteNat} ${uMes} de ${prodNom}`
-        doc.text(`• Équivalent : ${qteNat} ${uMes} de ${prodNom}`, 14, my)
-        my += 4
-        doc.text(`  (sur la base de ${formatFactureAmount(pCol)} ${unite}/${uMes})`, 14, my)
-        my += 4
       }
     } else if (allMemberParcelles.length > 0) {
-      allMemberParcelles.forEach((p, idx) => {
-        const pCol = Number(p.prixCollecte || facture.campagne?.prix_collecte || 0)
-        if (pCol > 0) {
-          const qteNat = (resteAPayer / pCol).toFixed(1)
-          const prodNom = p.produitCollecte || p.nom
-          if (idx === 0) {
-            quantiteNatureStr = `${qteNat} ${p.uniteMesure || 'kg'} de ${prodNom}`
-          }
-          doc.text(`• Équivalent ${prodNom} : ${qteNat} ${p.uniteMesure || 'kg'} (à ${formatFactureAmount(pCol)} ${unite}/${p.uniteMesure || 'kg'})`, 14, my)
-          my += 4
-        }
-      })
+      const p = allMemberParcelles[0]
+      const pCol = Number(p.prixCollecte || facture.campagne?.prix_collecte || 0)
+      if (pCol > 0) {
+        const qteNat = (resteAPayer / pCol).toFixed(1)
+        const prodNom = p.produitCollecte || p.nom
+        quantiteNatureStr = `${qteNat} ${p.uniteMesure || 'kg'} de ${prodNom}`
+      }
+    }
+
+    if (quantiteNatureStr !== 'N/A') {
+      ty += 4.5
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(45, 106, 79)
+      doc.text(`(Soit en nature : ${quantiteNatureStr})`, pageWidth - 14, ty, { align: 'right' })
     }
   }
 
@@ -800,16 +798,16 @@ export async function generateFacturePdf({
   doc.setFont('helvetica', 'italic')
   doc.setFontSize(7.5)
   doc.setTextColor(140, 140, 140)
-  doc.text('Merci de conserver cette facture précieusement pour vos bilans.', 14, finalY + 44)
+  doc.text('Merci de conserver cette facture précieusement pour vos bilans.', 14, finalY + 28)
 
   // Signature Box
   doc.setDrawColor(200, 200, 200)
   doc.setLineDashPattern([2, 2], 0)
-  doc.rect(pageWidth - 70, finalY + 44, 56, 22)
+  doc.rect(pageWidth - 70, finalY + 28, 56, 20)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(80, 80, 80)
-  doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 49)
+  doc.text('Cachet et Signature du GIE', pageWidth - 67, finalY + 33)
 
   // Footer sur la page
   doc.setLineDashPattern([], 0)

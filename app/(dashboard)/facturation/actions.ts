@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/utils/supabase/permissions'
-import { getCreditType } from '@/lib/credits-types'
+import { getCreditType, getCreditSpeculationId, getCreditSpeculationNom } from '@/lib/credits-types'
 import { reconcilierPrestationsEtPaiements } from '@/lib/recouvrement-reconciliation'
 import { extraireTagSpeculation, extraireParcellesObservations } from '@/lib/speculations'
 import { getSpeculationsCampagne } from '@/app/(dashboard)/campagnes/[id]/speculations/actions'
@@ -192,6 +192,7 @@ export async function getFactures() {
       produit_collecte: string | null
       unite_mesure: string
       ratio: number
+      montant_interet?: number
       montant_du: number
       quantite_nature: number
       valeur_nature: number
@@ -220,6 +221,7 @@ export async function getFactures() {
         produit_collecte: specObj?.produit_collecte || f.campagne?.produit_collecte || nom,
         unite_mesure: specObj?.unite_mesure || 'kg',
         ratio,
+        montant_interet: Math.round(montantInteret * ratio),
         montant_du: mDu,
         quantite_nature: 0,
         valeur_nature: 0,
@@ -457,9 +459,66 @@ export async function updateMembreTelephone(membreId: string, telephone: string)
 // Répartit l'intérêt du/des crédit(s) validé(s) d'une campagne entre les factures
 // des membres de cette campagne, au prorata soit de la superficie qu'ils exploitent
 // pour la campagne, soit du montant déjà facturé (intrants + crédits) — stocké à part
-// (factures.montant_interet) pour ne jamais être écrasé par une régénération de la
-// facturation groupée.
-export async function calculerInteret(campagneId: string, methode: 'superficie' | 'intrants') {
+/**
+ * Récupère les crédits de campagne et leurs paramètres (banque, montant, taux, durée, intérêt, spéculation)
+ * pour affichage en temps réel dans la modal de calcul des intérêts.
+ */
+export async function getCreditsCampagneForInteret(campagneId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Non authentifié", credits: [], speculations: [] }
+
+  const [creditsRes, specsRes] = await Promise.all([
+    supabase
+      .from('credits')
+      .select('id, banque_nom, montant_accorde, montant_demande, taux_interet, duree_credit, but_credit, statut')
+      .eq('campagne_id', campagneId)
+      .neq('statut', 'rejete'),
+    getSpeculationsCampagne(campagneId).catch(() => []),
+  ])
+
+  const speculations = specsRes || []
+
+  const credits = (creditsRes.data || [])
+    .filter((c: any) => getCreditType(c) === 'campagne')
+    .map((c: any) => {
+      const montant = Number(c.montant_accorde) || Number(c.montant_demande) || 0
+      const taux = Number(c.taux_interet) || 0
+      const duree = Number(c.duree_credit) || 12
+      const specId = getCreditSpeculationId(c)
+      let specNom = getCreditSpeculationNom(c)
+      if (!specNom && specId) {
+        const found = speculations.find((s: any) => s.id === specId)
+        if (found) specNom = found.nom
+      }
+      const interet = Math.round(montant * (taux / 100) * (duree / 12))
+
+      return {
+        id: c.id,
+        banque_nom: c.banque_nom || 'Banque partenaire',
+        montant,
+        taux_interet: taux,
+        duree_credit: duree,
+        statut: c.statut,
+        speculation_id: specId,
+        speculation_nom: specNom,
+        interet_calcule: interet,
+      }
+    })
+
+  return { credits, speculations }
+}
+
+// Calcule et répartit l'intérêt bancaire de campagne entre les membres.
+// Prend en compte les campagnes multi-spéculations : si un crédit finance une culture spécifique
+// (ex: Tomate ou Oignon), son intérêt est imputé au prorata aux membres exploitant cette culture.
+export async function calculerInteret(
+  campagneId: string,
+  methode: 'superficie' | 'intrants',
+  options?: {
+    speculationId?: string | null
+  }
+) {
   const denied = await requirePermission('facturation', 'update')
   if (denied) return denied as never
   const supabase = await createClient()
@@ -467,67 +526,143 @@ export async function calculerInteret(campagneId: string, methode: 'superficie' 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Non authentifié" }
 
-  const { data: credits } = await supabase
+  const { data: creditsRaw, error: creditsErr } = await supabase
     .from('credits')
-    .select('montant_accorde, taux_interet, duree_credit, type_credit, but_credit')
+    .select('id, banque_nom, montant_accorde, montant_demande, taux_interet, duree_credit, but_credit, statut')
     .eq('campagne_id', campagneId)
-    .eq('statut', 'valide')
+    .neq('statut', 'rejete')
 
-  const totalInteret = (credits || [])
-    .filter((c) => getCreditType(c) === 'campagne')
-    .reduce((sum, c) => {
-      const montant = Number(c.montant_accorde) || 0
-      const taux = Number(c.taux_interet) || 0
-      const duree = Number(c.duree_credit) || 0
-      return sum + montant * (taux / 100) * (duree / 12)
-    }, 0)
-
-  if (totalInteret <= 0) {
-    return { error: "Aucun intérêt à répartir : aucun crédit validé avec taux et durée renseignés pour cette campagne." }
+  if (creditsErr) {
+    console.error("Erreur récupération crédits pour intérêt:", creditsErr)
+    return { error: creditsErr.message }
   }
 
-  const { data: factures } = await supabase
-    .from('factures')
-    .select('id, membre_id, montant_total, montant_paye')
-    .eq('campagne_id', campagneId)
+  let credits = (creditsRaw || []).filter((c: any) => getCreditType(c) === 'campagne')
 
-  if (!factures || factures.length === 0) {
+  const filterSpecId = options?.speculationId && options.speculationId !== 'all' ? options.speculationId : null
+  if (filterSpecId) {
+    credits = credits.filter((c: any) => {
+      const sId = getCreditSpeculationId(c)
+      return sId === filterSpecId
+    })
+  }
+
+  const creditsWithInteret = credits.map((c: any) => {
+    const montant = Number(c.montant_accorde) || Number(c.montant_demande) || 0
+    const taux = Number(c.taux_interet) || 0
+    const duree = Number(c.duree_credit) || 12
+    const specId = getCreditSpeculationId(c)
+    const specNom = getCreditSpeculationNom(c)
+    const interet = Math.round(montant * (taux / 100) * (duree / 12))
+    return {
+      ...c,
+      montant,
+      taux,
+      duree,
+      specId,
+      specNom,
+      interet,
+    }
+  }).filter((c: any) => c.interet > 0)
+
+  const totalInteret = creditsWithInteret.reduce((sum: number, c: any) => sum + c.interet, 0)
+
+  if (totalInteret <= 0) {
+    return {
+      error: "Aucun intérêt à répartir : aucun crédit de campagne avec montant, taux (> 0%) et durée renseignés pour cette campagne.",
+    }
+  }
+
+  const [facturesRes, cmRes] = await Promise.all([
+    supabase
+      .from('factures')
+      .select('id, membre_id, montant_total, montant_paye, montant_interet')
+      .eq('campagne_id', campagneId),
+    supabase
+      .from('campagne_membres')
+      .select('membre_id, superficie, observations')
+      .eq('campagne_id', campagneId),
+  ])
+
+  const factures = facturesRes.data || []
+  if (factures.length === 0) {
     return { error: "Aucune facture trouvée pour cette campagne. Générez d'abord la facturation groupée." }
   }
 
-  const poidsParMembre: Record<string, number> = {}
-  let totalPoids = 0
+  const cmData = cmRes.data || []
 
-  if (methode === 'superficie') {
-    const { data: campagneMembres } = await supabase
-      .from('campagne_membres')
-      .select('membre_id, superficie')
-      .eq('campagne_id', campagneId)
-
-    for (const cm of campagneMembres || []) {
-      const s = Number(cm.superficie) || 0
-      poidsParMembre[cm.membre_id] = s
-      totalPoids += s
+  // Cartographie des parcelles multi-spéculations par membre
+  const memberSpecsMap = new Map<string, Array<{ speculation_id: string; superficie: number }>>()
+  cmData.forEach((cm: any) => {
+    const parcelles = extraireParcellesObservations(cm.observations)
+    if (parcelles && parcelles.length > 0) {
+      memberSpecsMap.set(cm.membre_id, parcelles.map((p) => ({
+        speculation_id: p.speculation_id,
+        superficie: Number(p.superficie || 0),
+      })))
+    } else {
+      memberSpecsMap.set(cm.membre_id, [{
+        speculation_id: 'default',
+        superficie: Number(cm.superficie || 0),
+      }])
     }
-  } else {
-    for (const f of factures) {
-      const m = Number(f.montant_total) || 0
-      poidsParMembre[f.membre_id] = (poidsParMembre[f.membre_id] || 0) + m
-      totalPoids += m
+  })
+
+  // Répartition des intérêts par membre en fonction de la spécialisation de chaque crédit
+  const allocatedInteretByMember: Record<string, number> = {}
+  factures.forEach((f) => {
+    allocatedInteretByMember[f.membre_id] = 0
+  })
+
+  for (const credit of creditsWithInteret) {
+    const cInteret = credit.interet
+    const cSpecId = credit.specId
+
+    const poidsCredit: Record<string, number> = {}
+    let totalPoidsCredit = 0
+
+    if (methode === 'superficie') {
+      for (const cm of cmData) {
+        const mId = cm.membre_id
+        const parcelles = memberSpecsMap.get(mId) || []
+        let sup = 0
+        if (cSpecId) {
+          const matchP = parcelles.find((p) => p.speculation_id === cSpecId)
+          if (matchP) sup = matchP.superficie
+        } else {
+          sup = Number(cm.superficie || 0) || parcelles.reduce((s, p) => s + p.superficie, 0)
+        }
+        if (sup > 0) {
+          poidsCredit[mId] = sup
+          totalPoidsCredit += sup
+        }
+      }
+    } else {
+      // Au prorata du montant total déjà facturé
+      for (const f of factures) {
+        const m = Number(f.montant_total || 0)
+        poidsCredit[f.membre_id] = m
+        totalPoidsCredit += m
+      }
+    }
+
+    if (totalPoidsCredit > 0) {
+      for (const [mId, p] of Object.entries(poidsCredit)) {
+        const part = cInteret * (p / totalPoidsCredit)
+        allocatedInteretByMember[mId] = (allocatedInteretByMember[mId] || 0) + part
+      }
+    } else {
+      // Repli si pas de superficie spécifique : répartir également entre les membres de la campagne
+      const part = cInteret / factures.length
+      factures.forEach((f) => {
+        allocatedInteretByMember[f.membre_id] = (allocatedInteretByMember[f.membre_id] || 0) + part
+      })
     }
   }
 
-  if (totalPoids <= 0) {
-    return {
-      error: methode === 'superficie'
-        ? "Aucune superficie déclarée pour les membres de cette campagne."
-        : "Aucun montant facturé pour répartir l'intérêt."
-    }
-  }
-
+  // Mise à jour de chaque facture avec sa quote-part d'intérêts
   for (const f of factures) {
-    const poids = poidsParMembre[f.membre_id] || 0
-    const part = totalInteret * (poids / totalPoids)
+    const part = Math.round(allocatedInteretByMember[f.membre_id] || 0)
     const totalDu = Number(f.montant_total || 0) + part
     const montantPaye = Number(f.montant_paye || 0)
 

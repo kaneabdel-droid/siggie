@@ -81,20 +81,21 @@ export function isSuperficieBasedType(type: string | null | undefined): boolean 
   return SUPERFICIE_BASED_INTRANT_TYPES.includes(type || '')
 }
 
-// Ordre d'affichage des colonnes par type d'intrant dans l'état des remboursements
-// membre (bilan de campagne) : Façon culturale, Service Hydraulique, Semence, Engrais,
-// Produits phytosanitaires (Pesticide/Fongicide/Herbicide), Refacturation, puis Autres.
-// type_intrant étant un champ texte libre, les GIE n'utilisent pas toujours la casse ou
-// le libellé exact suggéré (ex: "engrais" en minuscule, ou "Produits phytosanitaires"
-// saisi tel quel plutôt que "Pesticide"/"Herbicide") : le classement se fait donc par
-// mot-clé, insensible à la casse, plutôt que par égalité stricte.
+// Ordre d'affichage des colonnes et articles par type d'intrant dans les factures et bilans :
+// 1. Façon culturale / cultural (labour, travail du sol, façon, etc.)
+// 2. Service Hydraulique (irrigation, eau, etc.)
+// 3. Semence (seed, etc.)
+// 4. Engrais (fertilizer, etc.)
+// 5. Produits phytosanitaires (pesticide, fongicide, herbicide, phytosanitaire, etc.)
+// 6. Refacturation (rebilling, etc.)
+// 7. Autres
 const TYPE_ORDER_KEYWORDS: string[][] = [
-  ['façon culturale', 'cultivation work'],
-  ['service hydraulique', 'water service', 'hydraulique'],
+  ['façon', 'facon', 'cultural', 'cultivation'],
+  ['service hydraulique', 'water service', 'hydraulique', 'irrigation', 'service eau'],
   ['semence', 'seed'],
   ['engrais', 'fertilizer', 'fertiliser'],
-  ['pesticide', 'fongicide', 'fungicide', 'herbicide', 'phytosanitaire'],
-  ['refacturation', 'rebilling'],
+  ['pesticide', 'fongicide', 'fungicide', 'herbicide', 'phytosanitaire', 'phytosannitaire', 'phyto', 'insecticide'],
+  ['refacturation', 'rebilling', 'refactur'],
 ]
 
 export function getTypeOrderRank(type: string | null | undefined): number {
@@ -103,4 +104,25 @@ export function getTypeOrderRank(type: string | null | undefined): number {
     keywords.some((keyword) => normalized.includes(keyword))
   )
   return index === -1 ? TYPE_ORDER_KEYWORDS.length : index
+}
+
+/**
+ * Rang de tri croissant d'un article ou intrant selon l'ordre strict :
+ * 0: façon cultural
+ * 1: service hydraulique
+ * 2: semences
+ * 3: engrais
+ * 4: produits phytosannitaires
+ * 5: refacturation
+ * 6: autres
+ * Si le type est manquant ou générique, vérifie aussi le nom de l'intrant en repli.
+ */
+export function getFactureItemRank(type: string | null | undefined, nom?: string | null | undefined): number {
+  const rank = getTypeOrderRank(type)
+  if (rank < TYPE_ORDER_KEYWORDS.length) return rank
+  if (nom) {
+    const rankFromName = getTypeOrderRank(nom)
+    if (rankFromName < TYPE_ORDER_KEYWORDS.length) return rankFromName
+  }
+  return TYPE_ORDER_KEYWORDS.length
 }

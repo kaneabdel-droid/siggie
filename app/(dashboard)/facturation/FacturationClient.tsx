@@ -167,7 +167,7 @@ export default function FacturationClient({
         ? f.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
         : null
 
-      const montantInteret = spDetail ? 0 : Number(f.montant_interet || 0)
+      const montantInteret = spDetail ? Number(spDetail.montant_interet || 0) : Number(f.montant_interet || 0)
       const totalDu = spDetail ? Number(spDetail.montant_du || 0) : (Number(f.montant_total || 0) + montantInteret)
       const paye = spDetail ? Number(spDetail.montant_rembourse || 0) : Number(f.montant_paye || 0)
       const solde = totalDu - paye
@@ -492,7 +492,7 @@ export default function FacturationClient({
                           ? facture.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
                           : null
 
-                        const montantInteret = spDetail ? 0 : Number(facture.montant_interet || 0)
+                        const montantInteret = spDetail ? Number(spDetail.montant_interet || 0) : Number(facture.montant_interet || 0)
                         const totalDu = spDetail ? Number(spDetail.montant_du || 0) : (Number(facture.montant_total || 0) + montantInteret)
                         const montantPaye = spDetail ? Number(spDetail.montant_rembourse || 0) : Number(facture.montant_paye || 0)
                         const resteAPayer = totalDu - montantPaye
