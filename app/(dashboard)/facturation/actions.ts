@@ -160,14 +160,12 @@ export async function getFactures() {
 
     if (memberParcelles.length === 0) {
       if (specsCampagne.length > 0) {
-        const firstSpec = specsCampagne[0]
-        memberParcelles = [
-          {
-            speculation_id: firstSpec.id,
-            superficie: supGlobale > 0 ? supGlobale : 1,
-            casier: cmRow?.casier || null,
-          },
-        ]
+        const share = supGlobale > 0 ? supGlobale / specsCampagne.length : 1
+        memberParcelles = specsCampagne.map((s: any) => ({
+          speculation_id: s.id,
+          superficie: share,
+          casier: cmRow?.casier || null,
+        }))
       } else {
         memberParcelles = [
           {
@@ -310,6 +308,7 @@ export async function getFactures() {
         prix_collecte: acc.prix_collecte,
         produit_collecte: acc.produit_collecte,
         unite_mesure: acc.unite_mesure,
+        montant_interet: acc.montant_interet || 0,
         montant_du: acc.montant_du,
         quantite_nature: acc.quantite_nature,
         valeur_nature: acc.valeur_nature,
@@ -573,7 +572,7 @@ export async function calculerInteret(
     }
   }
 
-  const [facturesRes, cmRes] = await Promise.all([
+  const [facturesRes, cmRes, specsRes] = await Promise.all([
     supabase
       .from('factures')
       .select('id, membre_id, montant_total, montant_paye, montant_interet')
@@ -582,6 +581,7 @@ export async function calculerInteret(
       .from('campagne_membres')
       .select('membre_id, superficie, observations')
       .eq('campagne_id', campagneId),
+    getSpeculationsCampagne(campagneId).catch(() => []),
   ])
 
   const factures = facturesRes.data || []
@@ -590,6 +590,7 @@ export async function calculerInteret(
   }
 
   const cmData = cmRes.data || []
+  const speculations = specsRes || []
 
   // Cartographie des parcelles multi-spéculations par membre
   const memberSpecsMap = new Map<string, Array<{ speculation_id: string; superficie: number }>>()
@@ -601,10 +602,21 @@ export async function calculerInteret(
         superficie: Number(p.superficie || 0),
       })))
     } else {
-      memberSpecsMap.set(cm.membre_id, [{
-        speculation_id: 'default',
-        superficie: Number(cm.superficie || 0),
-      }])
+      const sup = Number(cm.superficie || 0)
+      if (speculations.length > 0) {
+        // En multi-spéculations, si le membre a une superficie globale sans ventilation explicite,
+        // on alloue sa superficie entre les spéculations de la campagne
+        const share = sup / speculations.length
+        memberSpecsMap.set(cm.membre_id, speculations.map(s => ({
+          speculation_id: s.id,
+          superficie: share,
+        })))
+      } else {
+        memberSpecsMap.set(cm.membre_id, [{
+          speculation_id: 'default',
+          superficie: sup,
+        }])
+      }
     }
   })
 

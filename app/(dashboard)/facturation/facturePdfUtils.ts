@@ -187,12 +187,15 @@ export function buildFactureWhatsAppText({
   if (targetSpecId) {
     const spRemb = rembList.find((s: any) => s.speculation_id === targetSpecId)
     if (spRemb) {
-      totalDu = Number(spRemb.montant_du || 0)
+      montantInteret = Number(spRemb.montant_interet || 0) || Math.max(0, Number(spRemb.montant_du || 0) - totalFournitures)
+      totalDu = totalFournitures + montantInteret
+      if (Number(spRemb.montant_du || 0) > 0 && Math.abs((totalFournitures + montantInteret) - Number(spRemb.montant_du)) > 50) {
+        totalDu = Number(spRemb.montant_du)
+      }
       montantPaye = Number(spRemb.montant_rembourse || 0)
-      resteAPayer = Number(spRemb.solde || 0)
-      montantInteret = Math.max(0, totalDu - totalFournitures)
+      resteAPayer = totalDu - montantPaye
     } else {
-      montantInteret = Math.round(Number(facture.montant_interet || 0) * ratio)
+      montantInteret = Number(facture.montant_interet || 0) > 0 ? Math.round(Number(facture.montant_interet) * ratio) : 0
       totalDu = totalFournitures + montantInteret
       montantPaye = Math.round(Number(facture.montant_paye || 0) * ratio)
       resteAPayer = totalDu - montantPaye
@@ -570,12 +573,15 @@ export async function generateFacturePdf({
   if (targetSpecId) {
     const spRemb = rembList.find((s: any) => s.speculation_id === targetSpecId)
     if (spRemb) {
-      totalDu = Number(spRemb.montant_du || 0)
+      montantInteret = Number(spRemb.montant_interet || 0) || Math.max(0, Number(spRemb.montant_du || 0) - totalFournitures)
+      totalDu = totalFournitures + montantInteret
+      if (Number(spRemb.montant_du || 0) > 0 && Math.abs((totalFournitures + montantInteret) - Number(spRemb.montant_du)) > 50) {
+        totalDu = Number(spRemb.montant_du)
+      }
       montantPaye = Number(spRemb.montant_rembourse || 0)
-      resteAPayer = Number(spRemb.solde || 0)
-      montantInteret = Math.max(0, totalDu - totalFournitures)
+      resteAPayer = totalDu - montantPaye
     } else {
-      montantInteret = Math.round(Number(facture.montant_interet || 0) * ratio)
+      montantInteret = Number(facture.montant_interet || 0) > 0 ? Math.round(Number(facture.montant_interet) * ratio) : 0
       totalDu = totalFournitures + montantInteret
       montantPaye = Math.round(Number(facture.montant_paye || 0) * ratio)
       resteAPayer = totalDu - montantPaye

@@ -452,7 +452,14 @@ export default function FacturationClient({
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
             {(() => {
-              const hasAnyInteret = filteredFactures.some((f) => Number(f.montant_interet || 0) > 0)
+              const hasAnyInteret = filteredFactures.some((f) => {
+                const isCropFiltered = selectedSpecId !== 'all'
+                const sp = isCropFiltered && (f.type_document || 'campagne') === 'campagne'
+                  ? f.remboursements_par_speculation?.find((s: any) => s.speculation_id === selectedSpecId)
+                  : null
+                const mInt = sp ? Number(sp.montant_interet || 0) : Number(f.montant_interet || 0)
+                return mInt > 0
+              })
               return (
                 <div className="overflow-hidden overflow-x-auto shadow ring-1 ring-surface-border sm:rounded-lg bg-surface">
                   <table className="min-w-full divide-y divide-surface-border">
@@ -505,12 +512,12 @@ export default function FacturationClient({
                             ...facture,
                             filterSpeculationId: selectedSpecId,
                             filterSpeculationNom: spDetail.nom,
-                            montant_total: spDetail.montant_du,
-                            montant_interet: 0,
+                            montant_total: spDetail.montant_du - (spDetail.montant_interet || 0),
+                            montant_interet: spDetail.montant_interet || 0,
                             montant_paye: spDetail.montant_rembourse,
                             total_du: spDetail.montant_du,
                             reste: spDetail.solde,
-                            designation: `Facture ${spDetail.nom} (${spDetail.superficie} ha) — ${facture.campagne?.nom || 'Campagne'}`,
+                            designation: `Facture ${spDetail.nom} (${Number(spDetail.superficie).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ha) — ${facture.campagne?.nom || 'Campagne'}`,
                           }
                           : facture
 
