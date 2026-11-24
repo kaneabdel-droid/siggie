@@ -63,7 +63,7 @@ export default async function CreditsPage() {
           try {
             const meta = JSON.parse(row.libelle)
             nom = meta.nom || nom
-          } catch {}
+          } catch { }
           return {
             id: row.id,
             campagne_id: (row.compte || '').replace('SPEC:', ''),
@@ -101,6 +101,8 @@ export default async function CreditsPage() {
         credits={credits || []}
         comptes={comptes || []}
         materiels={materiels || []}
+        campagnes={campagnes || []}
+        speculations={speculations || []}
         dict={dict}
         locale={locale}
         unite={unite}

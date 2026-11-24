@@ -287,6 +287,136 @@ export async function updateCreditEquipementDateAcquisition(
   return { success: true }
 }
 
+export async function updateCredit(formData: FormData) {
+  const denied = await requirePermission('credits', 'update')
+  if (denied) return denied as never
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Non authentifié")
+
+  const { data: userData } = await supabase
+    .from('utilisateurs')
+    .select('gie_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData) throw new Error("Utilisateur introuvable")
+
+  const creditId = formData.get('credit_id') as string
+  if (!creditId) return { error: "ID du crédit manquant" }
+
+  const typeCredit = ((formData.get('type_credit') as string) || 'campagne') as 'campagne' | 'equipement'
+  const equipementNom = (formData.get('equipement_nom') as string)?.trim() || null
+  const rawCampagneId = formData.get('campagne_id') as string | null
+  const isIndependant = !rawCampagneId || rawCampagneId.trim() === '' || rawCampagneId === 'independant'
+  let campagneId = !isIndependant ? rawCampagneId!.trim() : null
+
+  if (!campagneId) {
+    const { data: activeCamp } = await supabase
+      .from('campagnes')
+      .select('id')
+      .eq('gie_id', userData.gie_id)
+      .order('date_debut', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    campagneId = activeCamp?.id || null
+  }
+
+  const banqueNom = (formData.get('banque_nom') as string)?.trim() || null
+  const montantDemande = parseFloat(formData.get('montant_demande') as string) || 0
+  const rawMontantAccorde = formData.get('montant_accorde') as string | null
+  const montantAccorde = rawMontantAccorde !== null && rawMontantAccorde !== '' ? parseFloat(rawMontantAccorde) : undefined
+  const rawBut = (formData.get('but_credit') as string)?.trim() || ''
+  const typeFinancement = (formData.get('type_financement') as string) || 'global'
+  const periodicite = (formData.get('periodicite_remboursement') as string) || 'annuelle'
+  const dureeCredit = parseInt(formData.get('duree_credit') as string, 10) || (typeCredit === 'equipement' ? 36 : 12)
+  const tauxInteret = parseFloat(formData.get('taux_interet') as string) || 0
+
+  let matchedMaterielId = (formData.get('materiel_id') as string)?.trim() || null
+  let effectiveDateAcquisition = (formData.get('date_acquisition') as string)?.trim() || (formData.get('date_demande') as string)?.trim() || null
+
+  if (typeCredit === 'equipement') {
+    let matchedMat: { id: string; nom: string; date_acquisition: string | null } | null = null
+    if (matchedMaterielId) {
+      const { data: matById } = await supabase
+        .from('materiels')
+        .select('id, nom, date_acquisition')
+        .eq('gie_id', userData.gie_id)
+        .eq('id', matchedMaterielId)
+        .maybeSingle()
+      matchedMat = matById || null
+    } else if (equipementNom) {
+      const { data: matByName } = await supabase
+        .from('materiels')
+        .select('id, nom, date_acquisition')
+        .eq('gie_id', userData.gie_id)
+        .ilike('nom', equipementNom)
+        .limit(1)
+        .maybeSingle()
+      matchedMat = matByName || null
+      if (matchedMat) {
+        matchedMaterielId = matchedMat.id
+      }
+    }
+
+    if (matchedMat && effectiveDateAcquisition && matchedMat.date_acquisition !== effectiveDateAcquisition) {
+      await supabase
+        .from('materiels')
+        .update({ date_acquisition: effectiveDateAcquisition })
+        .eq('id', matchedMat.id)
+    }
+  }
+
+  const rawSpeculationId = (formData.get('speculation_id') as string)?.trim() || null
+  const rawSpeculationNom = (formData.get('speculation_nom') as string)?.trim() || null
+
+  const specTag = typeCredit === 'campagne' && (rawSpeculationId || rawSpeculationNom)
+    ? `${rawSpeculationId ? ` [SPEC_ID:${rawSpeculationId}]` : ''}${rawSpeculationNom ? ` [SPEC_NOM:${rawSpeculationNom}]` : ''}`
+    : ''
+  const metaTag = `[TYPE:${typeCredit}]${equipementNom ? ` [EQUIPEMENT:${equipementNom}]` : ''}${matchedMaterielId ? ` [MATERIEL_ID:${matchedMaterielId}]` : ''}${effectiveDateAcquisition ? ` [DATE_ACQUISITION:${effectiveDateAcquisition}]` : ''} [PERIODICITE:${periodicite}]${isIndependant ? ' [INDEPENDANT:true]' : ''}${specTag}`
+  const butCreditWithMeta = rawBut ? `${metaTag} ${rawBut}` : metaTag
+
+  const updateData: any = {
+    banque_nom: banqueNom,
+    montant_demande: montantDemande,
+    but_credit: butCreditWithMeta,
+    type_financement: typeFinancement,
+    duree_credit: dureeCredit,
+    taux_interet: tauxInteret,
+  }
+
+  if (campagneId) {
+    updateData.campagne_id = campagneId
+  }
+  if (effectiveDateAcquisition) {
+    updateData.date_demande = effectiveDateAcquisition
+  }
+  if (montantAccorde !== undefined && !Number.isNaN(montantAccorde)) {
+    updateData.montant_accorde = montantAccorde
+  }
+
+  const { error: updateError } = await supabase
+    .from('credits')
+    .update(updateData)
+    .eq('id', creditId)
+
+  if (updateError) {
+    console.error("Erreur modification credit:", updateError)
+    return { error: updateError.message }
+  }
+
+  revalidatePath('/credits')
+  revalidatePath(`/credits/${creditId}`)
+  revalidatePath('/materiel')
+  revalidatePath('/materiel/amortissements')
+  if (campagneId) {
+    revalidatePath(`/campagnes/${campagneId}/speculations`)
+    revalidatePath(`/campagnes/${campagneId}`)
+  }
+  return { success: true }
+}
+
 export async function deleteCredit(id: string) {
   const denied = await requirePermission('credits', 'delete')
   if (denied) return denied as never

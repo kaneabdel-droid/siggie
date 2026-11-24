@@ -110,32 +110,44 @@ export function buildFactureWhatsAppText({
   let totalFournitures = 0
 
   if (distributions && distributions.length > 0) {
-    const grouped = new Map<string, { nom: string; type: string; qte: number; prix: number }>()
+    const grouped = new Map<string, {
+      nom: string
+      type: string
+      totalQte: number
+      totalMontant: number
+    }>()
 
     distributions.forEach((d: any) => {
-      if (targetSpecId && d.speculation_id && d.speculation_id !== targetSpecId) return
+      if (targetSpecId && (d as any).speculation_id && (d as any).speculation_id !== targetSpecId) return
       const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
       if (!intrant?.nom) return
 
       const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
       let qte = Number(d.quantite || 0)
 
-      if (targetSpecId && !d.speculation_id) {
+      if (targetSpecId && !(d as any).speculation_id) {
         qte = Math.round(qte * ratio * 100) / 100
       }
       if (qte <= 0) return
 
-      const key = `${intrant.nom}___${intrant.type_intrant || ''}___${prix}`
+      const key = intrant.id || intrant.nom
       if (!grouped.has(key)) {
-        grouped.set(key, { nom: intrant.nom, type: intrant.type_intrant || 'Intrant', qte: 0, prix })
+        grouped.set(key, {
+          nom: intrant.nom,
+          type: intrant.type_intrant || 'Intrant',
+          totalQte: 0,
+          totalMontant: 0,
+        })
       }
-      grouped.get(key)!.qte += qte
+      const item = grouped.get(key)!
+      item.totalQte += qte
+      item.totalMontant += qte * prix
     })
 
     grouped.forEach((item) => {
-      const itemTotal = item.qte * item.prix
-      totalFournitures += itemTotal
-      itemsLines.push(`• ${item.nom} : ${item.qte.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} x ${formatFactureAmount(item.prix)} = *${formatFactureAmount(itemTotal)}${unitStr}*`)
+      totalFournitures += item.totalMontant
+      const prixMoyen = item.totalQte > 0 ? Math.round(item.totalMontant / item.totalQte) : 0
+      itemsLines.push(`• ${item.nom} : ${item.totalQte.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} x ${formatFactureAmount(prixMoyen)} = *${formatFactureAmount(item.totalMontant)}${unitStr}*`)
     })
   }
 
@@ -244,7 +256,7 @@ ${targetSpecId && targetNom ? `🌾 *Culture :* ${targetNom}${targetParcelle?.su
 ${detailsBlock}━━━━━━━━━━━━━━━━━━━
 📊 *DÉCOMPTE FINANCIER*
 ━━━━━━━━━━━━━━━━━━━
-• Total Fournitures & Crédits : ${formatFactureAmount(totalFournitures)}${unitStr}
+• ${credits && credits.length > 0 ? 'Total Intrants & Crédits' : 'Total Intrants'} : ${formatFactureAmount(totalFournitures)}${unitStr}
 ${montantInteret > 0 ? `• Intérêts de campagne : ${formatFactureAmount(montantInteret)}${unitStr}\n` : ''}• *TOTAL FACTURÉ :* ${formatFactureAmount(totalDu)}${unitStr}
 ${acomptesLine}───────────────────
 ${statutMsg}
@@ -317,14 +329,13 @@ export async function generateFacturePdf({
       if (mData) membreDetails = mData
     }
 
-    const [distRes, ciRes, cmRes, specList, memSpecsRes, creditsRes, rembRes] = await Promise.all([
+    const [distRes, ciRes, cmRes, specList, creditsRes, rembRes] = await Promise.all([
       supabase
         .from('distribution_intrants')
         .select(`
           id,
           intrant_id,
           quantite,
-          speculation_id,
           intrants (id, nom, type_intrant, prix_unitaire)
         `)
         .eq('membre_id', membreId)
@@ -340,11 +351,6 @@ export async function generateFacturePdf({
         .eq('membre_id', membreId)
         .maybeSingle(),
       getSpeculationsCampagne(campagneId).catch(() => []),
-      supabase
-        .from('campagne_membre_speculations')
-        .select('*')
-        .eq('campagne_id', campagneId)
-        .eq('membre_id', membreId),
       supabase
         .from('credits')
         .select('id, montant_demande, montant_accorde, but_credit, membre_id')
@@ -393,10 +399,8 @@ export async function generateFacturePdf({
       remboursementsList = rembRes.data
     }
 
-    // Récupération des parcelles du membre
-    const rawParcelles = (memSpecsRes?.data && memSpecsRes.data.length > 0)
-      ? memSpecsRes.data
-      : extraireParcellesObservations(cmRes?.data?.observations)
+    // Récupération des parcelles du membre depuis les observations
+    const rawParcelles = extraireParcellesObservations(cmRes?.data?.observations)
 
     if (rawParcelles && rawParcelles.length > 0) {
       memberParcelles = rawParcelles
@@ -460,36 +464,48 @@ export async function generateFacturePdf({
   let totalFournitures = 0
 
   if (distributions && distributions.length > 0) {
-    const grouped = new Map<string, { nom: string; type: string; qte: number; prix: number }>()
+    const grouped = new Map<string, {
+      nom: string
+      type: string
+      totalQte: number
+      totalMontant: number
+    }>()
 
     distributions.forEach((d: any) => {
-      if (targetSpecId && d.speculation_id && d.speculation_id !== targetSpecId) return
+      if (targetSpecId && (d as any).speculation_id && (d as any).speculation_id !== targetSpecId) return
       const intrant = Array.isArray(d.intrants) ? d.intrants[0] : d.intrants
       if (!intrant?.nom) return
 
       const prix = Number(d.prix_facturation ?? intrant.prix_facturation ?? (intrant.prix_unitaire || 0))
       let qte = Number(d.quantite || 0)
 
-      if (targetSpecId && !d.speculation_id) {
+      if (targetSpecId && !(d as any).speculation_id) {
         qte = Math.round(qte * ratio * 100) / 100
       }
       if (qte <= 0) return
 
-      const key = `${intrant.nom}___${intrant.type_intrant || ''}___${prix}`
+      const key = intrant.id || intrant.nom
       if (!grouped.has(key)) {
-        grouped.set(key, { nom: intrant.nom, type: intrant.type_intrant || 'Intrant', qte: 0, prix })
+        grouped.set(key, {
+          nom: intrant.nom,
+          type: intrant.type_intrant || 'Intrant',
+          totalQte: 0,
+          totalMontant: 0,
+        })
       }
-      grouped.get(key)!.qte += qte
+      const item = grouped.get(key)!
+      item.totalQte += qte
+      item.totalMontant += qte * prix
     })
 
     grouped.forEach((item) => {
-      const itemTotal = item.qte * item.prix
-      totalFournitures += itemTotal
+      totalFournitures += item.totalMontant
+      const prixMoyen = item.totalQte > 0 ? Math.round(item.totalMontant / item.totalQte) : 0
       tableBody.push([
         `${item.nom} (${item.type})`,
-        item.qte.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
-        formatFactureAmount(item.prix),
-        formatFactureAmount(itemTotal),
+        item.totalQte.toLocaleString('fr-FR', { maximumFractionDigits: 2 }),
+        formatFactureAmount(prixMoyen),
+        formatFactureAmount(item.totalMontant),
       ])
     })
   }
@@ -621,34 +637,8 @@ export async function generateFacturePdf({
     doc.text(`Tél : ${membreDetails.telephone}`, pageWidth - 87, 60.5)
   }
 
-  // Bandeau des parcelles
-  let nextY = 68
-  if (allMemberParcelles.length > 0) {
-    doc.setFillColor(240, 248, 244)
-    doc.setDrawColor(180, 220, 200)
-    doc.setLineWidth(0.4)
-    doc.roundedRect(14, 67, pageWidth - 28, 14, 1.5, 1.5, 'FD')
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(35, 90, 65)
-    doc.text(targetSpecId ? '🌾 CULTURE FACTURÉE :' : '🌾 SPÉCULATIONS & PARCELLES EXPLOITÉES :', 18, 72.5)
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.5)
-    doc.setTextColor(40, 60, 50)
-    if (targetSpecId && targetParcelle) {
-      doc.text(`• ${targetNom}${targetParcelle.variete ? ` (${targetParcelle.variete})` : ''} : ${Number(targetParcelle.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${targetParcelle.casier ? ` [Casier ${targetParcelle.casier}]` : ''}`, 18, 77.5)
-    } else {
-      const specStr = allMemberParcelles
-        .map((p) => `${p.nom}${p.variete ? ` (${p.variete})` : ''} : ${Number(p.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha${p.casier ? ` [Casier ${p.casier}]` : ''}`)
-        .join('   •   ')
-      const totalSurfStr = `Total : ${totalAllSuperficie.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ha`
-      doc.text(`• ${specStr}    |    ${totalSurfStr}`, 18, 77.5)
-    }
-
-    nextY = 85
-  }
+  // Le bandeau précédent a été retiré conformément aux consignes.
+  const nextY = 70
 
   // TABLEAU UNIQUE : DÉTAIL DES ARTICLES & FOURNITURES
   autoTable(doc, {
@@ -658,7 +648,7 @@ export async function generateFacturePdf({
         ? `DÉSIGNATION DE L'ARTICLE (Culture : ${targetNom.toUpperCase()})`
         : "DÉSIGNATION DE L'ARTICLE",
       "Qté",
-      "Prix Unitaire",
+      "Prix (moyen)",
       unite ? `Montant (${unite.trim()})` : "Montant",
     ]],
     body: tableBody,
@@ -706,7 +696,8 @@ export async function generateFacturePdf({
   doc.setFontSize(8.5)
   doc.setTextColor(80, 80, 80)
 
-  doc.text('Total Fournitures & Crédits :', totalBoxX, ty)
+  const labelFournitures = credits && credits.length > 0 ? 'Total Intrants & Crédits :' : 'Total Intrants :'
+  doc.text(labelFournitures, totalBoxX, ty)
   doc.text(`${formatFactureAmount(totalFournitures)}`, pageWidth - 14, ty, { align: 'right' })
   ty += 5.5
 

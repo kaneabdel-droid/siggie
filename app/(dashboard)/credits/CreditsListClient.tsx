@@ -53,6 +53,8 @@ export default function CreditsListClient({
   credits,
   comptes,
   materiels = [],
+  campagnes = [],
+  speculations = [],
   dict,
   locale,
   unite,
@@ -61,6 +63,8 @@ export default function CreditsListClient({
   credits: CreditItem[]
   comptes: any[]
   materiels?: Array<{ id: string; nom: string; date_acquisition?: string | null }>
+  campagnes?: Array<{ id: string; nom: string }>
+  speculations?: Array<{ id: string; campagne_id: string; nom: string }>
   dict: any
   locale: string
   unite: string
@@ -233,8 +237,8 @@ export default function CreditsListClient({
           <button
             onClick={() => setActiveTab('all')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'all'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
+              ? 'bg-primary text-white shadow-xs'
+              : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
               }`}
           >
             Tous les crédits
@@ -246,8 +250,8 @@ export default function CreditsListClient({
           <button
             onClick={() => setActiveTab('campagne')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'campagne'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
               }`}
           >
             <Sprout className="h-3.5 w-3.5" />
@@ -260,8 +264,8 @@ export default function CreditsListClient({
           <button
             onClick={() => setActiveTab('equipement')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${activeTab === 'equipement'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-foreground-muted hover:text-foreground hover:bg-background/50'
               }`}
           >
             <Tractor className="h-3.5 w-3.5" />
@@ -336,8 +340,8 @@ export default function CreditsListClient({
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${isEquip
-                                  ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+                                ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20'
+                                : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
                                 }`}
                             >
                               {isEquip ? '🚜 Équipement' : '🌾 Campagne'}
@@ -444,10 +448,10 @@ export default function CreditsListClient({
                     <td className="px-3 py-4 text-xs text-center whitespace-nowrap">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${credit.statut === 'en_attente'
-                            ? 'bg-warning/10 text-warning ring-warning/20'
-                            : credit.statut === 'valide'
-                              ? 'bg-success/10 text-success ring-success/20'
-                              : 'bg-danger/10 text-danger ring-danger/20'
+                          ? 'bg-warning/10 text-warning ring-warning/20'
+                          : credit.statut === 'valide'
+                            ? 'bg-success/10 text-success ring-success/20'
+                            : 'bg-danger/10 text-danger ring-danger/20'
                           }`}
                       >
                         {credit.statut === 'en_attente'
@@ -460,7 +464,15 @@ export default function CreditsListClient({
 
                     {/* Colonne 7 : Actions */}
                     <td className="py-4 pl-3 pr-5 text-right text-xs font-medium whitespace-nowrap">
-                      <CreditRowActions credit={credit} comptes={comptes || []} dict={dict} locale={locale} />
+                      <CreditRowActions
+                        credit={credit}
+                        comptes={comptes || []}
+                        campagnes={campagnes || []}
+                        materiels={materiels || []}
+                        speculations={speculations || []}
+                        dict={dict}
+                        locale={locale}
+                      />
                     </td>
                   </tr>
                 )
