@@ -207,19 +207,19 @@ export function buildFactureWhatsAppText({
     resteAPayer = totalDu - montantPaye
   }
 
-  // Prix de collecte & équivalent nature
+  // Prix de collecte & équivalent nature (uniquement pour la facture par spéculation)
   const prixCollecte = targetSpecId
     ? Number(targetParcelle?.prixCollecte || 0) || Number(facture.campagne?.prix_collecte || 0)
-    : Number(facture.campagne?.prix_collecte || allMemberParcelles[0]?.prixCollecte || 0)
+    : 0
   const produitCollecte = targetSpecId
     ? (targetParcelle?.produitCollecte || targetNom || 'récolte')
-    : (facture.campagne?.produit_collecte || allMemberParcelles[0]?.produitCollecte || 'récolte')
+    : ''
   const uniteMesure = targetSpecId
     ? (targetParcelle?.uniteMesure || 'kg')
-    : (allMemberParcelles[0]?.uniteMesure || 'kg')
+    : 'kg'
 
   let quantiteNature = ''
-  if (prixCollecte > 0 && resteAPayer > 0) {
+  if (targetSpecId && prixCollecte > 0 && resteAPayer > 0) {
     quantiteNature = `${(resteAPayer / prixCollecte).toFixed(1)} ${uniteMesure} de ${produitCollecte}`
   }
 
@@ -764,28 +764,15 @@ export async function generateFacturePdf({
     doc.text(`${formatFactureAmount(resteAPayer)} ${unite}`, pageWidth - 14, ty, { align: 'right' })
   }
 
-  // Calcul équivalent en nature si applicable pour l'information du décompte
+  // Calcul équivalent en nature : UNIQUEMENT pour la facture par spéculation (pas sur le récapitulatif multi-spéculations)
   let quantiteNatureStr = 'N/A'
-  if (resteAPayer > 0) {
-    if (targetSpecId && targetParcelle) {
-      const pCol = Number(targetParcelle.prixCollecte || facture.campagne?.prix_collecte || 0)
-      const uMes = targetParcelle.uniteMesure || 'kg'
-      const prodNom = targetParcelle.produitCollecte || targetNom || 'récolte'
-      if (pCol > 0) {
-        const qteNat = (resteAPayer / pCol).toFixed(1)
-        quantiteNatureStr = `${qteNat} ${uMes} de ${prodNom}`
-      }
-    } else if (allMemberParcelles.length > 0) {
-      const p = allMemberParcelles[0]
-      const pCol = Number(p.prixCollecte || facture.campagne?.prix_collecte || 0)
-      if (pCol > 0) {
-        const qteNat = (resteAPayer / pCol).toFixed(1)
-        const prodNom = p.produitCollecte || p.nom
-        quantiteNatureStr = `${qteNat} ${p.uniteMesure || 'kg'} de ${prodNom}`
-      }
-    }
-
-    if (quantiteNatureStr !== 'N/A') {
+  if (targetSpecId && targetParcelle && resteAPayer > 0) {
+    const pCol = Number(targetParcelle.prixCollecte || facture.campagne?.prix_collecte || 0)
+    const uMes = targetParcelle.uniteMesure || 'kg'
+    const prodNom = targetParcelle.produitCollecte || targetNom || 'récolte'
+    if (pCol > 0) {
+      const qteNat = (resteAPayer / pCol).toFixed(1)
+      quantiteNatureStr = `${qteNat} ${uMes} de ${prodNom}`
       ty += 4.5
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
