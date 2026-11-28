@@ -421,6 +421,23 @@ export async function deletePrestation(id: string) {
   return { success: true }
 }
 
+function parseConsommationRef(row: any) {
+  let fournisseur = row.fournisseur || ''
+  let reference_piece = row.reference_piece || ''
+  if (!reference_piece && typeof fournisseur === 'string') {
+    const m = fournisseur.match(/\[REF:([^\]]+)\]/)
+    if (m) {
+      reference_piece = m[1].trim()
+      fournisseur = fournisseur.replace(/\s*\[REF:[^\]]+\]\s*/g, ' ').trim()
+    }
+  }
+  return {
+    ...row,
+    fournisseur: fournisseur || null,
+    reference_piece: reference_piece || null,
+  }
+}
+
 export async function getConsommations() {
   const supabase = await createClient()
 
@@ -431,12 +448,13 @@ export async function getConsommations() {
     .from('materiel_consommations')
     .select(`
       *,
-      materiel:materiel_id (nom)
+      materiel:materiel_id (nom),
+      campagne:campagne_id (nom)
     `)
     .order('date_consommation', { ascending: false })
 
   if (error) return { error: error.message }
-  return { consommations }
+  return { consommations: (consommations || []).map(parseConsommationRef) }
 }
 
 export async function getRentabiliteMateriels() {
@@ -578,7 +596,8 @@ export async function addConsommation(
   quantite: number,
   montant_total: number,
   date_consommation: string,
-  campagne_id: string | null = null
+  campagne_id: string | null = null,
+  reference_piece: string | null = null
 ) {
   const denied = await requirePermission('materiel_consommations', 'create')
   if (denied) return denied as never
@@ -595,21 +614,46 @@ export async function addConsommation(
     
   if (!userData) return { error: "Utilisateur introuvable" }
 
-  const { error } = await supabase
+  const cleanRef = reference_piece?.trim() || null
+  const cleanFournisseur = fournisseur?.trim() || ''
+
+  let { error } = await supabase
     .from('materiel_consommations')
     .insert({
       gie_id: userData.gie_id,
       materiel_id,
       type_consommation,
-      fournisseur,
+      fournisseur: cleanFournisseur || null,
       quantite,
       montant_total,
       date_consommation,
-      campagne_id: campagne_id || null
+      campagne_id: campagne_id || null,
+      reference_piece: cleanRef,
     })
+
+  // Fallback si la migration 67 (reference_piece) n'est pas encore appliquée sur la base distante
+  if (error && /reference_piece|column/i.test(error.message)) {
+    const fournisseurWithRef = cleanRef
+      ? `${cleanFournisseur} [REF:${cleanRef}]`.trim()
+      : (cleanFournisseur || null)
+    const retry = await supabase
+      .from('materiel_consommations')
+      .insert({
+        gie_id: userData.gie_id,
+        materiel_id,
+        type_consommation,
+        fournisseur: fournisseurWithRef,
+        quantite,
+        montant_total,
+        date_consommation,
+        campagne_id: campagne_id || null,
+      })
+    error = retry.error
+  }
 
   if (error) return { error: error.message }
 
+  revalidatePath('/materiel')
   revalidatePath('/materiel/consommations')
   return { success: true }
 }
@@ -773,24 +817,48 @@ export async function updateConsommation(
   quantite: number,
   montant_total: number,
   date_consommation: string,
-  campagne_id: string | null = null
+  campagne_id: string | null = null,
+  reference_piece: string | null = null
 ) {
   const denied = await requirePermission('materiel_consommations', 'update')
   if (denied) return denied as never
   const supabase = await createClient()
 
-  const { error } = await supabase
+  const cleanRef = reference_piece?.trim() || null
+  const cleanFournisseur = fournisseur?.trim() || ''
+
+  let { error } = await supabase
     .from('materiel_consommations')
     .update({ 
       materiel_id, 
       type_consommation, 
-      fournisseur, 
+      fournisseur: cleanFournisseur || null, 
       quantite, 
       montant_total, 
       date_consommation,
-      campagne_id: campagne_id || null
+      campagne_id: campagne_id || null,
+      reference_piece: cleanRef,
     })
     .eq('id', id)
+
+  if (error && /reference_piece|column/i.test(error.message)) {
+    const fournisseurWithRef = cleanRef
+      ? `${cleanFournisseur} [REF:${cleanRef}]`.trim()
+      : (cleanFournisseur || null)
+    const retry = await supabase
+      .from('materiel_consommations')
+      .update({
+        materiel_id,
+        type_consommation,
+        fournisseur: fournisseurWithRef,
+        quantite,
+        montant_total,
+        date_consommation,
+        campagne_id: campagne_id || null,
+      })
+      .eq('id', id)
+    error = retry.error
+  }
 
   if (error) {
     console.error(error)
@@ -798,5 +866,6 @@ export async function updateConsommation(
   }
 
   revalidatePath('/materiel')
+  revalidatePath('/materiel/consommations')
   return { success: true }
 }

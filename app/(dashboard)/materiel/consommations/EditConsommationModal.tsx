@@ -18,6 +18,7 @@ export default function EditConsommationModal({ consommation, materiels, budget,
     const materiel_id = formData.get('materiel_id') as string
     const type_consommation = formData.get('type_consommation') as string
     const fournisseur = formData.get('fournisseur') as string
+    const reference_piece = ((formData.get('reference_piece') as string) || '').trim() || null
     const quantite = Number(formData.get('quantite') || 0)
     const montant_total = Number(formData.get('montant_total') || 0)
     const date_consommation = formData.get('date_consommation') as string
@@ -31,7 +32,8 @@ export default function EditConsommationModal({ consommation, materiels, budget,
       quantite,
       montant_total,
       date_consommation,
-      campagne_id
+      campagne_id,
+      reference_piece
     )
 
     setLoading(false)
@@ -107,15 +109,30 @@ export default function EditConsommationModal({ consommation, materiels, budget,
                       Sélectionnez une rubrique du budget ou modifiez librement le poste d&apos;imputation.
                     </p>
                   </div>
-                  <div>
-                    <label htmlFor="fournisseur" className="block text-sm font-medium text-foreground">{t.supplier_label}</label>
-                    <input
-                      type="text"
-                      name="fournisseur"
-                      id="fournisseur"
-                      defaultValue={consommation.fournisseur || ''}
-                      className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
-                    />
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor={`reference_piece_${consommation.id}`} className="block text-sm font-medium text-foreground">
+                        Référence pièce
+                      </label>
+                      <input
+                        type="text"
+                        name="reference_piece"
+                        id={`reference_piece_${consommation.id}`}
+                        defaultValue={consommation.reference_piece || ''}
+                        placeholder="Ex: FAC-2026-014, BON-08..."
+                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`fournisseur_${consommation.id}`} className="block text-sm font-medium text-foreground">{t.supplier_label}</label>
+                      <input
+                        type="text"
+                        name="fournisseur"
+                        id={`fournisseur_${consommation.id}`}
+                        defaultValue={consommation.fournisseur || ''}
+                        className="mt-1 block w-full rounded-md border border-surface-border bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
